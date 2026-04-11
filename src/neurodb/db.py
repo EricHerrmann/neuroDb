@@ -19,5 +19,9 @@ def init_db(engine: Engine) -> None:
 @contextmanager
 def get_session(engine: Engine) -> Generator[Session, None, None]:
     with Session(engine) as session:
-        yield session
-        session.commit()
+        try:
+            yield session
+            session.commit()
+        except Exception:
+            session.rollback()
+            raise

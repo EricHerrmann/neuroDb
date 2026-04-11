@@ -538,6 +538,20 @@ git commit -m "feat: add db engine and session factory"
 
 ---
 
+### Phase 0 — Approval Gate
+
+**Do not begin Phase 1 until approval is recorded here.**
+
+Present the following to the user for review before proceeding:
+- All Phase 0 task checkboxes are checked
+- `uv run pytest tests/ -v` passes
+- Schema file (`src/neurodb/schema.py`) is committed and reviewable
+- Provenance model (`src/neurodb/provenance.py`) is committed and reviewable
+
+**Approval:** <!-- PENDING — replace with: "Approved by Eric Herrmann on YYYY-MM-DD" -->
+
+---
+
 ## Phase 1 — First Source Connector (OpenNeuro)
 
 **Goal:** One full ingest path from OpenNeuro's public GraphQL API → normalized records → SQLite → queryable. Idempotent on re-run.
@@ -554,7 +568,7 @@ git commit -m "feat: add db engine and session factory"
 - Create: `src/neurodb/connectors/base.py`
 - Create: `tests/unit/test_base_connector.py`
 
-- [ ] **Step 1: Write failing test**
+- [x] **Step 1: Write failing test**
 
 Create `tests/unit/test_base_connector.py`:
 
@@ -567,13 +581,13 @@ def test_base_connector_is_abstract():
         BaseConnector()  # cannot instantiate abstract class
 ```
 
-- [ ] **Step 2: Run to confirm failure**
+- [x] **Step 2: Run to confirm failure**
 
 ```bash
 uv run pytest tests/unit/test_base_connector.py -v
 ```
 
-- [ ] **Step 3: Implement base connector**
+- [x] **Step 3: Implement base connector**
 
 Create `src/neurodb/connectors/base.py`:
 
@@ -620,14 +634,14 @@ class BaseConnector(ABC):
         """
 ```
 
-- [ ] **Step 4: Run test**
+- [x] **Step 4: Run test**
 
 ```bash
 uv run pytest tests/unit/test_base_connector.py -v
 ```
 Expected: `PASSED`
 
-- [ ] **Step 5: Commit**
+- [x] **Step 5: Commit**
 
 ```bash
 git add src/neurodb/connectors/base.py tests/unit/test_base_connector.py
@@ -643,7 +657,7 @@ git commit -m "feat: add abstract BaseConnector interface"
 - Create: `tests/fixtures/openneuro_sample.json`
 - Create: `tests/unit/test_openneuro_connector.py`
 
-- [ ] **Step 1: Create deterministic fixture**
+- [x] **Step 1: Create deterministic fixture**
 
 Create `tests/fixtures/openneuro_sample.json`:
 
@@ -686,7 +700,7 @@ Create `tests/fixtures/openneuro_sample.json`:
 }
 ```
 
-- [ ] **Step 2: Write failing test**
+- [x] **Step 2: Write failing test**
 
 Create `tests/unit/test_openneuro_connector.py`:
 
@@ -738,13 +752,13 @@ def test_normalize_dataset_maps_fields():
     assert ds.index_id == 1
 ```
 
-- [ ] **Step 3: Run to confirm failure**
+- [x] **Step 3: Run to confirm failure**
 
 ```bash
 uv run pytest tests/unit/test_openneuro_connector.py -v
 ```
 
-- [ ] **Step 4: Implement OpenNeuro connector and model**
+- [x] **Step 4: Implement OpenNeuro connector and model**
 
 Create `src/neurodb/connectors/openneuro.py`:
 
@@ -849,14 +863,14 @@ class OpenNeuroConnector(BaseConnector):
         )
 ```
 
-- [ ] **Step 5: Run tests**
+- [x] **Step 5: Run tests**
 
 ```bash
 uv run pytest tests/unit/test_openneuro_connector.py -v
 ```
 Expected: `3 passed`
 
-- [ ] **Step 6: Commit**
+- [x] **Step 6: Commit**
 
 ```bash
 git add src/neurodb/connectors/openneuro.py tests/fixtures/openneuro_sample.json tests/unit/test_openneuro_connector.py
@@ -873,7 +887,7 @@ git commit -m "feat: OpenNeuro GraphQL connector with normalize and fixture"
 - Create: `tests/integration/test_openneuro_ingest.py`
 - Create: `tests/integration/test_idempotent.py`
 
-- [ ] **Step 1: Write integration tests**
+- [x] **Step 1: Write integration tests**
 
 Create `tests/integration/test_openneuro_ingest.py`:
 
@@ -948,13 +962,13 @@ def test_double_ingest_does_not_duplicate():
         assert session.query(OpenNeuroDataset).count() == 2
 ```
 
-- [ ] **Step 2: Run to confirm failure**
+- [x] **Step 2: Run to confirm failure**
 
 ```bash
 uv run pytest tests/integration/ -v
 ```
 
-- [ ] **Step 3: Implement provenance runner**
+- [x] **Step 3: Implement provenance runner**
 
 Create `src/neurodb/provenance.py`:
 
@@ -1023,14 +1037,14 @@ def run_ingest(engine: Engine, connector: BaseConnector, limit: int = 100) -> In
     return run
 ```
 
-- [ ] **Step 4: Run integration tests**
+- [x] **Step 4: Run integration tests**
 
 ```bash
 uv run pytest tests/integration/ -v
 ```
 Expected: `3 passed`
 
-- [ ] **Step 5: Create ingest CLI script**
+- [x] **Step 5: Create ingest CLI script**
 
 Create `scripts/ingest.py`:
 
@@ -1069,19 +1083,33 @@ if __name__ == "__main__":
     main()
 ```
 
-- [ ] **Step 6: Run full test suite**
+- [x] **Step 6: Run full test suite**
 
 ```bash
 uv run pytest tests/ -v --tb=short
 ```
 Expected: all tests pass.
 
-- [ ] **Step 7: Commit**
+- [x] **Step 7: Commit**
 
 ```bash
 git add src/neurodb/provenance.py scripts/ingest.py tests/integration/
 git commit -m "feat: ingest runner with upsert idempotency and provenance tracking"
 ```
+
+---
+
+### Phase 1 — Approval Gate
+
+**Do not begin Phase 2 until approval is recorded here.**
+
+Present the following to the user for review before proceeding:
+- All Phase 1 task checkboxes are checked
+- `uv run pytest tests/ -v` passes (unit + integration, including idempotency test)
+- A sample ingest run has completed: `uv run scripts/ingest.py --source openneuro --limit 5`
+- Output of `uv run scripts/query_cli.py --search "plasticity"` (or equivalent) shown to user
+
+**Approval:** Approved by Eric Herrmann on 2026-04-11
 
 ---
 
@@ -1365,6 +1393,19 @@ Open `http://localhost:8501` in a browser. Confirm:
 git add src/neurodb/ui/ scripts/ingest.py
 git commit -m "feat: Streamlit MVP UI with dataset browser and SQL query page"
 ```
+
+---
+
+### Phase 2 — Approval Gate
+
+**Do not begin Phase 3 until approval is recorded here.**
+
+Present the following to the user for review before proceeding:
+- All Phase 2 task checkboxes are checked
+- `uv run pytest tests/ -v` passes
+- Streamlit UI is running and user has confirmed dataset browsing and SQL query page work as expected: `uv run streamlit run src/neurodb/ui/app.py`
+
+**Approval:** <!-- PENDING — replace with: "Approved by Eric Herrmann on YYYY-MM-DD" -->
 
 ---
 
@@ -1884,6 +1925,20 @@ git commit -m "feat: field coverage audit script and Phase 3 Approach B gate rev
 
 ---
 
+### Phase 3 — Approval Gate
+
+**Do not begin Phase 4 until approval is recorded here.**
+
+Present the following to the user for review before proceeding:
+- All Phase 3 task checkboxes are checked
+- `uv run pytest tests/ -v` passes
+- `docs/reviews/phase3-field-coverage.md` exists and is committed
+- User has reviewed the field-coverage findings and confirmed the Approach B decision (defer or proceed)
+
+**Approval:** <!-- PENDING — replace with: "Approved by Eric Herrmann on YYYY-MM-DD" -->
+
+---
+
 ## Phase 4 — Query & Analysis Layer
 
 **Goal:** A structured query CLI and first hypothesis query — "which modalities are most represented across sources?" as a baseline for downstream plasticity research.
@@ -1962,6 +2017,20 @@ uv run scripts/query_cli.py --sql "SELECT * FROM v_dataset_summary"
 git add scripts/query_cli.py
 git commit -m "feat: query CLI with keyword, modality, and raw SQL modes"
 ```
+
+---
+
+### Phase 4 — Approval Gate
+
+**Do not begin any Future Phase until approval is recorded here.**
+
+Present the following to the user for review before proceeding:
+- All Phase 4 task checkboxes are checked
+- `uv run pytest tests/ -v` passes
+- User has reviewed the hypothesis query output and confirmed the data layer is stable enough to build on
+- User has decided which Future Phase (5, 6, 7, or 8) to prioritize next
+
+**Approval:** <!-- PENDING — replace with: "Approved by Eric Herrmann on YYYY-MM-DD — next phase: Phase N" -->
 
 ---
 

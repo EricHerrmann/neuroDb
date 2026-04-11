@@ -1,4 +1,4 @@
-from sqlalchemy import Float, ForeignKey, Integer, String, Text
+from sqlalchemy import Float, ForeignKey, Integer, String, Text, UniqueConstraint
 from sqlalchemy.orm import DeclarativeBase, Mapped, mapped_column, relationship
 
 
@@ -23,6 +23,7 @@ class DatasetIndex(Base):
     this table via index_id and are defined alongside their connectors.
     """
     __tablename__ = "datasets_index"
+    __table_args__ = (UniqueConstraint("source", "source_id", name="uq_dataset_source_id"),)
 
     id: Mapped[int] = mapped_column(Integer, primary_key=True, autoincrement=True)
     source: Mapped[str] = mapped_column(String(64), nullable=False, index=True)
@@ -34,6 +35,9 @@ class DatasetIndex(Base):
 
 class Subject(Base):
     __tablename__ = "subjects"
+    __table_args__ = (
+        UniqueConstraint("index_id", "source_subject_id", name="uq_subject_index_source_id"),
+    )
 
     id: Mapped[int] = mapped_column(Integer, primary_key=True, autoincrement=True)
     index_id: Mapped[int] = mapped_column(ForeignKey("datasets_index.id"), nullable=False)

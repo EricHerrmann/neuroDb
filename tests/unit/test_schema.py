@@ -32,3 +32,21 @@ def test_dataset_index_and_subject_linkage():
         assert session.query(Subject).count() == 1
         assert session.query(CrossRef).count() == 0
         assert session.query(QualityEvent).count() == 0
+
+
+def test_dataset_index_rejects_duplicate_source_id():
+    from sqlalchemy.exc import IntegrityError
+    import pytest
+    engine = create_engine("sqlite:///:memory:")
+    DatasetIndex.metadata.create_all(engine)
+    with Session(engine) as session:
+        run = IngestRun(source="test", run_at="2026-04-11T00:00:00", version="0.1")
+        session.add(run)
+        session.flush()
+        session.add(DatasetIndex(source="openneuro", source_id="ds001", run_id=run.id))
+        session.commit()
+    with Session(engine) as session:
+        run2 = session.query(IngestRun).first()
+        session.add(DatasetIndex(source="openneuro", source_id="ds001", run_id=run2.id))
+        with pytest.raises(IntegrityError):
+            session.commit()

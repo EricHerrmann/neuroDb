@@ -1,0 +1,36 @@
+{
+  "data": {
+    "datasets": {
+      "edges": [
+        {
+          "node": {
+            "id": "ds000001",
+            "name": "Balloon Analog Risk Task",
+            "description": "fMRI study of risk-taking in healthy adults.",
+            "numFiles": 90,
+            "metadata": {
+              "species": "Human",
+              "modalities": ["MRI"],
+              "numberOfParticipants": 16
+            },
+            "doi": "10.18112/openneuro.ds000001.v1.0.0"
+          }
+        },
+        {
+          "node": {
+            "id": "ds000002",
+            "name": "Multiband EEG-fMRI Resting State",
+            "description": "Simultaneous EEG-fMRI resting state data.",
+            "numFiles": 210,
+            "metadata": {
+              "species": "Human",
+              "modalities": ["MRI", "EEG"],
+              "numberOfParticipants": 22
+            },
+            "doi": null
+          }
+        }
+      ]
+    }
+  }
+}

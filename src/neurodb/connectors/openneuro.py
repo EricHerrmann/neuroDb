@@ -1,0 +1,98 @@
+import json
+from typing import Any, Iterator
+import httpx
+from sqlalchemy import String, Integer, ForeignKey, Text
+from sqlalchemy.orm import Mapped, mapped_column
+from neurodb.schema import Base, Subject
+from neurodb.connectors.base import BaseConnector
+
+GRAPHQL_URL = "https://openneuro.org/crn/graphql"
+
+_DATASETS_QUERY = """
+query ListDatasets($first: Int) {
+  datasets(first: $first, orderBy: { created: descending }) {
+    edges {
+      node {
+        id
+        name
+        description
+        numFiles
+        doi
+        metadata {
+          species
+          modalities
+          numberOfParticipants
+          bidsVersion
+        }
+      }
+    }
+  }
+}
+"""
+
+
+class OpenNeuroDataset(Base):
+    """Source-specific table for OpenNeuro datasets.
+    References datasets_index via index_id for cross-cutting queries.
+    """
+    __tablename__ = "openneuro_datasets"
+
+    id: Mapped[int] = mapped_column(Integer, primary_key=True, autoincrement=True)
+    index_id: Mapped[int] = mapped_column(ForeignKey("datasets_index.id"), nullable=False, unique=True)
+    source_id: Mapped[str] = mapped_column(String(128), nullable=False, index=True)
+    title: Mapped[str] = mapped_column(Text, nullable=False)
+    doi: Mapped[str | None] = mapped_column(String(256), nullable=True, index=True)
+    modality: Mapped[str | None] = mapped_column(String(64), nullable=True, index=True)
+    n_subjects: Mapped[int | None] = mapped_column(Integer, nullable=True)
+    bids_version: Mapped[str | None] = mapped_column(String(32), nullable=True)
+    description: Mapped[str | None] = mapped_column(Text, nullable=True)
+    metadata_json: Mapped[str | None] = mapped_column(Text, nullable=True)
+    run_id: Mapped[int] = mapped_column(ForeignKey("ingest_runs.id"), nullable=False)
+
+
+class OpenNeuroConnector(BaseConnector):
+    SOURCE_NAME = "openneuro"
+
+    def fetch_datasets(self, limit: int = 100) -> Iterator[dict]:
+        response = httpx.post(
+            GRAPHQL_URL,
+            json={"query": _DATASETS_QUERY, "variables": {"first": limit}},
+            timeout=30,
+        )
+        response.raise_for_status()
+        edges = response.json()["data"]["datasets"]["edges"]
+        for edge in edges:
+            yield edge["node"]
+
+    def get_source_id(self, raw: dict) -> str:
+        return raw["id"]
+
+    def normalize_dataset(self, raw: dict, index_id: int, run_id: int) -> OpenNeuroDataset:
+        meta = raw.get("metadata") or {}
+        modalities = meta.get("modalities") or []
+        modality = modalities[0] if modalities else None
+        return OpenNeuroDataset(
+            index_id=index_id,
+            source_id=raw["id"],
+            title=raw.get("name", ""),
+            doi=raw.get("doi"),
+            modality=modality,
+            n_subjects=meta.get("numberOfParticipants"),
+            bids_version=meta.get("bidsVersion"),
+            description=raw.get("description"),
+            metadata_json=json.dumps(meta),
+            run_id=run_id,
+        )
+
+    def fetch_subjects(self, dataset_source_id: str) -> Iterator[dict]:
+        # OpenNeuro participant data requires BIDS sidecar; stubbed for MVP
+        return iter([])
+
+    def normalize_subject(self, raw: dict, index_id: int) -> Subject:
+        return Subject(
+            index_id=index_id,
+            source_subject_id=raw.get("participant_id", ""),
+            age=raw.get("age"),
+            sex=raw.get("sex"),
+            diagnosis=raw.get("diagnosis"),
+        )

@@ -1,6 +1,9 @@
-from neurodb.schema import DatasetIndex, Subject, IngestRun, CrossRef, QualityEvent
+import pytest
 from sqlalchemy import create_engine, inspect
+from sqlalchemy.exc import IntegrityError
 from sqlalchemy.orm import Session
+
+from neurodb.schema import CrossRef, DatasetIndex, IngestRun, QualityEvent, Subject
 
 
 def test_schema_creates_core_tables():
@@ -35,8 +38,6 @@ def test_dataset_index_and_subject_linkage():
 
 
 def test_dataset_index_rejects_duplicate_source_id():
-    from sqlalchemy.exc import IntegrityError
-    import pytest
     engine = create_engine("sqlite:///:memory:")
     DatasetIndex.metadata.create_all(engine)
     with Session(engine) as session:

@@ -1405,7 +1405,7 @@ Present the following to the user for review before proceeding:
 - `uv run pytest tests/ -v` passes
 - Streamlit UI is running and user has confirmed dataset browsing and SQL query page work as expected: `uv run streamlit run src/neurodb/ui/app.py`
 
-**Approval:** <!-- PENDING — replace with: "Approved by Eric Herrmann on YYYY-MM-DD" -->
+**Approval:** Approved by Eric Herrmann on 2026-04-11 — manual UI verification deferred (Streamlit server not tested live; all automated tests pass)
 
 ---
 

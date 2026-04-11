@@ -18,7 +18,7 @@ def init_db(engine: Engine) -> None:
 
 @contextmanager
 def get_session(engine: Engine) -> Generator[Session, None, None]:
-    with Session(engine) as session:
+    with Session(engine, expire_on_commit=False) as session:
         try:
             yield session
             session.commit()

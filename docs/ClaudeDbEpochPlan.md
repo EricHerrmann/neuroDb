@@ -267,7 +267,7 @@ Run an entity-resolution (dedup) step after ingest: fuzzy-match subjects by age+
 - Create: `pyproject.toml`
 - Create: `src/neurodb/__init__.py`
 
-- [ ] **Step 1: Initialize uv project**
+- [x] **Step 1: Initialize uv project**
 
 ```bash
 cd /home/oldha/projects/neuroDb
@@ -276,14 +276,14 @@ uv add sqlalchemy pytest pytest-cov httpx
 uv add --dev ruff mypy
 ```
 
-- [ ] **Step 2: Verify environment**
+- [x] **Step 2: Verify environment**
 
 ```bash
 uv run python -c "import sqlalchemy; print(sqlalchemy.__version__)"
 ```
 Expected output: `2.x.x`
 
-- [ ] **Step 3: Create src/neurodb package**
+- [x] **Step 3: Create src/neurodb package**
 
 ```bash
 mkdir -p src/neurodb/connectors src/neurodb/transforms src/neurodb/ui/pages
@@ -291,7 +291,7 @@ mkdir -p tests/unit tests/integration tests/fixtures
 touch src/neurodb/__init__.py src/neurodb/connectors/__init__.py src/neurodb/transforms/__init__.py
 ```
 
-- [ ] **Step 4: Commit**
+- [x] **Step 4: Commit**
 
 ```bash
 git add pyproject.toml uv.lock src/ tests/
@@ -306,7 +306,7 @@ git commit -m "chore: initialize neurodb package with uv and sqlalchemy"
 - Create: `src/neurodb/schema.py`
 - Create: `tests/unit/test_schema.py`
 
-- [ ] **Step 1: Write the failing schema validation test**
+- [x] **Step 1: Write the failing schema validation test**
 
 Create `tests/unit/test_schema.py`:
 
@@ -348,14 +348,14 @@ def test_dataset_index_and_subject_linkage():
         assert session.query(QualityEvent).count() == 0
 ```
 
-- [ ] **Step 2: Run to confirm failure**
+- [x] **Step 2: Run to confirm failure**
 
 ```bash
 uv run pytest tests/unit/test_schema.py -v
 ```
 Expected: `ModuleNotFoundError: No module named 'neurodb.schema'`
 
-- [ ] **Step 3: Implement schema**
+- [x] **Step 3: Implement schema**
 
 Create `src/neurodb/schema.py`:
 
@@ -452,14 +452,14 @@ class QualityEvent(Base):
 
 > **Note:** `OpenNeuroDataset` and `AllenDataset` models are defined in Tasks 1.2 and 3.1 alongside their connectors. They import `Base` from this module so `init_db` creates all tables together.
 
-- [ ] **Step 4: Run test to confirm pass**
+- [x] **Step 4: Run test to confirm pass**
 
 ```bash
 uv run pytest tests/unit/test_schema.py -v
 ```
 Expected: `PASSED`
 
-- [ ] **Step 5: Commit**
+- [x] **Step 5: Commit**
 
 ```bash
 git add src/neurodb/schema.py tests/unit/test_schema.py
@@ -474,7 +474,7 @@ git commit -m "feat: define core schema (DatasetIndex, Subject, CrossRef, Qualit
 - Create: `src/neurodb/db.py`
 - Create: `tests/unit/test_db.py`
 
-- [ ] **Step 1: Write failing test**
+- [x] **Step 1: Write failing test**
 
 Create `tests/unit/test_db.py`:
 
@@ -490,14 +490,14 @@ def test_init_creates_schema():
         assert session.query(QualityEvent).count() == 0
 ```
 
-- [ ] **Step 2: Run to confirm failure**
+- [x] **Step 2: Run to confirm failure**
 
 ```bash
 uv run pytest tests/unit/test_db.py -v
 ```
 Expected: `ModuleNotFoundError: No module named 'neurodb.db'`
 
-- [ ] **Step 3: Implement db.py**
+- [x] **Step 3: Implement db.py**
 
 Create `src/neurodb/db.py`:
 
@@ -523,13 +523,13 @@ def get_session(engine: Engine):
         session.commit()
 ```
 
-- [ ] **Step 4: Run test to confirm pass**
+- [x] **Step 4: Run test to confirm pass**
 
 ```bash
 uv run pytest tests/unit/test_db.py -v
 ```
 
-- [ ] **Step 5: Commit**
+- [x] **Step 5: Commit**
 
 ```bash
 git add src/neurodb/db.py tests/unit/test_db.py
@@ -548,7 +548,7 @@ Present the following to the user for review before proceeding:
 - Schema file (`src/neurodb/schema.py`) is committed and reviewable
 - Provenance model (`src/neurodb/provenance.py`) is committed and reviewable
 
-**Approval:** <!-- PENDING — replace with: "Approved by Eric Herrmann on YYYY-MM-DD" -->
+**Approval:** Approved by Eric Herrmann on 2026-04-12
 
 ---
 
@@ -1133,13 +1133,13 @@ Present the following to the user for review before proceeding:
 - Create: `src/neurodb/query.py`
 - Create: `tests/unit/test_query.py`
 
-- [ ] **Step 1: Add Streamlit dependency**
+- [x] **Step 1: Add Streamlit dependency**
 
 ```bash
 uv add streamlit pandas
 ```
 
-- [ ] **Step 2: Write failing query test**
+- [x] **Step 2: Write failing query test**
 
 Create `tests/unit/test_query.py`:
 
@@ -1190,13 +1190,13 @@ def test_get_by_id():
     assert ds.source_id == "ds001"
 ```
 
-- [ ] **Step 3: Run to confirm failure**
+- [x] **Step 3: Run to confirm failure**
 
 ```bash
 uv run pytest tests/unit/test_query.py -v
 ```
 
-- [ ] **Step 4: Implement query helpers**
+- [x] **Step 4: Implement query helpers**
 
 Create `src/neurodb/query.py`:
 
@@ -1234,14 +1234,14 @@ def get_dataset_by_id(session: Session, dataset_id: int) -> Dataset | None:
     return session.get(Dataset, dataset_id)
 ```
 
-- [ ] **Step 5: Run query tests**
+- [x] **Step 5: Run query tests**
 
 ```bash
 uv run pytest tests/unit/test_query.py -v
 ```
 Expected: `3 passed`
 
-- [ ] **Step 6: Commit**
+- [x] **Step 6: Commit**
 
 ```bash
 git add src/neurodb/query.py tests/unit/test_query.py pyproject.toml uv.lock
@@ -1257,7 +1257,7 @@ git commit -m "feat: query helpers (search_datasets, get_dataset_by_id)"
 - Create: `src/neurodb/ui/pages/datasets.py`
 - Create: `src/neurodb/ui/pages/query.py`
 
-- [ ] **Step 1: Create Streamlit app entry point**
+- [x] **Step 1: Create Streamlit app entry point**
 
 Create `src/neurodb/ui/app.py`:
 
@@ -1298,7 +1298,7 @@ elif page == "SQL Query":
     render(engine)
 ```
 
-- [ ] **Step 2: Create dataset browser page**
+- [x] **Step 2: Create dataset browser page**
 
 Create `src/neurodb/ui/pages/datasets.py`:
 
@@ -1346,7 +1346,7 @@ def render(engine: Engine):
     st.caption(f"{len(results)} dataset(s) found")
 ```
 
-- [ ] **Step 3: Create SQL query page**
+- [x] **Step 3: Create SQL query page**
 
 Create `src/neurodb/ui/pages/query.py`:
 
@@ -1376,7 +1376,7 @@ def render(engine: Engine):
             st.error(f"Query error: {e}")
 ```
 
-- [ ] **Step 4: Verify UI starts (manual)**
+- [x] **Step 4: Verify UI starts (manual)**
 
 ```bash
 uv run streamlit run src/neurodb/ui/app.py -- --db neurodb.db
@@ -1387,7 +1387,7 @@ Open `http://localhost:8501` in a browser. Confirm:
 - SQL Query page loads and executes the default query without errors.
 - Run `uv run scripts/ingest.py --source openneuro --limit 20` in a second terminal, then refresh the UI to confirm datasets appear.
 
-- [ ] **Step 5: Commit**
+- [x] **Step 5: Commit**
 
 ```bash
 git add src/neurodb/ui/ scripts/ingest.py

@@ -17,7 +17,7 @@ def render(engine: Engine):
                 rows = result.fetchall()
                 cols = list(result.keys())
             df = pd.DataFrame(rows, columns=cols)
-            st.dataframe(df, use_container_width=True)
+            st.dataframe(df, width="stretch")
             st.caption(f"{len(df)} row(s)")
         except Exception as e:
             st.error(f"Query error: {e}")

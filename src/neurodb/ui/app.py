@@ -7,6 +7,7 @@ Run with:
 import sys
 import streamlit as st
 from neurodb.db import get_engine, init_db
+import neurodb.connectors.openneuro  # noqa: F401 — registers OpenNeuroDataset with Base.metadata
 
 st.set_page_config(page_title="NeuroDb Explorer", layout="wide")
 

@@ -19,7 +19,7 @@ def search_datasets(
             )
         )
     if modality:
-        stmt = stmt.where(OpenNeuroDataset.modality == modality)
+        stmt = stmt.where(OpenNeuroDataset.modality.ilike(modality))
     stmt = stmt.limit(limit)
     return list(session.execute(stmt).scalars())
 

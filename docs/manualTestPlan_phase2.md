@@ -174,11 +174,11 @@ Expected: count matches Test 2 count (not doubled).
 
 All of the following must be true before signing off:
 
-- [ ] Tests 1–6 complete with no unexpected errors
-- [ ] Dataset Browser renders data after ingest
-- [ ] Modality and keyword filters work independently and combined
-- [ ] SQL query page handles both valid and invalid SQL gracefully
-- [ ] Query CLI produces formatted tabular output
-- [ ] Re-ingest does not duplicate rows
+- [x] Tests 1–6 complete with no unexpected errors
+- [x] Dataset Browser renders data after ingest
+- [x] Modality and keyword filters work independently and combined
+- [x] SQL query page handles both valid and invalid SQL gracefully
+- [x] Query CLI produces formatted tabular output
+- [x] Re-ingest does not duplicate rows
 
-**Sign-off:** <!-- Replace with: "Verified by Eric Herrmann on YYYY-MM-DD" -->
+**Sign-off:** Verified by Eric Herrmann on 2026-04-12

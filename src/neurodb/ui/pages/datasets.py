@@ -34,5 +34,5 @@ def render(engine: Engine):
         for ds in results
     ]
     df = pd.DataFrame(data)
-    st.dataframe(df, use_container_width=True)
+    st.dataframe(df, width="stretch")
     st.caption(f"{len(results)} dataset(s) found")

@@ -15,14 +15,17 @@ query ListDatasets($first: Int) {
       node {
         id
         name
-        description
-        numFiles
-        doi
         metadata {
           species
           modalities
-          numberOfParticipants
-          bidsVersion
+          associatedPaperDOI
+          ages
+        }
+        draft {
+          readme
+          description {
+            BIDSVersion
+          }
         }
       }
     }
@@ -69,17 +72,20 @@ class OpenNeuroConnector(BaseConnector):
 
     def normalize_dataset(self, raw: dict, index_id: int, run_id: int) -> OpenNeuroDataset:
         meta = raw.get("metadata") or {}
+        draft = raw.get("draft") or {}
+        draft_desc = draft.get("description") or {}
         modalities = meta.get("modalities") or []
         modality = modalities[0] if modalities else None
+        ages = meta.get("ages") or []
         return OpenNeuroDataset(
             index_id=index_id,
             source_id=raw["id"],
             title=raw.get("name", ""),
-            doi=raw.get("doi"),
+            doi=meta.get("associatedPaperDOI"),
             modality=modality,
-            n_subjects=meta.get("numberOfParticipants"),
-            bids_version=meta.get("bidsVersion"),
-            description=raw.get("description"),
+            n_subjects=len(ages) if ages else None,
+            bids_version=draft_desc.get("BIDSVersion"),
+            description=draft.get("readme"),
             metadata_json=json.dumps(meta),
             run_id=run_id,
         )

@@ -7,7 +7,6 @@ from neurodb.schema import Base, Subject
 from neurodb.connectors.base import BaseConnector
 
 _BASE = "https://api.brain-map.org/api/v2/data/query.json"
-_MODALITY_MAP = {1: "ISH", 2: "ISH", 3: "IHC"}
 
 
 class AllenDataset(Base):
@@ -30,12 +29,19 @@ class AllenBrainConnector(BaseConnector):
     VERSION = "0.1.0"
 
     def fetch_datasets(self, limit: int = 100) -> Iterator[dict]:
-        response = httpx.get(
-            _BASE,
-            params={"criteria": "model::SectionDataSet", "num_rows": limit, "start_row": 0},
-            timeout=30,
-        )
-        response.raise_for_status()
+        try:
+            response = httpx.get(
+                _BASE,
+                params={"criteria": "model::SectionDataSet", "num_rows": limit, "start_row": 0},
+                timeout=30,
+            )
+            response.raise_for_status()
+        except httpx.TimeoutException as e:
+            raise RuntimeError(f"Allen Brain Atlas request timed out ({_BASE})") from e
+        except httpx.HTTPStatusError as e:
+            raise RuntimeError(
+                f"Allen Brain Atlas API returned {e.response.status_code}: {e.response.text[:200]}"
+            ) from e
         for record in response.json().get("msg", []):
             if not record.get("failed", False):
                 yield record
@@ -44,16 +50,15 @@ class AllenBrainConnector(BaseConnector):
         return str(raw["id"])
 
     def normalize_dataset(self, raw: dict, index_id: int, run_id: int) -> AllenDataset:
-        modality = _MODALITY_MAP.get(raw.get("plane_of_section_id"), "Unknown")
         return AllenDataset(
             index_id=index_id,
             source_id=str(raw["id"]),
             title=raw.get("name", ""),
-            modality=modality,
+            modality="ISH",
             plane_of_section_id=raw.get("plane_of_section_id"),
             specimen_id=raw.get("specimen_id"),
             description=raw.get("description"),
-            metadata_json=json.dumps({"plane_of_section_id": raw.get("plane_of_section_id")}),
+            metadata_json=json.dumps(raw),
             run_id=run_id,
         )
 

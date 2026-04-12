@@ -1,9 +1,11 @@
 import json
 from pathlib import Path
 from unittest.mock import patch, MagicMock
+import httpx
+import pytest
 from neurodb.connectors.allen_brain import AllenBrainConnector, AllenDataset
 
-FIXTURE = Path("tests/fixtures/allen_sample.json")
+FIXTURE = Path(__file__).parent.parent / "fixtures" / "allen_sample.json"
 
 
 def _mock_get(*args, **kwargs):
@@ -24,6 +26,31 @@ def test_fetch_datasets_returns_two():
 def test_get_source_id():
     conn = AllenBrainConnector()
     assert conn.get_source_id({"id": 100140756}) == "100140756"
+
+
+def test_fetch_datasets_raises_on_timeout():
+    conn = AllenBrainConnector()
+    with patch(
+        "neurodb.connectors.allen_brain.httpx.get",
+        side_effect=httpx.TimeoutException("timed out"),
+    ):
+        with pytest.raises(RuntimeError, match="timed out"):
+            list(conn.fetch_datasets())
+
+
+def test_fetch_datasets_raises_on_http_error():
+    conn = AllenBrainConnector()
+    mock_response = MagicMock()
+    mock_response.status_code = 500
+    mock_response.text = "Internal Server Error"
+    with patch(
+        "neurodb.connectors.allen_brain.httpx.get",
+        side_effect=httpx.HTTPStatusError(
+            "500", request=MagicMock(), response=mock_response
+        ),
+    ):
+        with pytest.raises(RuntimeError, match="500"):
+            list(conn.fetch_datasets())
 
 
 def test_normalize_dataset_sets_fields():

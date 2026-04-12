@@ -1428,7 +1428,7 @@ Present the following to the user for review before proceeding:
 - Create: `tests/fixtures/allen_sample.json`
 - Create: `tests/unit/test_allen_connector.py`
 
-- [ ] **Step 1: Create fixture**
+- [x] **Step 1: Create fixture**
 
 Create `tests/fixtures/allen_sample.json`:
 
@@ -1459,7 +1459,7 @@ Create `tests/fixtures/allen_sample.json`:
 }
 ```
 
-- [ ] **Step 2: Write failing test**
+- [x] **Step 2: Write failing test**
 
 Create `tests/unit/test_allen_connector.py`:
 
@@ -1503,13 +1503,13 @@ def test_normalize_dataset_sets_fields():
     assert ds.index_id == 1
 ```
 
-- [ ] **Step 3: Run to confirm failure**
+- [x] **Step 3: Run to confirm failure**
 
 ```bash
 uv run pytest tests/unit/test_allen_connector.py -v
 ```
 
-- [ ] **Step 4: Implement Allen connector and model**
+- [x] **Step 4: Implement Allen connector and model**
 
 Create `src/neurodb/connectors/allen_brain.py`:
 
@@ -1587,7 +1587,7 @@ class AllenBrainConnector(BaseConnector):
         return Subject(index_id=index_id, source_subject_id=str(raw.get("id", "")))
 ```
 
-- [ ] **Step 5: Register connector in ingest CLI**
+- [x] **Step 5: Register connector in ingest CLI**
 
 Edit `scripts/ingest.py`, change:
 
@@ -1611,14 +1611,14 @@ CONNECTORS = {
 }
 ```
 
-- [ ] **Step 6: Run all tests**
+- [x] **Step 6: Run all tests**
 
 ```bash
 uv run pytest tests/ -v
 ```
 Expected: all pass.
 
-- [ ] **Step 7: Commit**
+- [x] **Step 7: Commit**
 
 ```bash
 git add src/neurodb/connectors/allen_brain.py tests/fixtures/allen_sample.json tests/unit/test_allen_connector.py scripts/ingest.py
@@ -1633,7 +1633,7 @@ git commit -m "feat: Allen Brain Atlas connector (ISH/IHC datasets)"
 - Modify: `src/neurodb/db.py`
 - Create: `tests/integration/test_unified_view.py`
 
-- [ ] **Step 1: Write failing view test**
+- [x] **Step 1: Write failing view test**
 
 Create `tests/integration/test_unified_view.py`:
 
@@ -1686,13 +1686,13 @@ def test_summary_view_reflects_both_sources():
     assert "allen_brain" in sources
 ```
 
-- [ ] **Step 2: Run to confirm failure**
+- [x] **Step 2: Run to confirm failure**
 
 ```bash
 uv run pytest tests/integration/test_unified_view.py -v
 ```
 
-- [ ] **Step 3: Add create_views to db.py**
+- [x] **Step 3: Add create_views to db.py**
 
 Edit `src/neurodb/db.py`, add after `init_db`:
 
@@ -1760,14 +1760,14 @@ def create_views(engine: Engine) -> None:
         conn.commit()
 ```
 
-- [ ] **Step 4: Run test**
+- [x] **Step 4: Run test**
 
 ```bash
 uv run pytest tests/integration/test_unified_view.py -v
 ```
 Expected: `PASSED`
 
-- [ ] **Step 5: Update UI SQL query page default**
+- [x] **Step 5: Update UI SQL query page default**
 
 Edit `src/neurodb/ui/pages/query.py`, change the default query string to:
 
@@ -1775,7 +1775,7 @@ Edit `src/neurodb/ui/pages/query.py`, change the default query string to:
 default_query = "SELECT * FROM v_dataset_summary ORDER BY n_datasets DESC;"
 ```
 
-- [ ] **Step 6: Commit**
+- [x] **Step 6: Commit**
 
 ```bash
 git add src/neurodb/db.py src/neurodb/ui/pages/query.py tests/integration/test_unified_view.py
@@ -1792,7 +1792,7 @@ git commit -m "feat: unified SQL views for cross-source queries (v_all_datasets,
 - Create: `docs/reviews/phase3-field-coverage.md` (output of this task — written by hand after running queries)
 - Create: `scripts/field_coverage_audit.py`
 
-- [ ] **Step 1: Write the audit script**
+- [x] **Step 1: Write the audit script**
 
 Create `scripts/field_coverage_audit.py`:
 
@@ -1868,14 +1868,14 @@ if __name__ == "__main__":
     main()
 ```
 
-- [ ] **Step 2: Run both source ingests**
+- [x] **Step 2: Run both source ingests**
 
 ```bash
 uv run scripts/ingest.py --source openneuro --limit 100 --db neurodb.db
 uv run scripts/ingest.py --source allen_brain --limit 100 --db neurodb.db
 ```
 
-- [ ] **Step 3: Run the audit**
+- [x] **Step 3: Run the audit**
 
 ```bash
 uv run scripts/field_coverage_audit.py --db neurodb.db
@@ -1886,7 +1886,7 @@ Capture the output. Look specifically for:
 - `has_n_subjects` — if Allen shows 0 (expected: specimens, not human subjects), note this as a semantic gap.
 - DOI overlap section — if any rows appear, Approach B DOI-matching hook is viable.
 
-- [ ] **Step 4: Document findings**
+- [x] **Step 4: Document findings**
 
 Create `docs/reviews/phase3-field-coverage.md` with the following template, filled in from the audit output:
 
@@ -1908,14 +1908,14 @@ Sources ingested: openneuro (N datasets), allen_brain (N datasets)
 [paste overlap output or "none found"]
 
 ## Approach B Decision
-- [ ] DOI exact-match populating cross_refs: YES / NO / CONDITIONAL
+- [x] DOI exact-match populating cross_refs: YES / NO / CONDITIONAL
   Reason: [e.g., "no DOI overlap found; defer"]
-- [ ] Fuzzy subject matching: DEFERRED
+- [x] Fuzzy subject matching: DEFERRED
   Reason: Semantic gap — Allen uses mouse specimens, OpenNeuro uses human subjects.
-- [ ] Next review trigger: [e.g., "when DANDI or NeuroVault added as 3rd source"]
+- [x] Next review trigger: [e.g., "when DANDI or NeuroVault added as 3rd source"]
 ```
 
-- [ ] **Step 5: Commit**
+- [x] **Step 5: Commit**
 
 ```bash
 mkdir -p docs/reviews

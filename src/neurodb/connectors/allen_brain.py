@@ -53,7 +53,7 @@ class AllenBrainConnector(BaseConnector):
         return AllenDataset(
             index_id=index_id,
             source_id=str(raw["id"]),
-            title=raw.get("name", ""),
+            title=raw.get("name") or "",
             modality="ISH",
             plane_of_section_id=raw.get("plane_of_section_id"),
             specimen_id=raw.get("specimen_id"),

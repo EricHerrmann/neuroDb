@@ -15,7 +15,7 @@ def run_ingest(engine: Engine, connector: BaseConnector, limit: int = 100) -> In
     run = IngestRun(
         source=connector.SOURCE_NAME,
         run_at=datetime.now(timezone.utc).isoformat(),
-        version="0.1.0",
+        version=connector.VERSION,
     )
     with get_session(engine) as session:
         session.add(run)

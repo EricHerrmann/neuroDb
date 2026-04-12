@@ -2,6 +2,10 @@ from sqlalchemy.orm import Session
 from sqlalchemy import select, or_
 from neurodb.connectors.openneuro import OpenNeuroDataset
 
+# TODO (Phase 3): search_datasets and get_dataset_by_id are coupled to OpenNeuroDataset.
+# When a second source connector is added, refactor to accept a model class or
+# query the shared DatasetIndex table instead.
+
 
 def search_datasets(
     session: Session,
@@ -24,5 +28,7 @@ def search_datasets(
     return list(session.execute(stmt).scalars())
 
 
-def get_dataset_by_id(session: Session, dataset_id: int) -> OpenNeuroDataset | None:
-    return session.get(OpenNeuroDataset, dataset_id)
+def get_dataset_by_source_id(session: Session, source_id: str) -> OpenNeuroDataset | None:
+    return session.execute(
+        select(OpenNeuroDataset).where(OpenNeuroDataset.source_id == source_id)
+    ).scalar_one_or_none()

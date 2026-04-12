@@ -13,6 +13,7 @@ class BaseConnector(ABC):
     """
 
     SOURCE_NAME: str  # subclasses set this as a class attribute
+    VERSION: str      # bump when the connector's fetch/normalize logic changes
 
     @abstractmethod
     def fetch_datasets(self, limit: int = 100) -> Iterator[dict]:

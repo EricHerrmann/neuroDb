@@ -29,5 +29,10 @@ def test_full_ingest_stores_datasets():
         assert session.query(IngestRun).count() == 1
         ds = session.query(OpenNeuroDataset).filter_by(source_id="ds000001").one()
         assert ds.title == "Balloon Analog Risk Task"
+        assert ds.modality == "mri"
+        assert ds.n_subjects == 16
+        assert ds.doi == "10.18112/openneuro.ds000001.v1.0.0"
+        assert ds.bids_version == "1.0.0"
+        assert ds.description == "fMRI study of risk-taking in healthy adults."
         idx = session.query(DatasetIndex).filter_by(source_id="ds000001").one()
         assert idx.source == "openneuro"

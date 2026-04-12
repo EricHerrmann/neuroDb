@@ -55,14 +55,22 @@ class OpenNeuroDataset(Base):
 
 class OpenNeuroConnector(BaseConnector):
     SOURCE_NAME = "openneuro"
+    VERSION = "0.1.0"
 
     def fetch_datasets(self, limit: int = 100) -> Iterator[dict]:
-        response = httpx.post(
-            GRAPHQL_URL,
-            json={"query": _DATASETS_QUERY, "variables": {"first": limit}},
-            timeout=30,
-        )
-        response.raise_for_status()
+        try:
+            response = httpx.post(
+                GRAPHQL_URL,
+                json={"query": _DATASETS_QUERY, "variables": {"first": limit}},
+                timeout=30,
+            )
+            response.raise_for_status()
+        except httpx.TimeoutException as e:
+            raise RuntimeError(f"OpenNeuro request timed out ({GRAPHQL_URL})") from e
+        except httpx.HTTPStatusError as e:
+            raise RuntimeError(
+                f"OpenNeuro API returned {e.response.status_code}: {e.response.text[:200]}"
+            ) from e
         edges = response.json()["data"]["datasets"]["edges"]
         for edge in edges:
             yield edge["node"]

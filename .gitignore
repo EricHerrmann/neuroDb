@@ -174,3 +174,7 @@ cython_debug/
 
 .DS_Store
 
+# NeuroDb generated artifacts
+*.db
+*.db-journal
+

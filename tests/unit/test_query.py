@@ -2,7 +2,7 @@ from sqlalchemy import create_engine
 from neurodb.db import init_db, get_session
 from neurodb.schema import DatasetIndex, IngestRun
 from neurodb.connectors.openneuro import OpenNeuroDataset
-from neurodb.query import search_datasets, get_dataset_by_id
+from neurodb.query import search_datasets, get_dataset_by_source_id
 
 
 def _seed_db(engine):
@@ -46,10 +46,20 @@ def test_search_by_modality():
     assert results[0].modality == "EEG"
 
 
-def test_get_by_id():
+def test_get_by_source_id():
     engine = create_engine("sqlite:///:memory:")
     init_db(engine)
     _seed_db(engine)
     with get_session(engine) as session:
-        ds = get_dataset_by_id(session, 1)
+        ds = get_dataset_by_source_id(session, "ds001")
     assert ds.source_id == "ds001"
+    assert ds.title == "Plasticity Study"
+
+
+def test_get_by_source_id_missing_returns_none():
+    engine = create_engine("sqlite:///:memory:")
+    init_db(engine)
+    _seed_db(engine)
+    with get_session(engine) as session:
+        ds = get_dataset_by_source_id(session, "does-not-exist")
+    assert ds is None

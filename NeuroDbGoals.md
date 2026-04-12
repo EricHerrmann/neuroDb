@@ -11,11 +11,11 @@
 - Translation-ready outputs
 - Produce mini-reports and pipelines that are useful to researchers/clinicians, with uncertainty and limitations stated clearly.
 
-#DB Epoch
+# DB Epoch
 ## Goal: Create a local db to collect from publicly avail neuroscience db projects.
-### purpose restatements: should be actionabl
+### DB Purpose: 
 * Purpose: Apply my skills in tech, ai, & pm knowledge to neuroscience
 * Purpose: find actionable areas where my skils can contribute to the discipline of neuroscience 
 * Purpose: Enhance my understanding of neuroscience
-## MVP Scope
+## DB MVP Scope
 A working db that can pull from pub neuro dbs merge, view, query.

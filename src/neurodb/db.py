@@ -21,10 +21,18 @@ def create_views(engine: Engine) -> None:
 
     Each new source connector added in future phases must add its own
     SELECT branch to v_all_datasets and re-run create_views.
+
+    Views are dropped and re-created unconditionally so stale definitions
+    never survive a re-run. Drop order is reverse dependency order.
     """
     with engine.connect() as conn:
+        # Drop in reverse dependency order so dependent views go first.
+        conn.execute(text("DROP VIEW IF EXISTS v_canonical_subjects"))
+        conn.execute(text("DROP VIEW IF EXISTS v_dataset_summary"))
+        conn.execute(text("DROP VIEW IF EXISTS v_all_datasets"))
+
         conn.execute(text("""
-            CREATE VIEW IF NOT EXISTS v_all_datasets AS
+            CREATE VIEW v_all_datasets AS
             SELECT
                 di.id        AS index_id,
                 di.source,
@@ -54,18 +62,27 @@ def create_views(engine: Engine) -> None:
             WHERE di.source = 'allen_brain'
         """))
         conn.execute(text("""
-            CREATE VIEW IF NOT EXISTS v_dataset_summary AS
+            CREATE VIEW v_dataset_summary AS
             SELECT
                 source,
                 modality,
-                COUNT(*)         AS n_datasets,
-                SUM(n_subjects)  AS total_subjects
+                COUNT(*)                    AS n_datasets,
+                SUM(COALESCE(n_subjects, 0)) AS total_subjects
             FROM v_all_datasets
             GROUP BY source, modality
         """))
         conn.execute(text("""
-            CREATE VIEW IF NOT EXISTS v_canonical_subjects AS
-            SELECT s.*, di.source, di.source_id
+            CREATE VIEW v_canonical_subjects AS
+            SELECT
+                s.id,
+                s.index_id,
+                s.source_subject_id,
+                s.age,
+                s.sex,
+                s.diagnosis,
+                s.metadata_json,
+                di.source,
+                di.source_id
             FROM subjects s
             JOIN datasets_index di ON di.id = s.index_id
             WHERE EXISTS (
@@ -74,7 +91,6 @@ def create_views(engine: Engine) -> None:
                    OR (cr.source_b = di.source AND cr.id_b = di.source_id)
             )
         """))
-        conn.commit()
 
 
 @contextmanager

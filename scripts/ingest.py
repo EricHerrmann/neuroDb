@@ -8,9 +8,11 @@ import argparse
 from neurodb.db import get_engine, init_db
 from neurodb.provenance import run_ingest
 from neurodb.connectors.openneuro import OpenNeuroConnector
+from neurodb.connectors.allen_brain import AllenBrainConnector
 
 CONNECTORS = {
     "openneuro": OpenNeuroConnector,
+    "allen_brain": AllenBrainConnector,
 }
 
 

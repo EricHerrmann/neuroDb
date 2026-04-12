@@ -1,0 +1,24 @@
+{
+  "success": true,
+  "id": 0,
+  "total_rows": 2,
+  "num_rows": 2,
+  "msg": [
+    {
+      "id": 100140756,
+      "name": "Mouse Brain Atlas - P56 ISH",
+      "description": "In-situ hybridization gene expression atlas for adult mouse brain.",
+      "specimen_id": 12345,
+      "failed": false,
+      "plane_of_section_id": 1
+    },
+    {
+      "id": 100141219,
+      "name": "Developing Mouse Brain Atlas",
+      "description": "Gene expression across developmental stages.",
+      "specimen_id": 67890,
+      "failed": false,
+      "plane_of_section_id": 2
+    }
+  ]
+}

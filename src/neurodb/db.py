@@ -60,6 +60,20 @@ def create_views(engine: Engine) -> None:
             FROM datasets_index di
             JOIN allen_datasets ad ON ad.index_id = di.id
             WHERE di.source = 'allen_brain'
+            UNION ALL
+            SELECT
+                di.id        AS index_id,
+                di.source,
+                di.source_id,
+                nv.title,
+                nv.doi,
+                'fMRI'       AS modality,
+                nv.n_subjects,
+                nv.description,
+                di.run_id
+            FROM datasets_index di
+            JOIN neurovault_datasets nv ON nv.index_id = di.id
+            WHERE di.source = 'neurovault'
         """))
         conn.execute(text("""
             CREATE VIEW v_dataset_summary AS

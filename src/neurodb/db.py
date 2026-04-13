@@ -8,7 +8,7 @@ from sqlalchemy.orm import Session
 from neurodb.schema import Base
 
 
-def get_engine(url: str = "sqlite:///neurodb.db") -> Engine:
+def get_engine(url: str = "duckdb:///neurodb.duckdb") -> Engine:
     return _create_engine(url, echo=False)
 
 

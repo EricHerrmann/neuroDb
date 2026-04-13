@@ -18,10 +18,10 @@ def main():
     parser.add_argument("--modality", help="Filter by modality")
     parser.add_argument("--source", help="Filter by source")
     parser.add_argument("--sql", help="Raw SQL query")
-    parser.add_argument("--db", default="neurodb.db")
+    parser.add_argument("--db", default="neurodb.duckdb")
     args = parser.parse_args()
 
-    engine = get_engine(f"sqlite:///{args.db}")
+    engine = get_engine(f"duckdb:///{args.db}")
     init_db(engine)
 
     if args.sql:

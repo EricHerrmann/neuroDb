@@ -33,7 +33,8 @@ def run_ingest(engine: Engine, connector: BaseConnector, limit: int = 100) -> In
             ).scalar_one_or_none()
 
             if existing_idx:
-                existing_idx.run_id = run.id
+                # DatasetIndex.run_id is immutable after creation (DuckDB rejects
+                # UPDATE on rows referenced by a FK in another table).
                 index_id = existing_idx.id
             else:
                 idx = DatasetIndex(

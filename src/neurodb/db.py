@@ -91,6 +91,7 @@ def create_views(engine: Engine) -> None:
                    OR (cr.source_b = di.source AND cr.id_b = di.source_id)
             )
         """))
+        conn.commit()  # DuckDB DDL is transactional; commit so views survive outside this block
 
 
 @contextmanager

@@ -1,4 +1,4 @@
-from sqlalchemy import Float, ForeignKey, Integer, String, Text, UniqueConstraint
+from sqlalchemy import Float, ForeignKey, Integer, Sequence, String, Text, UniqueConstraint
 from sqlalchemy.orm import DeclarativeBase, Mapped, mapped_column, relationship
 
 
@@ -9,7 +9,7 @@ class Base(DeclarativeBase):
 class IngestRun(Base):
     __tablename__ = "ingest_runs"
 
-    id: Mapped[int] = mapped_column(Integer, primary_key=True, autoincrement=True)
+    id: Mapped[int] = mapped_column(Integer, Sequence("ingest_runs_id_seq"), primary_key=True)
     source: Mapped[str] = mapped_column(String(64), nullable=False)
     run_at: Mapped[str] = mapped_column(String(32), nullable=False)
     version: Mapped[str] = mapped_column(String(32), nullable=False)
@@ -25,7 +25,7 @@ class DatasetIndex(Base):
     __tablename__ = "datasets_index"
     __table_args__ = (UniqueConstraint("source", "source_id", name="uq_dataset_source_id"),)
 
-    id: Mapped[int] = mapped_column(Integer, primary_key=True, autoincrement=True)
+    id: Mapped[int] = mapped_column(Integer, Sequence("datasets_index_id_seq"), primary_key=True)
     source: Mapped[str] = mapped_column(String(64), nullable=False, index=True)
     source_id: Mapped[str] = mapped_column(String(128), nullable=False, index=True)
     run_id: Mapped[int] = mapped_column(ForeignKey("ingest_runs.id"), nullable=False)
@@ -39,7 +39,7 @@ class Subject(Base):
         UniqueConstraint("index_id", "source_subject_id", name="uq_subject_index_source_id"),
     )
 
-    id: Mapped[int] = mapped_column(Integer, primary_key=True, autoincrement=True)
+    id: Mapped[int] = mapped_column(Integer, Sequence("subjects_id_seq"), primary_key=True)
     index_id: Mapped[int] = mapped_column(ForeignKey("datasets_index.id"), nullable=False)
     source_subject_id: Mapped[str] = mapped_column(String(128), nullable=False)
     age: Mapped[float | None] = mapped_column(Float, nullable=True)
@@ -57,7 +57,7 @@ class CrossRef(Base):
     """
     __tablename__ = "cross_refs"
 
-    id: Mapped[int] = mapped_column(Integer, primary_key=True, autoincrement=True)
+    id: Mapped[int] = mapped_column(Integer, Sequence("cross_refs_id_seq"), primary_key=True)
     source_a: Mapped[str] = mapped_column(String(64), nullable=False, index=True)
     id_a: Mapped[str] = mapped_column(String(128), nullable=False)
     source_b: Mapped[str] = mapped_column(String(64), nullable=False, index=True)
@@ -70,7 +70,7 @@ class QualityEvent(Base):
     """Structured quality flag log. Attached to any entity by (entity_source, entity_id)."""
     __tablename__ = "quality_events"
 
-    id: Mapped[int] = mapped_column(Integer, primary_key=True, autoincrement=True)
+    id: Mapped[int] = mapped_column(Integer, Sequence("quality_events_id_seq"), primary_key=True)
     entity_type: Mapped[str] = mapped_column(String(32), nullable=False, index=True)
     entity_source: Mapped[str] = mapped_column(String(64), nullable=False, index=True)
     entity_id: Mapped[str] = mapped_column(String(128), nullable=False, index=True)

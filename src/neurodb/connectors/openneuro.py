@@ -1,7 +1,7 @@
 import json
 from typing import Any, Iterator
 import httpx
-from sqlalchemy import String, Integer, ForeignKey, Text
+from sqlalchemy import String, Integer, ForeignKey, Sequence, Text
 from sqlalchemy.orm import Mapped, mapped_column
 from neurodb.schema import Base, Subject
 from neurodb.connectors.base import BaseConnector
@@ -40,7 +40,7 @@ class OpenNeuroDataset(Base):
     """
     __tablename__ = "openneuro_datasets"
 
-    id: Mapped[int] = mapped_column(Integer, primary_key=True, autoincrement=True)
+    id: Mapped[int] = mapped_column(Integer, Sequence("openneuro_datasets_id_seq"), primary_key=True)
     index_id: Mapped[int] = mapped_column(ForeignKey("datasets_index.id"), nullable=False, unique=True)
     source_id: Mapped[str] = mapped_column(String(128), nullable=False, index=True)
     title: Mapped[str] = mapped_column(Text, nullable=False)

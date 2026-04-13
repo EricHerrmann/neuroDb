@@ -5,7 +5,7 @@ Usage:
     uv run scripts/ingest.py --source openneuro --limit 200 --db neurodb.db
 """
 import argparse
-from neurodb.db import get_engine, init_db
+from neurodb.db import get_engine, init_db, create_views
 from neurodb.provenance import run_ingest
 from neurodb.connectors.openneuro import OpenNeuroConnector
 from neurodb.connectors.allen_brain import AllenBrainConnector
@@ -25,6 +25,7 @@ def main():
 
     engine = get_engine(f"sqlite:///{args.db}")
     init_db(engine)
+    create_views(engine)
     connector = CONNECTORS[args.source]()
     run = run_ingest(engine, connector=connector, limit=args.limit)
     print(f"Ingest complete: run_id={run.id}, source={run.source}, at={run.run_at}")

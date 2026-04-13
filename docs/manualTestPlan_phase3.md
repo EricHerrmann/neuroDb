@@ -1,9 +1,9 @@
 # Phase 3 Manual Test Plan — Second Source + Merge Layer
 
-**Status:** Pending
+**Status:** Passed
 **Tester:** Eric Herrmann
 **Scope:** Allen Brain Atlas connector, unified SQL views, field coverage audit script
-**Date:** 2026-04-12
+**Date:** 2026-04-13
 
 All commands run from the repo root (`/home/oldha/projects/neuroDb`) unless noted.
 
@@ -261,15 +261,15 @@ Expected: 3 rows — openneuro (1), allen_brain (2), allen_brain (3).
 
 All of the following must be true before signing off:
 
-- [ ] Regression check: Phase 2 Tests 1–6 all pass
-- [ ] Allen Brain ingest completes without error, stores 35–50 rows
-- [ ] Allen records have correct fields (`modality='ISH'`, non-null `source_id`)
-- [ ] `v_all_datasets` returns rows for both sources
-- [ ] NULL handling is correct: Allen rows have NULL doi and n_subjects
-- [ ] `v_dataset_summary` groups correctly by source and modality
-- [ ] `v_canonical_subjects` exists, runs, and returns 0 rows
-- [ ] SQL Query page default query shows `v_dataset_summary` output for both sources
-- [ ] Field coverage audit script runs and output matches expected gaps
-- [ ] Allen re-ingest is idempotent — no duplicate rows
+- [x] Regression check: Phase 2 Tests 1–6 all pass
+- [x] Allen Brain ingest completes without error, stores 35–50 rows
+- [x] Allen records have correct fields (`modality='ISH'`, non-null `source_id`)
+- [x] `v_all_datasets` returns rows for both sources
+- [x] NULL handling is correct: Allen rows have NULL doi and n_subjects
+- [x] `v_dataset_summary` groups correctly by source and modality
+- [x] `v_canonical_subjects` exists, runs, and returns 0 rows
+- [x] SQL Query page default query shows `v_dataset_summary` output for both sources
+- [x] Field coverage audit script runs and output matches expected gaps
+- [x] Allen re-ingest is idempotent — no duplicate rows
 
-**Sign-off:** _________________________________ Date: _____________
+**Sign-off:** Eric Herrmann  Date: 2026-04-13

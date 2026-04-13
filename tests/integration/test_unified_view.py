@@ -4,6 +4,7 @@ from neurodb.schema import CrossRef, DatasetIndex, IngestRun, Subject
 from neurodb.connectors.openneuro import OpenNeuroDataset
 from neurodb.connectors.allen_brain import AllenDataset
 from neurodb.connectors.neurovault import NeuroVaultDataset
+from neurodb.connectors.dandi import DandiDataset
 
 
 def _seed(engine):
@@ -27,6 +28,12 @@ def _seed(engine):
         session.add(NeuroVaultDataset(index_id=idx3.id, source_id="1",
                                       title="Working Memory fMRI", n_subjects=30,
                                       run_id=run.id))
+        idx4 = DatasetIndex(source="dandi", source_id="000003", run_id=run.id)
+        session.add(idx4)
+        session.flush()
+        session.add(DandiDataset(index_id=idx4.id, source_id="000003",
+                                  title="Ephys in hippocampus", modality="NWB",
+                                  n_subjects=5, run_id=run.id))
 
 
 def test_unified_view_contains_both_sources():
@@ -100,3 +107,14 @@ def test_unified_view_contains_neurovault():
         rows = conn.execute(text("SELECT source, COUNT(*) as n FROM v_all_datasets GROUP BY source")).fetchall()
     sources = {r[0]: r[1] for r in rows}
     assert sources["neurovault"] == 1
+
+
+def test_unified_view_contains_dandi():
+    engine = create_engine("sqlite:///:memory:")
+    init_db(engine)
+    create_views(engine)
+    _seed(engine)
+    with engine.connect() as conn:
+        rows = conn.execute(text("SELECT source, COUNT(*) as n FROM v_all_datasets GROUP BY source")).fetchall()
+    sources = {r[0]: r[1] for r in rows}
+    assert sources["dandi"] == 1

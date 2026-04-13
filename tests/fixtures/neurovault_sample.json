@@ -1,0 +1,29 @@
+{
+  "count": 2,
+  "next": null,
+  "previous": null,
+  "results": [
+    {
+      "id": 1,
+      "name": "Working Memory fMRI Study",
+      "doi": "10.1016/j.neuroimage.2021.01.001",
+      "number_of_images": 42,
+      "number_of_subjects": 30,
+      "cognitive_paradigm_cog_atlas": "working memory",
+      "repetition_time": 2.0,
+      "resolution": "2mm",
+      "description": "fMRI study of working memory in healthy adults"
+    },
+    {
+      "id": 2,
+      "name": "Pain Perception fMRI",
+      "doi": null,
+      "number_of_images": 18,
+      "number_of_subjects": null,
+      "cognitive_paradigm_cog_atlas": null,
+      "repetition_time": 1.5,
+      "resolution": null,
+      "description": null
+    }
+  ]
+}

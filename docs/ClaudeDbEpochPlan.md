@@ -2035,7 +2035,7 @@ Present the following to the user for review before proceeding:
 - User has reviewed the hypothesis query output and confirmed the data layer is stable enough to build on
 - User has decided which Future Phase (5, 6, 7, or 8) to prioritize next
 
-**Approval:** <!-- PENDING — replace with: "Approved by Eric Herrmann on YYYY-MM-DD — next phase: Phase N" -->
+**Approval:** Approved by Eric Herrmann on 2026-04-13
 
 ---
 

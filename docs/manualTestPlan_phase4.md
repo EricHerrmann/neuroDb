@@ -1,6 +1,6 @@
 # Phase 4 Manual Test Plan — Query & Analysis Layer
 
-**Status:** Pending
+**Status:** Passed
 **Tester:** Eric Herrmann
 **Scope:** Query CLI (`scripts/query_cli.py`) — keyword search, modality filter, source filter, raw SQL mode
 **Date:** 2026-04-13
@@ -241,14 +241,14 @@ uv run scripts/query_cli.py --search "memory" --db neurodb.db
 
 All of the following must be true before signing off:
 
-- [ ] Regression check: Phase 3 regression items R.1–R.3 pass
-- [ ] Keyword search returns results and the zero-match case returns `0 result(s)`
-- [ ] Modality filter returns only the requested modality, case-insensitive
-- [ ] Source filter returns only the requested source
-- [ ] Combined filters compose correctly (AND logic)
-- [ ] Raw SQL mode executes and prints tab-separated output
-- [ ] `v_dataset_summary` SQL query shows both sources
-- [ ] Hypothesis query (modality distribution) runs and shows meaningful output
-- [ ] Re-ingest after CLI usage does not duplicate query results
+- [x] Regression check: Phase 3 regression items R.1–R.3 pass
+- [x] Keyword search returns results and the zero-match case returns `0 result(s)`
+- [x] Modality filter returns only the requested modality, case-insensitive
+- [x] Source filter returns only the requested source
+- [x] Combined filters compose correctly (AND logic)
+- [x] Raw SQL mode executes and prints tab-separated output
+- [x] `v_dataset_summary` SQL query shows both sources
+- [x] Hypothesis query (modality distribution) runs and shows meaningful output
+- [x] Re-ingest after CLI usage does not duplicate query results
 
-**Sign-off:** _________________________________ Date: _____________
+**Sign-off:** Eric Herrmann  Date: 2026-04-13

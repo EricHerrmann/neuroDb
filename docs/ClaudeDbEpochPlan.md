@@ -32,7 +32,8 @@
 6. [Phase 2 — MVP UI](#phase-2--mvp-ui)
 7. [Phase 3 — Second Source + Merge Layer](#phase-3--second-source--merge-layer)
 8. [Phase 4 — Query & Analysis Layer](#phase-4--query--analysis-layer)
-9. [Future Phases](#future-phases)
+9. [Phase 5 — DuckDB Migration](#phase-5--duckdb-migration)
+10. [Future Phases](#future-phases)
 
 ---
 
@@ -2039,18 +2040,528 @@ Present the following to the user for review before proceeding:
 
 ---
 
+## Phase 5 — DuckDB Migration
+
+**Goal:** Replace the SQLite backend with DuckDB for analytical performance — faster aggregations, native Parquet/CSV scan, LIST/STRUCT column types — while keeping the full SQLAlchemy ORM layer and all existing tests green.
+
+**Architecture:** `duckdb-engine` provides a SQLAlchemy dialect for DuckDB so `get_engine`, `init_db`, `create_views`, and `get_session` require no interface changes. Unit tests continue to use `sqlite:///:memory:` (fast, zero-install). A new DuckDB integration test suite uses `duckdb:///:memory:`. Scripts default to `neurodb.duckdb`. A one-shot migration script copies existing SQLite data into the new file.
+
+**Tech Stack:** `duckdb>=1.2`, `duckdb-engine>=0.14`, SQLAlchemy 2.x, Python 3.12+
+
+**Trade-offs:**
+- Pros: 10–100× faster aggregations, native Parquet/CSV scan, LIST/STRUCT types.
+- Cons: breaks raw `sqlite3` CLI portability; `duckdb-engine` SQLAlchemy support is less mature than SQLite dialect.
+
+---
+
+### Task 5.1: Add DuckDB packages
+
+**Files:**
+- Modify: `pyproject.toml` (via `uv add`)
+
+- [ ] **Step 1: Install packages**
+
+```bash
+uv add "duckdb>=1.2" "duckdb-engine>=0.14"
+```
+
+- [ ] **Step 2: Verify they appear in pyproject.toml**
+
+```bash
+grep -E "duckdb" pyproject.toml
+```
+
+Expected: two lines — one for `duckdb`, one for `duckdb-engine`.
+
+- [ ] **Step 3: Confirm imports work**
+
+```bash
+uv run python -c "import duckdb; import duckdb_engine; print('ok')"
+```
+
+Expected: `ok`
+
+- [ ] **Step 4: Commit**
+
+```bash
+git add pyproject.toml uv.lock
+git commit -m "chore: add duckdb and duckdb-engine dependencies"
+```
+
+---
+
+### Task 5.2: DuckDB integration tests
+
+**Files:**
+- Create: `tests/integration/test_duckdb_engine.py`
+
+- [ ] **Step 1: Write the tests**
+
+Create `tests/integration/test_duckdb_engine.py`:
+
+```python
+"""Integration tests proving the full stack works with a DuckDB engine.
+
+All existing unit tests continue to use sqlite:///:memory:. These tests
+prove DuckDB compatibility without touching the existing test suite.
+"""
+from sqlalchemy import create_engine, text
+from neurodb.db import init_db, create_views, get_session
+from neurodb.schema import DatasetIndex, IngestRun
+from neurodb.connectors.openneuro import OpenNeuroDataset
+from neurodb.connectors.allen_brain import AllenDataset
+
+
+def _make_engine():
+    return create_engine("duckdb:///:memory:")
+
+
+def _seed(engine):
+    with get_session(engine) as session:
+        run = IngestRun(source="test", run_at="2026-04-13", version="0.1")
+        session.add(run)
+        session.flush()
+        idx1 = DatasetIndex(source="openneuro", source_id="ds001", run_id=run.id)
+        idx2 = DatasetIndex(source="allen_brain", source_id="a001", run_id=run.id)
+        session.add_all([idx1, idx2])
+        session.flush()
+        session.add(OpenNeuroDataset(
+            index_id=idx1.id, source_id="ds001", title="fMRI Study",
+            modality="fMRI", n_subjects=20, run_id=run.id,
+        ))
+        session.add(AllenDataset(
+            index_id=idx2.id, source_id="a001", title="ISH Atlas",
+            modality="ISH", plane_of_section_id=1, run_id=run.id,
+        ))
+
+
+def test_init_db_creates_tables():
+    engine = _make_engine()
+    init_db(engine)
+    with engine.connect() as conn:
+        rows = conn.execute(text("SHOW TABLES")).fetchall()
+    table_names = {r[0] for r in rows}
+    assert "datasets_index" in table_names
+    assert "ingest_runs" in table_names
+    assert "openneuro_datasets" in table_names
+    assert "allen_datasets" in table_names
+
+
+def test_create_views_is_queryable():
+    engine = _make_engine()
+    init_db(engine)
+    create_views(engine)
+    with engine.connect() as conn:
+        rows = conn.execute(text("SELECT * FROM v_all_datasets LIMIT 1")).fetchall()
+    assert rows == []  # empty but no error
+
+
+def test_orm_insert_and_query():
+    engine = _make_engine()
+    init_db(engine)
+    create_views(engine)
+    _seed(engine)
+    with engine.connect() as conn:
+        rows = conn.execute(
+            text("SELECT source, COUNT(*) as n FROM v_all_datasets GROUP BY source ORDER BY source")
+        ).fetchall()
+    sources = {r[0]: r[1] for r in rows}
+    assert sources["openneuro"] == 1
+    assert sources["allen_brain"] == 1
+
+
+def test_summary_view_with_duckdb():
+    engine = _make_engine()
+    init_db(engine)
+    create_views(engine)
+    _seed(engine)
+    with engine.connect() as conn:
+        rows = conn.execute(
+            text("SELECT source, modality, n_datasets FROM v_dataset_summary ORDER BY source")
+        ).fetchall()
+    sources = [r[0] for r in rows]
+    assert "openneuro" in sources
+    assert "allen_brain" in sources
+
+
+def test_keyword_search_via_view():
+    engine = _make_engine()
+    init_db(engine)
+    create_views(engine)
+    _seed(engine)
+    with engine.connect() as conn:
+        rows = conn.execute(
+            text("SELECT source_id FROM v_all_datasets WHERE LOWER(title) LIKE '%fmri%'")
+        ).fetchall()
+    assert len(rows) == 1
+    assert rows[0][0] == "ds001"
+
+
+def test_idempotent_create_views():
+    """create_views can be called twice without error (drop+recreate)."""
+    engine = _make_engine()
+    init_db(engine)
+    create_views(engine)
+    create_views(engine)  # second call must not raise
+```
+
+- [ ] **Step 2: Run the new tests (expect them to pass or reveal DuckDB issues)**
+
+```bash
+uv run pytest tests/integration/test_duckdb_engine.py -v
+```
+
+Expected: all 6 pass. If any fail, proceed to Task 5.3 to fix compatibility. If all pass, skip Task 5.3.
+
+- [ ] **Step 3: Confirm existing tests still pass**
+
+```bash
+uv run pytest tests/ -v
+```
+
+Expected: 29 passed (existing) + 6 new = 35 passed.
+
+- [ ] **Step 4: Commit**
+
+```bash
+git add tests/integration/test_duckdb_engine.py
+git commit -m "test: DuckDB integration test suite for init, views, ORM, and search"
+```
+
+---
+
+### Task 5.3: Fix DuckDB compatibility issues (run only if Task 5.2 Step 2 fails)
+
+**Files:**
+- Modify: `src/neurodb/db.py` (views SQL if needed)
+
+This task addresses the two most likely failure modes. Diagnose which test fails and apply only the relevant fix.
+
+**Fix A — `SHOW TABLES` not returning expected columns**
+
+If `test_init_db_creates_tables` fails because `SHOW TABLES` returns rows in a different format:
+
+```python
+# In test_duckdb_engine.py, replace the SHOW TABLES check with:
+with engine.connect() as conn:
+    rows = conn.execute(text(
+        "SELECT table_name FROM information_schema.tables WHERE table_schema='main'"
+    )).fetchall()
+table_names = {r[0] for r in rows}
+```
+
+**Fix B — `DROP VIEW IF EXISTS` fails with dependency error**
+
+If `create_views` fails with a dependency error in DuckDB, replace the DROP statements with `CREATE OR REPLACE VIEW` in `src/neurodb/db.py`:
+
+```python
+def create_views(engine: Engine) -> None:
+    with engine.connect() as conn:
+        conn.execute(text("DROP VIEW IF EXISTS v_canonical_subjects"))
+        conn.execute(text("DROP VIEW IF EXISTS v_dataset_summary"))
+        conn.execute(text("DROP VIEW IF EXISTS v_all_datasets"))
+
+        conn.execute(text("""
+            CREATE OR REPLACE VIEW v_all_datasets AS
+            ...same body as before...
+        """))
+        conn.execute(text("""
+            CREATE OR REPLACE VIEW v_dataset_summary AS
+            ...same body as before...
+        """))
+        conn.execute(text("""
+            CREATE OR REPLACE VIEW v_canonical_subjects AS
+            ...same body as before...
+        """))
+```
+
+- [ ] **Step 1: Identify which test(s) fail and apply the relevant fix above**
+
+- [ ] **Step 2: Re-run until all 35 tests pass**
+
+```bash
+uv run pytest tests/ -v
+```
+
+Expected: 35 passed.
+
+- [ ] **Step 3: Commit any changes made**
+
+```bash
+git add src/neurodb/db.py tests/integration/test_duckdb_engine.py
+git commit -m "fix: DuckDB compatibility in db.py and integration tests"
+```
+
+---
+
+### Task 5.4: Switch script defaults to DuckDB
+
+**Files:**
+- Modify: `src/neurodb/db.py` (default URL)
+- Modify: `scripts/ingest.py`
+- Modify: `scripts/query_cli.py`
+
+- [ ] **Step 1: Update `get_engine` default in `src/neurodb/db.py`**
+
+```python
+def get_engine(url: str = "duckdb:///neurodb.duckdb") -> Engine:
+    return _create_engine(url, echo=False)
+```
+
+- [ ] **Step 2: Update `scripts/ingest.py` to default to DuckDB**
+
+Replace the `get_engine` call and `--db` default:
+
+```python
+parser.add_argument("--db", default="neurodb.duckdb")
+# ...
+engine = get_engine(f"duckdb:///{args.db}")
+```
+
+Full updated `main()`:
+
+```python
+def main():
+    parser = argparse.ArgumentParser(description="Ingest a neuro data source into NeuroDb")
+    parser.add_argument("--source", choices=list(CONNECTORS), required=True)
+    parser.add_argument("--limit", type=int, default=100)
+    parser.add_argument("--db", default="neurodb.duckdb")
+    args = parser.parse_args()
+
+    engine = get_engine(f"duckdb:///{args.db}")
+    init_db(engine)
+    create_views(engine)
+    connector = CONNECTORS[args.source]()
+    run = run_ingest(engine, connector=connector, limit=args.limit)
+    print(f"Ingest complete: run_id={run.id}, source={run.source}, at={run.run_at}")
+```
+
+- [ ] **Step 3: Update `scripts/query_cli.py` to default to DuckDB**
+
+```python
+parser.add_argument("--db", default="neurodb.duckdb")
+# ...
+engine = get_engine(f"duckdb:///{args.db}")
+```
+
+Full updated `main()`:
+
+```python
+def main():
+    parser = argparse.ArgumentParser()
+    parser.add_argument("--search", help="Keyword search on title/description")
+    parser.add_argument("--modality", help="Filter by modality")
+    parser.add_argument("--source", help="Filter by source")
+    parser.add_argument("--sql", help="Raw SQL query")
+    parser.add_argument("--db", default="neurodb.duckdb")
+    args = parser.parse_args()
+
+    engine = get_engine(f"duckdb:///{args.db}")
+    init_db(engine)
+
+    if args.sql:
+        with engine.connect() as conn:
+            rows = conn.execute(text(args.sql)).fetchall()
+        for row in rows:
+            print("\t".join(str(v) for v in row))
+    else:
+        with get_session(engine) as session:
+            results = search_datasets(
+                session,
+                keyword=args.search,
+                modality=args.modality,
+                source=args.source,
+            )
+        for ds in results:
+            print(f"[{ds.source}] {ds.source_id} — {ds.title} ({ds.modality}, n={ds.n_subjects})")
+        print(f"\n{len(results)} result(s)")
+```
+
+- [ ] **Step 4: Verify the full test suite still passes (unit tests use explicit sqlite URLs — they must not be affected)**
+
+```bash
+uv run pytest tests/ -v
+```
+
+Expected: 35 passed.
+
+- [ ] **Step 5: Smoke-test the scripts end-to-end with DuckDB**
+
+```bash
+rm -f neurodb.duckdb
+uv run scripts/ingest.py --source openneuro --limit 5
+uv run scripts/query_cli.py --search "brain"
+uv run scripts/query_cli.py --sql "SELECT source, COUNT(*) FROM v_all_datasets GROUP BY source"
+```
+
+Expected: ingest completes with `run_id=1`, query returns results, SQL summary shows openneuro row.
+
+- [ ] **Step 6: Commit**
+
+```bash
+git add src/neurodb/db.py scripts/ingest.py scripts/query_cli.py
+git commit -m "feat: switch default backend from SQLite to DuckDB"
+```
+
+---
+
+### Task 5.5: SQLite-to-DuckDB migration script
+
+**Files:**
+- Create: `scripts/migrate_to_duckdb.py`
+
+- [ ] **Step 1: Write the migration script**
+
+Create `scripts/migrate_to_duckdb.py`:
+
+```python
+#!/usr/bin/env python
+"""One-shot migration: copy an existing neurodb.db (SQLite) into neurodb.duckdb (DuckDB).
+
+Usage:
+    uv run scripts/migrate_to_duckdb.py
+    uv run scripts/migrate_to_duckdb.py --sqlite neurodb.db --duckdb neurodb.duckdb
+
+Safe to run against an already-migrated target: tables are populated only if empty.
+"""
+import argparse
+import duckdb
+from neurodb.db import get_engine, init_db, create_views
+
+# Tables ordered by foreign-key dependency (parents first).
+TABLES = [
+    "ingest_runs",
+    "datasets_index",
+    "subjects",
+    "cross_refs",
+    "quality_events",
+    "openneuro_datasets",
+    "allen_datasets",
+]
+
+
+def migrate(sqlite_path: str, duckdb_path: str) -> None:
+    print(f"Migrating {sqlite_path} → {duckdb_path}")
+
+    # Step 1: Create DuckDB schema via SQLAlchemy (constraints, indexes, sequences).
+    duckdb_engine = get_engine(f"duckdb:///{duckdb_path}")
+    init_db(duckdb_engine)
+    duckdb_engine.dispose()
+
+    # Step 2: Copy data table by table using DuckDB's SQLite attachment.
+    conn = duckdb.connect(duckdb_path)
+    conn.execute(f"ATTACH '{sqlite_path}' AS src (TYPE SQLITE)")
+
+    for table in TABLES:
+        count = conn.execute(f"SELECT COUNT(*) FROM src.{table}").fetchone()[0]  # noqa: S608
+        if count == 0:
+            print(f"  {table}: 0 rows in source, skipping")
+            continue
+        existing = conn.execute(f"SELECT COUNT(*) FROM {table}").fetchone()[0]  # noqa: S608
+        if existing > 0:
+            print(f"  {table}: already has {existing} rows, skipping")
+            continue
+        conn.execute(f"INSERT INTO {table} SELECT * FROM src.{table}")  # noqa: S608
+        copied = conn.execute(f"SELECT COUNT(*) FROM {table}").fetchone()[0]  # noqa: S608
+        print(f"  {table}: copied {copied} rows")
+
+    conn.execute("DETACH src")
+    conn.close()
+
+    # Step 3: Create views in DuckDB.
+    duckdb_engine = get_engine(f"duckdb:///{duckdb_path}")
+    create_views(duckdb_engine)
+    duckdb_engine.dispose()
+    print("Migration complete.")
+
+
+def main():
+    parser = argparse.ArgumentParser()
+    parser.add_argument("--sqlite", default="neurodb.db")
+    parser.add_argument("--duckdb", default="neurodb.duckdb")
+    args = parser.parse_args()
+    migrate(args.sqlite, args.duckdb)
+
+
+if __name__ == "__main__":
+    main()
+```
+
+- [ ] **Step 2: Verify the script runs against a populated SQLite DB**
+
+```bash
+# Populate SQLite (if not already present from previous phases)
+uv run scripts/ingest.py --source openneuro --limit 10 --db neurodb.db
+# (temporarily use the old sqlite URL for this ingest)
+```
+
+Wait — after Task 5.4, `ingest.py` defaults to DuckDB. To populate SQLite for this test, pass the explicit flag:
+
+```bash
+# This requires temporarily editing ingest.py OR running the old way:
+python -c "
+from neurodb.db import get_engine, init_db, create_views
+from neurodb.provenance import run_ingest
+from neurodb.connectors.openneuro import OpenNeuroConnector
+engine = get_engine('sqlite:///neurodb.db')
+init_db(engine); create_views(engine)
+run = run_ingest(engine, OpenNeuroConnector(), limit=5)
+print(run.id)
+"
+```
+
+Then migrate:
+
+```bash
+rm -f neurodb.duckdb
+uv run scripts/migrate_to_duckdb.py --sqlite neurodb.db --duckdb neurodb.duckdb
+```
+
+Expected output:
+```
+Migrating neurodb.db → neurodb.duckdb
+  ingest_runs: copied N rows
+  datasets_index: copied N rows
+  openneuro_datasets: copied N rows
+  allen_datasets: 0 rows in source, skipping
+  ...
+Migration complete.
+```
+
+- [ ] **Step 3: Confirm data is accessible in DuckDB after migration**
+
+```bash
+uv run scripts/query_cli.py --sql "SELECT source, COUNT(*) FROM v_all_datasets GROUP BY source" --db neurodb.duckdb
+```
+
+Expected: openneuro row with count matching what was ingested.
+
+- [ ] **Step 4: Commit**
+
+```bash
+git add scripts/migrate_to_duckdb.py
+git commit -m "feat: SQLite-to-DuckDB migration script"
+```
+
+---
+
+### Phase 5 — Approval Gate
+
+**Do not begin any Future Phase until approval is recorded here.**
+
+Present the following to the user for review before proceeding:
+- All Phase 5 task checkboxes are checked
+- `uv run pytest tests/ -v` passes (35 tests: 29 existing + 6 new DuckDB integration)
+- `uv run scripts/ingest.py --source openneuro --limit 5` completes against `neurodb.duckdb`
+- `uv run scripts/query_cli.py --search "brain"` returns results from DuckDB
+- User has completed all steps in `docs/manualTestPlan_phase5.md` and signed off
+- User has decided which Future Phase (6, 7, or 8) to prioritize next
+
+**Approval:** <!-- PENDING — replace with: "Approved by Eric Herrmann on YYYY-MM-DD — next phase: Phase N" -->
+
+---
+
 ## Future Phases
-
-### Phase 5 — DuckDB Migration (when datasets exceed ~2 GB)
-
-1. Add `duckdb` via `uv add duckdb`.
-2. Replace SQLAlchemy engine URL with `duckdb:///neurodb.duckdb` (via `duckdb-engine`).
-3. Migrate existing SQLite data: `duckdb COPY datasets FROM neurodb.db`.
-4. Update `create_views` — DuckDB views support Parquet scans directly.
-5. Run full test suite with DuckDB engine; fix any SQLite-specific SQL.
-
-Pros of migrating: 10–100× faster aggregations, native Parquet/CSV scan, LIST/STRUCT types.
-Cons: breaks SQLite portability; `duckdb-engine` SQLAlchemy support is less mature.
 
 ### Phase 6 — Additional Sources
 

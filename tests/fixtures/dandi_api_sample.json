@@ -1,0 +1,42 @@
+{
+  "count": 2,
+  "next": null,
+  "results": [
+    {
+      "identifier": "000003",
+      "created": "2020-03-15T00:00:00Z",
+      "modified": "2021-08-13T00:00:00Z",
+      "contact_person": "Researcher Name",
+      "embargo_status": "OPEN",
+      "most_recent_published_version": {
+        "version": "0.210813.2352",
+        "name": "Electrophysiology in hippocampus during spatial navigation",
+        "asset_summary": {
+          "numberOfSubjects": 5,
+          "numberOfFiles": 25,
+          "dataStandard": [{"name": "NWB: Neurodata Without Borders"}],
+          "species": [{"name": "Mus musculus - House mouse"}]
+        }
+      },
+      "draft_version": null
+    },
+    {
+      "identifier": "000004",
+      "created": "2020-04-01T00:00:00Z",
+      "modified": "2021-09-01T00:00:00Z",
+      "contact_person": "Another Researcher",
+      "embargo_status": "OPEN",
+      "most_recent_published_version": null,
+      "draft_version": {
+        "version": "draft",
+        "name": "Calcium imaging in visual cortex",
+        "asset_summary": {
+          "numberOfSubjects": 3,
+          "numberOfFiles": 10,
+          "dataStandard": [{"name": "NWB: Neurodata Without Borders"}],
+          "species": [{"name": "Mus musculus - House mouse"}]
+        }
+      }
+    }
+  ]
+}

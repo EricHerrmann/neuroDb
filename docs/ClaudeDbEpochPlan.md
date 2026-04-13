@@ -547,8 +547,9 @@ Present the following to the user for review before proceeding:
 - `uv run pytest tests/ -v` passes
 - Schema file (`src/neurodb/schema.py`) is committed and reviewable
 - Provenance model (`src/neurodb/provenance.py`) is committed and reviewable
+- User has completed all steps in `docs/manualTestPlan_phase0.md` and signed off
 
-**Approval:** Approved by Eric Herrmann on 2026-04-12
+**Approval:** Approved by Eric Herrmann on 2026-04-12 — no manual test plan file (Phase 0 was scaffolding only; schema and provenance reviewed directly)
 
 ---
 
@@ -1108,8 +1109,9 @@ Present the following to the user for review before proceeding:
 - `uv run pytest tests/ -v` passes (unit + integration, including idempotency test)
 - A sample ingest run has completed: `uv run scripts/ingest.py --source openneuro --limit 5`
 - Output of `uv run scripts/query_cli.py --search "plasticity"` (or equivalent) shown to user
+- User has completed all steps in `docs/manualTestPlan_phase1.md` and signed off
 
-**Approval:** Approved by Eric Herrmann on 2026-04-11
+**Approval:** Approved by Eric Herrmann on 2026-04-11 — no manual test plan file (ingest and query verified inline during development)
 
 ---
 
@@ -1404,8 +1406,9 @@ Present the following to the user for review before proceeding:
 - All Phase 2 task checkboxes are checked
 - `uv run pytest tests/ -v` passes
 - Streamlit UI is running and user has confirmed dataset browsing and SQL query page work as expected: `uv run streamlit run src/neurodb/ui/app.py`
+- User has completed all steps in `docs/manualTestPlan_phase2.md` and signed off
 
-**Approval:** Approved by Eric Herrmann on 2026-04-11 — manual UI verification deferred (Streamlit server not tested live; all automated tests pass)
+**Approval:** Approved by Eric Herrmann on 2026-04-11 — manual UI verification deferred (Streamlit server not tested live; all automated tests pass); manual test plan file was created then removed
 
 ---
 
@@ -1934,6 +1937,7 @@ Present the following to the user for review before proceeding:
 - `uv run pytest tests/ -v` passes
 - `docs/reviews/phase3-field-coverage.md` exists and is committed
 - User has reviewed the field-coverage findings and confirmed the Approach B decision (defer or proceed)
+- User has completed all steps in `docs/manualTestPlan_phase3.md` and signed off
 
 **Approval:** Approved by Eric Herrmann on 2026-04-13
 
@@ -2027,6 +2031,7 @@ git commit -m "feat: query CLI with keyword, modality, and raw SQL modes"
 Present the following to the user for review before proceeding:
 - All Phase 4 task checkboxes are checked
 - `uv run pytest tests/ -v` passes
+- User has completed all steps in `docs/manualTestPlan_phase4.md` and signed off
 - User has reviewed the hypothesis query output and confirmed the data layer is stable enough to build on
 - User has decided which Future Phase (5, 6, 7, or 8) to prioritize next
 

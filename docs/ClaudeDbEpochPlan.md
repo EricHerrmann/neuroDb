@@ -2059,13 +2059,13 @@ Present the following to the user for review before proceeding:
 **Files:**
 - Modify: `pyproject.toml` (via `uv add`)
 
-- [ ] **Step 1: Install packages**
+- [x] **Step 1: Install packages**
 
 ```bash
 uv add "duckdb>=1.2" "duckdb-engine>=0.14"
 ```
 
-- [ ] **Step 2: Verify they appear in pyproject.toml**
+- [x] **Step 2: Verify they appear in pyproject.toml**
 
 ```bash
 grep -E "duckdb" pyproject.toml
@@ -2073,7 +2073,7 @@ grep -E "duckdb" pyproject.toml
 
 Expected: two lines — one for `duckdb`, one for `duckdb-engine`.
 
-- [ ] **Step 3: Confirm imports work**
+- [x] **Step 3: Confirm imports work**
 
 ```bash
 uv run python -c "import duckdb; import duckdb_engine; print('ok')"
@@ -2081,7 +2081,7 @@ uv run python -c "import duckdb; import duckdb_engine; print('ok')"
 
 Expected: `ok`
 
-- [ ] **Step 4: Commit**
+- [x] **Step 4: Commit**
 
 ```bash
 git add pyproject.toml uv.lock
@@ -2095,7 +2095,7 @@ git commit -m "chore: add duckdb and duckdb-engine dependencies"
 **Files:**
 - Create: `tests/integration/test_duckdb_engine.py`
 
-- [ ] **Step 1: Write the tests**
+- [x] **Step 1: Write the tests**
 
 Create `tests/integration/test_duckdb_engine.py`:
 
@@ -2205,7 +2205,7 @@ def test_idempotent_create_views():
     create_views(engine)  # second call must not raise
 ```
 
-- [ ] **Step 2: Run the new tests (expect them to pass or reveal DuckDB issues)**
+- [x] **Step 2: Run the new tests (expect them to pass or reveal DuckDB issues)**
 
 ```bash
 uv run pytest tests/integration/test_duckdb_engine.py -v
@@ -2213,7 +2213,7 @@ uv run pytest tests/integration/test_duckdb_engine.py -v
 
 Expected: all 6 pass. If any fail, proceed to Task 5.3 to fix compatibility. If all pass, skip Task 5.3.
 
-- [ ] **Step 3: Confirm existing tests still pass**
+- [x] **Step 3: Confirm existing tests still pass**
 
 ```bash
 uv run pytest tests/ -v
@@ -2221,7 +2221,7 @@ uv run pytest tests/ -v
 
 Expected: 29 passed (existing) + 6 new = 35 passed.
 
-- [ ] **Step 4: Commit**
+- [x] **Step 4: Commit**
 
 ```bash
 git add tests/integration/test_duckdb_engine.py
@@ -2275,9 +2275,9 @@ def create_views(engine: Engine) -> None:
         """))
 ```
 
-- [ ] **Step 1: Identify which test(s) fail and apply the relevant fix above**
+- [x] **Step 1: Identify which test(s) fail and apply the relevant fix above**
 
-- [ ] **Step 2: Re-run until all 35 tests pass**
+- [x] **Step 2: Re-run until all 35 tests pass**
 
 ```bash
 uv run pytest tests/ -v
@@ -2285,7 +2285,7 @@ uv run pytest tests/ -v
 
 Expected: 35 passed.
 
-- [ ] **Step 3: Commit any changes made**
+- [x] **Step 3: Commit any changes made**
 
 ```bash
 git add src/neurodb/db.py tests/integration/test_duckdb_engine.py
@@ -2301,14 +2301,14 @@ git commit -m "fix: DuckDB compatibility in db.py and integration tests"
 - Modify: `scripts/ingest.py`
 - Modify: `scripts/query_cli.py`
 
-- [ ] **Step 1: Update `get_engine` default in `src/neurodb/db.py`**
+- [x] **Step 1: Update `get_engine` default in `src/neurodb/db.py`**
 
 ```python
 def get_engine(url: str = "duckdb:///neurodb.duckdb") -> Engine:
     return _create_engine(url, echo=False)
 ```
 
-- [ ] **Step 2: Update `scripts/ingest.py` to default to DuckDB**
+- [x] **Step 2: Update `scripts/ingest.py` to default to DuckDB**
 
 Replace the `get_engine` call and `--db` default:
 
@@ -2336,7 +2336,7 @@ def main():
     print(f"Ingest complete: run_id={run.id}, source={run.source}, at={run.run_at}")
 ```
 
-- [ ] **Step 3: Update `scripts/query_cli.py` to default to DuckDB**
+- [x] **Step 3: Update `scripts/query_cli.py` to default to DuckDB**
 
 ```python
 parser.add_argument("--db", default="neurodb.duckdb")
@@ -2377,7 +2377,7 @@ def main():
         print(f"\n{len(results)} result(s)")
 ```
 
-- [ ] **Step 4: Verify the full test suite still passes (unit tests use explicit sqlite URLs — they must not be affected)**
+- [x] **Step 4: Verify the full test suite still passes (unit tests use explicit sqlite URLs — they must not be affected)**
 
 ```bash
 uv run pytest tests/ -v
@@ -2385,7 +2385,7 @@ uv run pytest tests/ -v
 
 Expected: 35 passed.
 
-- [ ] **Step 5: Smoke-test the scripts end-to-end with DuckDB**
+- [x] **Step 5: Smoke-test the scripts end-to-end with DuckDB**
 
 ```bash
 rm -f neurodb.duckdb
@@ -2396,7 +2396,7 @@ uv run scripts/query_cli.py --sql "SELECT source, COUNT(*) FROM v_all_datasets G
 
 Expected: ingest completes with `run_id=1`, query returns results, SQL summary shows openneuro row.
 
-- [ ] **Step 6: Commit**
+- [x] **Step 6: Commit**
 
 ```bash
 git add src/neurodb/db.py scripts/ingest.py scripts/query_cli.py
@@ -2410,7 +2410,7 @@ git commit -m "feat: switch default backend from SQLite to DuckDB"
 **Files:**
 - Create: `scripts/migrate_to_duckdb.py`
 
-- [ ] **Step 1: Write the migration script**
+- [x] **Step 1: Write the migration script**
 
 Create `scripts/migrate_to_duckdb.py`:
 
@@ -2487,7 +2487,7 @@ if __name__ == "__main__":
     main()
 ```
 
-- [ ] **Step 2: Verify the script runs against a populated SQLite DB**
+- [x] **Step 2: Verify the script runs against a populated SQLite DB**
 
 ```bash
 # Populate SQLite (if not already present from previous phases)
@@ -2528,7 +2528,7 @@ Migrating neurodb.db → neurodb.duckdb
 Migration complete.
 ```
 
-- [ ] **Step 3: Confirm data is accessible in DuckDB after migration**
+- [x] **Step 3: Confirm data is accessible in DuckDB after migration**
 
 ```bash
 uv run scripts/query_cli.py --sql "SELECT source, COUNT(*) FROM v_all_datasets GROUP BY source" --db neurodb.duckdb
@@ -2536,7 +2536,7 @@ uv run scripts/query_cli.py --sql "SELECT source, COUNT(*) FROM v_all_datasets G
 
 Expected: openneuro row with count matching what was ingested.
 
-- [ ] **Step 4: Commit**
+- [x] **Step 4: Commit**
 
 ```bash
 git add scripts/migrate_to_duckdb.py

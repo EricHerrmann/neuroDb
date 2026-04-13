@@ -38,7 +38,11 @@ def migrate(sqlite_path: str, duckdb_path: str) -> None:
     conn.execute(f"ATTACH '{sqlite_path}' AS src (TYPE SQLITE)")
 
     for table in TABLES:
-        count = conn.execute(f"SELECT COUNT(*) FROM src.{table}").fetchone()[0]  # noqa: S608
+        try:
+            count = conn.execute(f"SELECT COUNT(*) FROM src.{table}").fetchone()[0]  # noqa: S608
+        except Exception:
+            print(f"  {table}: not in source, skipping")
+            continue
         if count == 0:
             print(f"  {table}: 0 rows in source, skipping")
             continue

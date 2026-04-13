@@ -96,6 +96,43 @@ stmt = stmt.where(OpenNeuroDataset.modality.ilike(modality))
 
 ---
 
+## Issue 5 — `no such table: v_all_datasets` on manual test 3
+
+**Test:** Phase 3 / Test 3
+**Date found:** 2026-04-13
+**Severity:** Blocker — view query fails entirely
+
+**Steps to reproduce:**
+```bash
+sqlite3 neurodb.db "SELECT source, count(*) from v_all_datasets group by source;"
+```
+
+**Error:**
+```
+Error: in prepare, no such table: v_all_datasets
+```
+
+**Root cause:** `scripts/ingest.py` called `init_db(engine)` (creates tables) but never
+called `create_views(engine)`. Views (`v_all_datasets`, `v_dataset_summary`,
+`v_canonical_subjects`) were only created in tests (in-memory) and in
+`scripts/field_coverage_audit.py`. After any normal ingest run the views did not
+exist in `neurodb.db`.
+
+**Fix applied:** `scripts/ingest.py`
+Added `create_views(engine)` immediately after `init_db(engine)`:
+```python
+init_db(engine)
+create_views(engine)   # added — ensures views exist after every ingest run
+```
+Also applied `create_views` one-time to the existing `neurodb.db` to unblock the
+current test session without requiring a full re-ingest.
+
+**Commit:** `de36451`
+
+**Status:** Fixed
+
+---
+
 ## Issue 3 — OpenNeuro GraphQL query uses stale field names (400 Bad Request on ingest)
 
 **Test:** Phase 2 / Test 2 (Ingest from OpenNeuro)

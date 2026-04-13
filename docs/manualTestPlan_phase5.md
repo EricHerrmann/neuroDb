@@ -1,6 +1,6 @@
 # Phase 5 Manual Test Plan — DuckDB Migration
 
-**Status:** Pending
+**Status:** PASSED
 **Tester:** Eric Herrmann
 **Scope:** DuckDB backend — ingest, query CLI, SQL mode, cross-source views, migration script
 **Date:** 2026-04-13
@@ -230,13 +230,17 @@ uv run scripts/query_cli.py --sql "SELECT source, COUNT(*) FROM v_all_datasets G
 
 All of the following must be true before signing off:
 
-- [ ] Regression check: Phase 4 regression items R.1–R.3 pass
-- [ ] Fresh DuckDB ingest completes for both sources without error
-- [ ] Both sources appear in `v_all_datasets` after ingest
-- [ ] Query CLI keyword, modality, source, and combined filters all work against DuckDB
-- [ ] SQL mode executes `v_dataset_summary` and cross-source group-by without error
-- [ ] Migration script copies SQLite data into DuckDB and creates views
-- [ ] Migration script is idempotent — re-run skips already-populated tables
-- [ ] Re-ingest is idempotent — no duplicate rows in DuckDB after second run
+- [x] Regression check: Phase 4 regression items R.1–R.3 pass
+- [x] Fresh DuckDB ingest completes for both sources without error
+- [x] Both sources appear in `v_all_datasets` after ingest
+- [x] Query CLI keyword, modality, source, and combined filters all work against DuckDB
+- [x] SQL mode executes `v_dataset_summary` and cross-source group-by without error
+- [x] Migration script copies SQLite data into DuckDB and creates views
+- [x] Migration script is idempotent — re-run skips already-populated tables
+- [x] Re-ingest is idempotent — no duplicate rows in DuckDB after second run
 
-**Sign-off:** _________________________________ Date: _____________
+**Sign-off:** Eric Herrmann Date: 2026-04-13
+
+### Notes
+- Test 4 required a fix: migration script crashed on tables absent from the SQLite source (e.g. `allen_datasets`). Fixed by catching the `CatalogException` and skipping missing tables (commit `6b913e7`).
+- Test 5 required a fix: re-ingest failed with a DuckDB FK constraint violation when updating `DatasetIndex.run_id`. Fixed by treating `DatasetIndex.run_id` as immutable after creation (commit `0d31164`).

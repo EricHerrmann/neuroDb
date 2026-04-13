@@ -1,7 +1,8 @@
 from sqlalchemy import create_engine
-from neurodb.db import init_db, get_session
+from neurodb.db import init_db, create_views, get_session
 from neurodb.schema import DatasetIndex, IngestRun
 from neurodb.connectors.openneuro import OpenNeuroDataset
+from neurodb.connectors.allen_brain import AllenDataset
 from neurodb.query import search_datasets, get_dataset_by_source_id
 
 
@@ -29,6 +30,7 @@ def _seed_db(engine):
 def test_search_by_keyword():
     engine = create_engine("sqlite:///:memory:")
     init_db(engine)
+    create_views(engine)
     _seed_db(engine)
     with get_session(engine) as session:
         results = search_datasets(session, keyword="plasticity")
@@ -39,6 +41,7 @@ def test_search_by_keyword():
 def test_search_by_modality():
     engine = create_engine("sqlite:///:memory:")
     init_db(engine)
+    create_views(engine)
     _seed_db(engine)
     with get_session(engine) as session:
         results = search_datasets(session, modality="EEG")
@@ -63,3 +66,42 @@ def test_get_by_source_id_missing_returns_none():
     with get_session(engine) as session:
         ds = get_dataset_by_source_id(session, "does-not-exist")
     assert ds is None
+
+
+def _seed_allen(engine):
+    with get_session(engine) as session:
+        run = IngestRun(source="allen_brain", run_at="2026-04-13", version="0.1")
+        session.add(run)
+        session.flush()
+        idx = DatasetIndex(source="allen_brain", source_id="allen001", run_id=run.id)
+        session.add(idx)
+        session.flush()
+        session.add(AllenDataset(
+            index_id=idx.id, source_id="allen001", title="ISH Atlas",
+            modality="ISH", run_id=run.id,
+        ))
+
+
+def test_search_by_source_filter():
+    engine = create_engine("sqlite:///:memory:")
+    init_db(engine)
+    create_views(engine)
+    _seed_db(engine)
+    _seed_allen(engine)
+    with get_session(engine) as session:
+        results = search_datasets(session, source="openneuro")
+    assert len(results) == 2
+    assert all(r.source == "openneuro" for r in results)
+
+
+def test_search_cross_source_returns_all():
+    engine = create_engine("sqlite:///:memory:")
+    init_db(engine)
+    create_views(engine)
+    _seed_db(engine)
+    _seed_allen(engine)
+    with get_session(engine) as session:
+        results = search_datasets(session)
+    sources = {r.source for r in results}
+    assert "openneuro" in sources
+    assert "allen_brain" in sources

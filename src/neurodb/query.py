@@ -1,31 +1,34 @@
 from sqlalchemy.orm import Session
-from sqlalchemy import select, or_
+from sqlalchemy import select, text
 from neurodb.connectors.openneuro import OpenNeuroDataset
-
-# TODO (Phase 3): search_datasets and get_dataset_by_id are coupled to OpenNeuroDataset.
-# When a second source connector is added, refactor to accept a model class or
-# query the shared DatasetIndex table instead.
 
 
 def search_datasets(
     session: Session,
     keyword: str | None = None,
     modality: str | None = None,
+    source: str | None = None,
     limit: int = 200,
-) -> list[OpenNeuroDataset]:
-    stmt = select(OpenNeuroDataset)
+):
+    """Search datasets across all sources using the v_all_datasets view."""
+    conditions = []
+    params: dict = {"limit": limit}
+
     if keyword:
-        term = f"%{keyword.lower()}%"
-        stmt = stmt.where(
-            or_(
-                OpenNeuroDataset.title.ilike(term),
-                OpenNeuroDataset.description.ilike(term),
-            )
+        conditions.append(
+            "(LOWER(title) LIKE :kw OR LOWER(COALESCE(description,'')) LIKE :kw)"
         )
+        params["kw"] = f"%{keyword.lower()}%"
     if modality:
-        stmt = stmt.where(OpenNeuroDataset.modality.ilike(modality))
-    stmt = stmt.limit(limit)
-    return list(session.execute(stmt).scalars())
+        conditions.append("LOWER(COALESCE(modality,'')) = LOWER(:modality)")
+        params["modality"] = modality
+    if source:
+        conditions.append("source = :source")
+        params["source"] = source
+
+    where = ("WHERE " + " AND ".join(conditions)) if conditions else ""
+    sql = text(f"SELECT * FROM v_all_datasets {where} LIMIT :limit")  # noqa: S608
+    return list(session.execute(sql, params).mappings())
 
 
 def get_dataset_by_source_id(session: Session, source_id: str) -> OpenNeuroDataset | None:

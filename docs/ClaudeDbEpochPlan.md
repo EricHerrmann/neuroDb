@@ -1935,7 +1935,7 @@ Present the following to the user for review before proceeding:
 - `docs/reviews/phase3-field-coverage.md` exists and is committed
 - User has reviewed the field-coverage findings and confirmed the Approach B decision (defer or proceed)
 
-**Approval:** <!-- PENDING — replace with: "Approved by Eric Herrmann on YYYY-MM-DD" -->
+**Approval:** Approved by Eric Herrmann on 2026-04-13
 
 ---
 
@@ -1950,7 +1950,7 @@ Present the following to the user for review before proceeding:
 **Files:**
 - Create: `scripts/query_cli.py`
 
-- [ ] **Step 1: Implement**
+- [x] **Step 1: Implement**
 
 Create `scripts/query_cli.py`:
 
@@ -2003,7 +2003,7 @@ if __name__ == "__main__":
     main()
 ```
 
-- [ ] **Step 2: Verify manually**
+- [x] **Step 2: Verify manually**
 
 ```bash
 uv run scripts/ingest.py --source openneuro --limit 50
@@ -2011,7 +2011,7 @@ uv run scripts/query_cli.py --search "memory"
 uv run scripts/query_cli.py --sql "SELECT * FROM v_dataset_summary"
 ```
 
-- [ ] **Step 3: Commit**
+- [x] **Step 3: Commit**
 
 ```bash
 git add scripts/query_cli.py

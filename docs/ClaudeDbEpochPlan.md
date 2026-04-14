@@ -4,6 +4,34 @@
 
 ---
 
+## Executive Summary
+
+**Last updated:** 2026-04-14
+
+**Current state:** Phase 6 complete on branch `feature/phase6-neurovault-dandi` (57 tests passing), pending merge to master. Phase 7 (entity resolution) has a concrete pending decision. Phase 8 (hypothesis layer) not yet started.
+
+| Phase | Status | Tests | Notes |
+|-------|--------|-------|-------|
+| 0 — Scaffolding | ✅ Complete | — | Schema, provenance, test harness |
+| 1 — OpenNeuro connector | ✅ Complete | — | GraphQL, idempotent ingest |
+| 2 — MVP UI | ✅ Complete | — | Streamlit browser + search |
+| 3 — Allen Brain + views | ✅ Complete | — | View-based merge (Approach C) |
+| 4 — Query & analysis layer | ✅ Complete | — | CLI + SQL mode |
+| 5 — DuckDB migration | ✅ Complete | 35 passed | Signed off 2026-04-13; fixed FK-update limitation |
+| 6 — NeuroVault + DANDI | 🔄 In review | 57 passed | Branch `feature/phase6-neurovault-dandi`; pending merge |
+| 7 — Entity resolution | ⏳ Decision pending | — | DOI-overlap gate: NeuroVault/DANDI add viable DOI paths |
+| 8 — Hypothesis layer | ⏳ Not started | — | Pre-analysis plans, structured reports |
+
+**Active data sources (Phase 6 branch):** OpenNeuro, Allen Brain Atlas, NeuroVault, DANDI
+
+**Key technical facts:**
+- Backend: DuckDB (`neurodb.duckdb`), SQLAlchemy 2.x ORM, Sequence-based PKs
+- DANDI uses two-stage ingest: REST API (stage 1) + NWB file download/parse via `pynwb` (stage 2, `scripts/enrich.py`)
+- DuckDB FK limitation: rows referenced by a FK from another table cannot be updated at all after child rows exist — `DatasetIndex.run_id` is immutable after first ingest
+- `v_all_datasets` view UNIONs all 4 source tables; `v_dataset_summary` aggregates by source + modality
+
+---
+
 ## Decisions Log
 
 | Date | Decision | Rationale |
@@ -11,6 +39,9 @@
 | 2026-04-11 | **SQLite for Phases 0–2 (MVP)** | Zero-install, portable, sufficient for single-user local exploration at MVP scale. |
 | 2026-04-11 | **DuckDB for Phase 3+** | Columnar performance needed for analytical queries over multi-source merged datasets. |
 | 2026-04-11 | **PostgreSQL excluded from design and architecture** | Out of scope for this epoch; no multi-user or server requirements. Do not introduce PostgreSQL-specific patterns or dependencies. |
+| 2026-04-13 | **NeuroVault + DANDI as Phase 6 sources** | Both advance plasticity research; NeuroVault provides fMRI statistical maps with cognitive paradigm metadata; DANDI provides electrophysiology with electrode and brain-region detail. |
+| 2026-04-13 | **DANDI two-stage ingest** | NWB files are large and require a download; separating REST ingest (stage 1) from NWB parse (stage 2) lets users ingest quickly and enrich selectively. `enriched_at` column tracks enrichment state per record. |
+| 2026-04-13 | **DatasetIndex.run_id immutable after insert** | DuckDB FK limitation: cannot UPDATE any column on a row that is referenced by another table via FK, even non-key columns. The source-specific table's `run_id` tracks subsequent runs instead. |
 
 ---
 
@@ -33,7 +64,9 @@
 7. [Phase 3 — Second Source + Merge Layer](#phase-3--second-source--merge-layer)
 8. [Phase 4 — Query & Analysis Layer](#phase-4--query--analysis-layer)
 9. [Phase 5 — DuckDB Migration](#phase-5--duckdb-migration)
-10. [Future Phases](#future-phases)
+10. [Phase 6 — NeuroVault + DANDI](#phase-6--neurovault--dandi)
+11. [Phase 7 — Entity Resolution / Approach B](#phase-7--entity-resolution--approach-b)
+12. [Phase 8 — Hypothesis & Report Layer](#phase-8--hypothesis--report-layer)
 
 ---
 
@@ -2557,46 +2590,161 @@ Present the following to the user for review before proceeding:
 - User has completed all steps in `docs/manualTestPlan_phase5.md` and signed off
 - User has decided which Future Phase (6, 7, or 8) to prioritize next
 
-**Approval:** <!-- PENDING — replace with: "Approved by Eric Herrmann on YYYY-MM-DD — next phase: Phase N" -->
+**Approval:** Approved by Eric Herrmann on 2026-04-13 — next phase: Phase 6 (NeuroVault + DANDI)
+
+**Notes from testing:**
+- Test 4 required a fix: migration script crashed on tables absent from the SQLite source (e.g. `allen_datasets`). Fixed by catching `CatalogException` and skipping missing tables (commit `6b913e7`).
+- Test 5 required a fix: re-ingest failed with a DuckDB FK constraint violation when updating `DatasetIndex.run_id`. Fixed by treating `DatasetIndex.run_id` as immutable after creation (commit `0d31164`). This is a documented DuckDB limitation — rows referenced by a FK from another table cannot be updated at all.
 
 ---
 
-## Future Phases
+## Phase 6 — NeuroVault + DANDI
 
-### Phase 6 — Additional Sources
+**Status:** 🔄 Complete on branch `feature/phase6-neurovault-dandi` (57 tests passing). Pending merge decision.
 
-Priority order based on plasticity research relevance:
+**Goal:** Add NeuroVault and DANDI as data sources, bringing the total to 4 sources in `v_all_datasets`. DANDI includes a second-stage NWB enrichment pass for electrode and brain-region metadata.
 
-| Source | Data Type | API |
-|--------|-----------|-----|
-| DANDI Archive | NWB neurophysiology (electrophysiology, calcium imaging) | REST + `dandi` Python client |
-| NeuroVault | Statistical brain maps (fMRI contrasts) | REST, no auth |
-| ABIDE | Autism fMRI (cross-site, demographic-rich) | NITRC FTP |
-| Human Connectome Project | High-res structural + functional MRI | AWS S3 (requires account) |
+**Design doc:** `docs/superpowers/specs/2026-04-13-phase6-design.md`  
+**Implementation plan:** `docs/superpowers/plans/2026-04-13-phase6-neurovault-dandi.md`  
+**Manual test plan:** `docs/testsPlans/manualTestPlan_phase6.md`
 
-For each: implement connector following Task 1.1–1.3 pattern, add fixture, pass idempotency test, register in `ingest.py`.
+### What was built
 
-### Phase 7 — Entity Resolution / Approach B (Decision Pending)
+**New source tables:**
 
-**Gate:** Do not start this phase until `docs/reviews/phase3-field-coverage.md` exists and the Approach B decision section confirms DOI overlap or viable subject matching is present across 3+ sources.
+| Table | Key fields |
+|-------|-----------|
+| `neurovault_datasets` | source_id, title, doi, n_images, n_subjects, cognitive_paradigm, tr (repetition time), resolution, description |
+| `dandi_datasets` | source_id, title, doi, species, modality, n_subjects, cognitive_paradigm, brain_regions (JSON array), sampling_rate, electrode_count, nwb_version, enriched_at |
 
-If the Phase 3 review shows no overlap (likely for OpenNeuro + Allen Brain alone — different species, no shared DOIs), defer this phase until a third source (e.g., DANDI or NeuroVault) is added and re-reviewed.
+**New files:**
+- `src/neurodb/connectors/neurovault.py` — NeuroVault REST connector (paginated via `next` cursor, httpx)
+- `src/neurodb/connectors/dandi.py` — DANDI REST connector (stage 1 API ingest, all NWB fields NULL)
+- `src/neurodb/enrichment.py` — DANDI NWB enrichment (`run_enrichment(engine, limit)`)
+- `scripts/enrich.py` — CLI: `uv run scripts/enrich.py --source dandi [--limit N] [--db FILE]`
+- `tests/fixtures/neurovault_sample.json`, `dandi_api_sample.json`, `dandi_sample.nwb`
+- 12 new tests (6 unit + 8 integration) across 5 test files
 
-If the gate is passed:
-1. `cross_refs` table already exists (added in Phase 0). Populate it:
-   - DOI exact match → `confidence="high"`, `method="doi_exact"`
-   - Title similarity (>0.9 Jaccard) → `confidence="medium"`, `method="title_fuzzy"`
-2. Add `canonical_subjects` table with a `canonical_id` (only for sources sharing human subjects).
-3. Build a rule-based matcher per confirmed source pair; log false positives for manual curation.
-4. Add `v_canonical_subjects` view exposing unified subject records where `cross_refs` entries exist.
-5. Treat all matcher output as advisory until manually reviewed — never silently overwrite source records.
+**Modified files:**
+- `src/neurodb/db.py` — `create_views` extended to UNION in neurovault + dandi (4 sources total)
+- `scripts/ingest.py` — `--source neurovault` and `--source dandi` added
+- `pyproject.toml` — added `dandi`, `pynwb`, `h5py` dependencies
 
-### Phase 8 — Hypothesis & Report Layer
+### DANDI enrichment design
 
-1. Pre-analysis plan document per hypothesis (in `docs/hypotheses/`).
-2. Python analysis scripts that query the DB and produce structured results.
-3. Uncertainty quantification (confidence intervals, effect sizes).
-4. Reproducibility: each report records the `run_id` and DB hash it was generated from.
+`enriched_at` column encodes three states:
+- `NULL` — not yet enriched (fresh from API ingest)
+- ISO timestamp (e.g. `"2026-04-14T10:00:00+00:00"`) — enriched successfully
+- `"ERROR:<message>"` — parse failed; message preserved for debugging
+
+Flow: download first NWB asset per dandiset to a tempfile → parse with `pynwb.NWBHDF5IO` → extract electrode_count, sampling_rate, brain_regions, cognitive_paradigm, nwb_version → update DB → delete tempfile. Idempotent: records with non-null `enriched_at` are skipped.
+
+### Phase 6 — Approval Gate
+
+**Do not begin Phase 7 until this gate is recorded.**
+
+- [ ] All Phase 6 task checkboxes checked
+- [ ] `uv run pytest tests/ -v` passes (57 tests)
+- [ ] `uv run scripts/ingest.py --source neurovault --limit 50` completes without error
+- [ ] `uv run scripts/ingest.py --source dandi --limit 50` completes without error
+- [ ] `uv run scripts/enrich.py --source dandi --limit 10` populates NWB fields on 10 records
+- [ ] `uv run scripts/query_cli.py --sql "SELECT source, COUNT(*) FROM v_all_datasets GROUP BY source"` returns 4 rows
+- [ ] User has completed `docs/testsPlans/manualTestPlan_phase6.md` and signed off
+- [ ] Branch merged to master
+
+**Approval:** <!-- PENDING -->
+
+---
+
+## Phase 7 — Entity Resolution / Approach B
+
+**Status:** ⏳ Decision pending. Gate condition partially met.
+
+### Gate Status (as of 2026-04-14)
+
+The gate requires `docs/reviews/phase3-field-coverage.md` to exist and confirm DOI overlap or viable subject matching across 3+ sources. That file exists (Phase 3 review, 2026-04-12). Key findings:
+
+| Source pair | DOI overlap | Subject match viable? |
+|-------------|------------|----------------------|
+| OpenNeuro + Allen Brain | None (Allen has 0 DOIs) | No (different species — human vs mouse) |
+| OpenNeuro + NeuroVault | **Possible** — both are human fMRI with DOIs; overlap not yet audited | Possible |
+| OpenNeuro + DANDI | **Possible** — both expose DOIs; overlap not yet audited | Possible (human NWB datasets) |
+| NeuroVault + DANDI | **Possible** — both expose DOIs | Possible |
+
+**Gate verdict:** Not yet passable — Phase 6 sources (NeuroVault, DANDI) are not yet merged and audited. **Re-run the field-coverage audit after Phase 6 is merged** to determine whether DOI overlap exists across 3+ sources.
+
+### Pending Decision: Approach B Trigger
+
+**Question:** After Phase 6 merges and a 4-source field-coverage audit is run, should entity resolution proceed if DOI overlap is found?
+
+**Option A: Proceed with DOI-exact-match entity resolution**
+
+Populate `cross_refs` using DOI as the join key between sources that share DOIs (e.g., OpenNeuro + NeuroVault, or OpenNeuro + DANDI).
+
+**Pros:**
+- Deterministic, auditable — DOI matches are high-confidence (`confidence="high"`, `method="doi_exact"`)
+- No NLP or fuzzy matching required; implementation is simple SELECT + INSERT
+- `cross_refs` table already exists (Phase 0); no schema migration needed
+- Enables cross-source queries: "show me all NeuroVault maps for datasets also in OpenNeuro"
+- Low false-positive rate; DOI collisions are extremely rare
+
+**Cons:**
+- Only covers datasets with DOIs in both sources — coverage will be sparse initially
+- DOI matching does not resolve subjects across sources (only datasets)
+- Allen Brain remains an island (no DOIs)
+- Requires a post-ingest audit query every time sources are updated to keep `cross_refs` fresh
+
+**Option B: Defer entity resolution; prioritize hypothesis layer (Phase 8)**
+
+Skip entity resolution and proceed directly to Phase 8 (hypothesis testing + reports). Use the `v_all_datasets` view for cross-source queries at the dataset level without record-level linking.
+
+**Pros:**
+- Faster path to the research goal — hypothesis testing is the project's primary objective
+- `v_all_datasets` already provides cross-source visibility at the dataset level
+- Entity resolution can be added retroactively without breaking existing analysis scripts
+- Avoids complexity before the value of cross-source linking is demonstrated
+
+**Cons:**
+- Cross-source subject-level analysis is not possible without entity resolution
+- If Phase 8 finds that the research questions require cross-source subject matching, Phase 7 work will need to be inserted mid-stream
+- `cross_refs` table grows stale — it was designed for this use case and is empty
+
+**Recommendation:** Run the 4-source field-coverage audit first. If OpenNeuro + NeuroVault or OpenNeuro + DANDI share >5 DOIs, implement Option A (DOI-exact). If overlap is negligible or zero across all pairs, defer to Phase 8.
+
+### If Phase 7 proceeds (Option A)
+
+1. Run field-coverage audit: `SELECT source, COUNT(*) as total, COUNT(doi) as has_doi FROM v_all_datasets GROUP BY source`
+2. Find shared DOIs: cross-join `openneuro_datasets` + `neurovault_datasets` (and `dandi_datasets`) on `doi`
+3. Populate `cross_refs`:
+   ```sql
+   INSERT INTO cross_refs (source_a, id_a, source_b, id_b, confidence, method)
+   SELECT 'openneuro', o.source_id, 'neurovault', n.source_id, 'high', 'doi_exact'
+   FROM openneuro_datasets o JOIN neurovault_datasets n ON o.doi = n.doi
+   WHERE o.doi IS NOT NULL
+   ```
+4. Add `v_cross_source_datasets` view joining `cross_refs` + source tables
+5. Document audit results in `docs/reviews/phase7-doi-coverage.md`
+
+---
+
+## Phase 8 — Hypothesis & Report Layer
+
+**Status:** ⏳ Not started. Depends on Phase 6 merge and Phase 7 decision.
+
+**Goal:** Enable structured hypothesis testing against the DB. Each hypothesis has a pre-analysis plan, a query script, and a reproducible report with uncertainty quantification.
+
+**Design sketch:**
+1. Pre-analysis plan documents per hypothesis in `docs/hypotheses/`
+2. Python analysis scripts in `scripts/analyze/` that query the DB and produce structured results
+3. Uncertainty quantification: confidence intervals, effect sizes, sample-size caveats
+4. Reproducibility: each report records the `run_id` range and DB file SHA256 hash it was generated from
+
+**Candidate first hypotheses (plasticity research focus):**
+- Do datasets with dense cognitive paradigm metadata (NeuroVault `cognitive_paradigm`, DANDI `session_description`) cluster around specific brain regions in `dandi_datasets.brain_regions`?
+- What is the electrode count and sampling rate distribution across DANDI dandisets, and how does this correlate with stated modality?
+- Which OpenNeuro datasets have matching statistical maps in NeuroVault (requires Phase 7 DOI linking)?
+
+**Gate:** Phase 6 manual testing signed off + Phase 7 decision recorded.
 
 ---
 
@@ -2616,4 +2764,4 @@ Every analysis report must record:
 
 ---
 
-*Plan authored: 2026-04-11. Updated: 2026-04-11 (merge strategy reordered A→C→B; cross_refs hook added to Phase 0 schema; field-coverage review task added as Phase 3 gate for Approach B). Review against `NeuroDbGoals.md` before each phase begins.*
+*Plan authored: 2026-04-11. Updated: 2026-04-14 (Phase 5 approval recorded; Phase 6 design and implementation details added; Phase 7 expanded with DOI-overlap pending decision and pros/cons; Phase 8 sketch added; executive summary added at top). Review against `NeuroDbGoals.md` before each phase begins.*

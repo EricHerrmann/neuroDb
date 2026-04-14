@@ -3,6 +3,8 @@ from neurodb.db import init_db, get_session, create_views
 from neurodb.schema import CrossRef, DatasetIndex, IngestRun, Subject
 from neurodb.connectors.openneuro import OpenNeuroDataset
 from neurodb.connectors.allen_brain import AllenDataset
+from neurodb.connectors.neurovault import NeuroVaultDataset
+from neurodb.connectors.dandi import DandiDataset
 
 
 def _seed(engine):
@@ -20,6 +22,18 @@ def _seed(engine):
         session.add(AllenDataset(index_id=idx2.id, source_id="100140756",
                                   title="ISH Atlas", modality="ISH",
                                   plane_of_section_id=1, run_id=run.id))
+        idx3 = DatasetIndex(source="neurovault", source_id="1", run_id=run.id)
+        session.add(idx3)
+        session.flush()
+        session.add(NeuroVaultDataset(index_id=idx3.id, source_id="1",
+                                      title="Working Memory fMRI", n_subjects=30,
+                                      run_id=run.id))
+        idx4 = DatasetIndex(source="dandi", source_id="000003", run_id=run.id)
+        session.add(idx4)
+        session.flush()
+        session.add(DandiDataset(index_id=idx4.id, source_id="000003",
+                                  title="Ephys in hippocampus", modality="NWB",
+                                  n_subjects=5, run_id=run.id))
 
 
 def test_unified_view_contains_both_sources():
@@ -82,3 +96,25 @@ def test_canonical_subjects_view_filters_by_cross_refs():
     subject_ids = [r[0] for r in rows]
     assert "sub-01" in subject_ids
     assert "sub-99" not in subject_ids
+
+
+def test_unified_view_contains_neurovault():
+    engine = create_engine("sqlite:///:memory:")
+    init_db(engine)
+    create_views(engine)
+    _seed(engine)
+    with engine.connect() as conn:
+        rows = conn.execute(text("SELECT source, COUNT(*) as n FROM v_all_datasets GROUP BY source")).fetchall()
+    sources = {r[0]: r[1] for r in rows}
+    assert sources["neurovault"] == 1
+
+
+def test_unified_view_contains_dandi():
+    engine = create_engine("sqlite:///:memory:")
+    init_db(engine)
+    create_views(engine)
+    _seed(engine)
+    with engine.connect() as conn:
+        rows = conn.execute(text("SELECT source, COUNT(*) as n FROM v_all_datasets GROUP BY source")).fetchall()
+    sources = {r[0]: r[1] for r in rows}
+    assert sources["dandi"] == 1

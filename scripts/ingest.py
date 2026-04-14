@@ -9,10 +9,14 @@ from neurodb.db import get_engine, init_db, create_views
 from neurodb.provenance import run_ingest
 from neurodb.connectors.openneuro import OpenNeuroConnector
 from neurodb.connectors.allen_brain import AllenBrainConnector
+from neurodb.connectors.neurovault import NeuroVaultConnector  # noqa: F401 — registers model
+from neurodb.connectors.dandi import DandiConnector  # noqa: F401 — registers model
 
 CONNECTORS = {
     "openneuro": OpenNeuroConnector,
     "allen_brain": AllenBrainConnector,
+    "neurovault": NeuroVaultConnector,
+    "dandi": DandiConnector,
 }
 
 

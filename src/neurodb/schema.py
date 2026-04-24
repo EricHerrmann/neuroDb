@@ -79,3 +79,14 @@ class QualityEvent(Base):
     note: Mapped[str | None] = mapped_column(Text, nullable=True)
     flagged_at: Mapped[str] = mapped_column(String(32), nullable=False)
     run_id: Mapped[int] = mapped_column(ForeignKey("ingest_runs.id"), nullable=False)
+
+
+class StudyNote(Base):
+    __tablename__ = "study_notes"
+
+    id: Mapped[int] = mapped_column(Integer, Sequence("study_notes_id_seq"), primary_key=True)
+    index_id: Mapped[int] = mapped_column(ForeignKey("datasets_index.id"), nullable=False, index=True)
+    concept_tag: Mapped[str] = mapped_column(String(128), nullable=False, index=True)
+    section_ref: Mapped[str | None] = mapped_column(String(64), nullable=True)
+    note_text: Mapped[str | None] = mapped_column(Text, nullable=True)
+    tagged_at: Mapped[str] = mapped_column(String(32), nullable=False)

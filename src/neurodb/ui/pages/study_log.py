@@ -1,9 +1,9 @@
 import pandas as pd
 import streamlit as st
-from sqlalchemy import Engine, text
+from sqlalchemy import Engine
 
 from neurodb.db import get_session
-from neurodb.study import tag_dataset
+from neurodb.study import list_tags, tag_dataset
 
 SOURCES = ["openneuro", "allen_brain", "neurovault", "dandi"]
 
@@ -15,40 +15,18 @@ def _browse_section(engine: Engine) -> None:
     concept_filter = col1.text_input("Filter by concept", "")
     source_filter = col2.selectbox("Filter by source", ["All"] + SOURCES)
 
-    conditions = []
-    params: dict = {}
-    if concept_filter:
-        conditions.append("LOWER(sn.concept_tag) LIKE :concept")
-        params["concept"] = f"%{concept_filter.lower()}%"
-    if source_filter != "All":
-        conditions.append("di.source = :source")
-        params["source"] = source_filter
-
-    where = ("WHERE " + " AND ".join(conditions)) if conditions else ""
-    sql = text(f"""
-        SELECT
-            sn.concept_tag,
-            sn.section_ref,
-            sn.note_text,
-            sn.tagged_at,
-            di.source,
-            di.source_id
-        FROM study_notes sn
-        JOIN datasets_index di ON di.id = sn.index_id
-        {where}
-        ORDER BY sn.tagged_at DESC
-    """)  # noqa: S608
-
-    with engine.connect() as conn:
-        result = conn.execute(sql, params)
-        rows = result.fetchall()
-        cols = list(result.keys())
+    with get_session(engine) as session:
+        rows = list_tags(
+            session,
+            concept=concept_filter.strip() or None,
+            source=source_filter if source_filter != "All" else None,
+        )
 
     if not rows:
         st.info("No study tags yet. Tag a dataset from the Dataset Browser or use the form below.")
         return
 
-    df = pd.DataFrame(rows, columns=cols)
+    df = pd.DataFrame(rows, columns=["source", "source_id", "concept_tag", "section_ref", "tagged_at", "note_text"])
     st.dataframe(df, use_container_width=True)
     st.caption(f"{len(rows)} tag(s)")
 
@@ -71,20 +49,23 @@ def _tag_form_section(engine: Engine) -> None:
         elif not concept.strip():
             st.error("Concept tag is required.")
         else:
-            with get_session(engine) as session:
-                result = tag_dataset(
-                    session,
-                    source=source,
-                    source_id=source_id.strip(),
-                    concept_tag=concept.strip(),
-                    section_ref=section.strip() or None,
-                    note_text=note.strip() or None,
-                )
-            if result is None:
-                st.error(f"Dataset not found: `{source}:{source_id.strip()}` — run ingest first.")
-            else:
-                st.success(f"Tagged `{source}:{source_id.strip()}` → '{concept.strip()}'")
-                st.rerun()
+            try:
+                with get_session(engine) as session:
+                    note_obj = tag_dataset(
+                        session,
+                        source=source,
+                        source_id=source_id.strip(),
+                        concept_tag=concept.strip(),
+                        section_ref=section.strip() or None,
+                        note_text=note.strip() or None,
+                    )
+                if note_obj is None:
+                    st.error(f"Dataset not found: `{source}:{source_id.strip()}` — run ingest first.")
+                else:
+                    st.success(f"Tagged `{source}:{source_id.strip()}` → '{concept.strip()}'")
+                    st.rerun()
+            except Exception as exc:
+                st.error(f"Error saving tag: {exc}")
 
 
 def render(engine: Engine) -> None:

@@ -4,6 +4,7 @@ from sqlalchemy.exc import IntegrityError
 from sqlalchemy.orm import Session
 
 from neurodb.schema import DatasetIndex, IngestRun, StudyNote
+from neurodb.study import tag_dataset
 
 
 def test_schema_includes_study_notes_table():
@@ -89,3 +90,29 @@ def test_study_note_rejects_missing_tagged_at():
                 concept_tag="test concept",
             ))
             session.commit()
+
+
+def test_tag_dataset_creates_study_note():
+    engine = create_engine("sqlite:///:memory:")
+    DatasetIndex.metadata.create_all(engine)
+    with Session(engine) as session:
+        run = IngestRun(source="test", run_at="2026-01-01T00:00:00", version="0.1")
+        session.add(run)
+        session.flush()
+        idx = DatasetIndex(source="dandi", source_id="000003", run_id=run.id)
+        session.add(idx)
+        session.flush()
+        note = tag_dataset(session, "dandi", "000003", "hippocampus", section_ref="Augustine Ch24")
+        session.commit()
+        assert note is not None
+        assert note.concept_tag == "hippocampus"
+        assert note.section_ref == "Augustine Ch24"
+        assert note.note_text is None
+
+
+def test_tag_dataset_returns_none_for_unknown_dataset():
+    engine = create_engine("sqlite:///:memory:")
+    DatasetIndex.metadata.create_all(engine)
+    with Session(engine) as session:
+        note = tag_dataset(session, "dandi", "does-not-exist", "hippocampus")
+    assert note is None

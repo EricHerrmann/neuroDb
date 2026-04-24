@@ -83,7 +83,7 @@ def test_study_note_rejects_missing_tagged_at():
         idx = DatasetIndex(source="dandi", source_id="000003", run_id=run.id)
         session.add(idx)
         session.flush()
-        with pytest.raises((IntegrityError, Exception)):
+        with pytest.raises(IntegrityError):
             session.add(StudyNote(
                 index_id=idx.id,
                 concept_tag="test concept",

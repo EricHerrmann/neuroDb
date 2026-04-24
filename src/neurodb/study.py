@@ -37,3 +37,62 @@ def tag_dataset(
     session.add(note)
     session.flush()
     return note
+
+
+def list_tags(
+    session: Session,
+    concept: str | None = None,
+    source: str | None = None,
+) -> list[dict]:
+    """Return study notes with dataset info, optionally filtered.
+
+    concept: substring match against concept_tag (case-insensitive)
+    source: exact match against datasets_index.source
+    """
+    rows = session.execute(
+        select(StudyNote, DatasetIndex)
+        .join(DatasetIndex, DatasetIndex.id == StudyNote.index_id)
+        .order_by(StudyNote.tagged_at.desc())
+    ).all()
+    results = []
+    for row in rows:
+        note, idx = row.StudyNote, row.DatasetIndex
+        if concept and concept.lower() not in note.concept_tag.lower():
+            continue
+        if source and source != idx.source:
+            continue
+        results.append({
+            "source": idx.source,
+            "source_id": idx.source_id,
+            "concept_tag": note.concept_tag,
+            "section_ref": note.section_ref,
+            "note_text": note.note_text,
+            "tagged_at": note.tagged_at,
+        })
+    return results
+
+
+def search_tags(session: Session, keyword: str) -> list[dict]:
+    """Return notes where keyword appears in concept_tag, note_text, or section_ref."""
+    kw = keyword.lower()
+    rows = session.execute(
+        select(StudyNote, DatasetIndex)
+        .join(DatasetIndex, DatasetIndex.id == StudyNote.index_id)
+        .order_by(StudyNote.tagged_at.desc())
+    ).all()
+    results = []
+    for row in rows:
+        note, idx = row.StudyNote, row.DatasetIndex
+        in_concept = kw in note.concept_tag.lower()
+        in_note = note.note_text and kw in note.note_text.lower()
+        in_section = note.section_ref and kw in note.section_ref.lower()
+        if in_concept or in_note or in_section:
+            results.append({
+                "source": idx.source,
+                "source_id": idx.source_id,
+                "concept_tag": note.concept_tag,
+                "section_ref": note.section_ref,
+                "note_text": note.note_text,
+                "tagged_at": note.tagged_at,
+            })
+    return results

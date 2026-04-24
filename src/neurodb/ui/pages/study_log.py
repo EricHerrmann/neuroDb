@@ -53,6 +53,42 @@ def _browse_section(engine: Engine) -> None:
     st.caption(f"{len(rows)} tag(s)")
 
 
+def _tag_form_section(engine: Engine) -> None:
+    st.subheader("Tag a Dataset by ID")
+    st.caption("Use source IDs from the Dataset Browser or SQL Query results.")
+
+    with st.form("tag_by_id_form", clear_on_submit=True):
+        source = st.selectbox("Source", SOURCES)
+        source_id = st.text_input("Source ID", placeholder="e.g. 000003 (DANDI) or ds003684 (OpenNeuro)")
+        concept = st.text_input("Concept tag *", placeholder="e.g. primary visual cortex")
+        section = st.text_input("Section reference", placeholder="e.g. Augustine Ch13 p.312")
+        note = st.text_area("Note", placeholder="What you observed, confirmed, or questioned")
+        submitted = st.form_submit_button("Save Tag")
+
+    if submitted:
+        if not source_id.strip():
+            st.error("Source ID is required.")
+        elif not concept.strip():
+            st.error("Concept tag is required.")
+        else:
+            with get_session(engine) as session:
+                result = tag_dataset(
+                    session,
+                    source=source,
+                    source_id=source_id.strip(),
+                    concept_tag=concept.strip(),
+                    section_ref=section.strip() or None,
+                    note_text=note.strip() or None,
+                )
+            if result is None:
+                st.error(f"Dataset not found: `{source}:{source_id.strip()}` — run ingest first.")
+            else:
+                st.success(f"Tagged `{source}:{source_id.strip()}` → '{concept.strip()}'")
+                st.rerun()
+
+
 def render(engine: Engine) -> None:
     st.header("Study Log")
     _browse_section(engine)
+    st.divider()
+    _tag_form_section(engine)

@@ -6,9 +6,6 @@ from neurodb.db import get_session
 from neurodb.query import search_datasets
 from neurodb.study import tag_dataset
 
-SOURCES = ["openneuro", "allen_brain", "neurovault", "dandi"]
-
-
 def render(engine: Engine) -> None:
     st.header("Dataset Browser")
 
@@ -70,5 +67,6 @@ def render(engine: Engine) -> None:
                         st.error(f"Dataset not found in index: {selected}")
                     else:
                         st.success(f"Tagged {selected} → '{concept.strip()}'")
+                        st.rerun()
                 except Exception as exc:
                     st.error(f"Error saving tag: {exc}")

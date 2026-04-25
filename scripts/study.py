@@ -36,6 +36,7 @@ def cmd_tag(args):
 
 def cmd_list(args):
     engine = get_engine(f"duckdb:///{args.db}")
+    init_db(engine)
     with get_session(engine) as session:
         tags = list_tags(session, concept=args.concept or None, source=args.source or None)
     if not tags:
@@ -53,6 +54,7 @@ def cmd_list(args):
 
 def cmd_search(args):
     engine = get_engine(f"duckdb:///{args.db}")
+    init_db(engine)
     with get_session(engine) as session:
         tags = search_tags(session, args.keyword)
     if not tags:

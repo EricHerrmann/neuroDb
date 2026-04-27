@@ -11,6 +11,9 @@ from neurodb.connectors.openneuro import OpenNeuroConnector
 from neurodb.connectors.allen_brain import AllenBrainConnector
 from neurodb.connectors.neurovault import NeuroVaultConnector  # noqa: F401 — registers model
 from neurodb.connectors.dandi import DandiConnector  # noqa: F401 — registers model
+from neurodb.embedder import Embedder
+from neurodb.vector_store import VectorStore
+from neurodb.embed_hooks import embed_source_datasets
 
 CONNECTORS = {
     "openneuro": OpenNeuroConnector,
@@ -33,6 +36,11 @@ def main():
     connector = CONNECTORS[args.source]()
     run = run_ingest(engine, connector=connector, limit=args.limit)
     print(f"Ingest complete: run_id={run.id}, source={run.source}, at={run.run_at}")
+    print("Embedding datasets into vector store…")
+    chroma_path = args.db.replace(".duckdb", "_chroma")
+    vs = VectorStore(path=chroma_path, embedder=Embedder())
+    n = embed_source_datasets(engine, vs, source=connector.SOURCE_NAME)
+    print(f"Embedded {n} dataset(s).")
 
 
 if __name__ == "__main__":

@@ -11,7 +11,15 @@ Usage:
 import argparse
 
 from neurodb.db import get_engine, get_session, init_db
-from neurodb.study import list_tags, search_tags, tag_dataset
+from neurodb.embed_hooks import embed_note, remove_note
+from neurodb.embedder import Embedder
+from neurodb.study import delete_tag, list_tags, search_tags, tag_dataset
+from neurodb.vector_store import VectorStore
+
+
+def _vector_store(db_path: str) -> VectorStore:
+    chroma_path = db_path.replace(".duckdb", "_chroma")
+    return VectorStore(path=chroma_path, embedder=Embedder())
 
 SOURCES = ["openneuro", "allen_brain", "neurovault", "dandi"]
 
@@ -32,6 +40,8 @@ def cmd_tag(args):
         print(f"Dataset not found: {args.source}:{args.id} — run ingest first")
         return
     print(f"Tagged {args.source}:{args.id} → '{args.concept}'")
+    embed_note(_vector_store(args.db), note.id, args.source, args.id,
+               args.concept, args.section or None, args.note or None)
 
 
 def cmd_list(args):
@@ -50,6 +60,18 @@ def cmd_list(args):
             print(f"  Note:    {t['note_text']}")
         print(f"  Tagged:  {t['tagged_at']}")
         print()
+
+
+def cmd_delete(args):
+    engine = get_engine(f"duckdb:///{args.db}")
+    init_db(engine)
+    with get_session(engine) as session:
+        deleted = delete_tag(session, args.tag_id)
+    if not deleted:
+        print(f"Tag id={args.tag_id} not found.")
+        return
+    print(f"Deleted tag id={args.tag_id}.")
+    remove_note(_vector_store(args.db), args.tag_id)
 
 
 def cmd_search(args):
@@ -86,8 +108,11 @@ def main():
     search_p = sub.add_parser("search", help="Search tags by keyword")
     search_p.add_argument("keyword")
 
+    del_p = sub.add_parser("delete", help="Delete a study tag by id")
+    del_p.add_argument("tag_id", type=int, metavar="TAG_ID")
+
     args = parser.parse_args()
-    {"tag": cmd_tag, "list": cmd_list, "search": cmd_search}[args.cmd](args)
+    {"tag": cmd_tag, "list": cmd_list, "search": cmd_search, "delete": cmd_delete}[args.cmd](args)
 
 
 if __name__ == "__main__":

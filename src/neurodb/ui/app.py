@@ -13,6 +13,8 @@ import neurodb.connectors.dandi  # noqa: F401 — registers DandiDataset
 import neurodb.connectors.neurovault  # noqa: F401 — registers NeuroVaultDataset
 import neurodb.connectors.openneuro  # noqa: F401 — registers OpenNeuroDataset
 from neurodb.db import create_views, get_engine, init_db
+from neurodb.embedder import Embedder
+from neurodb.vector_store import VectorStore
 
 st.set_page_config(page_title="NeuroDb Explorer", layout="wide")
 
@@ -26,6 +28,10 @@ init_db(engine)
 create_views(engine)
 
 st.session_state["engine"] = engine
+
+if "vector_store" not in st.session_state:
+    chroma_path = db_path.replace(".duckdb", "_chroma")
+    st.session_state["vector_store"] = VectorStore(path=chroma_path, embedder=Embedder())
 
 st.title("NeuroDb Explorer")
 st.caption(f"Connected to: `{db_path}`")

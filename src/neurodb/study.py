@@ -62,6 +62,7 @@ def list_tags(
         if source and source != idx.source:
             continue
         results.append({
+            "id": note.id,
             "source": idx.source,
             "source_id": idx.source_id,
             "concept_tag": note.concept_tag,
@@ -70,6 +71,15 @@ def list_tags(
             "tagged_at": note.tagged_at,
         })
     return results
+
+
+def delete_tag(session: Session, tag_id: int) -> bool:
+    """Delete a study note by id. Returns True if deleted, False if not found."""
+    note = session.get(StudyNote, tag_id)
+    if note is None:
+        return False
+    session.delete(note)
+    return True
 
 
 def search_tags(session: Session, keyword: str) -> list[dict]:

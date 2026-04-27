@@ -4,7 +4,7 @@ from sqlalchemy.exc import IntegrityError
 from sqlalchemy.orm import Session
 
 from neurodb.schema import DatasetIndex, IngestRun, StudyNote
-from neurodb.study import tag_dataset, list_tags, search_tags
+from neurodb.study import tag_dataset, list_tags, search_tags, delete_tag
 
 
 def test_schema_includes_study_notes_table():
@@ -191,3 +191,35 @@ def test_search_tags_no_match_returns_empty():
     with Session(engine) as session:
         results = search_tags(session, "somatosensory")
     assert results == []
+
+
+def test_list_tags_includes_id():
+    engine = _engine_with_two_tags()
+    with Session(engine) as session:
+        results = list_tags(session)
+    assert all("id" in r for r in results)
+    assert all(isinstance(r["id"], int) for r in results)
+
+
+def test_delete_tag_removes_row():
+    engine = _engine_with_two_tags()
+    with Session(engine) as session:
+        tags = list_tags(session)
+    assert len(tags) == 2
+    tag_id = tags[0]["id"]
+    with Session(engine) as session:
+        deleted = delete_tag(session, tag_id)
+        session.commit()
+    assert deleted is True
+    with Session(engine) as session:
+        remaining = list_tags(session)
+    assert len(remaining) == 1
+    assert remaining[0]["id"] != tag_id
+
+
+def test_delete_tag_unknown_id_returns_false():
+    engine = _engine_with_two_tags()
+    with Session(engine) as session:
+        result = delete_tag(session, 999999)
+        session.commit()
+    assert result is False

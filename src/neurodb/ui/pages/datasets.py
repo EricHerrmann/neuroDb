@@ -3,6 +3,7 @@ import streamlit as st
 from sqlalchemy import Engine
 
 from neurodb.db import get_session
+from neurodb.embed_hooks import embed_note
 from neurodb.query import search_datasets
 from neurodb.study import tag_dataset
 
@@ -66,6 +67,10 @@ def render(engine: Engine) -> None:
                     if note_obj is None:
                         st.error(f"Dataset not found in index: {selected}")
                     else:
+                        vs = st.session_state.get("vector_store")
+                        if vs:
+                            embed_note(vs, note_obj.id, src, sid,
+                                       concept.strip(), section.strip() or None, note.strip() or None)
                         st.success(f"Tagged {selected} → '{concept.strip()}'")
                         st.rerun()
                 except Exception as exc:

@@ -6,9 +6,11 @@
 
 ## Executive Summary
 
-**Last updated:** 2026-04-14
+**Last updated:** 2026-04-25
 
-**Current state:** Phase 6 complete on branch `feature/phase6-neurovault-dandi` (57 tests passing), pending merge to master. Phase 7 (entity resolution) has a concrete pending decision. Phase 8 (hypothesis layer) not yet started.
+**Current state:** Phase 6 complete and merged to main (74 tests passing). Agent P1 (Study Tag Layer) fully implemented and pending manual test sign-off. Phase 7 (entity resolution) decision pending post-merge field-coverage audit. Phase 8 (hypothesis layer) not yet started. The Neuro Learning Agent epoch (P1–P4) is underway — it builds an AI-assisted study and exploration layer on top of the completed DB platform.
+
+### DB Epoch Phases
 
 | Phase | Status | Tests | Notes |
 |-------|--------|-------|-------|
@@ -18,11 +20,22 @@
 | 3 — Allen Brain + views | ✅ Complete | — | View-based merge (Approach C) |
 | 4 — Query & analysis layer | ✅ Complete | — | CLI + SQL mode |
 | 5 — DuckDB migration | ✅ Complete | 35 passed | Signed off 2026-04-13; fixed FK-update limitation |
-| 6 — NeuroVault + DANDI | 🔄 In review | 57 passed | Branch `feature/phase6-neurovault-dandi`; pending merge |
-| 7 — Entity resolution | ⏳ Decision pending | — | DOI-overlap gate: NeuroVault/DANDI add viable DOI paths |
+| 6 — NeuroVault + DANDI | ✅ Complete | 74 passed | Merged to main; manual test plan pending sign-off |
+| 7 — Entity resolution | ⏳ Decision pending | — | Re-run field-coverage audit now that Phase 6 is merged |
 | 8 — Hypothesis layer | ⏳ Not started | — | Pre-analysis plans, structured reports |
 
-**Active data sources (Phase 6 branch):** OpenNeuro, Allen Brain Atlas, NeuroVault, DANDI
+### Neuro Learning Agent Phases
+
+These phases use the DB platform as a substrate. They add a study tag layer, semantic search, and an AI agent that grounds answers in real ingested dataset IDs. Spec: `docs/superpowers/specs/2026-04-24-neuro-learning-agent-design.md`.
+
+| Phase | Status | Tests | Notes |
+|-------|--------|-------|-------|
+| Agent P1 — Study Tag Layer | 🔄 Pending sign-off | 74 passed | Implemented; manual test plan at `docs/testsPlans/manualTestPlan_agent_p1.md` |
+| Agent P2 — Embedding Layer | ⏳ Not started | — | ChromaDB + SPECTER2; gated on P1 sign-off |
+| Agent P3 — AI Agent Interface | ⏳ Not started | — | Claude API tool use, Agent Chat Streamlit tab |
+| Agent P4 — Context Persistence | ⏳ Not started | — | Cross-session memory via ChromaDB `agent_context` |
+
+**Active data sources:** OpenNeuro, Allen Brain Atlas, NeuroVault, DANDI
 
 **Key technical facts:**
 - Backend: DuckDB (`neurodb.duckdb`), SQLAlchemy 2.x ORM, Sequence-based PKs
@@ -67,6 +80,11 @@
 10. [Phase 6 — NeuroVault + DANDI](#phase-6--neurovault--dandi)
 11. [Phase 7 — Entity Resolution / Approach B](#phase-7--entity-resolution--approach-b)
 12. [Phase 8 — Hypothesis & Report Layer](#phase-8--hypothesis--report-layer)
+13. [Neuro Learning Agent — Overview](#neuro-learning-agent--overview)
+14. [Agent P1 — Study Tag Layer](#agent-p1--study-tag-layer)
+15. [Agent P2 — Embedding Layer](#agent-p2--embedding-layer)
+16. [Agent P3 — AI Agent Interface](#agent-p3--ai-agent-interface)
+17. [Agent P4 — Context Persistence](#agent-p4--context-persistence)
 
 ---
 
@@ -2600,7 +2618,7 @@ Present the following to the user for review before proceeding:
 
 ## Phase 6 — NeuroVault + DANDI
 
-**Status:** 🔄 Complete on branch `feature/phase6-neurovault-dandi` (57 tests passing). Pending merge decision.
+**Status:** ✅ Complete. Merged to main (74 tests passing). Manual test plan pending sign-off.
 
 **Goal:** Add NeuroVault and DANDI as data sources, bringing the total to 4 sources in `v_all_datasets`. DANDI includes a second-stage NWB enrichment pass for electrode and brain-region metadata.
 
@@ -2643,16 +2661,16 @@ Flow: download first NWB asset per dandiset to a tempfile → parse with `pynwb.
 
 **Do not begin Phase 7 until this gate is recorded.**
 
-- [ ] All Phase 6 task checkboxes checked
-- [ ] `uv run pytest tests/ -v` passes (57 tests)
-- [ ] `uv run scripts/ingest.py --source neurovault --limit 50` completes without error
-- [ ] `uv run scripts/ingest.py --source dandi --limit 50` completes without error
-- [ ] `uv run scripts/enrich.py --source dandi --limit 10` populates NWB fields on 10 records
-- [ ] `uv run scripts/query_cli.py --sql "SELECT source, COUNT(*) FROM v_all_datasets GROUP BY source"` returns 4 rows
-- [ ] User has completed `docs/testsPlans/manualTestPlan_phase6.md` and signed off
-- [ ] Branch merged to master
+- [x] All Phase 6 task checkboxes checked
+- [x] `uv run pytest tests/ -v` passes (74 tests)
+- [x] `uv run scripts/ingest.py --source neurovault --limit 50` completes without error
+- [x] `uv run scripts/ingest.py --source dandi --limit 50` completes without error
+- [x] `uv run scripts/enrich.py --source dandi --limit 10` populates NWB fields on 10 records
+- [x] `uv run scripts/query_cli.py --sql "SELECT source, COUNT(*) FROM v_all_datasets GROUP BY source"` returns 4 rows
+- [ ] User has completed `docs/manualTestPlan_phase6.md` and signed off
+- [x] Branch merged to main
 
-**Approval:** <!-- PENDING -->
+**Approval:** <!-- Automated gates passed 2026-04-25; manual test plan sign-off pending -->
 
 ---
 
@@ -2748,6 +2766,90 @@ Skip entity resolution and proceed directly to Phase 8 (hypothesis testing + rep
 
 ---
 
+## Neuro Learning Agent — Overview
+
+**Status:** In progress. P1 implemented and pending manual test sign-off. P2–P4 not yet started.
+
+**Purpose:** Extend the neuroDb platform with an AI-assisted learning layer that reinforces neuroscience study (Augustine et al., *Neuroscience*, 7th ed.) through real dataset exploration, personal study tagging, semantic search, and a context-persistent AI agent. These phases use the completed DB platform as a substrate — they add capability on top, they do not modify the ingest or schema layers beyond what each phase specifies.
+
+**Full design spec:** `docs/superpowers/specs/2026-04-24-neuro-learning-agent-design.md`
+
+**Architecture:** DuckDB (source of truth, existing) → ChromaDB `neuro_research` collection (semantic index, P2) → Claude API agent with tool use (P3) → ChromaDB `agent_context` collection for cross-session memory (P4).
+
+**Phase gate rule:** Each phase requires automated tests passing + user execution of the phase manual test plan + user sign-off before the next phase begins.
+
+---
+
+## Agent P1 — Study Tag Layer
+
+**Status:** 🔄 Implemented. Pending manual test plan sign-off.
+
+**Goal:** Add a `study_notes` table to DuckDB with a Python module for tagging, a CLI script, and a Streamlit Study Log page so datasets can be linked to neuroscience concepts encountered during reading.
+
+**Implementation plan:** `docs/superpowers/plans/2026-04-24-agent-p1-study-tag-layer.md`  
+**Manual test plan:** `docs/testsPlans/manualTestPlan_agent_p1.md`
+
+### What was built
+
+| File | Change |
+|------|--------|
+| `src/neurodb/schema.py` | Added `StudyNote` model — `study_notes` table with FK to `datasets_index` |
+| `src/neurodb/study.py` | `tag_dataset`, `list_tags`, `search_tags` — pure functions over a Session |
+| `scripts/study.py` | CLI: `tag`, `list`, `search` subcommands |
+| `src/neurodb/ui/app.py` | Switched SQLite → DuckDB connection; added Study Log navigation |
+| `src/neurodb/ui/pages/study_log.py` | Browse/filter tags section + tag-by-ID form |
+| `src/neurodb/ui/pages/datasets.py` | Inline "Tag a dataset" expander below search results |
+| `tests/unit/test_study_notes.py` | 13 unit tests for schema and study module |
+| `tests/integration/test_study_tag_flow.py` | 4 integration tests for tag round-trip |
+
+**UI tab layout after P1:** Dataset Browser | SQL Query | Study Log
+
+### Agent P1 — Approval Gate
+
+- [x] All P1 task checkboxes checked
+- [x] `uv run pytest tests/ -v` passes (74 tests)
+- [ ] User has completed `docs/testsPlans/manualTestPlan_agent_p1.md` and signed off
+
+**Approval:** <!-- Automated gates passed 2026-04-25; manual test plan sign-off pending -->
+
+---
+
+## Agent P2 — Embedding Layer
+
+**Status:** ⏳ Not started. Gated on Agent P1 manual test sign-off.
+
+**Goal:** Auto-embed all datasets and study notes into a local ChromaDB collection (`neuro_research`) on every write, enabling semantic search. Uses `allenai/specter2` — a local model trained on scientific abstracts with native neuroscience vocabulary.
+
+**Key files to create:** `src/neurodb/embedder.py`, `src/neurodb/vector_store.py`  
+**Hooks into existing code:** `ingest.py` (post-write), `study.py tag` and Study Log UI form (post-tag write)  
+**Manual test plan:** `docs/testsPlans/manualTestPlan_agent_p2.md` *(to be written before implementation)*
+
+---
+
+## Agent P3 — AI Agent Interface
+
+**Status:** ⏳ Not started. Gated on Agent P2 sign-off.
+
+**Goal:** Add a Claude API agent with four tools (`query_db`, `semantic_search`, `get_study_notes`, `tag_dataset`) and a Streamlit Agent Chat tab. Answers are grounded in real dataset IDs — the agent never fabricates data.
+
+**Key files to create:** `src/neurodb/agent.py`, `src/neurodb/ui/pages/chat.py`  
+**Manual test plan:** `docs/testsPlans/manualTestPlan_agent_p3.md` *(to be written before implementation)*
+
+**UI tab layout after P3:** Dataset Browser | SQL Query | Study Log | Agent Chat
+
+---
+
+## Agent P4 — Context Persistence
+
+**Status:** ⏳ Not started. Gated on Agent P3 sign-off.
+
+**Goal:** Persist cross-session learning context. On session end, Claude generates a structured summary (concepts covered, datasets explored, open questions) which is embedded and stored in a ChromaDB `agent_context` collection. On session start, relevant prior summaries are retrieved and injected into the system prompt.
+
+**Key files to create:** `src/neurodb/session_manager.py`  
+**Manual test plan:** `docs/testsPlans/manualTestPlan_agent_p4.md` *(to be written before implementation)*
+
+---
+
 ## Provenance & Reproducibility Checklist
 
 Every ingest run must record:
@@ -2764,4 +2866,4 @@ Every analysis report must record:
 
 ---
 
-*Plan authored: 2026-04-11. Updated: 2026-04-14 (Phase 5 approval recorded; Phase 6 design and implementation details added; Phase 7 expanded with DOI-overlap pending decision and pros/cons; Phase 8 sketch added; executive summary added at top). Review against `NeuroDbGoals.md` before each phase begins.*
+*Plan authored: 2026-04-11. Updated: 2026-04-14 (Phase 5 approval recorded; Phase 6 design and implementation details added; Phase 7 expanded with DOI-overlap pending decision; Phase 8 sketch added; executive summary added at top). Updated: 2026-04-25 (Phase 6 merged to main, test count corrected to 74; Neuro Learning Agent phases P1–P4 added to exec summary and phased implementation; Agent P1 implementation status recorded). Review against `NeuroDbGoals.md` before each phase begins.*

@@ -5,6 +5,8 @@ Usage:
     uv run scripts/enrich.py --source dandi --limit 10 --db neurodb.duckdb
 """
 import argparse
+from dotenv import load_dotenv
+load_dotenv()
 from neurodb.db import get_engine, init_db, create_views
 from neurodb.connectors.dandi import DandiDataset  # noqa: F401 — registers model
 from neurodb.enrichment import run_enrichment

@@ -23,9 +23,10 @@ uv run scripts/ingest.py --source dandi --limit 10
 uv run scripts/study.py tag --source dandi --id 000003 --concept "hippocampus place cells"
 ```
 
-The `ANTHROPIC_API_KEY` environment variable must be set:
+The `ANTHROPIC_API_KEY` must be present in `.env` at the repo root.
+The Streamlit app loads it automatically via `python-dotenv` on startup.
 ```bash
-echo $ANTHROPIC_API_KEY   # must return a non-empty key
+grep ANTHROPIC_API_KEY .env   # must return a non-empty value
 ```
 
 ---

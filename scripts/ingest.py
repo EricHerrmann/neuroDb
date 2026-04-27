@@ -5,6 +5,8 @@ Usage:
     uv run scripts/ingest.py --source openneuro --limit 200 --db neurodb.db
 """
 import argparse
+from dotenv import load_dotenv
+load_dotenv()
 from neurodb.db import get_engine, init_db, create_views
 from neurodb.provenance import run_ingest
 from neurodb.connectors.openneuro import OpenNeuroConnector

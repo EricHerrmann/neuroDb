@@ -9,6 +9,8 @@ Usage:
     uv run scripts/study.py search retinotopic
 """
 import argparse
+from dotenv import load_dotenv
+load_dotenv()
 
 from neurodb.db import get_engine, get_session, init_db
 from neurodb.embed_hooks import embed_note, remove_note

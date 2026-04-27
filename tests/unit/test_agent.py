@@ -1,0 +1,254 @@
+"""Unit tests for NeuroDb agent — mocks Anthropic client, no real API calls."""
+import json
+from types import SimpleNamespace
+from unittest.mock import MagicMock, patch
+
+import pytest
+from sqlalchemy import create_engine
+from sqlalchemy.orm import Session
+
+from neurodb.schema import DatasetIndex, IngestRun
+from neurodb.agent import TOOLS, NeuroAgent, execute_tool
+
+
+# ---------------------------------------------------------------------------
+# Helpers
+# ---------------------------------------------------------------------------
+
+def _engine_with_dataset():
+    engine = create_engine("sqlite:///:memory:")
+    DatasetIndex.metadata.create_all(engine)
+    with Session(engine) as session:
+        run = IngestRun(source="dandi", run_at="2026-01-01T00:00:00", version="0.1")
+        session.add(run)
+        session.flush()
+        idx = DatasetIndex(source="dandi", source_id="000003", run_id=run.id)
+        session.add(idx)
+        session.commit()
+    return engine
+
+
+def _text_block(text: str):
+    block = SimpleNamespace()
+    block.type = "text"
+    block.text = text
+    return block
+
+
+def _tool_use_block(tool_id: str, name: str, inputs: dict):
+    block = SimpleNamespace()
+    block.type = "tool_use"
+    block.id = tool_id
+    block.name = name
+    block.input = inputs
+    return block
+
+
+def _response(stop_reason: str, content: list):
+    r = SimpleNamespace()
+    r.stop_reason = stop_reason
+    r.content = content
+    return r
+
+
+# ---------------------------------------------------------------------------
+# Tool definitions
+# ---------------------------------------------------------------------------
+
+def test_tools_list_has_four_entries():
+    assert len(TOOLS) == 4
+
+
+def test_tool_names():
+    names = {t["name"] for t in TOOLS}
+    assert names == {"query_db", "semantic_search", "get_study_notes", "tag_dataset"}
+
+
+def test_each_tool_has_required_fields():
+    for tool in TOOLS:
+        assert "name" in tool
+        assert "description" in tool
+        assert "input_schema" in tool
+        assert tool["input_schema"]["type"] == "object"
+
+
+# ---------------------------------------------------------------------------
+# execute_tool — query_db
+# ---------------------------------------------------------------------------
+
+def test_execute_query_db_returns_json(tmp_path):
+    engine = _engine_with_dataset()
+    result = execute_tool("query_db", {"sql": "SELECT source_id FROM datasets_index"}, engine, None)
+    rows = json.loads(result)
+    assert isinstance(rows, list)
+
+
+def test_execute_query_db_blocks_non_select():
+    engine = _engine_with_dataset()
+    result = execute_tool("query_db", {"sql": "DROP TABLE datasets_index"}, engine, None)
+    obj = json.loads(result)
+    assert "error" in obj
+
+
+def test_execute_query_db_handles_bad_sql():
+    engine = _engine_with_dataset()
+    result = execute_tool("query_db", {"sql": "SELECT * FROM nonexistent_table_xyz"}, engine, None)
+    obj = json.loads(result)
+    assert "error" in obj
+
+
+# ---------------------------------------------------------------------------
+# execute_tool — get_study_notes
+# ---------------------------------------------------------------------------
+
+def test_execute_get_study_notes_returns_list():
+    engine = _engine_with_dataset()
+    result = execute_tool("get_study_notes", {}, engine, None)
+    rows = json.loads(result)
+    assert isinstance(rows, list)
+
+
+def test_execute_get_study_notes_filters_concept():
+    engine = _engine_with_dataset()
+    from neurodb.study import tag_dataset
+    with Session(engine) as session:
+        tag_dataset(session, "dandi", "000003", "hippocampus place cells")
+        session.commit()
+
+    result = execute_tool("get_study_notes", {"concept": "hippocampus"}, engine, None)
+    rows = json.loads(result)
+    assert len(rows) == 1
+    assert "hippocampus" in rows[0]["concept_tag"]
+
+
+# ---------------------------------------------------------------------------
+# execute_tool — tag_dataset
+# ---------------------------------------------------------------------------
+
+def test_execute_tag_dataset_success():
+    engine = _engine_with_dataset()
+    result = execute_tool(
+        "tag_dataset",
+        {"source": "dandi", "source_id": "000003", "concept_tag": "grid cells"},
+        engine,
+        None,
+    )
+    obj = json.loads(result)
+    assert obj["success"] is True
+    assert "tag_id" in obj
+
+
+def test_execute_tag_dataset_unknown_dataset():
+    engine = _engine_with_dataset()
+    result = execute_tool(
+        "tag_dataset",
+        {"source": "dandi", "source_id": "does-not-exist", "concept_tag": "grid cells"},
+        engine,
+        None,
+    )
+    obj = json.loads(result)
+    assert "error" in obj
+
+
+# ---------------------------------------------------------------------------
+# execute_tool — semantic_search
+# ---------------------------------------------------------------------------
+
+def test_execute_semantic_search_no_vector_store():
+    engine = _engine_with_dataset()
+    result = execute_tool("semantic_search", {"query": "place cells"}, engine, None)
+    obj = json.loads(result)
+    assert "error" in obj
+
+
+def test_execute_semantic_search_with_store():
+    import chromadb
+    from neurodb.vector_store import VectorStore
+
+    class _StubEmbedder:
+        def embed(self, texts):
+            return [[0.1, 0.2, 0.3, 0.4] for _ in texts]
+
+    client = chromadb.EphemeralClient()
+    vs = VectorStore(client=client, embedder=_StubEmbedder())
+    vs.upsert_dataset("dandi", "000003", "Hippocampus Study", None, "icephys")
+
+    engine = _engine_with_dataset()
+    result = execute_tool("semantic_search", {"query": "hippocampus", "n_results": 3}, engine, vs)
+    rows = json.loads(result)
+    assert isinstance(rows, list)
+
+
+# ---------------------------------------------------------------------------
+# execute_tool — unknown tool
+# ---------------------------------------------------------------------------
+
+def test_execute_unknown_tool_returns_error():
+    engine = _engine_with_dataset()
+    result = execute_tool("nonexistent_tool", {}, engine, None)
+    obj = json.loads(result)
+    assert "error" in obj
+
+
+# ---------------------------------------------------------------------------
+# NeuroAgent loop
+# ---------------------------------------------------------------------------
+
+def test_agent_end_turn_yields_text():
+    engine = _engine_with_dataset()
+    mock_client = MagicMock()
+    mock_client.messages.create.return_value = _response(
+        "end_turn", [_text_block("There are 1 datasets.")]
+    )
+
+    agent = NeuroAgent(mock_client, engine)
+    chunks = list(agent.chat("How many datasets?", []))
+    assert "".join(chunks) == "There are 1 datasets."
+    assert mock_client.messages.create.call_count == 1
+
+
+def test_agent_tool_use_then_end_turn():
+    engine = _engine_with_dataset()
+    mock_client = MagicMock()
+
+    first_response = _response("tool_use", [
+        _tool_use_block("t1", "query_db", {"sql": "SELECT COUNT(*) FROM datasets_index"})
+    ])
+    second_response = _response("end_turn", [_text_block("Found 1 dataset.")])
+    mock_client.messages.create.side_effect = [first_response, second_response]
+
+    agent = NeuroAgent(mock_client, engine)
+    chunks = list(agent.chat("Count datasets", []))
+    assert "".join(chunks) == "Found 1 dataset."
+    assert mock_client.messages.create.call_count == 2
+
+
+def test_agent_passes_history_to_api():
+    engine = _engine_with_dataset()
+    mock_client = MagicMock()
+    mock_client.messages.create.return_value = _response("end_turn", [_text_block("ok")])
+
+    history = [
+        {"role": "user", "content": "hello"},
+        {"role": "assistant", "content": [_text_block("hi")]},
+    ]
+    agent = NeuroAgent(mock_client, engine)
+    list(agent.chat("next question", history))
+
+    call_messages = mock_client.messages.create.call_args[1]["messages"]
+    # history is [user, assistant] + the new user message at index 2
+    assert call_messages[0]["role"] == "user"
+    assert call_messages[0]["content"] == "hello"
+    assert call_messages[2]["content"] == "next question"
+
+
+def test_agent_max_turns_guard():
+    engine = _engine_with_dataset()
+    mock_client = MagicMock()
+    mock_client.messages.create.return_value = _response("tool_use", [
+        _tool_use_block("t1", "query_db", {"sql": "SELECT 1"})
+    ])
+
+    agent = NeuroAgent(mock_client, engine)
+    chunks = list(agent.chat("loop forever", []))
+    assert any("maximum" in c.lower() for c in chunks)

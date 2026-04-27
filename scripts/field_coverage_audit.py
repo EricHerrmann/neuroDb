@@ -5,6 +5,8 @@ Usage:
     uv run scripts/field_coverage_audit.py --db neurodb.db
 """
 import argparse
+from dotenv import load_dotenv
+load_dotenv()
 from sqlalchemy import text
 from neurodb.db import get_engine, init_db, create_views
 

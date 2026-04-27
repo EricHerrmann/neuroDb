@@ -9,6 +9,8 @@ Safe to run against an already-migrated target: tables are populated only if emp
 """
 import argparse
 import duckdb
+from dotenv import load_dotenv
+load_dotenv()
 from neurodb.db import get_engine, init_db, create_views
 from neurodb.connectors.openneuro import OpenNeuroDataset  # registers model with Base.metadata  # noqa: F401
 from neurodb.connectors.allen_brain import AllenDataset  # registers model with Base.metadata  # noqa: F401

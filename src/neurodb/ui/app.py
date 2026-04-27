@@ -6,6 +6,9 @@ Run with:
 """
 import sys
 
+from dotenv import load_dotenv
+load_dotenv()
+
 import streamlit as st
 
 import neurodb.connectors.allen_brain  # noqa: F401 — registers AllenDataset
@@ -36,7 +39,7 @@ if "vector_store" not in st.session_state:
 st.title("NeuroDb Explorer")
 st.caption(f"Connected to: `{db_path}`")
 
-page = st.sidebar.radio("Navigate", ["Dataset Browser", "SQL Query", "Study Log"])
+page = st.sidebar.radio("Navigate", ["Dataset Browser", "SQL Query", "Study Log", "Agent Chat"])
 
 if page == "Dataset Browser":
     from neurodb.ui.pages.datasets import render
@@ -46,4 +49,7 @@ elif page == "SQL Query":
     render(engine)
 elif page == "Study Log":
     from neurodb.ui.pages.study_log import render
+    render(engine)
+elif page == "Agent Chat":
+    from neurodb.ui.pages.chat import render
     render(engine)

@@ -7,6 +7,8 @@ Usage:
     uv run scripts/query_cli.py --sql "SELECT * FROM v_dataset_summary"
 """
 import argparse
+from dotenv import load_dotenv
+load_dotenv()
 from neurodb.db import get_engine, init_db, get_session
 from neurodb.query import search_datasets
 from sqlalchemy import text

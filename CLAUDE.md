@@ -69,6 +69,13 @@ Minimum expectations for all changes:
   - run timestamp,
   - known limitations
 
+## Environment and Secrets
+
+- API keys and secrets live in `.env` in the repo root (gitignored).
+- Every entry point (Streamlit app, CLI scripts) must call `load_dotenv()` from `python-dotenv` before reading any environment variable.
+- Never hardcode keys or read `os.environ` for secrets without a preceding `load_dotenv()`.
+- `.env` is never committed; `.env.example` with placeholder values should be kept if one exists.
+
 ## Coding Standards
 
 1. Keep implementation simple and explicit; avoid premature abstractions.

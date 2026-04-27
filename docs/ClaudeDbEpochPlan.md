@@ -8,7 +8,7 @@
 
 **Last updated:** 2026-04-25
 
-**Current state:** Phase 6 complete and merged to main (74 tests passing). Agent P1 (Study Tag Layer) fully implemented and pending manual test sign-off. Phase 7 (entity resolution) decision pending post-merge field-coverage audit. Phase 8 (hypothesis layer) not yet started. The Neuro Learning Agent epoch (P1–P4) is underway — it builds an AI-assisted study and exploration layer on top of the completed DB platform.
+**Current state:** Phase 6 complete and merged to main (84 tests passing). Agent P1 (Study Tag Layer) signed off 2026-04-27. Agent P2 (Embedding Layer — ChromaDB + SPECTER2) signed off 2026-04-27. Agent P3 (AI Agent Interface) implementation underway. Phase 7 (entity resolution) decision pending post-merge field-coverage audit. Phase 8 (hypothesis layer) not yet started.
 
 ### DB Epoch Phases
 
@@ -30,9 +30,9 @@ These phases use the DB platform as a substrate. They add a study tag layer, sem
 
 | Phase | Status | Tests | Notes |
 |-------|--------|-------|-------|
-| Agent P1 — Study Tag Layer | 🔄 Pending sign-off | 74 passed | Implemented; manual test plan at `docs/testsPlans/manualTestPlan_agent_p1.md` |
-| Agent P2 — Embedding Layer | ⏳ Not started | — | ChromaDB + SPECTER2; gated on P1 sign-off |
-| Agent P3 — AI Agent Interface | ⏳ Not started | — | Claude API tool use, Agent Chat Streamlit tab |
+| Agent P1 — Study Tag Layer | ✅ Signed off | 84 passed | Signed off 2026-04-27 |
+| Agent P2 — Embedding Layer | ✅ Signed off | 84 passed | Signed off 2026-04-27; SPECTER2 + ChromaDB wired to all write paths |
+| Agent P3 — AI Agent Interface | 🔄 In progress | — | Claude API tool use, Agent Chat Streamlit tab |
 | Agent P4 — Context Persistence | ⏳ Not started | — | Cross-session memory via ChromaDB `agent_context` |
 
 **Active data sources:** OpenNeuro, Allen Brain Atlas, NeuroVault, DANDI
@@ -2816,7 +2816,7 @@ Skip entity resolution and proceed directly to Phase 8 (hypothesis testing + rep
 
 ## Agent P2 — Embedding Layer
 
-**Status:** ⏳ Not started. Gated on Agent P1 manual test sign-off.
+**Status:** ✅ Signed off 2026-04-27. 84 tests passing.
 
 **Goal:** Auto-embed all datasets and study notes into a local ChromaDB collection (`neuro_research`) on every write, enabling semantic search. Uses `allenai/specter2` — a local model trained on scientific abstracts with native neuroscience vocabulary.
 
@@ -2828,7 +2828,7 @@ Skip entity resolution and proceed directly to Phase 8 (hypothesis testing + rep
 
 ## Agent P3 — AI Agent Interface
 
-**Status:** ⏳ Not started. Gated on Agent P2 sign-off.
+**Status:** 🔄 In progress. P2 signed off 2026-04-27.
 
 **Goal:** Add a Claude API agent with four tools (`query_db`, `semantic_search`, `get_study_notes`, `tag_dataset`) and a Streamlit Agent Chat tab. Answers are grounded in real dataset IDs — the agent never fabricates data.
 

@@ -1,6 +1,6 @@
 # Agent P2 Manual Test Plan — Embedding Layer (ChromaDB + SPECTER2)
 
-**Status:** Pending
+**Status:** ✅ Signed off 2026-04-27
 **Tester:** Eric Herrmann
 **Scope:** SPECTER2 model download, dataset embedding on ingest, study note embedding on tag/delete, vector store persistence
 **Date:** <!-- fill in on execution -->
@@ -147,4 +147,4 @@ uv run streamlit run src/neurodb/ui/app.py
 - [ ] UI save and delete call embed/remove hooks without terminal errors
 - [ ] Vector store persists across server restarts (no re-download)
 
-**Sign-off:** _________________________________ Date: _____________
+**Sign-off:** Eric Herrmann   Date: 2026-04-27

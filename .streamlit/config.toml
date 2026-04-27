@@ -1,0 +1,10 @@
+[server]
+# Disable module-path inspection watcher. transformers pulls in vision models
+# that require torchvision (not installed), causing noise on every startup.
+# Hot reload is not used — restart the server after any source change.
+fileWatcherType = "none"
+
+[client]
+# Prevent Streamlit auto-discovering src/neurodb/ui/pages/ as a multi-page app.
+# Navigation is handled explicitly in app.py via st.tabs().
+showSidebarNavigation = false

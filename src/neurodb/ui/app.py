@@ -36,20 +36,28 @@ if "vector_store" not in st.session_state:
     chroma_path = db_path.replace(".duckdb", "_chroma")
     st.session_state["vector_store"] = VectorStore(path=chroma_path, embedder=Embedder())
 
+# --- Sidebar: Research Assistant (natively resizable + collapsible) ---
+with st.sidebar:
+    st.caption(f"DB: `{db_path}`")
+    if st.button("Clear Chat History", use_container_width=True):
+        st.session_state["chat_history"] = []
+        st.rerun()
+    st.divider()
+    from neurodb.ui.pages.chat import render_panel
+    render_panel(engine)
+
+# --- Main area: data tabs at full width ---
 st.title("NeuroDb Explorer")
-st.caption(f"Connected to: `{db_path}`")
+tab_datasets, tab_sql, tab_study = st.tabs(["Dataset Browser", "SQL Query", "Study Log"])
 
-page = st.sidebar.radio("Navigate", ["Dataset Browser", "SQL Query", "Study Log", "Agent Chat"])
-
-if page == "Dataset Browser":
+with tab_datasets:
     from neurodb.ui.pages.datasets import render
     render(engine)
-elif page == "SQL Query":
+
+with tab_sql:
     from neurodb.ui.pages.query import render
     render(engine)
-elif page == "Study Log":
+
+with tab_study:
     from neurodb.ui.pages.study_log import render
-    render(engine)
-elif page == "Agent Chat":
-    from neurodb.ui.pages.chat import render
     render(engine)

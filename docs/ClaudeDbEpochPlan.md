@@ -8,7 +8,7 @@
 
 **Last updated:** 2026-04-27
 
-**Current state:** Phase 6 complete and merged to main. Agent P1 (Study Tag Layer) signed off 2026-04-27. Agent P2 (Embedding Layer — ChromaDB + SPECTER2) signed off 2026-04-27. Agent P3 (AI Agent Interface) implementation complete (101 tests passing); manual test plan at `docs/manualTestPlan_agent_p3.md` — pending sign-off. Phase 7 (entity resolution) decision pending post-merge field-coverage audit. Phase 8 (hypothesis layer) not yet started.
+**Current state:** Phase 6 complete and merged to main. Agent P1–P3 all signed off 2026-04-27 (101 tests passing). Agent P4 (Context Persistence) not yet started. Phase 7 (entity resolution) decision pending post-merge field-coverage audit. Phase 8 (hypothesis layer) not yet started.
 
 ### DB Epoch Phases
 
@@ -32,7 +32,7 @@ These phases use the DB platform as a substrate. They add a study tag layer, sem
 |-------|--------|-------|-------|
 | Agent P1 — Study Tag Layer | ✅ Signed off | 84 passed | Signed off 2026-04-27 |
 | Agent P2 — Embedding Layer | ✅ Signed off | 84 passed | Signed off 2026-04-27; SPECTER2 + ChromaDB wired to all write paths |
-| Agent P3 — AI Agent Interface | 🔄 Pending sign-off | 101 passed | Claude API tool use, Agent Chat Streamlit tab; manual test plan ready |
+| Agent P3 — AI Agent Interface | ✅ Signed off | 101 passed | Signed off 2026-04-27; Claude API tool use, Agent Chat tab, grounded answers |
 | Agent P4 — Context Persistence | ⏳ Not started | — | Cross-session memory via ChromaDB `agent_context` |
 
 **Active data sources:** OpenNeuro, Allen Brain Atlas, NeuroVault, DANDI

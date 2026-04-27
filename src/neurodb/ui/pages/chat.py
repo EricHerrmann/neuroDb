@@ -4,9 +4,8 @@ import streamlit as st
 from sqlalchemy import Engine
 
 
-def render(engine: Engine) -> None:
-    st.header("Agent Chat")
-    st.caption("Ask questions about your datasets. The agent queries the database to ground its answers.")
+def render_panel(engine: Engine) -> None:
+    st.subheader("Research Assistant")
 
     if "chat_history" not in st.session_state:
         st.session_state["chat_history"] = []
@@ -14,9 +13,9 @@ def render(engine: Engine) -> None:
     if "neuro_agent" not in st.session_state:
         api_key = os.environ.get("ANTHROPIC_API_KEY")
         if not api_key:
-            st.error(
-                "ANTHROPIC_API_KEY environment variable is not set. "
-                "Set it before starting the server to enable Agent Chat."
+            st.warning(
+                "ANTHROPIC_API_KEY not found in `.env`. "
+                "Add it to enable the Research Assistant."
             )
             return
         import anthropic
@@ -27,29 +26,36 @@ def render(engine: Engine) -> None:
 
     agent = st.session_state["neuro_agent"]
 
-    for msg in st.session_state["chat_history"]:
-        with st.chat_message(msg["role"]):
-            st.markdown(msg["content"])
+    # Scrollable message history
+    with st.container(height=500):
+        for msg in st.session_state["chat_history"]:
+            with st.chat_message(msg["role"]):
+                st.markdown(msg["content"])
 
-    user_input = st.chat_input("Ask about your datasets…")
-    if user_input:
-        st.session_state["chat_history"].append({"role": "user", "content": user_input})
-        with st.chat_message("user"):
-            st.markdown(user_input)
+    # Input form — st.chat_input() is page-fixed and cannot live in a column
+    with st.form("agent_form", clear_on_submit=True):
+        user_input = st.text_input(
+            "Message",
+            placeholder="Ask about your datasets…",
+            label_visibility="collapsed",
+        )
+        submitted = st.form_submit_button("Send", use_container_width=True)
+
+    if submitted and user_input.strip():
+        message = user_input.strip()
+        st.session_state["chat_history"].append({"role": "user", "content": message})
 
         api_history = _to_api_history(st.session_state["chat_history"][:-1])
-
-        with st.chat_message("assistant"):
-            with st.spinner("Thinking…"):
-                chunks = list(agent.chat(user_input, api_history))
-            response_text = "".join(chunks)
-            st.markdown(response_text)
+        with st.spinner("Thinking…"):
+            chunks = list(agent.chat(message, api_history))
+        response_text = "".join(chunks)
 
         st.session_state["chat_history"].append({"role": "assistant", "content": response_text})
+        st.rerun()
 
 
 def _to_api_history(history: list[dict]) -> list[dict]:
-    """Convert display history (role+content str) to API message format."""
+    """Convert display history (role + content str) to API message format."""
     api = []
     for msg in history:
         if msg["role"] == "user":

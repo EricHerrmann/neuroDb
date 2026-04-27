@@ -36,7 +36,8 @@ def _browse_section(engine: Engine) -> None:
         return
 
     df = pd.DataFrame([{c: r[c] for c in _DISPLAY_COLS} for r in rows])
-    event = st.dataframe(df, use_container_width=True, on_select="rerun", selection_mode="single-row")
+    df_height = min(46 + 50 * len(df), 600)
+    event = st.dataframe(df, use_container_width=True, on_select="rerun", selection_mode="single-row", height=df_height)
     st.caption(f"{len(rows)} tag(s) — click a row to populate the form below")
 
     sel = event.selection.rows

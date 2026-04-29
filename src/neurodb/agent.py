@@ -192,21 +192,27 @@ class NeuroAgent:
         engine: Engine,
         vector_store: VectorStore | None = None,
         model: str = "claude-opus-4-7",
+        prior_context: str = "",
     ) -> None:
         self._client = client
         self._engine = engine
         self._vector_store = vector_store
         self._model = model
+        self.prior_context = prior_context
 
     def chat(self, user_message: str, history: list[dict]) -> Generator[str, None, None]:
         """Run one user turn, executing tools as needed, and yield response text."""
+        system = _SYSTEM_PROMPT
+        if self.prior_context:
+            system = f"{system}\n\n{self.prior_context}"
+
         messages = list(history) + [{"role": "user", "content": user_message}]
 
         for _ in range(_MAX_TURNS):
             response = self._client.messages.create(
                 model=self._model,
                 max_tokens=2048,
-                system=_SYSTEM_PROMPT,
+                system=system,
                 tools=TOOLS,
                 messages=messages,
             )

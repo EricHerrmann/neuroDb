@@ -177,6 +177,9 @@ cython_debug/
 # NeuroDb generated artifacts
 *.db
 *.db-journal
+*.duckdb
+*.duckdb.wal
+neurodb_chroma/
 
 # Git worktrees
 .worktrees/

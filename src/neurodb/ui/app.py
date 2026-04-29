@@ -36,6 +36,16 @@ if "vector_store" not in st.session_state:
     chroma_path = db_path.replace(".duckdb", "_chroma")
     st.session_state["vector_store"] = VectorStore(path=chroma_path, embedder=Embedder())
 
+if "session_manager" not in st.session_state:
+    import os
+    import anthropic
+    from neurodb.session_manager import AgentContextStore, SessionManager
+    chroma_path = db_path.replace(".duckdb", "_chroma")
+    context_store = AgentContextStore(path=chroma_path)
+    api_key = os.environ.get("ANTHROPIC_API_KEY")
+    client = anthropic.Anthropic(api_key=api_key) if api_key else None
+    st.session_state["session_manager"] = SessionManager(context_store, client=client)
+
 # --- Sidebar: Research Assistant (natively resizable + collapsible) ---
 with st.sidebar:
     st.caption(f"DB: `{db_path}`")

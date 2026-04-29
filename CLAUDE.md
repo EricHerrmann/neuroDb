@@ -76,6 +76,34 @@ Minimum expectations for all changes:
 - Never hardcode keys or read `os.environ` for secrets without a preceding `load_dotenv()`.
 - `.env` is never committed; `.env.example` with placeholder values should be kept if one exists.
 
+## Project Process Rules
+
+### Project State Document
+
+`docs/projectStatus.md` is the single source of current project state. It contains:
+- Phase status table (phase name, status, test count, sign-off date)
+- Active focus (what is being built right now)
+- Next phase (what comes after the current focus)
+- Goal alignment (one line mapping current work to the top-level project goal)
+- Reference table (file path and one-line description for every source document)
+
+`docs/projectStatus.md` does not contain design rationale, implementation detail, test steps, or any content that already exists in a source document. If content belongs in a source doc, put it there and add a reference here instead.
+
+### Sync Rules
+
+Update `docs/projectStatus.md` in the same commit as the change that triggers it. Triggers:
+
+- A phase changes status (started, in progress, signed off, complete) → update the phase row
+- Test count changes → update the count in the phase row
+- Active focus changes → update the active focus line
+- A new source document is created → add it to the reference table
+- A source document is deleted or renamed → update or remove its reference entry
+
+The following do not trigger a `docs/projectStatus.md` update:
+- Bug fixes, test fixes, or refactors that do not change phase status or test count
+- Internal implementation changes with no effect on project state
+- Edits within source documents that do not change their purpose or scope
+
 ## Coding Standards
 
 1. Keep implementation simple and explicit; avoid premature abstractions.

@@ -9,9 +9,10 @@ NeuroDb is focused on building an end-to-end, reproducible NeuroAI workflow with
 Primary goal:
 - Develop an agentic AI capability that ingests real neuroscience datasets and produces trustworthy, testable insights about brain plasticity.
 
-DB epoch goal (current execution focus):
-- Create a local database that collects from publicly available neuroscience data projects.
-- Deliver an MVP that can pull, merge, view, and query public neuro datasets.
+Current execution context:
+- The local neuroscience data platform is implemented: public-source ingest, normalization, merged views, CLI query surfaces, and a Streamlit UI all run against the local DB.
+- The learning-agent layer is implemented through context persistence: study tagging, semantic search, grounded agent chat, and cross-session memory all exist on top of the DB platform.
+- Live phase status, test counts, sign-off dates, active focus, and next phase are tracked only in `docs/projectStatus.md`.
 
 ## Goal-to-Epoch Mapping
 
@@ -21,29 +22,35 @@ DB epoch goal (current execution focus):
 - Reproducible research practices with traceable lineage.
 - Translation-ready outputs with uncertainty and limitations clearly stated.
 
-### DB Epoch (MVP)
-- Ingest data from selected public neuroscience sources.
-- Normalize and merge metadata into a local DB.
-- Provide basic read/query capabilities for exploration and downstream analysis.
-- Keep lineage and provenance fields so runs can be audited and repeated.
+### Current Platform Baseline
+- Ingest data from the implemented public neuroscience sources into a local analytical DB.
+- Normalize and merge metadata into shared views for exploration, querying, and downstream analysis.
+- Keep provenance, lineage, and reproducibility metadata so runs can be audited and repeated.
+- Extend the DB substrate with study tagging, semantic retrieval, and grounded agent workflows rather than treating the project as a greenfield MVP.
 
 ## Current Repository State
 
-- This repo currently contains planning content (`NeuroDbGoals.md`) and no production pipeline code yet.
-- Prioritize establishing project structure, ingest contracts, schema, and reproducibility scaffolding first.
+- This repo contains active implementation code, tests, manual test plans, and planning docs; it is no longer a planning-only repository.
+- The current architecture uses DuckDB as the source of truth for structured data, with ChromaDB collections for semantic retrieval and agent-context memory.
+- Implemented surfaces include source connectors, normalization/enrichment flows, provenance helpers, query modules, CLI entry points, a Streamlit UI, and agent/session-management modules.
+- Use `docs/projectStatus.md` as the live source of truth for what phase is active; use this file for standing engineering rules and defaults.
 
 ## Recommended Technical Baseline
 
 Use these defaults unless a stronger reason emerges during implementation:
 
 - Python for ingestion/transformation/query tooling
-- Local relational store (SQLite for MVP, portable and simple)
+- SQLAlchemy ORM/data-access layer over the local DB
+- DuckDB as the default local relational and analytical store
+- ChromaDB as the local semantic index and agent-context store
+- Streamlit for the local interactive UI, with thin Python CLI entry points for ingest, enrich, query, and study workflows
 - Reproducible environment tooling (`uv` + pinned dependencies)
+- SQLite remains acceptable for fast unit tests or narrow compatibility cases, but it is not the default runtime backend
 - Clear separation of:
   - source connectors,
-  - normalization transforms,
-  - storage layer,
-  - analysis/report generation
+  - normalization and enrichment transforms,
+  - storage and query layer,
+  - UI and agent/report generation layers
 
 ## Development Process
 

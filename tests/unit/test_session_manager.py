@@ -57,9 +57,37 @@ def test_context_store_is_append_only():
     store = _store()
     store.add_summary("sess-1", "Topic: V1\nConcepts: retinotopy", {"date": "2026-04-27"})
     store.add_summary("sess-1", "Topic: V1 updated\nConcepts: orientation columns", {"date": "2026-04-28"})
-    results = store.get_relevant("visual cortex", n=5)
-    # Both entries exist (append-only, no upsert)
-    assert len(results) == 2
+    # Both documents stored (unique IDs per call, no upsert)
+    assert store._col.count() == 2
+
+
+def test_context_store_filters_out_high_distance_results():
+    """Summaries above the cosine-distance threshold must not be injected."""
+    from unittest.mock import MagicMock
+    store = _store()
+    store._col = MagicMock()
+    store._col.count.return_value = 1
+    store._col.query.return_value = {
+        "documents": [["Topic: music\nConcepts covered: rhythm, melody"]],
+        "distances": [[0.72]],
+    }
+    results = store.get_relevant("emotion")
+    assert results == []
+
+
+def test_context_store_returns_low_distance_results():
+    """Summaries below the cosine-distance threshold are returned."""
+    from unittest.mock import MagicMock
+    store = _store()
+    store._col = MagicMock()
+    store._col.count.return_value = 1
+    store._col.query.return_value = {
+        "documents": [["Topic: hippocampus\nConcepts covered: place cells"]],
+        "distances": [[0.15]],
+    }
+    results = store.get_relevant("hippocampus spatial memory")
+    assert len(results) == 1
+    assert "place cells" in results[0]
 
 
 # ---------------------------------------------------------------------------
@@ -124,6 +152,24 @@ def test_start_session_empty_topic_returns_empty_context():
     manager = SessionManager(store)
     _, context = manager.start_session("")
     assert context == ""
+
+
+def test_start_session_respects_custom_threshold():
+    """Custom threshold is passed through to get_relevant."""
+    store = _store()
+    store._col = MagicMock()
+    store._col.count.return_value = 1
+    store._col.query.return_value = {
+        "documents": [["Topic: hippocampus\nConcepts: place cells"]],
+        "distances": [[0.65]],
+    }
+    manager = SessionManager(store)
+
+    _, context_default = manager.start_session("hippocampus")
+    assert "place cells" in context_default
+
+    _, context_strict = manager.start_session("hippocampus", threshold=0.6)
+    assert context_strict == ""
 
 
 # ---------------------------------------------------------------------------

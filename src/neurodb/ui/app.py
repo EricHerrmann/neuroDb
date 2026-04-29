@@ -49,10 +49,6 @@ if "session_manager" not in st.session_state:
 # --- Sidebar: Research Assistant (natively resizable + collapsible) ---
 with st.sidebar:
     st.caption(f"DB: `{db_path}`")
-    if st.button("Clear Chat History", use_container_width=True):
-        st.session_state["chat_history"] = []
-        st.rerun()
-    st.divider()
     from neurodb.ui.pages.chat import render_panel
     render_panel(engine)
 

@@ -180,7 +180,7 @@ cython_debug/
 *.duckdb
 *.duckdb.wal
 neurodb_chroma/
+neurodb_prefs.json
 
 # Git worktrees
 .worktrees/
-

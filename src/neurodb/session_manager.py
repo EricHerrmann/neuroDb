@@ -2,6 +2,7 @@
 import uuid
 
 _COLLECTION_NAME = "agent_context"
+_RELEVANCE_THRESHOLD = 0.7  # cosine distance; summaries above this are not injected
 
 _SUMMARY_PROMPT = """You are summarizing a neuroscience research session for future reference.
 Given the conversation below, produce a concise structured summary.
@@ -42,7 +43,12 @@ class AgentContextStore:
         doc_id = f"session:{session_id}:{uuid.uuid4().hex[:8]}"
         self._col.add(documents=[text], ids=[doc_id], metadatas=[metadata or None])
 
-    def get_relevant(self, query: str, n: int = 3) -> list[str]:
+    def get_relevant(
+        self,
+        query: str,
+        n: int = 3,
+        threshold: float = _RELEVANCE_THRESHOLD,
+    ) -> list[str]:
         """Return the n most semantically relevant session summaries for query."""
         if not query:
             return []
@@ -50,7 +56,11 @@ class AgentContextStore:
         if count == 0:
             return []
         results = self._col.query(query_texts=[query], n_results=min(n, count))
-        return results["documents"][0] if results["documents"] else []
+        if not results["documents"]:
+            return []
+        docs = results["documents"][0]
+        distances = results["distances"][0]
+        return [doc for doc, dist in zip(docs, distances) if dist <= threshold]
 
 
 def format_context(summaries: list[str]) -> str:
@@ -72,12 +82,16 @@ class SessionManager:
         self._store = context_store
         self._client = client  # Anthropic client
 
-    def start_session(self, topic: str) -> tuple[str, str]:
+    def start_session(
+        self,
+        topic: str,
+        threshold: float = _RELEVANCE_THRESHOLD,
+    ) -> tuple[str, str]:
         """Return (session_id, prior_context_str). Context is empty on cold start."""
         session_id = str(uuid.uuid4())
         if not topic:
             return session_id, ""
-        summaries = self._store.get_relevant(topic, n=3)
+        summaries = self._store.get_relevant(topic, n=3, threshold=threshold)
         return session_id, format_context(summaries)
 
     def end_session(self, session_id: str, conversation: list[dict]) -> None:

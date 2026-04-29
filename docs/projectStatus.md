@@ -1,8 +1,8 @@
 # NeuroDb — Project Status
 
-**Last updated:** 2026-04-28
-**Active focus:** Agent P4 — Context Persistence (implementation complete; pending manual test sign-off)
-**Next phase:** Agent P4 sign-off → Phase 7 entity resolution decision (field-coverage audit)
+**Last updated:** 2026-04-29
+**Active focus:** Phase 7 entity resolution decision (field-coverage audit)
+**Next phase:** Phase 7 entity resolution decision (field-coverage audit) → Agent P5 TBD
 **Goal alignment:** Building the study/learning agent layer that grounds neuroscience exploration in real ingested dataset IDs, accumulating cross-session context as the user's knowledge deepens.
 
 ---
@@ -28,7 +28,7 @@
 | P1 — Study Tag Layer | ✅ Signed off | 84 | 2026-04-27 |
 | P2 — Embedding Layer (ChromaDB + SPECTER2) | ✅ Signed off | 84 | 2026-04-27 |
 | P3 — AI Agent Interface | ✅ Signed off | 101 | 2026-04-27 |
-| P4 — Context Persistence | 🔄 Pending sign-off | 119 | — |
+| P4 — Context Persistence | ✅ Signed off | 127 | 2026-04-29 |
 
 ---
 
@@ -46,12 +46,13 @@
 
 | Document | Phase | Status |
 |---|---|---|
-| `docs/manualTestPlan_agent_p4.md` | P4 — Context Persistence | Pending execution |
+| _(none)_ | — | — |
 
 ## Archived Test Plans
 
 | Document | Phase | Outcome |
 |---|---|---|
+| `docs/testsPlans/manualTestPlan_agent_p4.md` | P4 — Context Persistence | ✅ Signed off 2026-04-29 |
 | `docs/testsPlans/manualTestPlan_agent_p1.md` | P1 — Study Tag Layer | ✅ Signed off 2026-04-27 |
 | `docs/testsPlans/manualTestPlan_agent_p2.md` | P2 — Embedding Layer | ✅ Signed off 2026-04-27 |
 | `docs/testsPlans/manualTestPlan_agent_p3.md` | P3 — AI Agent Interface | ✅ Signed off 2026-04-27 |

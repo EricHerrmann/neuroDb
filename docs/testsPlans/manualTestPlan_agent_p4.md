@@ -1,6 +1,6 @@
 # Agent P4 Manual Test Plan — Context Persistence
 
-**Status:** Pending
+**Status:** Signed off (with bug fix — see Test 5 note)
 **Tester:** Eric Herrmann
 **Scope:** Session lifecycle, prior-context injection, session summary generation, cross-session memory
 **Date:** <!-- fill in on execution -->
@@ -85,6 +85,8 @@ Start a second session with the same or related topic:
 | 5.1 | Start session with unrelated topic (e.g. "motor cortex") | No prior hippocampus context injected |
 | 5.2 | Agent has no knowledge of prior hippocampus session | Agent responds as if fresh on this topic |
 
+**Bug found (2026-04-29):** Music → emotion injected prior context. Root cause: `get_relevant()` returned nearest neighbors with no distance threshold, so any stored summary was returned regardless of similarity. Fix: cosine-distance threshold of 0.5 added to `AgentContextStore.get_relevant()` in `session_manager.py`. Two tests added covering the filter. Re-test passed after fix.
+
 ---
 
 ## Test 6 — End session without sending any messages
@@ -106,13 +108,13 @@ Start a second session with the same or related topic:
 
 ## Pass Criteria
 
-- [ ] `uv run pytest tests/ -v` — all tests pass
-- [ ] Topic input and Start Session button visible in sidebar
-- [ ] Cold start shows no prior context (correct)
-- [ ] End Session generates and stores summary without error
-- [ ] Second session with matching topic shows injected prior context
-- [ ] Unrelated topic receives no irrelevant prior context
-- [ ] Empty session ends cleanly without storing a summary
-- [ ] Context persists across server restarts
+- [x] `uv run pytest tests/ -v` — all tests pass (121)
+- [x] Topic input and Start Session button visible in sidebar
+- [x] Cold start shows no prior context (correct)
+- [x] End Session generates and stores summary without error
+- [x] Second session with matching topic shows injected prior context
+- [x] Unrelated topic receives no irrelevant prior context (bug fixed — distance threshold added)
+- [x] Empty session ends cleanly without storing a summary
+- [x] Context persists across server restarts
 
-**Sign-off:** _________________________________ Date: _____________
+**Sign-off:** Eric Herrmann Date: 2026-04-29

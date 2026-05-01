@@ -1,8 +1,8 @@
 # NeuroDb — Project Status
 
 **Last updated:** 2026-05-01
-**Active focus:** Learning Agent Enhancement — mode-aware agent, chapter registry, discovery tools, suggestions UI
-**Next phase:** Learning Agent Enhancement → Deferred: Entity resolution (Phase 7)
+**Active focus:** Learning Agent Enhancement — manual verification and sign-off
+**Next phase:** Deferred: Entity resolution (Phase 7), gated on P5 manual sign-off
 **Goal alignment:** Building the study/learning agent layer that grounds neuroscience exploration in real ingested dataset IDs, accumulating cross-session context as the user's knowledge deepens.
 
 ---
@@ -29,7 +29,7 @@
 | P2 — Embedding Layer (ChromaDB + SPECTER2) | ✅ Signed off | 84 | 2026-04-27 |
 | P3 — AI Agent Interface | ✅ Signed off | 101 | 2026-04-27 |
 | P4 — Context Persistence | ✅ Signed off | 127 | 2026-04-29 |
-| P5 — Learning Agent Enhancement | ✅ Signed off | 151 | 2026-05-01 |
+| P5 — Learning Agent Enhancement | 🔄 Pending manual sign-off | 151 | — |
 
 ---
 
@@ -47,12 +47,13 @@
 | `src/neurodb/discovery_tools.py` | Discovery mode tool implementations and DISCOVERY_TOOLS schema |
 | `docs/superpowers/specs/2026-05-01-learning-agent-enhancement-design.md` | Design spec: learning-focused agent with mode toggle, chapter registry, discovery tools, suggestions UI |
 | `docs/superpowers/plans/2026-05-01-learning-agent-enhancement.md` | P5 implementation plan |
+| `docs/testsPlans/manualTestPlan_agent_p5.md` | Manual verification plan for P5 — Learning Agent Enhancement |
 
 ## Active Manual Test Plans
 
 | Document | Phase | Status |
 |---|---|---|
-| _(none)_ | — | — |
+| `docs/testsPlans/manualTestPlan_agent_p5.md` | P5 — Learning Agent Enhancement | Pending user execution/sign-off |
 
 ## Archived Test Plans
 

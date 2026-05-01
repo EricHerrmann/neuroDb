@@ -1,0 +1,20 @@
+{
+  "data": {
+    "dataset": {
+      "id": "ds003685",
+      "name": "HCP Retinotopy",
+      "metadata": {
+        "species": "Human",
+        "modalities": ["mri"],
+        "associatedPaperDOI": "10.1167/19.10.23",
+        "ages": [22, 23, 24, 25, 26, 27, 28, 29, 30, 31, 32, 33, 34, 35]
+      },
+      "draft": {
+        "readme": "Retinotopic mapping data from the Human Connectome Project.",
+        "description": {
+          "BIDSVersion": "1.4.0"
+        }
+      }
+    }
+  }
+}

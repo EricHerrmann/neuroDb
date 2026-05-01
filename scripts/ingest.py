@@ -29,6 +29,8 @@ def main():
     parser = argparse.ArgumentParser(description="Ingest a neuro data source into NeuroDb")
     parser.add_argument("--source", choices=list(CONNECTORS), required=True)
     parser.add_argument("--limit", type=int, default=100)
+    parser.add_argument("--dataset-id", dest="dataset_id", default=None,
+                        help="Ingest a single dataset by its source ID (e.g. ds003685)")
     parser.add_argument("--db", default="neurodb.duckdb")
     args = parser.parse_args()
 
@@ -36,7 +38,8 @@ def main():
     init_db(engine)
     create_views(engine)
     connector = CONNECTORS[args.source]()
-    run = run_ingest(engine, connector=connector, limit=args.limit)
+    dataset_ids = [args.dataset_id] if args.dataset_id else None
+    run = run_ingest(engine, connector=connector, limit=args.limit, dataset_ids=dataset_ids)
     print(f"Ingest complete: run_id={run.id}, source={run.source}, at={run.run_at}")
     print("Embedding datasets into vector store…")
     chroma_path = args.db.replace(".duckdb", "_chroma")

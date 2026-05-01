@@ -5,7 +5,12 @@ from neurodb.schema import IngestRun, DatasetIndex
 from neurodb.connectors.base import BaseConnector
 
 
-def run_ingest(engine: Engine, connector: BaseConnector, limit: int = 100) -> IngestRun:
+def run_ingest(
+    engine: Engine,
+    connector: BaseConnector,
+    limit: int = 100,
+    dataset_ids: list[str] | None = None,
+) -> IngestRun:
     """Fetch datasets from connector, upsert into DB, record provenance.
 
     Per dataset, two upserts occur:
@@ -21,7 +26,12 @@ def run_ingest(engine: Engine, connector: BaseConnector, limit: int = 100) -> In
         session.add(run)
         session.flush()
 
-        for raw in connector.fetch_datasets(limit=limit):
+        source = (
+            [connector.fetch_by_id(did) for did in dataset_ids]
+            if dataset_ids is not None
+            else connector.fetch_datasets(limit=limit)
+        )
+        for raw in source:
             source_id = connector.get_source_id(raw)
 
             # Step 1: Upsert DatasetIndex

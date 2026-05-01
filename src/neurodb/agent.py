@@ -139,6 +139,44 @@ def execute_tool(
     return json.dumps({"error": f"Unknown tool: {name}"})
 
 
+def _execute_discovery_tool(name: str, inputs: dict, engine: Engine) -> str:
+    from neurodb.discovery_tools import (
+        run_search_external,
+        run_suggest_import,
+        run_suggest_learning_source,
+        run_suggest_new_source,
+    )
+
+    if name == "search_external":
+        return run_search_external(inputs["source"], inputs["query"], inputs.get("limit", 10))
+    if name == "suggest_import":
+        return run_suggest_import(
+            inputs["source"],
+            inputs["source_id"],
+            inputs["title"],
+            inputs["reason"],
+            inputs.get("chapter_ref"),
+            inputs.get("metadata", {}),
+            engine,
+        )
+    if name == "suggest_learning_source":
+        return run_suggest_learning_source(
+            inputs["suggestion_type"],
+            inputs["reference"],
+            inputs["display_name"],
+            inputs["reason"],
+            engine,
+        )
+    if name == "suggest_new_source":
+        return run_suggest_new_source(
+            inputs["reference"],
+            inputs["display_name"],
+            inputs["reason"],
+            engine,
+        )
+    return json.dumps({"error": f"Unknown discovery tool: {name}"})
+
+
 def _run_query_db(sql: str, engine: Engine) -> str:
     if not sql.strip().lower().startswith("select"):
         return json.dumps({"error": "Only SELECT statements are allowed."})
@@ -193,16 +231,28 @@ class NeuroAgent:
         vector_store: VectorStore | None = None,
         model: str = "claude-opus-4-7",
         prior_context: str = "",
+        mode: str = "learning",
+        chapter_context: str = "",
     ) -> None:
         self._client = client
         self._engine = engine
         self._vector_store = vector_store
         self._model = model
         self.prior_context = prior_context
+        self.mode = mode
+        self.chapter_context = chapter_context
 
     def chat(self, user_message: str, history: list[dict]) -> Generator[str, None, None]:
         """Run one user turn, executing tools as needed, and yield response text."""
+        from neurodb.discovery_tools import DISCOVERY_TOOLS
+
+        active_tools = list(TOOLS)
+        if self.mode == "discovery":
+            active_tools.extend(DISCOVERY_TOOLS)
+
         system = _SYSTEM_PROMPT
+        if self.chapter_context:
+            system = f"{system}\n\nCurrent reading context:\n{self.chapter_context}"
         if self.prior_context:
             system = f"{system}\n\n{self.prior_context}"
 
@@ -213,7 +263,7 @@ class NeuroAgent:
                 model=self._model,
                 max_tokens=2048,
                 system=system,
-                tools=TOOLS,
+                tools=active_tools,
                 messages=messages,
             )
             messages.append({"role": "assistant", "content": response.content})
@@ -228,9 +278,19 @@ class NeuroAgent:
                 tool_results = []
                 for block in response.content:
                     if block.type == "tool_use":
-                        result_text = execute_tool(
-                            block.name, block.input, self._engine, self._vector_store
-                        )
+                        if block.name in {
+                            "search_external",
+                            "suggest_import",
+                            "suggest_learning_source",
+                            "suggest_new_source",
+                        }:
+                            result_text = _execute_discovery_tool(
+                                block.name, block.input, self._engine
+                            )
+                        else:
+                            result_text = execute_tool(
+                                block.name, block.input, self._engine, self._vector_store
+                            )
                         tool_results.append({
                             "type": "tool_result",
                             "tool_use_id": block.id,

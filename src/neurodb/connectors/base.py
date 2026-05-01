@@ -39,3 +39,9 @@ class BaseConnector(ABC):
         """Map a raw subject dict to a Subject ORM object.
         index_id references DatasetIndex, not any source-specific table.
         """
+
+    def search_by_keyword(self, query: str, limit: int = 10) -> list[dict]:
+        """Search the source API by keyword. Returns list of raw dataset dicts.
+        Override in connectors that support keyword search. Default raises NotImplementedError.
+        """
+        raise NotImplementedError(f"{self.__class__.__name__} does not support keyword search.")

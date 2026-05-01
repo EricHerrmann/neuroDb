@@ -33,6 +33,52 @@ query ListDatasets($first: Int) {
 }
 """
 
+_DATASET_BY_ID_QUERY = """
+query GetDataset($id: ID!) {
+  dataset(id: $id) {
+    id
+    name
+    metadata {
+      species
+      modalities
+      associatedPaperDOI
+      ages
+    }
+    draft {
+      readme
+      description {
+        BIDSVersion
+      }
+    }
+  }
+}
+"""
+
+_SEARCH_QUERY = """
+query SearchDatasets($search: String, $first: Int) {
+  datasets(search: $search, first: $first, orderBy: { created: descending }) {
+    edges {
+      node {
+        id
+        name
+        metadata {
+          species
+          modalities
+          associatedPaperDOI
+          ages
+        }
+        draft {
+          readme
+          description {
+            BIDSVersion
+          }
+        }
+      }
+    }
+  }
+}
+"""
+
 
 class OpenNeuroDataset(Base):
     """Source-specific table for OpenNeuro datasets.
@@ -97,6 +143,47 @@ class OpenNeuroConnector(BaseConnector):
             metadata_json=json.dumps(meta),
             run_id=run_id,
         )
+
+    def fetch_by_id(self, dataset_id: str) -> dict:
+        try:
+            response = httpx.post(
+                GRAPHQL_URL,
+                json={"query": _DATASET_BY_ID_QUERY, "variables": {"id": dataset_id}},
+                timeout=30,
+            )
+            response.raise_for_status()
+        except httpx.TimeoutException as e:
+            raise RuntimeError(f"OpenNeuro request timed out ({GRAPHQL_URL})") from e
+        except httpx.HTTPStatusError as e:
+            raise RuntimeError(
+                f"OpenNeuro API returned {e.response.status_code}: {e.response.text[:200]}"
+            ) from e
+        body = response.json()
+        if body.get("errors"):
+            msg = body["errors"][0]["message"]
+            raise RuntimeError(f"OpenNeuro GraphQL error for {dataset_id}: {msg}")
+        return body["data"]["dataset"]
+
+    def search_by_keyword(self, query: str, limit: int = 10) -> list[dict]:
+        try:
+            response = httpx.post(
+                GRAPHQL_URL,
+                json={"query": _SEARCH_QUERY, "variables": {"search": query, "first": limit}},
+                timeout=30,
+            )
+            response.raise_for_status()
+        except httpx.TimeoutException as e:
+            raise RuntimeError(f"OpenNeuro request timed out ({GRAPHQL_URL})") from e
+        except httpx.HTTPStatusError as e:
+            raise RuntimeError(
+                f"OpenNeuro API returned {e.response.status_code}: {e.response.text[:200]}"
+            ) from e
+        body = response.json()
+        if body.get("errors"):
+            msg = body["errors"][0]["message"]
+            raise RuntimeError(f"OpenNeuro GraphQL error: {msg}")
+        edges = body["data"]["datasets"]["edges"]
+        return [edge["node"] for edge in edges]
 
     def fetch_subjects(self, dataset_source_id: str) -> Iterator[dict]:
         # OpenNeuro participant data requires BIDS sidecar; stubbed for MVP

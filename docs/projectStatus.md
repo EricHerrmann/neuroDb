@@ -29,7 +29,7 @@
 | P2 — Embedding Layer (ChromaDB + SPECTER2) | ✅ Signed off | 84 | 2026-04-27 |
 | P3 — AI Agent Interface | ✅ Signed off | 101 | 2026-04-27 |
 | P4 — Context Persistence | ✅ Signed off | 127 | 2026-04-29 |
-| P5 — Learning Agent Enhancement | ⏳ In progress | — | — |
+| P5 — Learning Agent Enhancement | ✅ Signed off | 151 | 2026-05-01 |
 
 ---
 
@@ -43,6 +43,8 @@
 | `NeuroDbGoals.md` | Top-level project goals and learning model |
 | `CLAUDE.md` | Coding standards, process rules, environment setup for agents |
 | `docs/neuroscience/chap12NeuroDb.md` | Ch 12 (Central Visual Pathways) — how to use NeuroDb to reinforce reading |
+| `src/neurodb/chapter_registry.py` | Augustine 7th ed. chapter → title + topics lookup |
+| `src/neurodb/discovery_tools.py` | Discovery mode tool implementations and DISCOVERY_TOOLS schema |
 | `docs/superpowers/specs/2026-05-01-learning-agent-enhancement-design.md` | Design spec: learning-focused agent with mode toggle, chapter registry, discovery tools, suggestions UI |
 | `docs/superpowers/plans/2026-05-01-learning-agent-enhancement.md` | P5 implementation plan |
 

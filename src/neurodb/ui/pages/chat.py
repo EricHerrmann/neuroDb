@@ -9,6 +9,7 @@ def render_panel(engine: Engine) -> None:
         st.session_state["chat_history"] = []
 
     _init_agent(engine)
+    _render_mode_and_chapter()
 
     agent = st.session_state.get("neuro_agent")
     session_active = "session_id" in st.session_state
@@ -36,7 +37,88 @@ def _init_agent(engine: Engine) -> None:
     from neurodb.agent import NeuroAgent
     client = anthropic.Anthropic(api_key=api_key)
     vs = st.session_state.get("vector_store")
-    st.session_state["neuro_agent"] = NeuroAgent(client, engine, vector_store=vs)
+    agent = NeuroAgent(
+        client,
+        engine,
+        vector_store=vs,
+        mode=st.session_state.get("agent_mode", "learning"),
+        chapter_context=st.session_state.get("chapter_context", ""),
+    )
+    st.session_state["neuro_agent"] = agent
+
+
+def _render_mode_and_chapter() -> None:
+    """Render mode toggle and chapter annotation controls."""
+    from neurodb.chapter_registry import REGISTRY, lookup_chapter
+
+    st.divider()
+
+    mode = st.radio(
+        "Agent mode",
+        options=["learning", "discovery"],
+        index=0 if st.session_state.get("agent_mode", "learning") == "learning" else 1,
+        horizontal=True,
+        help="Learning: local DB only. Discovery: searches external sources and queues suggestions.",
+    )
+    if mode != st.session_state.get("agent_mode"):
+        st.session_state["agent_mode"] = mode
+        agent = st.session_state.get("neuro_agent")
+        if agent:
+            agent.mode = mode
+
+    book_options = {key: value["display_name"] for key, value in REGISTRY.items()}
+    st.selectbox(
+        "Textbook",
+        options=list(book_options.keys()),
+        format_func=lambda key: book_options[key],
+        key="selected_book_key",
+    )
+
+    chapter_input = st.text_input(
+        "Current chapter (optional)",
+        placeholder="e.g. Ch12",
+        key="chapter_input_raw",
+    )
+
+    if chapter_input.strip():
+        raw = chapter_input.strip().lstrip("Cc").lstrip("hH").strip()
+        try:
+            chapter_num = int(raw)
+        except ValueError:
+            chapter_num = None
+
+        if chapter_num is not None:
+            info = lookup_chapter(st.session_state["selected_book_key"], chapter_num)
+            if info:
+                st.success(
+                    f"**Ch{chapter_num} — {info['title']}**\nTopics: {', '.join(info['topics'])}"
+                )
+                context_str = f"Ch{chapter_num} — {info['title']}\nTopics: {', '.join(info['topics'])}"
+            else:
+                st.warning(f"Ch{chapter_num} not yet in registry for this book — using as plain text.")
+                context_str = f"Ch{chapter_num}"
+        else:
+            st.warning("Could not parse chapter number — using as plain text.")
+            context_str = chapter_input.strip()
+
+        if st.button("Set chapter context", key="set_chapter_btn"):
+            st.session_state["chapter_context"] = context_str
+            agent = st.session_state.get("neuro_agent")
+            if agent:
+                agent.chapter_context = context_str
+            st.rerun()
+
+    current_context = st.session_state.get("chapter_context", "")
+    if current_context:
+        st.caption(f"Active: {current_context[:60]}")
+        if st.button("Clear chapter context", key="clear_chapter_btn"):
+            st.session_state["chapter_context"] = ""
+            agent = st.session_state.get("neuro_agent")
+            if agent:
+                agent.chapter_context = ""
+            st.rerun()
+
+    st.divider()
 
 
 def _render_start_session() -> None:

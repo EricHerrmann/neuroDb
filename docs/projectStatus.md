@@ -1,8 +1,8 @@
 # NeuroDb — Project Status
 
-**Last updated:** 2026-04-29
-**Active focus:** Phase 7 entity resolution decision (field-coverage audit)
-**Next phase:** Phase 7 entity resolution decision (field-coverage audit) → Agent P5 TBD
+**Last updated:** 2026-05-01
+**Active focus:** Learning Agent Enhancement — mode-aware agent, chapter registry, discovery tools, suggestions UI
+**Next phase:** Learning Agent Enhancement → Deferred: Entity resolution (Phase 7)
 **Goal alignment:** Building the study/learning agent layer that grounds neuroscience exploration in real ingested dataset IDs, accumulating cross-session context as the user's knowledge deepens.
 
 ---
@@ -29,6 +29,7 @@
 | P2 — Embedding Layer (ChromaDB + SPECTER2) | ✅ Signed off | 84 | 2026-04-27 |
 | P3 — AI Agent Interface | ✅ Signed off | 101 | 2026-04-27 |
 | P4 — Context Persistence | ✅ Signed off | 127 | 2026-04-29 |
+| P5 — Learning Agent Enhancement | ⏳ In progress | — | — |
 
 ---
 
@@ -41,6 +42,9 @@
 | `docs/superpowers/plans/2026-04-24-agent-p1-study-tag-layer.md` | P1 implementation plan |
 | `NeuroDbGoals.md` | Top-level project goals and learning model |
 | `CLAUDE.md` | Coding standards, process rules, environment setup for agents |
+| `docs/neuroscience/chap12NeuroDb.md` | Ch 12 (Central Visual Pathways) — how to use NeuroDb to reinforce reading |
+| `docs/superpowers/specs/2026-05-01-learning-agent-enhancement-design.md` | Design spec: learning-focused agent with mode toggle, chapter registry, discovery tools, suggestions UI |
+| `docs/superpowers/plans/2026-05-01-learning-agent-enhancement.md` | P5 implementation plan |
 
 ## Active Manual Test Plans
 

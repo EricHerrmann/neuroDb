@@ -1,15 +1,17 @@
 # Neuro DB Plan
-## Goal Summary: “Develop an end-to-end, reproducible NeuroAI pipeline—powered by agentic workflows—to test and refine hypotheses about experience-dependent brain plasticity.”
-### Goal Detail: Build a practical, reproducible Agentic AI capability that can ingest neuroscience data and generate trustworthy, testable insights about brain plasticity especially how communication across languages/cultures may shape neural pathways.
 
-- Applied AI execution, not just theory
-- Use modern AI/agent workflows on real neuroscience datasets (not toy demos), with solid repo and engineering discipline.
-- Evidence-grounded hypothesis testing
-- test hypothesis with measurable outcomes and explicit confound controls.
-- Reproducible research practice
-- Pre-analysis plans, robust validation, traceable data/model lineage, and results that can be rerun and audited.
-- Translation-ready outputs
-- Produce mini-reports and pipelines that are useful to researchers/clinicians, with uncertainty and limitations stated clearly.
+## Primary Goal: “Use NeuroDb as an AI-assisted learning platform grounded in structured reading of Neuroscience, 7th ed. (Augustine et al.), with the agent accumulating chapter-by-chapter knowledge as the user progresses through the book.”
+
+### Goal Detail
+Real datasets provide evidence for textbook concepts; the agent connects reading to data.
+The system is designed to grow beyond a single textbook — additional books, curated papers,
+and promoted DB datasets are all first-class learning sources.
+
+## Deferred Goal: Brain Plasticity Hypothesis Testing
+The experience-dependent brain plasticity / language-culture hypothesis testing work
+(DB Epochs 7–8) is preserved but deferred. It is the natural long-term output of a
+mature learning layer: once chapter knowledge and tagged datasets accumulate, hypothesis
+testing is the next logical step.
 
 # DB Epoch
 ## Goal: Create a local db to collect from publicly avail neuroscience db projects.

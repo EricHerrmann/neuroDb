@@ -3,7 +3,7 @@ from sqlalchemy import create_engine, inspect
 from sqlalchemy.exc import IntegrityError
 from sqlalchemy.orm import Session
 
-from neurodb.schema import CrossRef, DatasetIndex, IngestRun, QualityEvent, Subject
+from neurodb.schema import CrossRef, DatasetIndex, IngestRun, QualityEvent, Subject, LearningSource, ImportQueue, SourceSuggestion
 
 
 def test_schema_creates_core_tables():
@@ -51,3 +51,36 @@ def test_dataset_index_rejects_duplicate_source_id():
         session.add(DatasetIndex(source="openneuro", source_id="ds001", run_id=run2.id))
         with pytest.raises(IntegrityError):
             session.commit()
+
+
+def test_learning_source_tablename():
+    assert LearningSource.__tablename__ == "learning_sources"
+
+
+def test_import_queue_tablename():
+    assert ImportQueue.__tablename__ == "import_queue"
+
+
+def test_source_suggestion_tablename():
+    assert SourceSuggestion.__tablename__ == "source_suggestions"
+
+
+def test_learning_source_has_metadata_json_column():
+    cols = {c.key for c in LearningSource.__table__.columns}
+    assert "metadata_json" in cols
+    assert "content_json" in cols
+    assert "source_type" in cols
+    assert "source_key" in cols
+
+
+def test_import_queue_has_open_status_column():
+    cols = {c.key for c in ImportQueue.__table__.columns}
+    assert "status" in cols
+    assert "metadata_json" in cols
+    assert "chapter_ref" in cols
+
+
+def test_source_suggestion_has_suggestion_type_column():
+    cols = {c.key for c in SourceSuggestion.__table__.columns}
+    assert "suggestion_type" in cols
+    assert "metadata_json" in cols

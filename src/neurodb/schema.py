@@ -90,3 +90,59 @@ class StudyNote(Base):
     section_ref: Mapped[str | None] = mapped_column(String(64), nullable=True)
     note_text: Mapped[str | None] = mapped_column(Text, nullable=True)
     tagged_at: Mapped[str] = mapped_column(String(32), nullable=False)
+
+
+class LearningSource(Base):
+    """Registry of textbooks, papers, and datasets used as learning sources.
+
+    One row per source. Books carry full chapter structure in content_json.
+    source_type and added_by are open strings — new values require no migration.
+    """
+    __tablename__ = "learning_sources"
+
+    id: Mapped[int] = mapped_column(Integer, Sequence("learning_sources_id_seq"), primary_key=True)
+    source_type: Mapped[str] = mapped_column(String(64), nullable=False, index=True)
+    source_key: Mapped[str] = mapped_column(String(256), nullable=False, unique=True)
+    display_name: Mapped[str] = mapped_column(Text, nullable=False)
+    content_json: Mapped[str | None] = mapped_column(Text, nullable=True)
+    metadata_json: Mapped[str | None] = mapped_column(Text, nullable=True)
+    added_by: Mapped[str] = mapped_column(String(32), nullable=False)
+    added_at: Mapped[str] = mapped_column(String(32), nullable=False)
+
+
+class ImportQueue(Base):
+    """Datasets suggested by the discovery agent, pending user confirmation.
+
+    status is an open string: 'pending', 'imported', 'dismissed'.
+    Nothing is ingested until the user confirms via the Suggestions UI tab.
+    """
+    __tablename__ = "import_queue"
+
+    id: Mapped[int] = mapped_column(Integer, Sequence("import_queue_id_seq"), primary_key=True)
+    source: Mapped[str] = mapped_column(String(64), nullable=False, index=True)
+    source_id: Mapped[str] = mapped_column(String(128), nullable=False)
+    title: Mapped[str | None] = mapped_column(Text, nullable=True)
+    reason: Mapped[str | None] = mapped_column(Text, nullable=True)
+    chapter_ref: Mapped[str | None] = mapped_column(String(128), nullable=True)
+    status: Mapped[str] = mapped_column(String(32), nullable=False, index=True)
+    metadata_json: Mapped[str | None] = mapped_column(Text, nullable=True)
+    suggested_at: Mapped[str] = mapped_column(String(32), nullable=False)
+    resolved_at: Mapped[str | None] = mapped_column(String(32), nullable=True)
+
+
+class SourceSuggestion(Base):
+    """New connectors or learning sources suggested by the discovery agent.
+
+    suggestion_type and status are open strings.
+    Accepted entries for new connectors require a separate engineering step.
+    """
+    __tablename__ = "source_suggestions"
+
+    id: Mapped[int] = mapped_column(Integer, Sequence("source_suggestions_id_seq"), primary_key=True)
+    suggestion_type: Mapped[str] = mapped_column(String(64), nullable=False, index=True)
+    reference: Mapped[str | None] = mapped_column(Text, nullable=True)
+    display_name: Mapped[str | None] = mapped_column(Text, nullable=True)
+    reason: Mapped[str | None] = mapped_column(Text, nullable=True)
+    status: Mapped[str] = mapped_column(String(32), nullable=False, index=True)
+    metadata_json: Mapped[str | None] = mapped_column(Text, nullable=True)
+    suggested_at: Mapped[str] = mapped_column(String(32), nullable=False)

@@ -54,7 +54,13 @@ with st.sidebar:
 
 # --- Main area: data tabs at full width ---
 st.title("NeuroDb Explorer")
-tab_datasets, tab_sql, tab_study = st.tabs(["Dataset Browser", "SQL Query", "Study Log"])
+tab_datasets, tab_sql, tab_study, tab_suggestions, tab_registry = st.tabs([
+    "Dataset Browser",
+    "SQL Query",
+    "Study Log",
+    "Suggestions",
+    "Learning Registry",
+])
 
 with tab_datasets:
     from neurodb.ui.pages.datasets import render
@@ -66,4 +72,12 @@ with tab_sql:
 
 with tab_study:
     from neurodb.ui.pages.study_log import render
+    render(engine)
+
+with tab_suggestions:
+    from neurodb.ui.pages.suggestions import render
+    render(engine)
+
+with tab_registry:
+    from neurodb.ui.pages.learning_registry import render
     render(engine)

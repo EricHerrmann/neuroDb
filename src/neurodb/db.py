@@ -14,6 +14,40 @@ def get_engine(url: str = "duckdb:///neurodb.duckdb") -> Engine:
 
 def init_db(engine: Engine) -> None:
     Base.metadata.create_all(engine)
+    seed_learning_sources(engine)
+
+
+def seed_learning_sources(engine: Engine) -> None:
+    """Seed learning_sources with the chapter registry. Idempotent — skips existing rows."""
+    import json
+    from datetime import datetime, timezone
+    from sqlalchemy import select
+    from sqlalchemy.orm import Session
+    from neurodb.schema import LearningSource
+    from neurodb.chapter_registry import REGISTRY
+
+    with Session(engine) as session:
+        for book_key, book in REGISTRY.items():
+            existing = session.execute(
+                select(LearningSource).where(LearningSource.source_key == book_key)
+            ).scalar_one_or_none()
+            if existing is not None:
+                continue
+            session.add(LearningSource(
+                source_type="book",
+                source_key=book_key,
+                display_name=book["display_name"],
+                content_json=json.dumps({
+                    "chapters": {
+                        str(ch_num): ch_data
+                        for ch_num, ch_data in book["chapters"].items()
+                    }
+                }),
+                metadata_json=None,
+                added_by="seed",
+                added_at=datetime.now(timezone.utc).isoformat(),
+            ))
+        session.commit()
 
 
 def create_views(engine: Engine) -> None:

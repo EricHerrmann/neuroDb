@@ -11,10 +11,7 @@ load_dotenv()
 
 import streamlit as st
 
-import neurodb.connectors.allen_brain  # noqa: F401 — registers AllenDataset
-import neurodb.connectors.dandi  # noqa: F401 — registers DandiDataset
-import neurodb.connectors.neurovault  # noqa: F401 — registers NeuroVaultDataset
-import neurodb.connectors.openneuro  # noqa: F401 — registers OpenNeuroDataset
+import neurodb.connectors  # noqa: F401 — registers all connector ORM models with Base.metadata
 from neurodb.db import create_views, get_engine, init_db
 from neurodb.embedder import Embedder
 from neurodb.vector_store import VectorStore

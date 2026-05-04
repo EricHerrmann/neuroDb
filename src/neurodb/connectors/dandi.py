@@ -83,6 +83,37 @@ class DandiConnector(BaseConnector):
             run_id=run_id,
         )
 
+    def fetch_by_id(self, dataset_id: str) -> dict:
+        bare_id = dataset_id.replace("DANDI:", "")
+        url = f"{_BASE}{bare_id}/"
+        try:
+            response = httpx.get(url, timeout=30)
+            response.raise_for_status()
+        except httpx.TimeoutException as e:
+            raise RuntimeError(f"DANDI request timed out ({url})") from e
+        except httpx.HTTPStatusError as e:
+            raise RuntimeError(
+                f"DANDI API returned {e.response.status_code}: {e.response.text[:200]}"
+            ) from e
+        return response.json()
+
+    def search_by_keyword(self, query: str, limit: int = 10) -> list[dict]:
+        try:
+            response = httpx.get(
+                _BASE,
+                params={"search": query, "page_size": limit},
+                timeout=30,
+            )
+            response.raise_for_status()
+        except httpx.TimeoutException as e:
+            raise RuntimeError(f"DANDI request timed out ({_BASE})") from e
+        except httpx.HTTPStatusError as e:
+            raise RuntimeError(
+                f"DANDI API returned {e.response.status_code}: {e.response.text[:200]}"
+            ) from e
+        results = response.json().get("results", [])
+        return results[:limit]
+
     def fetch_subjects(self, dataset_source_id: str) -> Iterator[dict]:
         return iter([])
 

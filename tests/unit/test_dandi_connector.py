@@ -77,3 +77,69 @@ def test_fetch_datasets_raises_on_timeout():
     ):
         with pytest.raises(RuntimeError, match="timed out"):
             list(conn.fetch_datasets())
+
+
+_SAMPLE_DANDISET = {
+    "identifier": "DANDI:000001",
+    "most_recent_published_version": {
+        "name": "Test Dandiset",
+        "asset_summary": {
+            "species": [{"name": "Homo sapiens"}],
+            "dataStandard": [{"name": "NWB"}],
+            "numberOfSubjects": 5,
+        },
+    },
+}
+
+
+def test_fetch_by_id_returns_raw_dict():
+    connector = DandiConnector()
+    mock_resp = MagicMock()
+    mock_resp.json.return_value = _SAMPLE_DANDISET
+    mock_resp.raise_for_status = MagicMock()
+
+    with patch("neurodb.connectors.dandi.httpx.get", return_value=mock_resp) as mock_get:
+        result = connector.fetch_by_id("DANDI:000001")
+
+    assert result == _SAMPLE_DANDISET
+    call_url = mock_get.call_args[0][0]
+    assert "000001" in call_url
+
+
+def test_fetch_by_id_raises_on_http_error():
+    connector = DandiConnector()
+    mock_resp = MagicMock()
+    mock_resp.raise_for_status.side_effect = httpx.HTTPStatusError(
+        "404", request=MagicMock(), response=MagicMock(status_code=404, text="not found")
+    )
+    with patch("neurodb.connectors.dandi.httpx.get", return_value=mock_resp):
+        with pytest.raises(RuntimeError, match="DANDI API returned"):
+            connector.fetch_by_id("DANDI:999999")
+
+
+def test_search_by_keyword_returns_list_of_dicts():
+    connector = DandiConnector()
+    mock_resp = MagicMock()
+    mock_resp.json.return_value = {"results": [_SAMPLE_DANDISET], "next": None}
+    mock_resp.raise_for_status = MagicMock()
+
+    with patch("neurodb.connectors.dandi.httpx.get", return_value=mock_resp) as mock_get:
+        results = connector.search_by_keyword("retinotopy", limit=5)
+
+    assert isinstance(results, list)
+    assert len(results) == 1
+    assert results[0]["identifier"] == "DANDI:000001"
+    call_kwargs = mock_get.call_args[1]
+    assert call_kwargs["params"]["search"] == "retinotopy"
+
+
+def test_search_by_keyword_respects_limit():
+    connector = DandiConnector()
+    mock_resp = MagicMock()
+    mock_resp.json.return_value = {"results": [_SAMPLE_DANDISET] * 3, "next": None}
+    mock_resp.raise_for_status = MagicMock()
+
+    with patch("neurodb.connectors.dandi.httpx.get", return_value=mock_resp):
+        results = connector.search_by_keyword("plasticity", limit=2)
+
+    assert len(results) <= 2

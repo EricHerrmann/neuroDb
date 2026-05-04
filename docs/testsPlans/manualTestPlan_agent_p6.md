@@ -35,13 +35,6 @@ Use this disposable DB filename for the commands below:
 neurodb_p6_manual.duckdb
 ```
 
-Seed enough local data for learning-mode and UI checks:
-
-```bash
-uv run scripts/ingest.py --source openneuro --limit 5 --db neurodb_p6_manual.duckdb
-uv run scripts/ingest.py --source dandi --limit 5 --db neurodb_p6_manual.duckdb
-```
-
 > **Order requirement for F1:** Do **not** start Streamlit before Tests 1–2. Those tests use the CLI ingest path, which opens the same Chroma persistent directory as the app. Run the F1 ingest / re-ingest checks first while the app is stopped, then start Streamlit before Test 3.
 
 ---
@@ -93,7 +86,19 @@ Expected behavior: a no-op re-ingest does not re-embed unchanged dataset text.
 
 ---
 
-## Test 3 — Start the app after F1 checks
+## Test 3 — Prepare remaining local data and start the app after F1 checks
+
+After Tests 1–2 complete, seed DANDI data for the later learning/discovery UI checks:
+
+```bash
+uv run scripts/ingest.py --source dandi --limit 5 --db neurodb_p6_manual.duckdb
+```
+
+| # | Step | Expected |
+|---|------|----------|
+| 3.1 | DANDI ingest completes | Command exits without error |
+| 3.2 | DANDI ingest prints embedding step | Terminal includes `Embedding datasets into vector store…` |
+| 3.3 | DANDI records are available for later UI checks | Command completes without DB/Chroma error |
 
 Start the app with the same DB:
 

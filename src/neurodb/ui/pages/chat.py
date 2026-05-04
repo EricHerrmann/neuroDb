@@ -102,19 +102,16 @@ def _render_mode_and_chapter() -> None:
                     f"**Ch{chapter_num} — {info['title']}**\nTopics: {', '.join(info['topics'])}"
                 )
                 context_str = f"Ch{chapter_num} — {info['title']}\nTopics: {', '.join(info['topics'])}"
+                if st.button("Set chapter context", key="set_chapter_btn"):
+                    st.session_state["chapter_context"] = context_str
+                    agent = st.session_state.get("neuro_agent")
+                    if agent:
+                        agent.chapter_context = context_str
+                    st.rerun()
             else:
-                st.warning(f"Ch{chapter_num} not yet in registry for this book — using as plain text.")
-                context_str = f"Ch{chapter_num}"
+                st.warning(f"Ch{chapter_num} not yet in registry for this book — context not set.")
         else:
-            st.warning("Could not parse chapter number — using as plain text.")
-            context_str = chapter_input.strip()
-
-        if st.button("Set chapter context", key="set_chapter_btn"):
-            st.session_state["chapter_context"] = context_str
-            agent = st.session_state.get("neuro_agent")
-            if agent:
-                agent.chapter_context = context_str
-            st.rerun()
+            st.warning("Could not parse chapter number — context not set.")
 
     current_context = st.session_state.get("chapter_context", "")
     if current_context:

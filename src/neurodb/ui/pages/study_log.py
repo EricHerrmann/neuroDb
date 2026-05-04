@@ -47,6 +47,7 @@ def _browse_section(engine: Engine) -> None:
             st.session_state["selected_tag_id"] = row["id"]
             st.session_state["prefill"] = row
             st.session_state["prefill_pending"] = True
+            st.rerun()
     else:
         st.session_state.pop("selected_tag_id", None)
 

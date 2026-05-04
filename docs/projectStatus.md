@@ -30,7 +30,7 @@
 | P3 — AI Agent Interface | ✅ Signed off | 101 | 2026-04-27 |
 | P4 — Context Persistence | ✅ Signed off | 127 | 2026-04-29 |
 | P5 — Learning Agent Enhancement | ✅ Signed off | 151 | 2026-05-04 |
-| P6 — Learning Agent Features | ⚙️ In progress | 160 | — |
+| P6 — Learning Agent Features | ⚙️ In progress | 161 | — |
 
 ---
 

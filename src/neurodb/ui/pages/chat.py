@@ -5,14 +5,16 @@ import streamlit as st
 from sqlalchemy import Engine
 
 
-def render_panel(engine: Engine, *, title: str = "Research Assistant", transcript_height: int = 420) -> None:
+def render_panel(engine: Engine, *, title: str = "", transcript_height: int = 420) -> None:
     if "chat_history" not in st.session_state:
         st.session_state["chat_history"] = []
     if "api_messages" not in st.session_state:
         st.session_state["api_messages"] = _to_api_history(st.session_state["chat_history"])
+    if "pending_user_message" not in st.session_state:
+        st.session_state["pending_user_message"] = None
 
-    st.subheader(title)
-    st.caption("Use the agent to query datasets, tag studies, and manage discovery without leaving the conversation.")
+    if title:
+        st.subheader(title)
 
     _init_agent(engine)
     _render_mode_and_chapter()
@@ -22,14 +24,14 @@ def render_panel(engine: Engine, *, title: str = "Research Assistant", transcrip
 
     if not session_active:
         _render_start_session()
-        return
 
-    if agent is None:
+    if agent is None and session_active:
         st.warning("ANTHROPIC_API_KEY not found in `.env`. Add it to enable chat during a session.")
+    else:
+        _render_chat(agent, transcript_height=transcript_height, session_active=session_active)
+
+    if session_active:
         _render_end_session_button(engine)
-        return
-    _render_chat(agent, transcript_height=transcript_height)
-    _render_end_session_button(engine)
 
 
 def _init_agent(engine: Engine) -> None:
@@ -187,7 +189,7 @@ def _render_end_session_button(engine: Engine) -> None:
             api_history = st.session_state.get("api_messages") or _to_api_history(st.session_state["chat_history"])
             with st.spinner("Saving session summary…"):
                 manager.end_session(session_id, api_history)
-        for key in ("session_topic", "chat_history", "api_messages"):
+        for key in ("session_topic", "chat_history", "api_messages", "pending_user_message"):
             st.session_state.pop(key, None)
         agent = st.session_state.get("neuro_agent")
         if agent:
@@ -195,9 +197,20 @@ def _render_end_session_button(engine: Engine) -> None:
         st.rerun()
 
 
-def _render_chat(agent, transcript_height: int = 420) -> None:
+def _render_chat(agent, transcript_height: int = 420, session_active: bool = False) -> None:
     transcript_container = st.container(height=transcript_height)
     with transcript_container:
+        visible_messages = [
+            msg for msg in st.session_state["chat_history"]
+            if not msg.get("_system")
+        ]
+        if not visible_messages:
+            with st.chat_message("assistant"):
+                if session_active:
+                    st.markdown("Chat ready. Ask about your datasets.")
+                else:
+                    st.markdown("Start a session to begin chatting. The input stays disabled until a session is active.")
+
         for msg in st.session_state["chat_history"]:
             if msg.get("_system"):
                 continue
@@ -209,35 +222,46 @@ def _render_chat(agent, transcript_height: int = 420) -> None:
             "Message",
             placeholder="Ask about your datasets…",
             label_visibility="collapsed",
+            disabled=not session_active or agent is None,
         )
         col_clear, col_send = st.columns([1, 2])
         with col_clear:
-            clear_clicked = st.form_submit_button("Clear", use_container_width=True)
+            clear_clicked = st.form_submit_button(
+                "Clear",
+                use_container_width=True,
+                disabled=not session_active,
+            )
         with col_send:
-            submitted = st.form_submit_button("Send", use_container_width=True)
+            submitted = st.form_submit_button(
+                "Send",
+                use_container_width=True,
+                disabled=not session_active or agent is None,
+            )
 
     if clear_clicked:
         st.session_state["chat_history"] = []
         st.session_state["api_messages"] = []
+        st.session_state["pending_user_message"] = None
         st.rerun()
     elif submitted and user_input.strip():
         message = user_input.strip()
         st.session_state["chat_history"].append({"role": "user", "content": message})
         if "api_messages" not in st.session_state:
             st.session_state["api_messages"] = _to_api_history(st.session_state["chat_history"][:-1])
+        st.session_state["pending_user_message"] = message
+        st.rerun()
 
+    pending_message = st.session_state.get("pending_user_message")
+    if pending_message and session_active and agent is not None:
         response_chunks: list[str] = []
         response_text = ""
         activity_log: list[str] = []
         with transcript_container:
-            with st.chat_message("user"):
-                st.markdown(message)
-
             with st.chat_message("assistant"):
                 text_placeholder = st.empty()
                 activity_placeholder = st.empty()
                 try:
-                    for event in agent.chat_stream(message, st.session_state["api_messages"]):
+                    for event in agent.chat_stream(pending_message, st.session_state["api_messages"]):
                         if event["type"] == "text_delta":
                             response_chunks.append(event["text"])
                             response_text = "".join(response_chunks)
@@ -273,6 +297,7 @@ def _render_chat(agent, transcript_height: int = 420) -> None:
                     text_placeholder.markdown(response_text)
 
         st.session_state["chat_history"].append({"role": "assistant", "content": response_text})
+        st.session_state["pending_user_message"] = None
         st.rerun()
 
     last_response = next(

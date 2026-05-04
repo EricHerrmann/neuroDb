@@ -59,7 +59,8 @@ def test_render_chat_shows_session_start_response_after_form(monkeypatch):
     chat._render_chat(agent=MagicMock())
 
     assert events.count(("markdown", "No prior context found for this topic.")) == 1
-    assert ("enter", "chat_message:assistant") not in events
+    assert ("enter", "chat_message:assistant") in events
+    assert any("Start a session to begin chatting" in content for kind, content in events if kind == "markdown")
     assert events.index(("markdown", "No prior context found for this topic.")) > events.index(
         ("exit", "form:agent_form")
     )
@@ -84,7 +85,27 @@ def test_render_chat_uses_configured_transcript_height(monkeypatch):
     assert calls[0]["height"] == 480
 
 
-def test_render_chat_submission_streams_inside_transcript_and_persists(monkeypatch):
+def test_render_chat_shows_placeholder_when_session_inactive(monkeypatch):
+    events: list[tuple[str, str]] = []
+    ctx = _ContextRecorder(events)
+
+    monkeypatch.setattr(chat.st, "session_state", {"chat_history": [], "api_messages": [], "pending_user_message": None})
+    monkeypatch.setattr(chat.st, "container", lambda **kwargs: ctx("container"))
+    monkeypatch.setattr(chat.st, "chat_message", lambda role: ctx(f"chat_message:{role}"))
+    monkeypatch.setattr(chat.st, "form", lambda name, clear_on_submit=True: ctx(f"form:{name}"))
+    monkeypatch.setattr(chat.st, "columns", lambda spec: [ctx("column:clear"), ctx("column:send")])
+    monkeypatch.setattr(chat.st, "text_input", lambda *args, **kwargs: "")
+    monkeypatch.setattr(chat.st, "form_submit_button", lambda *args, **kwargs: False)
+    monkeypatch.setattr(chat.st, "markdown", lambda content: events.append(("markdown", content)))
+    monkeypatch.setattr(chat.st, "divider", lambda: None)
+
+    chat._render_chat(agent=MagicMock(), session_active=False)
+
+    assert ("enter", "chat_message:assistant") in events
+    assert any("Start a session to begin chatting" in content for kind, content in events if kind == "markdown")
+
+
+def test_render_chat_processes_pending_message_inside_transcript(monkeypatch):
     events: list[tuple[str, str]] = []
     ctx = _ContextRecorder(events)
 
@@ -94,31 +115,41 @@ def test_render_chat_submission_streams_inside_transcript_and_persists(monkeypat
 
     class _Agent:
         def chat_stream(self, message, api_messages):
+            assert message == "How many datasets?"
             yield {"type": "text_delta", "text": "There are "}
             yield {"type": "done", "text": "There are 5 datasets."}
 
     rerun_called = {"value": False}
 
-    monkeypatch.setattr(chat.st, "session_state", {"chat_history": [], "api_messages": []})
+    monkeypatch.setattr(
+        chat.st,
+        "session_state",
+        {
+            "chat_history": [{"role": "user", "content": "How many datasets?"}],
+            "api_messages": [],
+            "pending_user_message": "How many datasets?",
+        },
+    )
     monkeypatch.setattr(chat.st, "container", lambda **kwargs: ctx("container"))
     monkeypatch.setattr(chat.st, "chat_message", lambda role: ctx(f"chat_message:{role}"))
     monkeypatch.setattr(chat.st, "form", lambda name, clear_on_submit=True: ctx(f"form:{name}"))
     monkeypatch.setattr(chat.st, "columns", lambda spec: [ctx("column:clear"), ctx("column:send")])
-    monkeypatch.setattr(chat.st, "text_input", lambda *args, **kwargs: "How many datasets?")
-    submit_calls = iter([False, True])
-    monkeypatch.setattr(chat.st, "form_submit_button", lambda *args, **kwargs: next(submit_calls))
+    monkeypatch.setattr(chat.st, "text_input", lambda *args, **kwargs: "")
+    monkeypatch.setattr(chat.st, "form_submit_button", lambda *args, **kwargs: False)
     monkeypatch.setattr(chat.st, "markdown", lambda content: events.append(("markdown", content)))
     monkeypatch.setattr(chat.st, "divider", lambda: None)
     monkeypatch.setattr(chat.st, "empty", lambda: _Placeholder())
     monkeypatch.setattr(chat.st, "rerun", lambda: rerun_called.__setitem__("value", True))
 
-    chat._render_chat(agent=_Agent())
+    chat._render_chat(agent=_Agent(), session_active=True)
 
     assert rerun_called["value"] is True
     assert ("enter", "chat_message:user") in events
     assert ("enter", "chat_message:assistant") in events
     assert ("placeholder_markdown", "There are ") in events
+    assert ("placeholder_markdown", "There are 5 datasets.") in events
     assert chat.st.session_state["chat_history"] == [
         {"role": "user", "content": "How many datasets?"},
         {"role": "assistant", "content": "There are 5 datasets."},
     ]
+    assert chat.st.session_state["pending_user_message"] is None

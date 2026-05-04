@@ -58,19 +58,13 @@ with st.sidebar:
         ])
     )
 
-st.title("NeuroDb Explorer")
-st.caption("Chat-first workspace for grounded neuroscience exploration.")
-
 col_chat, col_workspace = st.columns([1.7, 1.1], gap="large")
 
 with col_chat:
     from neurodb.ui.pages.chat import render_panel
-    render_panel(engine, title="Agent Workspace", transcript_height=520)
+    render_panel(engine, transcript_height=520)
 
 with col_workspace:
-    st.subheader("Workspace")
-    st.caption("Keep supporting views open while you chat.")
-
     tab_suggestions, tab_study, tab_datasets, tab_registry, tab_sql = st.tabs([
         "Suggestions",
         "Study Log",

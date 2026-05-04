@@ -120,6 +120,16 @@ The following do not trigger a `docs/projectStatus.md` update:
 4. Every data-changing operation should be traceable.
 5. Keep planning and execution artifacts in-repo and versioned.
 
+## Documentation Standards
+
+Apply the same clarity, consistency, and scope discipline to documentation as to code.
+
+- When updating a doc, review the whole doc for drift — not just the section being changed.
+- A doc that tracks completed history instead of current state has accumulated drift. Refactor it.
+- Remove references, tables, and sections that no longer serve the reader's current need.
+- Use one term for the same concept throughout. Inconsistent language is a doc smell the same way inconsistent naming is a code smell.
+- A status doc that requires reading past three screens to find current state is too long.
+
 ## Manual Test Completion
 
 ## Manual Test Planning
@@ -133,19 +143,19 @@ Manual test plans are phase-gate artifacts, not post-hoc documentation.
 
 When a test plan or test run document is updated to a passing or signed-off terminal state, update `docs/projectStatus.md` in the same step — phase row, active focus, and archived test plan table. This fires on the document update itself, not on a separate user request.
 
-## Manual Test Run Protocol
+## Issue Log Protocol
 
-During an active manual test run the user may report failures using the `LOG:` prefix.
+Issues discovered during testing, reviews, or ad hoc exploration are logged in `docs/testLog.md`. The log is persistent and not tied to a specific phase or run.
 
 **When the user types `LOG: ...`:**
-- Append a structured failure entry to the active test run log in `docs/testRuns/`
-- Respond with only: `Logged: {test id or short title}` — nothing else
+- Append a row to the Open table in `docs/testLog.md` with today's date, a short ID, the description, and context
+- Respond with only: `Logged: {id or short title}` — nothing else
 - Do NOT investigate, diagnose, propose a fix, or ask clarifying questions
-- Do NOT treat the failure as a trigger to enter debugging or fix mode
+- Do NOT treat the log entry as a trigger to enter debugging or fix mode
 
-The user controls when fixes are addressed. Take no action on a logged failure until the user explicitly says something like "review the test run" or "fix the failures from the test run." At that point, read the log, group related failures, and propose a prioritized order before touching any code.
+The user controls when issues are addressed. Take no action on a logged issue until the user explicitly requests a review or fix. At that point, read the Open table, group related items, and propose a prioritized order before touching any code.
 
-If no test run log file is currently open, create one using the template at `docs/testRuns/_template.md` and the naming convention `YYYY-MM-DD-{phase}-run{n}.md` before appending the first entry.
+When an issue is resolved, move its row from Open to Resolved and add a brief Resolution note.
 
 ## Working Documentation
 

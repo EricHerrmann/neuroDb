@@ -1,9 +1,13 @@
 """Claude API agent with tool use for NeuroDb queries."""
 import json
+import os
 from collections.abc import Generator
 from collections.abc import Iterable
 
 from sqlalchemy import Engine, text
+
+_DEFAULT_MODEL = "claude-opus-4-7"
+_MODEL = os.environ.get("NEURODB_MODEL", _DEFAULT_MODEL)
 
 from neurodb.db import get_session
 from neurodb.study import list_tags, tag_dataset as _tag_dataset
@@ -230,7 +234,7 @@ class NeuroAgent:
         client,
         engine: Engine,
         vector_store: VectorStore | None = None,
-        model: str = "claude-opus-4-7",
+        model: str = _MODEL,
         prior_context: str = "",
         mode: str = "learning",
         chapter_context: str = "",

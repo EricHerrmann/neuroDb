@@ -1,7 +1,9 @@
 """Cross-session memory via a ChromaDB agent_context collection."""
+import os
 import uuid
 
 _COLLECTION_NAME = "agent_context"
+_SUMMARY_MODEL = os.environ.get("NEURODB_MODEL", "claude-opus-4-7")
 _RELEVANCE_THRESHOLD = 0.7  # cosine distance; summaries above this are not injected
 
 _SUMMARY_PROMPT = """You are summarizing a neuroscience research session for future reference.
@@ -112,7 +114,7 @@ class SessionManager:
         )
         prompt = _SUMMARY_PROMPT.format(conversation=convo_text)
         response = self._client.messages.create(
-            model="claude-opus-4-7",
+            model=_SUMMARY_MODEL,
             max_tokens=512,
             messages=[{"role": "user", "content": prompt}],
         )

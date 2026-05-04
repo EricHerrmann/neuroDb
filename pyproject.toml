@@ -38,6 +38,10 @@ packages = ["src/neurodb"]
 [tool.pytest.ini_options]
 testpaths = ["tests"]
 pythonpath = ["src"]
+addopts = "--cov=src/neurodb --cov-report=term-missing --cov-report=html:htmlcov"
+
+[tool.coverage.run]
+omit = ["src/neurodb/ui/*"]
 
 [tool.ruff]
 line-length = 100

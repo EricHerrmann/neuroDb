@@ -62,6 +62,45 @@ class AllenBrainConnector(BaseConnector):
             run_id=run_id,
         )
 
+    def fetch_by_id(self, dataset_id: str) -> dict:
+        try:
+            response = httpx.get(
+                _BASE,
+                params={"criteria": f"model::SectionDataSet[id$eq{dataset_id}]", "num_rows": 1},
+                timeout=30,
+            )
+            response.raise_for_status()
+        except httpx.TimeoutException as e:
+            raise RuntimeError(f"Allen Brain Atlas request timed out ({_BASE})") from e
+        except httpx.HTTPStatusError as e:
+            raise RuntimeError(
+                f"Allen Brain Atlas API returned {e.response.status_code}: {e.response.text[:200]}"
+            ) from e
+        records = response.json().get("msg", [])
+        if not records:
+            raise RuntimeError(f"Allen Brain Atlas dataset {dataset_id} not found")
+        return records[0]
+
+    def search_by_keyword(self, query: str, limit: int = 10) -> list[dict]:
+        try:
+            response = httpx.get(
+                _BASE,
+                params={
+                    "criteria": f"model::SectionDataSet[name$li*{query}*]",
+                    "num_rows": limit,
+                    "start_row": 0,
+                },
+                timeout=30,
+            )
+            response.raise_for_status()
+        except httpx.TimeoutException as e:
+            raise RuntimeError(f"Allen Brain Atlas request timed out ({_BASE})") from e
+        except httpx.HTTPStatusError as e:
+            raise RuntimeError(
+                f"Allen Brain Atlas API returned {e.response.status_code}: {e.response.text[:200]}"
+            ) from e
+        return [r for r in response.json().get("msg", []) if not r.get("failed", False)]
+
     def fetch_subjects(self, dataset_source_id: str) -> Iterator[dict]:
         return iter([])
 

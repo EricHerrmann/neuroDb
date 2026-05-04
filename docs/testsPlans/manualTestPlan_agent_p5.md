@@ -1,9 +1,9 @@
 # Agent P5 Manual Test Plan — Learning Agent Enhancement
 
-**Status:** Pending
+**Status:** Passed — 2026-05-04
 **Tester:** Eric Herrmann
 **Scope:** Mode-aware agent behavior, chapter context lookup, discovery suggestions, learning registry UI
-**Date:** <!-- fill in on execution -->
+**Date:** 2026-05-04
 
 All commands run from the repo root (`/home/oldha/projects/neuroDb`) unless noted.
 
@@ -24,12 +24,14 @@ uv run scripts/ingest.py --source openneuro --limit 10
 uv run scripts/ingest.py --source dandi --limit 10
 ```
 
-Start the app:
+Start the app (fresh server — required to pick up agent context and import fixes):
 ```bash
 uv run streamlit run src/neurodb/ui/app.py -- --db neurodb.duckdb
 ```
 
 Open `http://localhost:8501`.
+
+> **Note:** If the server was already running before the latest code changes, stop it and restart. `chat.py` and `agent.py` are not hot-reloaded by Streamlit — a full restart is required for the session context and in-process import fixes to take effect.
 
 ---
 
@@ -84,9 +86,9 @@ Expected behavior: in learning mode, the agent only has local DB tools and canno
 
 ---
 
-## Test 5 — Discovery mode can create suggestions
+## Test 5 — Discovery mode: agent searches, confirms, and queues on user reply
 
-Switch mode to `discovery`.
+Switch mode to `discovery`. Set chapter context to `Ch12` if not already active.
 
 In chat, ask:
 ```text
@@ -96,26 +98,29 @@ Search OpenNeuro for retinotopy datasets and suggest one relevant to Ch12
 | # | Step | Expected |
 |---|------|----------|
 | 5.1 | Agent responds without error | No API/tool failure shown |
-| 5.2 | Open Suggestions tab | A pending item appears in Import Queue or Source Suggestions |
-| 5.3 | Suggested item contains reasoning | Entry shows title/source and agent rationale |
-| 5.4 | If chapter context was active | Suggested item reflects chapter context such as `Ch12` |
+| 5.2 | Agent surfaces a candidate and asks for confirmation | Agent names a dataset (e.g. NYU Retinotopy Dataset) and asks something like "Do you want me to add it?" |
+| 5.3 | Reply `yes` in the same chat session | Agent calls `suggest_import` and confirms the item was queued |
+| 5.4 | Open Suggestions tab | A pending item appears in Import Queue for the dataset named in 5.2 |
+| 5.5 | Suggested item contains reasoning | Entry shows title/source and agent rationale |
+| 5.6 | If chapter context was active | Suggested item reflects chapter context such as `Ch12` |
+
+> **Context requirement:** Steps 5.3–5.6 depend on the multi-turn context fix (agent.py + chat.py). If the server was started before the latest code changes, stop it and restart — `agent.py` and `chat.py` are not hot-reloaded.
 
 ---
 
-## Test 6 — Suggestions tab actions work
+## Test 6 — Suggestions tab Import and Dismiss actions
 
 Use an item created in Test 5.
 
 | # | Step | Expected |
 |---|------|----------|
-| 6.1 | Click `Dismiss` on a suggestion | Item disappears from the pending list |
-| 6.2 | Create another suggestion in discovery mode | A new pending item appears |
-| 6.3 | If a `Promote` button is available for a learning source | Clicking it succeeds and removes the item from pending suggestions |
+| 6.1 | Click `Import` on an import-queue item | Spinner shown; on completion a success message appears and item status changes to imported (no SQLAlchemy/DuckDB lock error) |
+| 6.2 | Verify the imported item is no longer in the pending list | Item disappears from Import Queue after import |
+| 6.3 | Create another suggestion in discovery mode | A new pending item appears |
+| 6.4 | Click `Dismiss` on the new pending item | Item disappears from the pending list |
+| 6.5 | If a `Promote` button is available for a learning source suggestion | Clicking it succeeds and removes the item from pending suggestions |
 
-Optional import test if a safe dataset candidate is available:
-| # | Step | Expected |
-|---|------|----------|
-| 6.4 | Click `Import` on an import-queue item | Ingest completes or a clear error is shown; app does not crash |
+> **Import note:** Import now runs in-process (no subprocess). A DuckDB lock conflict should not occur. If it does, confirm no other Streamlit server is running concurrently and retry.
 
 ---
 
@@ -144,14 +149,18 @@ Note: current implementation performs a hard delete because `learning_sources` h
 
 ## Pass Criteria
 
-- [ ] `uv run pytest --ignore=tests/integration/test_dandi_ingest.py -q` passes
-- [ ] Suggestions and Learning Registry tabs load without error
-- [ ] Mode toggle is visible and usable
-- [ ] Chapter lookup for `Ch12` shows the correct title and topics
-- [ ] Learning mode does not create discovery suggestions from an external-search request
-- [ ] Discovery mode can create at least one pending suggestion
-- [ ] Suggestions actions (`Dismiss`, and `Promote` if applicable) work without crashing
-- [ ] Learning Registry shows the seeded Augustine textbook chapters
-- [ ] Manual add/remove in Learning Registry works
+- [x] `uv run pytest --ignore=tests/integration/test_dandi_ingest.py -q` passes
+- [x] Suggestions and Learning Registry tabs load without error
+- [x] Mode toggle is visible and usable
+- [x] Chapter lookup for `Ch12` shows the correct title and topics
+- [x] Learning mode does not create discovery suggestions from an external-search request
+- [x] Discovery mode: agent searches, names a candidate, user replies `yes`, item appears in Import Queue
+- [x] Suggestions Import action completes without DuckDB/SQLAlchemy error and item leaves pending list
+- [x] Suggestions `Dismiss` action removes the item from the pending list
+- [x] `Promote` (if applicable) works without crashing
+- [x] Learning Registry shows the seeded Augustine textbook chapters
+- [x] Manual add/remove in Learning Registry works
 
-**Sign-off:** _________________________________ Date: _____________
+**Note:** Transient chat-history-clear observed after reporting import action to agent (T4); non-blocking, logged for P6 investigation.
+
+**Sign-off:** Eric Herrmann Date: 2026-05-04

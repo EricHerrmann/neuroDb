@@ -31,6 +31,8 @@ def main():
     parser.add_argument("--limit", type=int, default=100)
     parser.add_argument("--dataset-id", dest="dataset_id", default=None,
                         help="Ingest a single dataset by its source ID (e.g. ds003685)")
+    parser.add_argument("--skip-embed", dest="skip_embed", action="store_true", default=False,
+                        help="Skip vector embedding after ingest (for UI-triggered single imports)")
     parser.add_argument("--db", default="neurodb.duckdb")
     args = parser.parse_args()
 
@@ -41,11 +43,12 @@ def main():
     dataset_ids = [args.dataset_id] if args.dataset_id else None
     run = run_ingest(engine, connector=connector, limit=args.limit, dataset_ids=dataset_ids)
     print(f"Ingest complete: run_id={run.id}, source={run.source}, at={run.run_at}")
-    print("Embedding datasets into vector store…")
-    chroma_path = args.db.replace(".duckdb", "_chroma")
-    vs = VectorStore(path=chroma_path, embedder=Embedder())
-    n = embed_source_datasets(engine, vs, source=connector.SOURCE_NAME)
-    print(f"Embedded {n} dataset(s).")
+    if not args.skip_embed:
+        print("Embedding datasets into vector store…")
+        chroma_path = args.db.replace(".duckdb", "_chroma")
+        vs = VectorStore(path=chroma_path, embedder=Embedder())
+        n = embed_source_datasets(engine, vs, source=connector.SOURCE_NAME)
+        print(f"Embedded {n} dataset(s).")
 
 
 if __name__ == "__main__":

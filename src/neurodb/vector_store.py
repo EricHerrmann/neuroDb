@@ -32,6 +32,15 @@ class VectorStore:
         self._embedder = embedder
         self._collection = self._client.get_or_create_collection(COLLECTION_NAME)
 
+    @property
+    def dataset_embedding_version(self) -> str:
+        if self._embedder is None:
+            return "unknown"
+        model_name = getattr(self._embedder, "_model_name", None)
+        if model_name:
+            return str(model_name)
+        return self._embedder.__class__.__name__
+
     def upsert_dataset(
         self,
         source: str,

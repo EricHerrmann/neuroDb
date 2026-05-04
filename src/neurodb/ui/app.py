@@ -46,38 +46,55 @@ if "session_manager" not in st.session_state:
     client = anthropic.Anthropic(api_key=api_key) if api_key else None
     st.session_state["session_manager"] = SessionManager(context_store, client=client)
 
-# --- Sidebar: Research Assistant (natively resizable + collapsible) ---
+# --- Sidebar: lightweight workspace status ---
 with st.sidebar:
     st.caption(f"DB: `{db_path}`")
-    from neurodb.ui.pages.chat import render_panel
-    render_panel(engine)
+    st.caption("Workspace")
+    st.markdown(
+        "\n".join([
+            f"- Mode: `{st.session_state.get('agent_mode', 'learning')}`",
+            f"- Session: `{st.session_state.get('session_topic') or 'inactive'}`",
+            f"- Chapter: `{st.session_state.get('chapter_context') or 'none'}`",
+        ])
+    )
 
-# --- Main area: data tabs at full width ---
 st.title("NeuroDb Explorer")
-tab_datasets, tab_sql, tab_study, tab_suggestions, tab_registry = st.tabs([
-    "Dataset Browser",
-    "SQL Query",
-    "Study Log",
-    "Suggestions",
-    "Learning Registry",
-])
+st.caption("Chat-first workspace for grounded neuroscience exploration.")
 
-with tab_datasets:
-    from neurodb.ui.pages.datasets import render
-    render(engine)
+col_chat, col_workspace = st.columns([1.7, 1.1], gap="large")
 
-with tab_sql:
-    from neurodb.ui.pages.query import render
-    render(engine)
+with col_chat:
+    from neurodb.ui.pages.chat import render_panel
+    render_panel(engine, title="Agent Workspace", transcript_height=520)
 
-with tab_study:
-    from neurodb.ui.pages.study_log import render
-    render(engine)
+with col_workspace:
+    st.subheader("Workspace")
+    st.caption("Keep supporting views open while you chat.")
 
-with tab_suggestions:
-    from neurodb.ui.pages.suggestions import render
-    render(engine)
+    tab_suggestions, tab_study, tab_datasets, tab_registry, tab_sql = st.tabs([
+        "Suggestions",
+        "Study Log",
+        "Datasets",
+        "Registry",
+        "SQL",
+    ])
 
-with tab_registry:
-    from neurodb.ui.pages.learning_registry import render
-    render(engine)
+    with tab_suggestions:
+        from neurodb.ui.pages.suggestions import render
+        render(engine)
+
+    with tab_study:
+        from neurodb.ui.pages.study_log import render
+        render(engine)
+
+    with tab_datasets:
+        from neurodb.ui.pages.datasets import render
+        render(engine)
+
+    with tab_registry:
+        from neurodb.ui.pages.learning_registry import render
+        render(engine)
+
+    with tab_sql:
+        from neurodb.ui.pages.query import render
+        render(engine)

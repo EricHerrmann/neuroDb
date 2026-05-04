@@ -92,6 +92,21 @@ class StudyNote(Base):
     tagged_at: Mapped[str] = mapped_column(String(32), nullable=False)
 
 
+class DatasetEmbeddingState(Base):
+    """Tracks the last embedded content hash for each dataset."""
+    __tablename__ = "dataset_embedding_state"
+    __table_args__ = (
+        UniqueConstraint("source", "source_id", name="uq_dataset_embedding_state_source_id"),
+    )
+
+    id: Mapped[int] = mapped_column(Integer, Sequence("dataset_embedding_state_id_seq"), primary_key=True)
+    source: Mapped[str] = mapped_column(String(64), nullable=False, index=True)
+    source_id: Mapped[str] = mapped_column(String(128), nullable=False, index=True)
+    content_hash: Mapped[str] = mapped_column(String(64), nullable=False)
+    embedder_model: Mapped[str] = mapped_column(String(128), nullable=False)
+    embedded_at: Mapped[str] = mapped_column(String(32), nullable=False)
+
+
 class LearningSource(Base):
     """Registry of textbooks, papers, and datasets used as learning sources.
 

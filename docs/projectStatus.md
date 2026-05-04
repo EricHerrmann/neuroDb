@@ -1,8 +1,8 @@
 # NeuroDb — Project Status
 
-**Last updated:** 2026-05-01
-**Active focus:** Learning Agent Enhancement — manual verification and sign-off
-**Next phase:** Deferred: Entity resolution (Phase 7), gated on P5 manual sign-off
+**Last updated:** 2026-05-04
+**Active focus:** P6 — Learning Agent Features (embedding dedup, streaming, UI redesign)
+**Next phase:** P7 — TBD
 **Goal alignment:** Building the study/learning agent layer that grounds neuroscience exploration in real ingested dataset IDs, accumulating cross-session context as the user's knowledge deepens.
 
 ---
@@ -29,7 +29,8 @@
 | P2 — Embedding Layer (ChromaDB + SPECTER2) | ✅ Signed off | 84 | 2026-04-27 |
 | P3 — AI Agent Interface | ✅ Signed off | 101 | 2026-04-27 |
 | P4 — Context Persistence | ✅ Signed off | 127 | 2026-04-29 |
-| P5 — Learning Agent Enhancement | 🔄 Pending manual sign-off | 151 | — |
+| P5 — Learning Agent Enhancement | ✅ Signed off | 151 | 2026-05-04 |
+| P6 — Learning Agent Features | ⚙️ In progress | 159 | — |
 
 ---
 
@@ -48,17 +49,23 @@
 | `docs/superpowers/specs/2026-05-01-learning-agent-enhancement-design.md` | Design spec: learning-focused agent with mode toggle, chapter registry, discovery tools, suggestions UI |
 | `docs/superpowers/plans/2026-05-01-learning-agent-enhancement.md` | P5 implementation plan |
 | `docs/testsPlans/manualTestPlan_agent_p5.md` | Manual verification plan for P5 — Learning Agent Enhancement |
+| `docs/superpowers/specs/2026-05-04-p6-learning-agent-features.md` | P6 feature scope: embedding dedup, agent streaming, UI redesign |
+| `docs/testsPlans/manualTestPlan_agent_p6.md` | Manual verification plan for P6 — embedding dedup, streaming, split-workspace UI |
+| `docs/testRuns/README.md` | Test run log conventions: LOG: protocol, naming, fix-pass trigger |
+| `docs/testRuns/_template.md` | Standard template for per-phase test run log files |
+| `docs/testRuns/2026-05-04-p5-run1.md` | P5 manual test run log — all 8 tests passed; T4 chat-history-clear noted |
 
 ## Active Manual Test Plans
 
 | Document | Phase | Status |
 |---|---|---|
-| `docs/testsPlans/manualTestPlan_agent_p5.md` | P5 — Learning Agent Enhancement | Pending user execution/sign-off |
+| `docs/testsPlans/manualTestPlan_agent_p6.md` | P6 — Learning Agent Features | Pending user execution/sign-off |
 
 ## Archived Test Plans
 
 | Document | Phase | Outcome |
 |---|---|---|
+| `docs/testsPlans/manualTestPlan_agent_p5.md` | P5 — Learning Agent Enhancement | ✅ Signed off 2026-05-04 |
 | `docs/testsPlans/manualTestPlan_agent_p4.md` | P4 — Context Persistence | ✅ Signed off 2026-04-29 |
 | `docs/testsPlans/manualTestPlan_agent_p1.md` | P1 — Study Tag Layer | ✅ Signed off 2026-04-27 |
 | `docs/testsPlans/manualTestPlan_agent_p2.md` | P2 — Embedding Layer | ✅ Signed off 2026-04-27 |

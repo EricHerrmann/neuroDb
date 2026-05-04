@@ -1,12 +1,18 @@
 import os
+import json
 
 import streamlit as st
 from sqlalchemy import Engine
 
 
-def render_panel(engine: Engine) -> None:
+def render_panel(engine: Engine, *, title: str = "Research Assistant", transcript_height: int = 420) -> None:
     if "chat_history" not in st.session_state:
         st.session_state["chat_history"] = []
+    if "api_messages" not in st.session_state:
+        st.session_state["api_messages"] = _to_api_history(st.session_state["chat_history"])
+
+    st.subheader(title)
+    st.caption("Use the agent to query datasets, tag studies, and manage discovery without leaving the conversation.")
 
     _init_agent(engine)
     _render_mode_and_chapter()
@@ -22,7 +28,7 @@ def render_panel(engine: Engine) -> None:
         st.warning("ANTHROPIC_API_KEY not found in `.env`. Add it to enable chat during a session.")
         _render_end_session_button(engine)
         return
-    _render_chat(agent)
+    _render_chat(agent, transcript_height=transcript_height)
     _render_end_session_button(engine)
 
 
@@ -150,6 +156,7 @@ def _render_start_session() -> None:
             session_id, context = str(uuid.uuid4()), ""
         st.session_state["session_id"] = session_id
         st.session_state["session_topic"] = topic.strip()
+        st.session_state["api_messages"] = []
         agent = st.session_state.get("neuro_agent")
         if agent:
             agent.prior_context = context
@@ -177,10 +184,10 @@ def _render_end_session_button(engine: Engine) -> None:
         manager = st.session_state.get("session_manager")
         session_id = st.session_state.pop("session_id", None)
         if manager and session_id:
-            api_history = _to_api_history(st.session_state["chat_history"])
+            api_history = st.session_state.get("api_messages") or _to_api_history(st.session_state["chat_history"])
             with st.spinner("Saving session summary…"):
                 manager.end_session(session_id, api_history)
-        for key in ("session_topic", "chat_history"):
+        for key in ("session_topic", "chat_history", "api_messages"):
             st.session_state.pop(key, None)
         agent = st.session_state.get("neuro_agent")
         if agent:
@@ -188,8 +195,8 @@ def _render_end_session_button(engine: Engine) -> None:
         st.rerun()
 
 
-def _render_chat(agent) -> None:
-    with st.container(height=200):
+def _render_chat(agent, transcript_height: int = 420) -> None:
+    with st.container(height=transcript_height):
         for msg in st.session_state["chat_history"]:
             if msg.get("_system"):
                 continue
@@ -210,20 +217,68 @@ def _render_chat(agent) -> None:
 
     if clear_clicked:
         st.session_state["chat_history"] = []
+        st.session_state["api_messages"] = []
         st.rerun()
     elif submitted and user_input.strip():
         message = user_input.strip()
         st.session_state["chat_history"].append({"role": "user", "content": message})
-        api_history = _to_api_history(st.session_state["chat_history"][:-1])
-        with st.spinner("Thinking…"):
-            chunks = list(agent.chat(message, api_history))
-        response_text = "".join(chunks)
+        if "api_messages" not in st.session_state:
+            st.session_state["api_messages"] = _to_api_history(st.session_state["chat_history"][:-1])
+
+        with st.chat_message("user"):
+            st.markdown(message)
+
+        response_chunks: list[str] = []
+        response_text = ""
+        activity_log: list[str] = []
+        with st.chat_message("assistant"):
+            text_placeholder = st.empty()
+            activity_placeholder = st.empty()
+            try:
+                for event in agent.chat_stream(message, st.session_state["api_messages"]):
+                    if event["type"] == "text_delta":
+                        response_chunks.append(event["text"])
+                        response_text = "".join(response_chunks)
+                        text_placeholder.markdown(response_text)
+                        continue
+
+                    if event["type"] == "tool_start":
+                        activity_log.append(_format_tool_start(event["tool_name"], event["tool_input"]))
+                        activity_placeholder.markdown(_render_activity_log(activity_log))
+                        continue
+
+                    if event["type"] == "tool_result":
+                        activity_log.append(_format_tool_result(event["tool_name"], event["result"]))
+                        activity_placeholder.markdown(_render_activity_log(activity_log))
+                        continue
+
+                    if event["type"] == "done":
+                        response_text = response_text or event["text"]
+                        if response_text:
+                            text_placeholder.markdown(response_text)
+                        break
+
+                    if event["type"] == "error":
+                        response_text = event["text"]
+                        text_placeholder.markdown(response_text)
+                        break
+            except Exception as exc:
+                response_text = f"Error during streaming response: {exc}"
+                text_placeholder.markdown(response_text)
+
+            if not response_text:
+                response_text = "[No text response returned]"
+                text_placeholder.markdown(response_text)
+
         st.session_state["chat_history"].append({"role": "assistant", "content": response_text})
         st.rerun()
 
     last_response = next(
-        (msg["content"] for msg in reversed(st.session_state["chat_history"])
-         if msg["role"] == "assistant"),
+        (
+            msg["content"]
+            for msg in reversed(st.session_state["chat_history"])
+            if msg["role"] == "assistant" and msg.get("_system")
+        ),
         None,
     )
     if last_response:
@@ -240,3 +295,21 @@ def _to_api_history(history: list[dict]) -> list[dict]:
         elif msg["role"] == "assistant" and not msg.get("_system"):
             api.append({"role": "assistant", "content": [{"type": "text", "text": msg["content"]}]})
     return api
+
+
+def _format_tool_start(tool_name: str, tool_input: dict) -> str:
+    return f"Running `{tool_name}` with `{json.dumps(tool_input, sort_keys=True)}`"
+
+
+def _format_tool_result(tool_name: str, result: str) -> str:
+    preview = " ".join(result.split())
+    if len(preview) > 140:
+        preview = f"{preview[:137]}..."
+    return f"Finished `{tool_name}`: `{preview}`"
+
+
+def _render_activity_log(activity_log: list[str]) -> str:
+    lines = ["**Agent activity**"]
+    for line in activity_log[-6:]:
+        lines.append(f"- {line}")
+    return "\n".join(lines)

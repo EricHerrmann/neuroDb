@@ -64,6 +64,40 @@ def test_fetch_datasets_empty_edges():
     assert results == []
 
 
+def test_search_by_keyword_uses_advanced_search():
+    """search_by_keyword must call advancedSearch(keywords) and parse its edges."""
+    conn = OpenNeuroConnector()
+    captured = {}
+
+    def fake_post(url, json=None, **kwargs):
+        captured["body"] = json
+        mock = MagicMock()
+        mock.raise_for_status.return_value = None
+        mock.json.return_value = {
+            "data": {
+                "advancedSearch": {
+                    "edges": [
+                        {"node": {"id": "ds003787", "name": "NYU Retinotopy Dataset", "metadata": {}, "draft": {}}}
+                    ]
+                }
+            }
+        }
+        return mock
+
+    with patch("neurodb.connectors.openneuro.httpx.post", side_effect=fake_post):
+        results = conn.search_by_keyword("retinotopy", limit=5)
+
+    query = captured["body"]["query"]
+    variables = captured["body"]["variables"]
+    assert "advancedSearch(" in query
+    assert "datasets(" not in query
+    search_input = variables.get("query") or variables.get("q", {})
+    assert "retinotopy" in search_input.get("keywords", [])
+    assert search_input.get("publicOnly") is True
+    assert len(results) == 1
+    assert results[0]["id"] == "ds003787"
+
+
 def test_normalize_dataset_maps_fields():
     conn = OpenNeuroConnector()
     raw = {

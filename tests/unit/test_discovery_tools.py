@@ -79,7 +79,7 @@ def test_suggest_new_source_writes_new_connector_suggestion():
 def test_search_external_openneuro_returns_results():
     search_body = {
         "data": {
-            "datasets": {
+            "advancedSearch": {
                 "edges": [{"node": {
                     "id": "ds003787", "name": "NYU Retinotopy Dataset",
                     "metadata": {"modalities": ["mri"], "associatedPaperDOI": None,

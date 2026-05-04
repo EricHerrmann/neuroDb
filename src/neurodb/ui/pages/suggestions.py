@@ -1,11 +1,11 @@
 """Suggestions tab: import queue and source suggestions from the discovery agent."""
-import subprocess
 from datetime import datetime, timezone
 
 import streamlit as st
 from sqlalchemy import Engine, select
 from sqlalchemy.orm import Session
 
+from neurodb.provenance import run_ingest
 from neurodb.schema import ImportQueue, LearningSource, SourceSuggestion
 
 
@@ -20,6 +20,13 @@ def render(engine: Engine) -> None:
 
 
 def _render_import_queue(engine: Engine) -> None:
+    msg = st.session_state.pop("import_result", None)
+    if msg:
+        if msg["ok"]:
+            st.success(msg["text"])
+        else:
+            st.error(msg["text"])
+
     with Session(engine) as session:
         rows = session.execute(
             select(ImportQueue)
@@ -79,26 +86,34 @@ def _render_source_suggestions(engine: Engine) -> None:
                     st.rerun()
 
 
+def _ingest_dataset(source: str, source_id: str, engine: Engine) -> None:
+    """Import a single dataset in-process using the existing engine connection."""
+    from neurodb.connectors.openneuro import OpenNeuroConnector
+    from neurodb.connectors.dandi import DandiConnector
+    from neurodb.connectors.neurovault import NeuroVaultConnector
+
+    _connectors = {
+        "openneuro": OpenNeuroConnector,
+        "dandi": DandiConnector,
+        "neurovault": NeuroVaultConnector,
+    }
+    if source not in _connectors:
+        raise ValueError(f"No connector registered for source '{source}'")
+    connector = _connectors[source]()
+    run_ingest(engine=engine, connector=connector, dataset_ids=[source_id])
+
+
 def _run_import(row: ImportQueue, engine: Engine) -> None:
     with st.spinner(f"Importing {row.source}:{row.source_id}…"):
-        result = subprocess.run(
-            [
-                "uv",
-                "run",
-                "scripts/ingest.py",
-                "--source",
-                row.source,
-                "--dataset-id",
-                row.source_id,
-            ],
-            capture_output=True,
-            text=True,
-        )
-    if result.returncode == 0:
-        _update_status(engine, ImportQueue, row.id, "imported")
-        st.success(f"Imported {row.source_id}")
-    else:
-        st.error(f"Import failed:\n{result.stderr[:400]}")
+        try:
+            _ingest_dataset(row.source, row.source_id, engine)
+            _update_status(engine, ImportQueue, row.id, "imported")
+            st.session_state["import_result"] = {"ok": True, "text": f"Imported {row.source_id}"}
+        except Exception as exc:
+            st.session_state["import_result"] = {
+                "ok": False,
+                "text": f"Import failed for {row.source_id}: {str(exc)[:400]}",
+            }
     st.rerun()
 
 

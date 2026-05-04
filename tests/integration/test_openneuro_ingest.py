@@ -87,7 +87,7 @@ def test_search_by_keyword_returns_matching_datasets():
     connector = OpenNeuroConnector()
     search_body = {
         "data": {
-            "datasets": {
+            "advancedSearch": {
                 "edges": [
                     {"node": {
                         "id": "ds003787",

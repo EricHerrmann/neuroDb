@@ -51,6 +51,31 @@ def _response(stop_reason: str, content: list):
     return r
 
 
+def _text_delta_event(text: str):
+    return SimpleNamespace(
+        type="content_block_delta",
+        delta=SimpleNamespace(type="text_delta", text=text),
+    )
+
+
+class _Stream:
+    def __init__(self, events: list, final_message):
+        self._events = events
+        self._final_message = final_message
+
+    def __enter__(self):
+        return self
+
+    def __exit__(self, exc_type, exc, tb):
+        return False
+
+    def __iter__(self):
+        return iter(self._events)
+
+    def get_final_message(self):
+        return self._final_message
+
+
 # ---------------------------------------------------------------------------
 # Tool definitions
 # ---------------------------------------------------------------------------
@@ -242,6 +267,32 @@ def test_agent_passes_history_to_api():
     assert call_messages[2]["content"] == "next question"
 
 
+def test_agent_tool_use_blocks_preserved_in_messages():
+    """Tool-use and tool-result blocks must be appended to the caller's messages list
+    so subsequent turns see the full conversation — not just the extracted text."""
+    engine = _engine_with_dataset()
+    mock_client = MagicMock()
+
+    first_response = _response("tool_use", [
+        _tool_use_block("t1", "query_db", {"sql": "SELECT COUNT(*) FROM datasets_index"})
+    ])
+    second_response = _response("end_turn", [_text_block("Found 1 dataset.")])
+    mock_client.messages.create.side_effect = [first_response, second_response]
+
+    agent = NeuroAgent(mock_client, engine)
+    messages = []
+    list(agent.chat("Count datasets", messages))
+
+    # messages must contain all four turns: user, assistant(tool_use), user(tool_result), assistant(text)
+    assert len(messages) == 4
+    assert messages[0] == {"role": "user", "content": "Count datasets"}
+    assert messages[1]["role"] == "assistant"
+    assert messages[2]["role"] == "user"
+    assert isinstance(messages[2]["content"], list)
+    assert messages[2]["content"][0]["type"] == "tool_result"
+    assert messages[3]["role"] == "assistant"
+
+
 def test_agent_max_turns_guard():
     engine = _engine_with_dataset()
     mock_client = MagicMock()
@@ -252,3 +303,49 @@ def test_agent_max_turns_guard():
     agent = NeuroAgent(mock_client, engine)
     chunks = list(agent.chat("loop forever", []))
     assert any("maximum" in c.lower() for c in chunks)
+
+
+def test_agent_chat_stream_yields_text_deltas_and_done():
+    engine = _engine_with_dataset()
+    mock_client = MagicMock()
+    final_message = _response("end_turn", [_text_block("There are 1 datasets.")])
+    mock_client.messages.stream.return_value = _Stream(
+        [_text_delta_event("There are "), _text_delta_event("1 datasets.")],
+        final_message,
+    )
+
+    agent = NeuroAgent(mock_client, engine)
+    messages = []
+    events = list(agent.chat_stream("How many datasets?", messages))
+
+    assert events[0] == {"type": "text_delta", "text": "There are "}
+    assert events[1] == {"type": "text_delta", "text": "1 datasets."}
+    assert events[-1]["type"] == "done"
+    assert events[-1]["text"] == "There are 1 datasets."
+    assert messages[0] == {"role": "user", "content": "How many datasets?"}
+    assert messages[1]["role"] == "assistant"
+
+
+def test_agent_chat_stream_surfaces_tool_activity_and_preserves_messages():
+    engine = _engine_with_dataset()
+    mock_client = MagicMock()
+    mock_client.messages.stream.side_effect = [
+        _Stream([], _response("tool_use", [
+            _tool_use_block("t1", "query_db", {"sql": "SELECT COUNT(*) FROM datasets_index"})
+        ])),
+        _Stream([_text_delta_event("Found 1 dataset.")], _response("end_turn", [_text_block("Found 1 dataset.")])),
+    ]
+
+    agent = NeuroAgent(mock_client, engine)
+    messages = []
+    events = list(agent.chat_stream("Count datasets", messages))
+
+    assert any(event["type"] == "tool_start" for event in events)
+    assert any(event["type"] == "tool_result" for event in events)
+    assert events[-1]["type"] == "done"
+    assert len(messages) == 4
+    assert messages[0] == {"role": "user", "content": "Count datasets"}
+    assert messages[1]["role"] == "assistant"
+    assert messages[2]["role"] == "user"
+    assert messages[2]["content"][0]["type"] == "tool_result"
+    assert messages[3]["role"] == "assistant"

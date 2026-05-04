@@ -63,3 +63,22 @@ def test_render_chat_shows_session_start_response_after_form(monkeypatch):
     assert events.index(("markdown", "No prior context found for this topic.")) > events.index(
         ("exit", "form:agent_form")
     )
+
+
+def test_render_chat_uses_configured_transcript_height(monkeypatch):
+    calls = []
+    ctx = _ContextRecorder([])
+
+    monkeypatch.setattr(chat.st, "session_state", {"chat_history": []})
+    monkeypatch.setattr(chat.st, "container", lambda **kwargs: calls.append(kwargs) or ctx("container"))
+    monkeypatch.setattr(chat.st, "chat_message", lambda role: ctx(f"chat_message:{role}"))
+    monkeypatch.setattr(chat.st, "form", lambda name, clear_on_submit=True: ctx(f"form:{name}"))
+    monkeypatch.setattr(chat.st, "columns", lambda spec: [ctx("column:clear"), ctx("column:send")])
+    monkeypatch.setattr(chat.st, "text_input", lambda *args, **kwargs: "")
+    monkeypatch.setattr(chat.st, "form_submit_button", lambda *args, **kwargs: False)
+    monkeypatch.setattr(chat.st, "markdown", lambda content: None)
+    monkeypatch.setattr(chat.st, "divider", lambda: None)
+
+    chat._render_chat(agent=MagicMock(), transcript_height=480)
+
+    assert calls[0]["height"] == 480

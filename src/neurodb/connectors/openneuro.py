@@ -55,8 +55,8 @@ query GetDataset($id: ID!) {
 """
 
 _SEARCH_QUERY = """
-query SearchDatasets($search: String, $first: Int) {
-  datasets(search: $search, first: $first, orderBy: { created: descending }) {
+query SearchDatasets($query: DatasetSearchInput!, $first: Int) {
+  advancedSearch(query: $query, first: $first) {
     edges {
       node {
         id
@@ -168,7 +168,13 @@ class OpenNeuroConnector(BaseConnector):
         try:
             response = httpx.post(
                 GRAPHQL_URL,
-                json={"query": _SEARCH_QUERY, "variables": {"search": query, "first": limit}},
+                json={
+                    "query": _SEARCH_QUERY,
+                    "variables": {
+                        "query": {"keywords": [query], "publicOnly": True},
+                        "first": limit,
+                    },
+                },
                 timeout=30,
             )
             response.raise_for_status()
@@ -182,7 +188,7 @@ class OpenNeuroConnector(BaseConnector):
         if body.get("errors"):
             msg = body["errors"][0]["message"]
             raise RuntimeError(f"OpenNeuro GraphQL error: {msg}")
-        edges = body["data"]["datasets"]["edges"]
+        edges = body["data"]["advancedSearch"]["edges"]
         return [edge["node"] for edge in edges]
 
     def fetch_subjects(self, dataset_source_id: str) -> Iterator[dict]:

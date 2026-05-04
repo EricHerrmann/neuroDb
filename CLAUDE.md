@@ -66,6 +66,7 @@ Follow this order:
 
 Minimum expectations for all changes:
 
+- Define the test approach before implementation begins. For any phase, feature set, or user-visible workflow that will require manual verification, create or update its manual test plan in `docs/testsPlans/` before writing implementation code. Treat this the same way automated tests are treated: expected behavior and pass criteria should exist up front, not be reconstructed after the fact.
 - Unit tests for transforms and schema validation
 - Integration tests for one full ingest path with deterministic fixture data
 - Re-run test proving idempotent ingest behavior
@@ -118,6 +119,33 @@ The following do not trigger a `docs/projectStatus.md` update:
 3. Preserve reproducibility over convenience.
 4. Every data-changing operation should be traceable.
 5. Keep planning and execution artifacts in-repo and versioned.
+
+## Manual Test Completion
+
+## Manual Test Planning
+
+Manual test plans are phase-gate artifacts, not post-hoc documentation.
+
+- If a change introduces or materially changes a workflow that needs manual verification, create the manual test plan before implementation begins.
+- If a suitable plan already exists, update it before implementation begins so it reflects the intended behavior of the incoming change.
+- Add the new manual test plan to `docs/projectStatus.md` in the same step when the plan document is first created, following the normal source-document and active-test-plan sync rules.
+- If implementation materially changes the intended workflow after the plan is written, update the plan in the same change that shifts the workflow.
+
+When a test plan or test run document is updated to a passing or signed-off terminal state, update `docs/projectStatus.md` in the same step — phase row, active focus, and archived test plan table. This fires on the document update itself, not on a separate user request.
+
+## Manual Test Run Protocol
+
+During an active manual test run the user may report failures using the `LOG:` prefix.
+
+**When the user types `LOG: ...`:**
+- Append a structured failure entry to the active test run log in `docs/testRuns/`
+- Respond with only: `Logged: {test id or short title}` — nothing else
+- Do NOT investigate, diagnose, propose a fix, or ask clarifying questions
+- Do NOT treat the failure as a trigger to enter debugging or fix mode
+
+The user controls when fixes are addressed. Take no action on a logged failure until the user explicitly says something like "review the test run" or "fix the failures from the test run." At that point, read the log, group related failures, and propose a prioritized order before touching any code.
+
+If no test run log file is currently open, create one using the template at `docs/testRuns/_template.md` and the naming convention `YYYY-MM-DD-{phase}-run{n}.md` before appending the first entry.
 
 ## Working Documentation
 

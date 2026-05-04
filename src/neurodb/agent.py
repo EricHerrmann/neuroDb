@@ -1,6 +1,7 @@
 """Claude API agent with tool use for NeuroDb queries."""
 import json
 from collections.abc import Generator
+from collections.abc import Iterable
 
 from sqlalchemy import Engine, text
 
@@ -242,21 +243,44 @@ class NeuroAgent:
         self.mode = mode
         self.chapter_context = chapter_context
 
-    def chat(self, user_message: str, history: list[dict]) -> Generator[str, None, None]:
-        """Run one user turn, executing tools as needed, and yield response text."""
+    def _get_active_tools(self) -> list[dict]:
         from neurodb.discovery_tools import DISCOVERY_TOOLS
 
         active_tools = list(TOOLS)
         if self.mode == "discovery":
             active_tools.extend(DISCOVERY_TOOLS)
+        return active_tools
 
+    def _build_system_prompt(self) -> str:
         system = _SYSTEM_PROMPT
         if self.chapter_context:
             system = f"{system}\n\nCurrent reading context:\n{self.chapter_context}"
         if self.prior_context:
             system = f"{system}\n\n{self.prior_context}"
+        return system
 
-        messages = list(history) + [{"role": "user", "content": user_message}]
+    def _execute_tool_block(self, block) -> str:
+        if block.name in {
+            "search_external",
+            "suggest_import",
+            "suggest_learning_source",
+            "suggest_new_source",
+        }:
+            return _execute_discovery_tool(block.name, block.input, self._engine)
+        return execute_tool(
+            block.name, block.input, self._engine, self._vector_store
+        )
+
+    def chat(self, user_message: str, messages: list[dict]) -> Generator[str, None, None]:
+        """Run one user turn, executing tools as needed, and yield response text.
+
+        messages is mutated in place: all turns (user, tool_use, tool_result, assistant)
+        are appended so the caller retains the full conversation for subsequent calls.
+        """
+        active_tools = self._get_active_tools()
+        system = self._build_system_prompt()
+
+        messages.append({"role": "user", "content": user_message})
 
         for _ in range(_MAX_TURNS):
             response = self._client.messages.create(
@@ -278,19 +302,7 @@ class NeuroAgent:
                 tool_results = []
                 for block in response.content:
                     if block.type == "tool_use":
-                        if block.name in {
-                            "search_external",
-                            "suggest_import",
-                            "suggest_learning_source",
-                            "suggest_new_source",
-                        }:
-                            result_text = _execute_discovery_tool(
-                                block.name, block.input, self._engine
-                            )
-                        else:
-                            result_text = execute_tool(
-                                block.name, block.input, self._engine, self._vector_store
-                            )
+                        result_text = self._execute_tool_block(block)
                         tool_results.append({
                             "type": "tool_result",
                             "tool_use_id": block.id,
@@ -302,3 +314,73 @@ class NeuroAgent:
             break
 
         yield "[Agent reached maximum tool iterations without a final answer]"
+
+    def chat_stream(self, user_message: str, messages: list[dict]) -> Iterable[dict]:
+        """Run one user turn with streaming output and visible tool activity."""
+        active_tools = self._get_active_tools()
+        system = self._build_system_prompt()
+
+        messages.append({"role": "user", "content": user_message})
+
+        for _ in range(_MAX_TURNS):
+            with self._client.messages.stream(
+                model=self._model,
+                max_tokens=2048,
+                system=system,
+                tools=active_tools,
+                messages=messages,
+            ) as stream:
+                for event in stream:
+                    if (
+                        event.type == "content_block_delta"
+                        and event.delta.type == "text_delta"
+                    ):
+                        yield {"type": "text_delta", "text": event.delta.text}
+
+                final_message = stream.get_final_message()
+
+            messages.append({"role": "assistant", "content": final_message.content})
+
+            if final_message.stop_reason == "end_turn":
+                text_blocks = [
+                    block.text
+                    for block in final_message.content
+                    if block.type == "text"
+                ]
+                yield {
+                    "type": "done",
+                    "text": "".join(text_blocks),
+                    "stop_reason": final_message.stop_reason,
+                }
+                return
+
+            if final_message.stop_reason == "tool_use":
+                tool_results = []
+                for block in final_message.content:
+                    if block.type != "tool_use":
+                        continue
+                    yield {
+                        "type": "tool_start",
+                        "tool_name": block.name,
+                        "tool_input": block.input,
+                    }
+                    result_text = self._execute_tool_block(block)
+                    tool_results.append({
+                        "type": "tool_result",
+                        "tool_use_id": block.id,
+                        "content": [{"type": "text", "text": result_text}],
+                    })
+                    yield {
+                        "type": "tool_result",
+                        "tool_name": block.name,
+                        "result": result_text,
+                    }
+                messages.append({"role": "user", "content": tool_results})
+                continue
+
+            break
+
+        yield {
+            "type": "error",
+            "text": "[Agent reached maximum tool iterations without a final answer]",
+        }

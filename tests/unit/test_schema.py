@@ -3,7 +3,17 @@ from sqlalchemy import create_engine, inspect
 from sqlalchemy.exc import IntegrityError
 from sqlalchemy.orm import Session
 
-from neurodb.schema import CrossRef, DatasetIndex, IngestRun, QualityEvent, Subject, LearningSource, ImportQueue, SourceSuggestion
+from neurodb.schema import (
+    CrossRef,
+    DatasetEmbeddingState,
+    DatasetIndex,
+    ImportQueue,
+    IngestRun,
+    LearningSource,
+    QualityEvent,
+    SourceSuggestion,
+    Subject,
+)
 
 
 def test_schema_creates_core_tables():
@@ -84,3 +94,11 @@ def test_source_suggestion_has_suggestion_type_column():
     cols = {c.key for c in SourceSuggestion.__table__.columns}
     assert "suggestion_type" in cols
     assert "metadata_json" in cols
+
+
+def test_dataset_embedding_state_has_hash_and_model_columns():
+    cols = {c.key for c in DatasetEmbeddingState.__table__.columns}
+    assert "source" in cols
+    assert "source_id" in cols
+    assert "content_hash" in cols
+    assert "embedder_model" in cols

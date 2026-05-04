@@ -1,3 +1,8 @@
+try:
+    from sentence_transformers import SentenceTransformer
+except ImportError:
+    SentenceTransformer = None  # type: ignore[assignment,misc]
+
 MODEL_NAME = "allenai/specter2_base"
 
 
@@ -10,6 +15,5 @@ class Embedder:
 
     def embed(self, texts: list[str]) -> list[list[float]]:
         if self._model is None:
-            from sentence_transformers import SentenceTransformer
             self._model = SentenceTransformer(self._model_name)
         return self._model.encode(texts, normalize_embeddings=True).tolist()

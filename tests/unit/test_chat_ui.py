@@ -82,3 +82,43 @@ def test_render_chat_uses_configured_transcript_height(monkeypatch):
     chat._render_chat(agent=MagicMock(), transcript_height=480)
 
     assert calls[0]["height"] == 480
+
+
+def test_render_chat_submission_streams_inside_transcript_and_persists(monkeypatch):
+    events: list[tuple[str, str]] = []
+    ctx = _ContextRecorder(events)
+
+    class _Placeholder:
+        def markdown(self, content):
+            events.append(("placeholder_markdown", content))
+
+    class _Agent:
+        def chat_stream(self, message, api_messages):
+            yield {"type": "text_delta", "text": "There are "}
+            yield {"type": "done", "text": "There are 5 datasets."}
+
+    rerun_called = {"value": False}
+
+    monkeypatch.setattr(chat.st, "session_state", {"chat_history": [], "api_messages": []})
+    monkeypatch.setattr(chat.st, "container", lambda **kwargs: ctx("container"))
+    monkeypatch.setattr(chat.st, "chat_message", lambda role: ctx(f"chat_message:{role}"))
+    monkeypatch.setattr(chat.st, "form", lambda name, clear_on_submit=True: ctx(f"form:{name}"))
+    monkeypatch.setattr(chat.st, "columns", lambda spec: [ctx("column:clear"), ctx("column:send")])
+    monkeypatch.setattr(chat.st, "text_input", lambda *args, **kwargs: "How many datasets?")
+    submit_calls = iter([False, True])
+    monkeypatch.setattr(chat.st, "form_submit_button", lambda *args, **kwargs: next(submit_calls))
+    monkeypatch.setattr(chat.st, "markdown", lambda content: events.append(("markdown", content)))
+    monkeypatch.setattr(chat.st, "divider", lambda: None)
+    monkeypatch.setattr(chat.st, "empty", lambda: _Placeholder())
+    monkeypatch.setattr(chat.st, "rerun", lambda: rerun_called.__setitem__("value", True))
+
+    chat._render_chat(agent=_Agent())
+
+    assert rerun_called["value"] is True
+    assert ("enter", "chat_message:user") in events
+    assert ("enter", "chat_message:assistant") in events
+    assert ("placeholder_markdown", "There are ") in events
+    assert chat.st.session_state["chat_history"] == [
+        {"role": "user", "content": "How many datasets?"},
+        {"role": "assistant", "content": "There are 5 datasets."},
+    ]

@@ -196,7 +196,8 @@ def _render_end_session_button(engine: Engine) -> None:
 
 
 def _render_chat(agent, transcript_height: int = 420) -> None:
-    with st.container(height=transcript_height):
+    transcript_container = st.container(height=transcript_height)
+    with transcript_container:
         for msg in st.session_state["chat_history"]:
             if msg.get("_system"):
                 continue
@@ -225,50 +226,51 @@ def _render_chat(agent, transcript_height: int = 420) -> None:
         if "api_messages" not in st.session_state:
             st.session_state["api_messages"] = _to_api_history(st.session_state["chat_history"][:-1])
 
-        with st.chat_message("user"):
-            st.markdown(message)
-
         response_chunks: list[str] = []
         response_text = ""
         activity_log: list[str] = []
-        with st.chat_message("assistant"):
-            text_placeholder = st.empty()
-            activity_placeholder = st.empty()
-            try:
-                for event in agent.chat_stream(message, st.session_state["api_messages"]):
-                    if event["type"] == "text_delta":
-                        response_chunks.append(event["text"])
-                        response_text = "".join(response_chunks)
-                        text_placeholder.markdown(response_text)
-                        continue
+        with transcript_container:
+            with st.chat_message("user"):
+                st.markdown(message)
 
-                    if event["type"] == "tool_start":
-                        activity_log.append(_format_tool_start(event["tool_name"], event["tool_input"]))
-                        activity_placeholder.markdown(_render_activity_log(activity_log))
-                        continue
-
-                    if event["type"] == "tool_result":
-                        activity_log.append(_format_tool_result(event["tool_name"], event["result"]))
-                        activity_placeholder.markdown(_render_activity_log(activity_log))
-                        continue
-
-                    if event["type"] == "done":
-                        response_text = response_text or event["text"]
-                        if response_text:
+            with st.chat_message("assistant"):
+                text_placeholder = st.empty()
+                activity_placeholder = st.empty()
+                try:
+                    for event in agent.chat_stream(message, st.session_state["api_messages"]):
+                        if event["type"] == "text_delta":
+                            response_chunks.append(event["text"])
+                            response_text = "".join(response_chunks)
                             text_placeholder.markdown(response_text)
-                        break
+                            continue
 
-                    if event["type"] == "error":
-                        response_text = event["text"]
-                        text_placeholder.markdown(response_text)
-                        break
-            except Exception as exc:
-                response_text = f"Error during streaming response: {exc}"
-                text_placeholder.markdown(response_text)
+                        if event["type"] == "tool_start":
+                            activity_log.append(_format_tool_start(event["tool_name"], event["tool_input"]))
+                            activity_placeholder.markdown(_render_activity_log(activity_log))
+                            continue
 
-            if not response_text:
-                response_text = "[No text response returned]"
-                text_placeholder.markdown(response_text)
+                        if event["type"] == "tool_result":
+                            activity_log.append(_format_tool_result(event["tool_name"], event["result"]))
+                            activity_placeholder.markdown(_render_activity_log(activity_log))
+                            continue
+
+                        if event["type"] == "done":
+                            response_text = event["text"] or response_text
+                            if response_text:
+                                text_placeholder.markdown(response_text)
+                            break
+
+                        if event["type"] == "error":
+                            response_text = event["text"]
+                            text_placeholder.markdown(response_text)
+                            break
+                except Exception as exc:
+                    response_text = f"Error during streaming response: {exc}"
+                    text_placeholder.markdown(response_text)
+
+                if not response_text:
+                    response_text = "[No text response returned]"
+                    text_placeholder.markdown(response_text)
 
         st.session_state["chat_history"].append({"role": "assistant", "content": response_text})
         st.rerun()

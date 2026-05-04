@@ -281,6 +281,14 @@ class NeuroAgent:
         messages is mutated in place: all turns (user, tool_use, tool_result, assistant)
         are appended so the caller retains the full conversation for subsequent calls.
         """
+        checkpoint = len(messages)
+        try:
+            yield from self._chat_inner(user_message, messages)
+        except Exception:
+            del messages[checkpoint:]
+            raise
+
+    def _chat_inner(self, user_message: str, messages: list[dict]) -> Generator[str, None, None]:
         active_tools = self._get_active_tools()
         system = self._build_system_prompt()
 

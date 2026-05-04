@@ -2,7 +2,12 @@ import json
 import tempfile
 from datetime import datetime, timezone
 from pathlib import Path
+
+import h5py
+from pynwb import NWBHDF5IO
+
 from sqlalchemy import Engine
+
 from neurodb.db import get_session
 
 
@@ -22,9 +27,6 @@ def _download_first_nwb(source_id: str) -> str | None:
 
 def _parse_nwb(path: str) -> dict:
     """Extract enrichment fields from an NWB file. Raises on parse failure."""
-    import h5py
-    from pynwb import NWBHDF5IO
-
     nwb_version = None
     with h5py.File(path, "r") as hf:
         raw_ver = hf.attrs.get("nwb_version")
@@ -102,7 +104,6 @@ def run_enrichment(engine: Engine, limit: int | None = None) -> int:
         finally:
             if tmp_path is not None:
                 p = Path(tmp_path)
-                import tempfile
                 if p.exists() and str(p).startswith(tempfile.gettempdir()):
                     p.unlink()
 

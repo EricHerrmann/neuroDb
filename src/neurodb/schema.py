@@ -1,4 +1,4 @@
-from sqlalchemy import Float, ForeignKey, Integer, Sequence, String, Text, UniqueConstraint
+from sqlalchemy import Float, ForeignKey, Index, Integer, Sequence, String, Text, UniqueConstraint
 from sqlalchemy.orm import DeclarativeBase, Mapped, mapped_column, relationship
 
 
@@ -69,6 +69,9 @@ class CrossRef(Base):
 class QualityEvent(Base):
     """Structured quality flag log. Attached to any entity by (entity_source, entity_id)."""
     __tablename__ = "quality_events"
+    __table_args__ = (
+        Index("ix_quality_events_source_id_flag", "entity_source", "entity_id", "flag"),
+    )
 
     id: Mapped[int] = mapped_column(Integer, Sequence("quality_events_id_seq"), primary_key=True)
     entity_type: Mapped[str] = mapped_column(String(32), nullable=False, index=True)

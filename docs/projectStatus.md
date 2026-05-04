@@ -1,8 +1,8 @@
 # NeuroDb — Project Status
 
 **Last updated:** 2026-05-04
-**Active focus:** Tech Debt sprints TD-1, TD-2, TD-3
-**Next:** P7 — TBD (entity resolution or hypothesis layer; scoped after TD complete)
+**Active focus:** Tech debt complete — scoping P7
+**Next:** P7 — TBD (entity resolution or hypothesis layer)
 **Goal alignment:** Building a trustworthy, reproducible neuroscience data platform with an agentic learning layer grounded in ingested dataset IDs.
 
 ---
@@ -13,7 +13,7 @@
 |--------|-------|--------|
 | TD-1 | Schema migration framework, connector fetch_by_id/search_by_keyword on all sources, explicit connector registry, StudyNote unique constraint, dependency pinning | Complete — 186 tests |
 | TD-2 | Unit tests: embedder, enrichment, provenance; clear button behavioral tests | Complete — 204 tests |
-| TD-3 | Dead code removal, model name env var, api_messages rollback on exception, QualityEvent compound index, chapter context guard, pytest-cov | Not started |
+| TD-3 | Dead code removal, model name env var, api_messages rollback on exception, QualityEvent compound index, chapter context guard, pytest-cov | Complete — 210 tests |
 
 **Implementation plans:** `docs/superpowers/plans/2026-05-04-tech-debt-td1.md`, `td2.md`, `td3.md`
 

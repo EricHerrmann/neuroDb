@@ -83,6 +83,9 @@ class QualityEvent(Base):
 
 class StudyNote(Base):
     __tablename__ = "study_notes"
+    __table_args__ = (
+        UniqueConstraint("index_id", "concept_tag", name="uq_study_note_index_concept"),
+    )
 
     id: Mapped[int] = mapped_column(Integer, Sequence("study_notes_id_seq"), primary_key=True)
     index_id: Mapped[int] = mapped_column(ForeignKey("datasets_index.id"), nullable=False, index=True)

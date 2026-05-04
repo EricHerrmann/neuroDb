@@ -1,6 +1,7 @@
 import pytest
-from sqlalchemy import create_engine, text
+from sqlalchemy import create_engine, inspect, text
 from neurodb.migrations import apply_migrations, get_schema_version
+from neurodb.db import init_db
 
 
 def _engine():
@@ -46,3 +47,10 @@ def test_apply_migrations_runs_in_version_order():
         1: lambda conn: order.append(1),
     })
     assert order == [1, 2]
+
+
+def test_init_db_creates_schema_migrations_table():
+    engine = _engine()
+    init_db(engine)
+    tables = inspect(engine).get_table_names()
+    assert "schema_migrations" in tables

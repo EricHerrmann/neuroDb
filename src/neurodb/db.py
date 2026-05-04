@@ -5,6 +5,7 @@ from sqlalchemy import Engine, text
 from sqlalchemy import create_engine as _create_engine
 from sqlalchemy.orm import Session
 
+from neurodb.migrations import apply_migrations
 from neurodb.schema import Base
 
 
@@ -12,9 +13,36 @@ def get_engine(url: str = "duckdb:///neurodb.duckdb") -> Engine:
     return _create_engine(url, echo=False)
 
 
+def _migration_001_study_note_unique(conn) -> None:
+    """Add unique constraint on (index_id, concept_tag) in study_notes.
+    Deletes duplicates first (keeps the row with the lowest id).
+    """
+    conn.execute(text("""
+        DELETE FROM study_notes
+        WHERE id NOT IN (
+            SELECT MIN(id)
+            FROM study_notes
+            GROUP BY index_id, concept_tag
+        )
+    """))
+    try:
+        conn.execute(text(
+            "ALTER TABLE study_notes "
+            "ADD CONSTRAINT uq_study_note_index_concept UNIQUE (index_id, concept_tag)"
+        ))
+    except Exception:
+        pass  # constraint already exists on this DB
+
+
+_MIGRATIONS: dict[int, callable] = {
+    1: _migration_001_study_note_unique,
+}
+
+
 def init_db(engine: Engine) -> None:
     Base.metadata.create_all(engine)
     seed_learning_sources(engine)
+    apply_migrations(engine, _MIGRATIONS)
 
 
 def seed_learning_sources(engine: Engine) -> None:

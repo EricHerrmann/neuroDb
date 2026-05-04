@@ -36,7 +36,7 @@ def render(engine: Engine) -> None:
         for r in results
     ]
     df = pd.DataFrame(data)
-    st.dataframe(df, use_container_width=True)
+    st.dataframe(df, width="stretch")
     st.caption(f"{len(results)} dataset(s) found")
 
     with st.expander("Tag a dataset from these results"):

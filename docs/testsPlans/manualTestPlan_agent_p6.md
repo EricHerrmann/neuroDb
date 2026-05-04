@@ -1,9 +1,9 @@
 # Agent P6 Manual Test Plan — Learning Agent Features
 
-**Status:** Pending
+**Status:** ✅ Signed off
 **Tester:** Eric Herrmann
 **Scope:** F1 embedding deduplication, F2 agent response streaming, F3 split-workspace UI
-**Date:** <!-- fill in on execution -->
+**Date:** 2026-05-04
 
 All commands run from the repo root (`/home/oldha/projects/neuroDb`) unless noted.
 
@@ -186,14 +186,14 @@ Expected behavior: supporting workflows are accessible without navigating away f
 
 ## Pass Criteria
 
-- [ ] `uv run pytest tests/unit/test_embed_hooks.py tests/unit/test_agent.py tests/unit/test_session_manager.py tests/unit/test_chat_ui.py tests/unit/test_schema.py -q` passes
-- [ ] First OpenNeuro ingest into the P6 DB embeds `N > 0` datasets
-- [ ] `dataset_embedding_state` row count matches the number of embedded OpenNeuro datasets after the first ingest
-- [ ] A second unchanged OpenNeuro ingest reports `Embedded 0 dataset(s).`
-- [ ] Learning-mode chat shows progressive response output and visible agent activity instead of a silent wait
-- [ ] Discovery-mode chat shows visible tool activity and survives the multi-turn `yes` confirmation flow without clearing history
-- [ ] Suggestions created from discovery mode appear in the right-pane workspace
-- [ ] Split-workspace layout shows chat as the primary left pane and utility tabs on the right
-- [ ] Importing or browsing supporting views does not force navigation away from the active chat context
+- [x] `uv run pytest tests/unit/test_embed_hooks.py tests/unit/test_agent.py tests/unit/test_session_manager.py tests/unit/test_chat_ui.py tests/unit/test_schema.py -q` passes
+- [x] First OpenNeuro ingest into the P6 DB embeds `N > 0` datasets
+- [x] `dataset_embedding_state` row count matches the number of embedded OpenNeuro datasets after the first ingest
+- [x] A second unchanged OpenNeuro ingest reports `Embedded 0 dataset(s).`
+- [x] Learning-mode chat shows progressive response output and visible agent activity instead of a silent wait
+- [x] Discovery-mode chat shows visible tool activity and survives the multi-turn `yes` confirmation flow without clearing history
+- [x] Suggestions created from discovery mode appear in the right-pane workspace
+- [x] Split-workspace layout shows chat as the primary left pane and utility tabs on the right
+- [x] Importing or browsing supporting views does not force navigation away from the active chat context
 
-**Sign-off:** _________________________________ Date: _____________
+**Sign-off:** P6 F1, F2, and F3 passed per user sign-off after the final UI update. Date: 2026-05-04

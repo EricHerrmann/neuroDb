@@ -141,13 +141,12 @@ def _render_start_session() -> None:
         "Context relevance",
         min_value=0.1,
         max_value=1.0,
-        value=st.session_state["relevance_threshold"],
         step=0.1,
         help="Lower = stricter topic match only; Higher = broader, more loosely related sessions included",
         key="relevance_threshold",
     )
 
-    if st.button("Start Session", use_container_width=True):
+    if st.button("Start Session", width="stretch"):
         save_prefs({"relevance_threshold": threshold})
 
         manager = st.session_state.get("session_manager")
@@ -182,7 +181,7 @@ def _render_end_session_button(engine: Engine) -> None:
     topic = st.session_state.get("session_topic", "")
     label = f"Session: {topic}" if topic else "Session active"
     st.caption(label)
-    if st.button("End Session", use_container_width=True):
+    if st.button("End Session", width="stretch"):
         manager = st.session_state.get("session_manager")
         session_id = st.session_state.pop("session_id", None)
         if manager and session_id:
@@ -198,7 +197,7 @@ def _render_end_session_button(engine: Engine) -> None:
 
 
 def _render_chat(agent, transcript_height: int = 420, session_active: bool = False) -> None:
-    transcript_container = st.container(height=transcript_height)
+    transcript_container = st.container()
     with transcript_container:
         visible_messages = [
             msg for msg in st.session_state["chat_history"]
@@ -217,26 +216,26 @@ def _render_chat(agent, transcript_height: int = 420, session_active: bool = Fal
             with st.chat_message(msg["role"]):
                 st.markdown(msg["content"])
 
-    with st.form("agent_form", clear_on_submit=True):
-        user_input = st.text_input(
-            "Message",
-            placeholder="Ask about your datasets…",
-            label_visibility="collapsed",
-            disabled=not session_active or agent is None,
-        )
-        col_clear, col_send = st.columns([1, 2])
-        with col_clear:
-            clear_clicked = st.form_submit_button(
-                "Clear",
-                use_container_width=True,
-                disabled=not session_active,
-            )
-        with col_send:
-            submitted = st.form_submit_button(
-                "Send",
-                use_container_width=True,
+    composer_col, clear_col = st.columns([4, 1])
+    with composer_col:
+        with st.form("agent_form", clear_on_submit=True):
+            user_input = st.text_input(
+                "Message",
+                placeholder="Ask about your datasets…",
+                label_visibility="collapsed",
                 disabled=not session_active or agent is None,
             )
+            submitted = st.form_submit_button(
+                "Send",
+                width="stretch",
+                disabled=not session_active or agent is None,
+            )
+    with clear_col:
+        clear_clicked = st.button(
+            "Clear",
+            width="stretch",
+            disabled=not session_active or not st.session_state["chat_history"],
+        )
 
     if clear_clicked:
         st.session_state["chat_history"] = []

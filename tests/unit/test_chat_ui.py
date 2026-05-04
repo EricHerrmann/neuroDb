@@ -45,9 +45,10 @@ def test_render_chat_shows_session_start_response_after_form(monkeypatch):
     monkeypatch.setattr(chat.st, "container", lambda **kwargs: ctx("container"))
     monkeypatch.setattr(chat.st, "chat_message", lambda role: ctx(f"chat_message:{role}"))
     monkeypatch.setattr(chat.st, "form", lambda name, clear_on_submit=True: ctx(f"form:{name}"))
-    monkeypatch.setattr(chat.st, "columns", lambda spec: [ctx("column:clear"), ctx("column:send")])
+    monkeypatch.setattr(chat.st, "columns", lambda spec: [ctx("column:composer"), ctx("column:clear")])
     monkeypatch.setattr(chat.st, "text_input", lambda *args, **kwargs: "")
     monkeypatch.setattr(chat.st, "form_submit_button", lambda *args, **kwargs: False)
+    monkeypatch.setattr(chat.st, "button", lambda *args, **kwargs: False)
     monkeypatch.setattr(chat.st, "markdown", lambda content: events.append(("markdown", content)))
     monkeypatch.setattr(chat.st, "divider", lambda: events.append(("divider", "")))
     monkeypatch.setattr(
@@ -66,7 +67,7 @@ def test_render_chat_shows_session_start_response_after_form(monkeypatch):
     )
 
 
-def test_render_chat_uses_configured_transcript_height(monkeypatch):
+def test_render_chat_renders_transcript_container(monkeypatch):
     calls = []
     ctx = _ContextRecorder([])
 
@@ -74,15 +75,16 @@ def test_render_chat_uses_configured_transcript_height(monkeypatch):
     monkeypatch.setattr(chat.st, "container", lambda **kwargs: calls.append(kwargs) or ctx("container"))
     monkeypatch.setattr(chat.st, "chat_message", lambda role: ctx(f"chat_message:{role}"))
     monkeypatch.setattr(chat.st, "form", lambda name, clear_on_submit=True: ctx(f"form:{name}"))
-    monkeypatch.setattr(chat.st, "columns", lambda spec: [ctx("column:clear"), ctx("column:send")])
+    monkeypatch.setattr(chat.st, "columns", lambda spec: [ctx("column:composer"), ctx("column:clear")])
     monkeypatch.setattr(chat.st, "text_input", lambda *args, **kwargs: "")
     monkeypatch.setattr(chat.st, "form_submit_button", lambda *args, **kwargs: False)
+    monkeypatch.setattr(chat.st, "button", lambda *args, **kwargs: False)
     monkeypatch.setattr(chat.st, "markdown", lambda content: None)
     monkeypatch.setattr(chat.st, "divider", lambda: None)
 
     chat._render_chat(agent=MagicMock(), transcript_height=480)
 
-    assert calls[0]["height"] == 480
+    assert calls[0] == {}
 
 
 def test_render_chat_shows_placeholder_when_session_inactive(monkeypatch):
@@ -93,9 +95,10 @@ def test_render_chat_shows_placeholder_when_session_inactive(monkeypatch):
     monkeypatch.setattr(chat.st, "container", lambda **kwargs: ctx("container"))
     monkeypatch.setattr(chat.st, "chat_message", lambda role: ctx(f"chat_message:{role}"))
     monkeypatch.setattr(chat.st, "form", lambda name, clear_on_submit=True: ctx(f"form:{name}"))
-    monkeypatch.setattr(chat.st, "columns", lambda spec: [ctx("column:clear"), ctx("column:send")])
+    monkeypatch.setattr(chat.st, "columns", lambda spec: [ctx("column:composer"), ctx("column:clear")])
     monkeypatch.setattr(chat.st, "text_input", lambda *args, **kwargs: "")
     monkeypatch.setattr(chat.st, "form_submit_button", lambda *args, **kwargs: False)
+    monkeypatch.setattr(chat.st, "button", lambda *args, **kwargs: False)
     monkeypatch.setattr(chat.st, "markdown", lambda content: events.append(("markdown", content)))
     monkeypatch.setattr(chat.st, "divider", lambda: None)
 
@@ -133,9 +136,10 @@ def test_render_chat_processes_pending_message_inside_transcript(monkeypatch):
     monkeypatch.setattr(chat.st, "container", lambda **kwargs: ctx("container"))
     monkeypatch.setattr(chat.st, "chat_message", lambda role: ctx(f"chat_message:{role}"))
     monkeypatch.setattr(chat.st, "form", lambda name, clear_on_submit=True: ctx(f"form:{name}"))
-    monkeypatch.setattr(chat.st, "columns", lambda spec: [ctx("column:clear"), ctx("column:send")])
+    monkeypatch.setattr(chat.st, "columns", lambda spec: [ctx("column:composer"), ctx("column:clear")])
     monkeypatch.setattr(chat.st, "text_input", lambda *args, **kwargs: "")
     monkeypatch.setattr(chat.st, "form_submit_button", lambda *args, **kwargs: False)
+    monkeypatch.setattr(chat.st, "button", lambda *args, **kwargs: False)
     monkeypatch.setattr(chat.st, "markdown", lambda content: events.append(("markdown", content)))
     monkeypatch.setattr(chat.st, "divider", lambda: None)
     monkeypatch.setattr(chat.st, "empty", lambda: _Placeholder())
@@ -151,5 +155,51 @@ def test_render_chat_processes_pending_message_inside_transcript(monkeypatch):
     assert chat.st.session_state["chat_history"] == [
         {"role": "user", "content": "How many datasets?"},
         {"role": "assistant", "content": "There are 5 datasets."},
+    ]
+    assert chat.st.session_state["pending_user_message"] is None
+
+
+def test_render_chat_enter_submits_send_not_clear(monkeypatch):
+    rerun_called = {"value": False}
+    submit_labels: list[str] = []
+    clear_labels: list[str] = []
+
+    class _Agent:
+        def chat_stream(self, message, api_messages):
+            assert message == "hi"
+            yield {"type": "done", "text": "hello"}
+
+    monkeypatch.setattr(
+        chat.st,
+        "session_state",
+        {"chat_history": [], "api_messages": [], "pending_user_message": None},
+    )
+    monkeypatch.setattr(chat.st, "container", lambda **kwargs: _ContextManager([], "container"))
+    monkeypatch.setattr(chat.st, "chat_message", lambda role: _ContextManager([], f"chat_message:{role}"))
+    monkeypatch.setattr(chat.st, "form", lambda name, clear_on_submit=True: _ContextManager([], f"form:{name}"))
+    monkeypatch.setattr(chat.st, "columns", lambda spec: [_ContextManager([], "column:composer"), _ContextManager([], "column:clear")])
+    monkeypatch.setattr(chat.st, "text_input", lambda *args, **kwargs: "hi")
+    monkeypatch.setattr(
+        chat.st,
+        "form_submit_button",
+        lambda label, **kwargs: submit_labels.append(label) or True,
+    )
+    monkeypatch.setattr(
+        chat.st,
+        "button",
+        lambda label, **kwargs: clear_labels.append(label) or False,
+    )
+    monkeypatch.setattr(chat.st, "markdown", lambda content: None)
+    monkeypatch.setattr(chat.st, "divider", lambda: None)
+    monkeypatch.setattr(chat.st, "rerun", lambda: rerun_called.__setitem__("value", True))
+
+    chat._render_chat(agent=_Agent(), session_active=True)
+
+    assert submit_labels == ["Send"]
+    assert clear_labels == ["Clear"]
+    assert rerun_called["value"] is True
+    assert chat.st.session_state["chat_history"] == [
+        {"role": "user", "content": "hi"},
+        {"role": "assistant", "content": "hello"},
     ]
     assert chat.st.session_state["pending_user_message"] is None

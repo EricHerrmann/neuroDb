@@ -16,7 +16,7 @@ def _browse_section(engine: Engine) -> None:
     col1, col2, col3 = st.columns([3, 2, 1])
     concept_filter = col1.text_input("Filter by concept", "")
     source_filter = col2.selectbox("Filter by source", ["All"] + SOURCES)
-    search_clicked = col3.button("Search", use_container_width=True)
+    search_clicked = col3.button("Search", width="stretch")
 
     if "tag_search_active" not in st.session_state:
         st.session_state["tag_search_active"] = False
@@ -37,7 +37,7 @@ def _browse_section(engine: Engine) -> None:
 
     df = pd.DataFrame([{c: r[c] for c in _DISPLAY_COLS} for r in rows])
     df_height = min(46 + 50 * len(df), 600)
-    event = st.dataframe(df, use_container_width=True, on_select="rerun", selection_mode="single-row", height=df_height)
+    event = st.dataframe(df, width="stretch", on_select="rerun", selection_mode="single-row", height=df_height)
     st.caption(f"{len(rows)} tag(s) — click a row to populate the form below")
 
     sel = event.selection.rows
@@ -76,9 +76,9 @@ def _tag_form_section(engine: Engine) -> None:
         note = st.text_area("Note", key="tf_note",
                             placeholder="What you observed, confirmed, or questioned")
         col_save, col_delete = st.columns(2)
-        submitted = col_save.form_submit_button("Save Tag", use_container_width=True)
+        submitted = col_save.form_submit_button("Save Tag", width="stretch")
         delete_clicked = col_delete.form_submit_button(
-            "Delete Tag", use_container_width=True,
+            "Delete Tag", width="stretch",
             type="secondary", disabled=not has_selection,
         )
 

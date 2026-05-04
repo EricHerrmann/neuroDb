@@ -48,9 +48,9 @@ def _render_import_queue(engine: Engine) -> None:
                 if row.reason:
                     st.markdown(f"*{row.reason}*")
             with col_actions:
-                if st.button("Import", key=f"import_{row.id}", use_container_width=True):
+                if st.button("Import", key=f"import_{row.id}", width="stretch"):
                     _run_import(row, engine)
-                if st.button("Dismiss", key=f"dismiss_import_{row.id}", use_container_width=True):
+                if st.button("Dismiss", key=f"dismiss_import_{row.id}", width="stretch"):
                     _update_status(engine, ImportQueue, row.id, "dismissed")
                     st.rerun()
 
@@ -79,9 +79,9 @@ def _render_source_suggestions(engine: Engine) -> None:
                     st.markdown(f"*{row.reason}*")
             with col_actions:
                 if row.suggestion_type == "learning_source":
-                    if st.button("Promote", key=f"promote_{row.id}", use_container_width=True):
+                    if st.button("Promote", key=f"promote_{row.id}", width="stretch"):
                         _promote_to_learning_source(row, engine)
-                if st.button("Dismiss", key=f"dismiss_src_{row.id}", use_container_width=True):
+                if st.button("Dismiss", key=f"dismiss_src_{row.id}", width="stretch"):
                     _update_status(engine, SourceSuggestion, row.id, "dismissed")
                     st.rerun()
 

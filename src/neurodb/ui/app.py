@@ -21,6 +21,90 @@ from neurodb.vector_store import VectorStore
 
 st.set_page_config(page_title="NeuroDb Explorer", layout="wide")
 
+
+def _inject_ui_styles() -> None:
+    st.markdown(
+        """
+        <style>
+        :root {
+          --ndb-ink: #f8fafc;
+          --ndb-charcoal: #0f172a;
+          --ndb-charcoal-2: #1e293b;
+          --ndb-active: #1e3a8a;
+          --ndb-active-2: #1d4ed8;
+          --ndb-border: #cbd5e1;
+          --ndb-muted: #475569;
+          --ndb-surface: #ffffff;
+        }
+
+        .stApp {
+          background: linear-gradient(180deg, #f8fafc 0%, #eef2f7 100%);
+        }
+
+        button[kind="primary"],
+        button[kind="primaryFormSubmit"] {
+          background: var(--ndb-charcoal) !important;
+          color: var(--ndb-ink) !important;
+          border: 1px solid var(--ndb-charcoal) !important;
+          font-weight: 700 !important;
+          box-shadow: 0 1px 2px rgba(15, 23, 42, 0.16) !important;
+        }
+
+        button[kind="primary"]:hover,
+        button[kind="primaryFormSubmit"]:hover {
+          background: var(--ndb-charcoal-2) !important;
+          color: var(--ndb-ink) !important;
+        }
+
+        button[kind="secondary"],
+        button[kind="secondaryFormSubmit"] {
+          background: var(--ndb-surface) !important;
+          color: var(--ndb-charcoal) !important;
+          border: 1px solid var(--ndb-border) !important;
+        }
+
+        button[kind="secondary"]:hover,
+        button[kind="secondaryFormSubmit"]:hover {
+          background: #e2e8f0 !important;
+          color: var(--ndb-charcoal) !important;
+        }
+
+        div[role="tablist"] button[aria-selected="true"] {
+          background: var(--ndb-active) !important;
+          color: var(--ndb-ink) !important;
+          border-radius: 0.6rem !important;
+          border: 1px solid var(--ndb-active) !important;
+          font-weight: 700 !important;
+          box-shadow: 0 2px 6px rgba(30, 58, 138, 0.22) !important;
+        }
+
+        div[role="tablist"] button[aria-selected="false"] {
+          background: rgba(255, 255, 255, 0.78) !important;
+          color: var(--ndb-muted) !important;
+          border: 1px solid var(--ndb-border) !important;
+          border-radius: 0.6rem !important;
+        }
+
+        div[role="radiogroup"] label[data-baseweb="radio"] > div:first-child {
+          border-color: var(--ndb-border) !important;
+        }
+
+        div[role="radiogroup"] label[data-baseweb="radio"]:has(input:checked) {
+          background: var(--ndb-active) !important;
+          color: var(--ndb-ink) !important;
+          border: 1px solid var(--ndb-active) !important;
+          border-radius: 999px !important;
+          padding: 0.2rem 0.7rem !important;
+        }
+
+        div[role="radiogroup"] label[data-baseweb="radio"]:has(input:checked) * {
+          color: var(--ndb-ink) !important;
+        }
+        </style>
+        """,
+        unsafe_allow_html=True,
+    )
+
 db_path = "neurodb.duckdb"
 for i, arg in enumerate(sys.argv):
     if arg == "--db" and i + 1 < len(sys.argv):
@@ -29,6 +113,7 @@ for i, arg in enumerate(sys.argv):
 engine = get_engine(f"duckdb:///{db_path}")
 init_db(engine)
 create_views(engine)
+_inject_ui_styles()
 
 st.session_state["engine"] = engine
 

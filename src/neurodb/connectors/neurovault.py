@@ -71,6 +71,32 @@ class NeuroVaultConnector(BaseConnector):
             run_id=run_id,
         )
 
+    def fetch_by_id(self, dataset_id: str) -> dict:
+        url = f"{_BASE}{dataset_id}/"
+        try:
+            response = httpx.get(url, timeout=30)
+            response.raise_for_status()
+        except httpx.TimeoutException as e:
+            raise RuntimeError(f"NeuroVault request timed out ({url})") from e
+        except httpx.HTTPStatusError as e:
+            raise RuntimeError(
+                f"NeuroVault API returned {e.response.status_code}: {e.response.text[:200]}"
+            ) from e
+        return response.json()
+
+    def search_by_keyword(self, query: str, limit: int = 10) -> list[dict]:
+        try:
+            response = httpx.get(_BASE, params={"search": query}, timeout=30)
+            response.raise_for_status()
+        except httpx.TimeoutException as e:
+            raise RuntimeError(f"NeuroVault request timed out ({_BASE})") from e
+        except httpx.HTTPStatusError as e:
+            raise RuntimeError(
+                f"NeuroVault API returned {e.response.status_code}: {e.response.text[:200]}"
+            ) from e
+        results = response.json().get("results", [])
+        return results[:limit]
+
     def fetch_subjects(self, dataset_source_id: str) -> Iterator[dict]:
         return iter([])
 

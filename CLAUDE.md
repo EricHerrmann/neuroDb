@@ -148,7 +148,8 @@ When a test plan or test run document is updated to a passing or signed-off term
 Issues discovered during testing, reviews, or ad hoc exploration are logged in `docs/testLog.md`. The log is persistent and not tied to a specific phase or run.
 
 **When the user types `LOG: ...`:**
-- Append a row to the Open table in `docs/testLog.md` with today's date, a short ID, the description, and context
+- Append a row to the Open table in `docs/testLog.md` with a stable `Log ID`, today's date, a short issue ID, the description, and context
+- Use the next sequential `LOG-###` value as the stable `Log ID`; never reuse a `Log ID`, even after an issue moves to Resolved
 - Respond with only: `Logged: {id or short title}` — nothing else
 - Do NOT investigate, diagnose, propose a fix, or ask clarifying questions
 - Do NOT treat the log entry as a trigger to enter debugging or fix mode

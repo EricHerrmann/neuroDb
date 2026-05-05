@@ -12,11 +12,15 @@
 | Phase | Focus | Status |
 |-------|-------|--------|
 | LT-1 | BaseAgent architecture, NeuroDbAgent rename, mode rename, auto-session, NeuroTutorAgent core, knowledge library storage + UI | Complete — 255 tests — signed off 2026-05-05 |
-| LT-2 | PubMed/Semantic Scholar live search, Previous Topics panel, semantic dedup | Not started |
+| Pre-LT-2 | Fixed-pane layout (VSCode-style), input pinned to bottom, mode/chapter → sidebar, sidebar as extensible config panel | Spec complete — implementation plan pending |
+| LT-2 | LiteratureSearchClient (PubMed + Semantic Scholar), Previous Topics panel, sidebar config extensions, semantic dedup, Knowledge Library polish, connector visibility | Spec complete — implementation plan pending (starts after Pre-LT-2 ships) |
 | LT-3 | Research agent scaffolding, knowledge growth metrics, hypothesis tools | Not started |
+| CF-1 | Connector framework architecture — plugin system for adding connectors without rework | Planned post-LT-2 |
 
 **Epoch plan:** `docs/ClaudeLearnEpochPlan.md`
 **LT-1 spec:** `docs/superpowers/specs/2026-05-05-neuro-tutor-epoch-design.md`
+**Pre-LT-2 spec:** `docs/superpowers/specs/2026-05-05-pre-lt2-chat-layout-hardening.md`
+**LT-2 spec:** `docs/superpowers/specs/2026-05-05-lt2-literature-search-previous-topics.md`
 
 ---
 
@@ -32,7 +36,7 @@
 
 ## Open Issues
 
-See `docs/testLog.md`. Current open items: T4-clear (chat history transient clear), P6-selector (textbook dropdown ambiguity). Both non-blocking.
+See `docs/testLog.md`. Open items triaged for LT-2: LOG-001 (textbook dropdown ambiguity), LOG-002/003 (chat scroll/controls), LOG-004/005 (knowledge library card polish). LOG-006 (model visibility) deferred post-LT-2. LOG-007 (test plan clarity) resolved in planning.
 
 ---
 
@@ -60,6 +64,8 @@ See `docs/testLog.md`. Current open items: T4-clear (chat history transient clea
 | `docs/testLog.md` | Running issue log — open and resolved items across all phases |
 | `docs/superpowers/specs/2026-05-05-neuro-tutor-epoch-design.md` | LT-1 design spec |
 | `docs/superpowers/plans/2026-05-05-lt1-neuro-tutor-foundation.md` | LT-1 implementation plan |
+| `docs/superpowers/specs/2026-05-05-pre-lt2-chat-layout-hardening.md` | Pre-LT-2 design spec — fixed-pane layout, sidebar config panel |
+| `docs/superpowers/specs/2026-05-05-lt2-literature-search-previous-topics.md` | LT-2 design spec — literature search, previous topics, knowledge library polish |
 | `docs/testsPlans/manualTestPlan_agent_lt1.md` | LT-1 manual test plan |
 | `docs/superpowers/plans/2026-05-04-tech-debt-td1.md` | TD-1 plan |
 | `docs/superpowers/plans/2026-05-04-tech-debt-td2.md` | TD-2 plan |

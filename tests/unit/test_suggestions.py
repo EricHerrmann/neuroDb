@@ -1,4 +1,5 @@
 """Unit tests for the suggestions page import logic."""
+import pathlib
 from unittest.mock import MagicMock, patch
 import pytest
 from sqlalchemy import create_engine
@@ -41,3 +42,9 @@ def test_ingest_dataset_does_not_use_subprocess():
         _ingest_dataset("openneuro", "ds003787", engine)
 
     mock_subprocess.assert_not_called()
+
+
+def test_suggestions_page_separates_imports_and_connector_requests():
+    source = pathlib.Path("src/neurodb/ui/pages/suggestions.py").read_text()
+    assert "Dataset Import Requests" in source
+    assert "Connector Requests" in source

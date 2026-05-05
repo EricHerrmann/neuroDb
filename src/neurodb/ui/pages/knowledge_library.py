@@ -28,13 +28,18 @@ def _render_pending(engine: Engine) -> None:
     for row in rows:
         with st.container(border=True):
             st.markdown(f"**{row.title}**")
-            st.caption(
-                f"{row.source_type} | queued {row.queued_at} | topic: {row.topic_context}"
-            )
+            st.caption(f"Source type: {row.source_type}")
+            st.caption(f"Topic context: {row.topic_context}")
+            st.caption(f"Queued: {row.queued_at}")
             if row.doi:
-                st.caption(f"DOI: `{row.doi}`")
+                st.markdown(f"DOI: [{row.doi}](https://doi.org/{row.doi})")
             if row.url:
-                st.caption(f"URL: {row.url}")
+                st.markdown(f"URL: [{row.url}]({row.url})")
+            duplicate = _find_near_duplicate(row)
+            if duplicate:
+                st.warning(
+                    f"Similar to approved source: {duplicate['title']} - you can still approve."
+                )
             approve_col, reject_col = st.columns(2)
             with approve_col:
                 if st.button("Approve", key=f"approve_source_{row.id}", width="stretch"):
@@ -56,16 +61,18 @@ def _render_library(engine: Engine) -> None:
     for row in rows:
         with st.container(border=True):
             st.markdown(f"**{row.title}**")
-            st.caption(
-                f"{row.source_type} | reviewed {row.reviewed_at or 'unknown'} | topic: {row.topic_context}"
-            )
-            preview = (row.summary or "").strip()
-            if len(preview) > 220:
-                preview = f"{preview[:217]}..."
-            st.write(preview or "No summary available.")
+            st.caption(f"Source type: {row.source_type}")
+            st.caption(f"Topic context: {row.topic_context}")
+            st.caption(f"Reviewed: {row.reviewed_at or 'unknown'}")
+            if row.doi:
+                st.markdown(f"DOI: [{row.doi}](https://doi.org/{row.doi})")
+            if row.url:
+                st.markdown(f"URL: [{row.url}]({row.url})")
             if row.summary:
-                with st.expander("Full summary"):
+                with st.expander("Show summary"):
                     st.markdown(row.summary)
+            else:
+                st.caption("No summary available.")
 
 
 def _list_sources(engine: Engine, status: str) -> list[KnowledgeSource]:
@@ -101,7 +108,33 @@ def _reject_source(engine: Engine, source_id: int) -> None:
     with get_session(engine) as session:
         row = session.query(KnowledgeSource).filter_by(id=source_id).one()
         row.status = "rejected"
-        row.reviewed_at = datetime.now(timezone.utc).isoformat()
+            row.reviewed_at = datetime.now(timezone.utc).isoformat()
+
+
+def _find_near_duplicate(row: KnowledgeSource) -> dict | None:
+    knowledge_store = st.session_state.get("knowledge_store")
+    if knowledge_store is None:
+        return None
+    query = f"{row.title}\n{row.topic_context}"
+    results = knowledge_store.search(query, n=1)
+    if not results:
+        return None
+    match = results[0]
+    if match.get("distance", 1.0) > _dedup_threshold():
+        return None
+    metadata = match.get("metadata") or {}
+    return {
+        "title": metadata.get("title") or match.get("id") or "unknown",
+        "distance": match.get("distance"),
+    }
+
+
+def _dedup_threshold() -> float:
+    raw = os.environ.get("NEURODB_DEDUP_THRESHOLD", "0.15")
+    try:
+        return float(raw)
+    except ValueError:
+        return 0.15
 
 
 def _generate_summary(row: KnowledgeSource) -> str:
@@ -145,4 +178,3 @@ def _fallback_summary(row: KnowledgeSource) -> str:
         "Relevance to neuroscience: This source was approved for future Neuro-Tutor retrieval.\n\n"
         "Open questions: Add a richer Claude-generated summary when API access is available."
     )
-

@@ -4,7 +4,7 @@
 
 **Scope decision:** Proceed in Streamlit. The failed Pre-LT-2 fixed-pane layout is not a blocker for LT-2. Full UI shell rearchitecture is deferred post-LT-3 unless Streamlit prevents capability testing.
 
-**Current test count:** 271 after Tasks 1-4.
+**Current test count:** 274 after Tasks 1-6.
 
 ---
 
@@ -58,25 +58,25 @@
 - [x] Show pending connector request count from `source_suggestions`.
 - [x] Keep section collapsed by default.
 
-### Task 5 — Knowledge Library Polish + Dedup
+### Task 5 — Knowledge Library Polish + Dedup ✅ COMPLETE
 
-- [ ] Make pending cards show title, source type, topic context, DOI and URL clearly.
-- [ ] Render DOI/URL as clickable links.
-- [ ] Move approved summaries into an expander.
-- [ ] Add env-driven near-duplicate threshold.
-- [ ] Show warning without blocking approval.
+- [x] Make pending cards show title, source type, topic context, DOI and URL clearly.
+- [x] Render DOI/URL as clickable links.
+- [x] Move approved summaries into an expander.
+- [x] Add env-driven near-duplicate threshold.
+- [x] Show warning without blocking approval.
 
-### Task 6 — Suggestions Organization
+### Task 6 — Suggestions Organization ✅ COMPLETE
 
-- [ ] Rename/structure Suggestions sections as Dataset Import Requests and Connector Requests.
-- [ ] Ensure connector request rows are clearly separated from import queue rows.
+- [x] Rename/structure Suggestions sections as Dataset Import Requests and Connector Requests.
+- [x] Ensure connector request rows are clearly separated from import queue rows.
 
-### Task 7 — Docs, Regression, Manual Test Readiness
+### Task 7 — Docs, Regression, Manual Test Readiness ✅ COMPLETE THROUGH REGRESSION
 
-- [ ] Update `.env.example` if present.
-- [ ] Update `docs/projectStatus.md` with final test count.
-- [ ] Run focused tests as each task lands.
-- [ ] Run full `uv run pytest`.
+- [x] Update `.env.example` if present. No `.env.example` exists in this repo.
+- [x] Update `docs/projectStatus.md` with final test count.
+- [x] Run focused tests as each task lands.
+- [x] Run full `uv run pytest`.
 - [ ] Start Streamlit for manual testing.
 
 ---

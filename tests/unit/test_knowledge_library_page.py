@@ -36,8 +36,20 @@ def test_knowledge_library_adds_summary_to_knowledge_store():
     assert "add_summary" in source
 
 
+def test_knowledge_library_cards_show_verification_links_and_dedup_warning():
+    source = _source()
+    assert "https://doi.org/" in source
+    assert "_find_near_duplicate" in source
+    assert "NEURODB_DEDUP_THRESHOLD" in source
+    assert "Similar to approved source" in source
+
+
+def test_knowledge_library_approved_summary_is_collapsed():
+    source = _source()
+    assert "Show summary" in source
+
+
 def test_app_mounts_knowledge_library_tab():
     app_source = pathlib.Path("src/neurodb/ui/app.py").read_text()
     assert "Knowledge Library" in app_source
     assert "knowledge_library" in app_source
-

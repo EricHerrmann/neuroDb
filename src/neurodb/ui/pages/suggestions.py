@@ -11,11 +11,11 @@ from neurodb.schema import ImportQueue, LearningSource, SourceSuggestion
 
 def render(engine: Engine) -> None:
     st.header("Suggestions")
-    st.subheader("Import Queue")
+    st.subheader("Dataset Import Requests")
     _render_import_queue(engine)
 
     st.divider()
-    st.subheader("Source Suggestions")
+    st.subheader("Connector Requests")
     _render_source_suggestions(engine)
 
 

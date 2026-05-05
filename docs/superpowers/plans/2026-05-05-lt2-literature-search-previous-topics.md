@@ -77,7 +77,7 @@
 - [x] Update `docs/projectStatus.md` with final test count.
 - [x] Run focused tests as each task lands.
 - [x] Run full `uv run pytest`.
-- [ ] Start Streamlit for manual testing.
+- [x] Start Streamlit for manual testing.
 
 ---
 

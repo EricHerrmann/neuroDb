@@ -1,7 +1,7 @@
 # Pre-LT-2: Chat Layout Hardening — Design Spec
 
 **Date:** 2026-05-05
-**Status:** Revised — custom Streamlit component bridge approved
+**Status:** Closed/deferred — sidebar migration retained, fixed-pane layout deferred
 **Dependency for:** LT-2 (sidebar structure must exist before Previous Topics and Connections sections are added)
 **Sequencing:** Fully implemented and tested before any LT-2 code is written.
 
@@ -20,7 +20,7 @@ The current layout renders as a single scrolling page. As the chat transcript gr
 - Scrolling down to the input takes the right workspace pane with it, making both panes unavailable simultaneously
 - The mode toggle (at the top of the left column) becomes unreachable without scrolling back up
 
-The fix is a VSCode-style fixed-pane layout: each column occupies full viewport height and scrolls internally. The page itself never scrolls. The first CSS-only implementation did not control Streamlit's generated scroll containers reliably during manual testing, so Pre-LT-2 now uses a small Streamlit v2 component as a bounded bridge.
+The intended fix was a VSCode-style fixed-pane layout: each column occupies full viewport height and scrolls internally. Manual testing showed Streamlit does not reliably support this layout through CSS or a small layout-controller component without accumulating brittle DOM workarounds.
 
 ---
 
@@ -28,16 +28,13 @@ The fix is a VSCode-style fixed-pane layout: each column occupies full viewport 
 
 ### 1. Fixed-Height Column Layout
 
-Both columns (`col_chat` and `col_workspace` in `app.py`) become fixed-height scroll containers. Implemented through a narrow Streamlit v2 layout controller component in `src/neurodb/ui/workbench_layout.py`, plus stable marker elements rendered in each top-level pane:
+Both columns (`col_chat` and `col_workspace` in `app.py`) were intended to become fixed-height scroll containers. The retained implementation keeps the useful sidebar migration and bounded chat transcript container, but the fixed full-workbench layout is deferred.
 
-- The component locates `ndb-chat-pane-marker` and `ndb-workspace-pane-marker`
-- It applies fixed-height and overflow rules to the actual rendered Streamlit column elements after render
-- A `MutationObserver` reapplies the layout after Streamlit rerenders
 - Transcript container: `flex: 1`, `overflow-y: auto` — scrolls independently within the left pane
-- Right workspace container: `overflow-y: auto` — scrolls independently
-- The page-level scroll is suppressed: `body { overflow: hidden }`
+- Right workspace remains normal Streamlit tab content for LT-2/LT-3.
+- Page-level scroll remains accepted friction during LT-2/LT-3 capability work.
 
-This is explicitly a bridge, not the long-term UI architecture. If this component fails manual testing, roll back the component and stop Pre-LT-2 layout work rather than expanding DOM workarounds. The follow-up path is a UI Shell architecture design phase comparing a custom Streamlit component shell against React/FastAPI.
+The follow-up path is a post-LT-3 UI Shell architecture design phase comparing a custom Streamlit component shell against React/FastAPI.
 
 ### 2. Input Pinned to Bottom
 

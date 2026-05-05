@@ -1,8 +1,8 @@
 # NeuroDb — Project Status
 
 **Last updated:** 2026-05-05
-**Active focus:** Pre-LT-2 manual test ready — custom-component fixed-pane bridge
-**Next:** Pre-LT-2 manual test sign-off
+**Active focus:** LT-2 implementation in Streamlit — literature search, previous topics, Knowledge Library polish
+**Next:** LT-2 manual test sign-off
 **Goal alignment:** Give the user a capable neuroscience learning partner — one that remembers what has been explored and builds on it, so learning compounds over time.
 
 ---
@@ -12,9 +12,10 @@
 | Phase | Focus | Status |
 |-------|-------|--------|
 | LT-1 | BaseAgent architecture, NeuroDbAgent rename, mode rename, auto-session, NeuroTutorAgent core, knowledge library storage + UI | Complete — 255 tests — signed off 2026-05-05 |
-| Pre-LT-2 | Fixed-pane layout (VSCode-style), input pinned to bottom, mode/chapter → sidebar, sidebar as extensible config panel | Manual test ready — 267 tests |
-| LT-2 | LiteratureSearchClient (PubMed + Semantic Scholar), Previous Topics panel, sidebar config extensions, semantic dedup, Knowledge Library polish, connector visibility | Spec complete — implementation plan pending (starts after Pre-LT-2 ships) |
+| Pre-LT-2 | Sidebar migration complete; fixed-pane Streamlit layout failed manual test and is deferred to UI shell architecture | Closed/deferred — 262 tests |
+| LT-2 | LiteratureSearchClient (PubMed + Semantic Scholar), Previous Topics panel, sidebar config extensions, semantic dedup, Knowledge Library polish, connector visibility | In progress — implementation planning |
 | LT-3 | Research agent scaffolding, knowledge growth metrics, hypothesis tools | Not started |
+| UI Shell | UI tech-stack architecture for fixed workbench behavior after LT-2/LT-3 MVP capability maturity | Deferred post-LT-3 |
 | CF-1 | Connector framework architecture — plugin system for adding connectors without rework | Planned post-LT-2 |
 
 **Epoch plan:** `docs/ClaudeLearnEpochPlan.md`
@@ -36,7 +37,7 @@
 
 ## Open Issues
 
-See `docs/testLog.md`. Open items triaged for LT-2: LOG-001 (textbook dropdown ambiguity), LOG-002/003 (chat scroll/controls), LOG-004/005 (knowledge library card polish). LOG-006 (model visibility) deferred post-LT-2. LOG-007 (test plan clarity) resolved in planning.
+See `docs/testLog.md`. Open items triaged for LT-2: LOG-001 (textbook dropdown ambiguity), LOG-004/005 (knowledge library card polish). LOG-002/003 and LOG-013 are deferred to the post-LT-3 UI shell architecture phase. LOG-006 (model visibility) deferred post-LT-2. LOG-007 (test plan clarity) resolved in planning.
 
 ---
 
@@ -64,11 +65,13 @@ See `docs/testLog.md`. Open items triaged for LT-2: LOG-001 (textbook dropdown a
 | `docs/testLog.md` | Running issue log — open and resolved items across all phases |
 | `docs/superpowers/specs/2026-05-05-neuro-tutor-epoch-design.md` | LT-1 design spec |
 | `docs/superpowers/plans/2026-05-05-lt1-neuro-tutor-foundation.md` | LT-1 implementation plan |
-| `docs/superpowers/specs/2026-05-05-pre-lt2-chat-layout-hardening.md` | Pre-LT-2 design spec — custom-component fixed-pane bridge, sidebar config panel |
-| `docs/superpowers/plans/2026-05-05-pre-lt2-chat-layout-hardening.md` | Pre-LT-2 implementation plan — manual test ready, sign-off pending |
+| `docs/superpowers/specs/2026-05-05-pre-lt2-chat-layout-hardening.md` | Pre-LT-2 design spec — sidebar migration retained, fixed-pane layout deferred |
+| `docs/superpowers/plans/2026-05-05-pre-lt2-chat-layout-hardening.md` | Pre-LT-2 implementation plan — sidebar migration complete, fixed-pane layout failed/deferred |
 | `docs/superpowers/specs/2026-05-05-lt2-literature-search-previous-topics.md` | LT-2 design spec — literature search, previous topics, knowledge library polish |
+| `docs/superpowers/plans/2026-05-05-lt2-literature-search-previous-topics.md` | LT-2 implementation plan |
 | `docs/testsPlans/manualTestPlan_agent_lt1.md` | LT-1 manual test plan |
 | `docs/testsPlans/manualTestPlan_pre_lt2_layout.md` | Pre-LT-2 manual test plan — layout, sidebar, input pinning |
+| `docs/testsPlans/manualTestPlan_agent_lt2.md` | LT-2 manual test plan |
 | `docs/superpowers/plans/2026-05-04-tech-debt-td1.md` | TD-1 plan |
 | `docs/superpowers/plans/2026-05-04-tech-debt-td2.md` | TD-2 plan |
 | `docs/superpowers/plans/2026-05-04-tech-debt-td3.md` | TD-3 plan |

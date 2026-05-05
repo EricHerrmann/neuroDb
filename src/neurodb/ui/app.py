@@ -98,53 +98,6 @@ def _inject_ui_styles() -> None:
           color: var(--ndb-ink) !important;
         }
 
-        /* Pre-LT-2: fixed workbench panes. The page shell never owns scrolling. */
-        html,
-        body,
-        .stApp,
-        div[data-testid="stAppViewContainer"],
-        section[data-testid="stMain"] {
-          height: 100vh;
-          max-height: 100vh;
-          overflow: hidden !important;
-        }
-
-        section[data-testid="stMain"] > div,
-        section[data-testid="stMain"] .block-container {
-          height: 100vh;
-          max-height: 100vh;
-          overflow: hidden !important;
-        }
-
-        section[data-testid="stMain"] .block-container {
-          padding-top: 1rem;
-          padding-bottom: 0 !important;
-        }
-
-        .ndb-pane-marker {
-          display: none;
-        }
-
-        div[data-testid="stHorizontalBlock"]:has(.ndb-chat-pane-marker):has(.ndb-workspace-pane-marker) {
-          height: calc(100vh - 2rem);
-          max-height: calc(100vh - 2rem);
-          overflow: hidden;
-          align-items: stretch;
-        }
-
-        div[data-testid="stColumn"]:has(.ndb-chat-pane-marker) {
-          height: calc(100vh - 2rem);
-          max-height: calc(100vh - 2rem);
-          overflow: hidden;
-        }
-
-        div[data-testid="stColumn"]:has(.ndb-workspace-pane-marker) {
-          height: calc(100vh - 2rem);
-          max-height: calc(100vh - 2rem);
-          overflow-y: auto;
-          overflow-x: hidden;
-          padding-right: 0.25rem;
-        }
         </style>
         """,
         unsafe_allow_html=True,
@@ -187,25 +140,16 @@ if "knowledge_store" not in st.session_state:
     )
 
 from neurodb.ui.sidebar import render_sidebar
-from neurodb.ui.workbench_layout import mount_workbench_layout_controller
 
 render_sidebar()
 
 col_chat, col_workspace = st.columns([1.7, 1.1], gap="large")
 
 with col_chat:
-    st.markdown(
-        '<span class="ndb-pane-marker ndb-chat-pane-marker"></span>',
-        unsafe_allow_html=True,
-    )
     from neurodb.ui.pages.chat import render_panel
     render_panel(engine, transcript_height=480)
 
 with col_workspace:
-    st.markdown(
-        '<span class="ndb-pane-marker ndb-workspace-pane-marker"></span>',
-        unsafe_allow_html=True,
-    )
     tab_suggestions, tab_study, tab_datasets, tab_registry, tab_knowledge, tab_sql = st.tabs([
         "Suggestions",
         "Study Log",
@@ -238,5 +182,3 @@ with col_workspace:
     with tab_sql:
         from neurodb.ui.pages.query import render
         render(engine)
-
-mount_workbench_layout_controller()

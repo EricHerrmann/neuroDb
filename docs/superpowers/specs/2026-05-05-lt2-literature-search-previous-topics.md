@@ -3,7 +3,7 @@
 **Date:** 2026-05-05
 **Epoch plan:** `docs/ClaudeLearnEpochPlan.md`
 **Status:** Approved — ready for implementation planning
-**Dependency:** Pre-LT-2 chat layout hardening must be fully implemented and tested before LT-2 begins. The sidebar structure introduced in pre-LT-2 is a direct dependency for LT-2's Previous Topics and Connections sections.
+**Dependency:** The Pre-LT-2 sidebar migration must be implemented before LT-2 begins. The fixed-pane layout portion failed manual testing in Streamlit and is deferred to a post-LT-3 UI shell architecture phase; LT-2 proceeds in the existing Streamlit UI with accepted manual-testing friction.
 
 ---
 

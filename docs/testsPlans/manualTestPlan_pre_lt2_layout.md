@@ -1,6 +1,6 @@
 # Pre-LT-2: Chat Layout Hardening — Manual Test Plan
 
-**Feature:** Fixed-pane layout, input pinned to bottom, sidebar migration
+**Feature:** Custom-component fixed-pane bridge, input pinned to bottom, sidebar migration
 **Status:** Pending manual sign-off
 **Spec:** `docs/superpowers/specs/2026-05-05-pre-lt2-chat-layout-hardening.md`
 **Date:** 2026-05-05
@@ -18,7 +18,7 @@ All commands run from the repo root (`/home/oldha/projects/neuroDb`) unless note
 uv run pytest tests/ -q --tb=no
 ```
 
-Expected: `264 passed`.
+Expected: `267 passed`.
 
 3. Start the app:
 
@@ -60,6 +60,8 @@ uv run streamlit run src/neurodb/ui/app.py -- --db neurodb.duckdb
 1. Open the Datasets tab. If the dataset list is long, scroll down within it.
 2. **Pass:** Only the Datasets list scrolls; the chat pane and tab bar stay fixed.
 3. **Fail:** Scrolling the right pane scrolls the whole page.
+
+If T1–T4 still fail with the custom-component bridge, stop Pre-LT-2 layout work and roll back the component. Do not keep extending Streamlit DOM workarounds; move the decision to a UI Shell architecture design phase.
 
 ---
 

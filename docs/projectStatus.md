@@ -1,7 +1,7 @@
 # NeuroDb — Project Status
 
 **Last updated:** 2026-05-05
-**Active focus:** Pre-LT-2 manual test ready — fixed-pane chat layout and sidebar migration
+**Active focus:** Pre-LT-2 manual test ready — custom-component fixed-pane bridge
 **Next:** Pre-LT-2 manual test sign-off
 **Goal alignment:** Give the user a capable neuroscience learning partner — one that remembers what has been explored and builds on it, so learning compounds over time.
 
@@ -12,7 +12,7 @@
 | Phase | Focus | Status |
 |-------|-------|--------|
 | LT-1 | BaseAgent architecture, NeuroDbAgent rename, mode rename, auto-session, NeuroTutorAgent core, knowledge library storage + UI | Complete — 255 tests — signed off 2026-05-05 |
-| Pre-LT-2 | Fixed-pane layout (VSCode-style), input pinned to bottom, mode/chapter → sidebar, sidebar as extensible config panel | Manual test ready — 264 tests |
+| Pre-LT-2 | Fixed-pane layout (VSCode-style), input pinned to bottom, mode/chapter → sidebar, sidebar as extensible config panel | Manual test ready — 267 tests |
 | LT-2 | LiteratureSearchClient (PubMed + Semantic Scholar), Previous Topics panel, sidebar config extensions, semantic dedup, Knowledge Library polish, connector visibility | Spec complete — implementation plan pending (starts after Pre-LT-2 ships) |
 | LT-3 | Research agent scaffolding, knowledge growth metrics, hypothesis tools | Not started |
 | CF-1 | Connector framework architecture — plugin system for adding connectors without rework | Planned post-LT-2 |
@@ -64,7 +64,7 @@ See `docs/testLog.md`. Open items triaged for LT-2: LOG-001 (textbook dropdown a
 | `docs/testLog.md` | Running issue log — open and resolved items across all phases |
 | `docs/superpowers/specs/2026-05-05-neuro-tutor-epoch-design.md` | LT-1 design spec |
 | `docs/superpowers/plans/2026-05-05-lt1-neuro-tutor-foundation.md` | LT-1 implementation plan |
-| `docs/superpowers/specs/2026-05-05-pre-lt2-chat-layout-hardening.md` | Pre-LT-2 design spec — fixed-pane layout, sidebar config panel |
+| `docs/superpowers/specs/2026-05-05-pre-lt2-chat-layout-hardening.md` | Pre-LT-2 design spec — custom-component fixed-pane bridge, sidebar config panel |
 | `docs/superpowers/plans/2026-05-05-pre-lt2-chat-layout-hardening.md` | Pre-LT-2 implementation plan — manual test ready, sign-off pending |
 | `docs/superpowers/specs/2026-05-05-lt2-literature-search-previous-topics.md` | LT-2 design spec — literature search, previous topics, knowledge library polish |
 | `docs/testsPlans/manualTestPlan_agent_lt1.md` | LT-1 manual test plan |

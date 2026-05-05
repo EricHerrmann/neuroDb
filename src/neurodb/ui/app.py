@@ -187,6 +187,8 @@ if "knowledge_store" not in st.session_state:
     )
 
 from neurodb.ui.sidebar import render_sidebar
+from neurodb.ui.workbench_layout import mount_workbench_layout_controller
+
 render_sidebar()
 
 col_chat, col_workspace = st.columns([1.7, 1.1], gap="large")
@@ -236,3 +238,5 @@ with col_workspace:
     with tab_sql:
         from neurodb.ui.pages.query import render
         render(engine)
+
+mount_workbench_layout_controller()

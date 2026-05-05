@@ -1,7 +1,7 @@
 # Pre-LT-2: Chat Layout Hardening — Design Spec
 
 **Date:** 2026-05-05
-**Status:** Approved — ready for implementation planning
+**Status:** Revised — custom Streamlit component bridge approved
 **Dependency for:** LT-2 (sidebar structure must exist before Previous Topics and Connections sections are added)
 **Sequencing:** Fully implemented and tested before any LT-2 code is written.
 
@@ -20,7 +20,7 @@ The current layout renders as a single scrolling page. As the chat transcript gr
 - Scrolling down to the input takes the right workspace pane with it, making both panes unavailable simultaneously
 - The mode toggle (at the top of the left column) becomes unreachable without scrolling back up
 
-The fix is a VSCode-style fixed-pane layout: each column occupies full viewport height and scrolls internally. The page itself never scrolls.
+The fix is a VSCode-style fixed-pane layout: each column occupies full viewport height and scrolls internally. The page itself never scrolls. The first CSS-only implementation did not control Streamlit's generated scroll containers reliably during manual testing, so Pre-LT-2 now uses a small Streamlit v2 component as a bounded bridge.
 
 ---
 
@@ -28,14 +28,16 @@ The fix is a VSCode-style fixed-pane layout: each column occupies full viewport 
 
 ### 1. Fixed-Height Column Layout
 
-Both columns (`col_chat` and `col_workspace` in `app.py`) become fixed-height scroll containers. Implemented via CSS injection in `_inject_ui_styles()`:
+Both columns (`col_chat` and `col_workspace` in `app.py`) become fixed-height scroll containers. Implemented through a narrow Streamlit v2 layout controller component in `src/neurodb/ui/workbench_layout.py`, plus stable marker elements rendered in each top-level pane:
 
-- Outer column wrappers: `height: calc(100vh - Npx)`, `overflow: hidden` (where N accounts for the Streamlit toolbar)
+- The component locates `ndb-chat-pane-marker` and `ndb-workspace-pane-marker`
+- It applies fixed-height and overflow rules to the actual rendered Streamlit column elements after render
+- A `MutationObserver` reapplies the layout after Streamlit rerenders
 - Transcript container: `flex: 1`, `overflow-y: auto` — scrolls independently within the left pane
 - Right workspace container: `overflow-y: auto` — scrolls independently
 - The page-level scroll is suppressed: `body { overflow: hidden }`
 
-The exact pixel offset N is determined empirically against the current Streamlit toolbar height (approximately 60px). If Streamlit's toolbar height changes in a future version, N is the only value to update.
+This is explicitly a bridge, not the long-term UI architecture. If this component fails manual testing, roll back the component and stop Pre-LT-2 layout work rather than expanding DOM workarounds. The follow-up path is a UI Shell architecture design phase comparing a custom Streamlit component shell against React/FastAPI.
 
 ### 2. Input Pinned to Bottom
 
@@ -106,6 +108,7 @@ With mode toggle and chapter context removed from `chat.py`, `_render_mode_and_c
 - **Auto-scroll:** manual verification that newest message is in view after each agent response.
 - **Sidebar collapse:** manual verification that both columns fill available width when sidebar is toggled.
 - **Existing test suite:** all 255 tests pass after the refactor.
+- **Bridge guardrail:** component remains limited to layout control; it does not replace chat, tabs, agent logic, or data rendering.
 
 ---
 
@@ -114,3 +117,4 @@ With mode toggle and chapter context removed from `chat.py`, `_render_mode_and_c
 - Drag-to-resize sidebar or column split
 - Smooth animated sidebar transition
 - Any LT-2 sidebar sections (Previous Topics, Connections) — those are LT-2 scope
+- Full React/FastAPI migration — follow-up UI Shell design phase after Pre-LT-2

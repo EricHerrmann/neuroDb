@@ -4,7 +4,7 @@
 
 **Goal:** Move mode/chapter controls into Streamlit's native sidebar and pin the chat input to the bottom so it stays visible as conversations grow — all without breaking any of the 255 existing tests.
 
-**Architecture:** A new `src/neurodb/ui/sidebar.py` module takes over all sidebar rendering. In `chat.py`, `_render_mode_and_chapter()` is deleted and `st.container(height=N)` is wired to the transcript so it scrolls in place while the input stays pinned below. CSS injected into `_inject_ui_styles()` suppresses page-level scrolling and uses marker-scoped selectors to constrain the top-level chat and workspace panes independently. A JS snippet appended after each new agent response attempts to auto-scroll the transcript.
+**Architecture:** A new `src/neurodb/ui/sidebar.py` module takes over all sidebar rendering. In `chat.py`, `_render_mode_and_chapter()` is deleted and `st.container(height=N)` is wired to the transcript so it scrolls in place while the input stays pinned below. A small Streamlit v2 layout controller component applies fixed-pane behavior to the rendered top-level chat/workspace columns after Streamlit lays out the DOM. A JS snippet appended after each new agent response attempts to auto-scroll the transcript.
 
 **Tech Stack:** Python, Streamlit ≥1.56 (`st.container(height, border)` API), CSS injection via `st.markdown(unsafe_allow_html=True)`
 
@@ -19,11 +19,13 @@
 | Modify | `src/neurodb/ui/pages/chat.py` | Delete `_render_mode_and_chapter`, wire transcript height, add JS auto-scroll |
 | Create | `tests/unit/test_sidebar.py` | Structural tests for the new sidebar module |
 | Create | `tests/unit/test_app_layout.py` | Structural tests for marker-scoped fixed-pane layout |
+| Create | `src/neurodb/ui/workbench_layout.py` | Streamlit v2 layout controller bridge |
+| Create | `tests/unit/test_workbench_layout.py` | Structural tests for layout controller bridge |
 | Modify | `tests/unit/test_chat_ui.py` | Update `test_three_mode_options_present_in_chat` → sidebar; add `test_chat_has_no_mode_radio` |
 | Modify | `tests/unit/test_chat_chapter_context.py` | Update source path to read `sidebar.py` instead of `chat.py` |
 | Create | `docs/testsPlans/manualTestPlan_pre_lt2_layout.md` | Manual verification test plan |
 
-**Final test count target:** 264 (255 existing + 6 new in `test_sidebar.py` + 1 new in `test_chat_ui.py` + 2 new in `test_app_layout.py`)
+**Final test count target:** 267 (255 existing + 6 new in `test_sidebar.py` + 1 new in `test_chat_ui.py` + 2 new in `test_app_layout.py` + 3 new in `test_workbench_layout.py`)
 
 ---
 
@@ -508,6 +510,12 @@ Initial manual testing exposed a shared page scrollbar: scrolling the workspace 
 
 Added `tests/unit/test_app_layout.py` to guard the marker-scoped selectors and viewport-safe transcript height.
 
+- [x] **Step 4b: Manual-test correction — add Streamlit v2 layout controller bridge**
+
+The marker-scoped CSS still failed manual testing: the browser showed one shared scrollbar moving the chat and workspace panes together. Added `src/neurodb/ui/workbench_layout.py`, a narrow `st.components.v2.component` bridge that locates the marked top-level panes after Streamlit renders and applies fixed height/overflow rules directly to those rendered elements. It uses `MutationObserver` to reapply layout after Streamlit rerenders.
+
+Guardrail: if this bridge fails T1–T4, roll it back and stop Streamlit layout work. The next phase is a UI Shell architecture design comparing a custom Streamlit component shell against React/FastAPI.
+
 - [ ] **Step 5: Commit**
 
 ```bash
@@ -637,13 +645,13 @@ In the Key References table, add:
 | `docs/testsPlans/manualTestPlan_pre_lt2_layout.md` | Pre-LT-2 manual test plan — layout, sidebar, input pinning |
 ```
 
-- [x] **Step 3: Run final regression — confirm 264 tests pass**
+- [x] **Step 3: Run final regression — confirm 267 tests pass**
 
 ```bash
 uv run pytest tests/ -q --tb=no 2>&1 | tail -3
 ```
 
-Expected: 264 passed, 0 failed.
+Expected: 267 passed, 0 failed.
 
 - [ ] **Step 4: Commit**
 
@@ -660,7 +668,7 @@ git commit -m "docs: add Pre-LT-2 manual test plan and update project status ref
 
 | Spec Section | Covered by |
 |---|---|
-| §1 Fixed-height column layout (CSS injection) | Task 4 Step 2 + 4a — app shell overflow suppression and marker-scoped top-level pane CSS |
+| §1 Fixed-height column layout | Task 4 Step 2 + 4a + 4b — marker-scoped CSS plus Streamlit v2 layout controller bridge |
 | §2 Input pinned to bottom | Task 3 Step 2 — `st.container(height=N, border=False)` creates scrollable transcript; input naturally sits below |
 | §3 Transcript auto-scroll | Task 3 Step 3 — JS injected via `st.markdown` after each response |
 | §4 Mode toggle + chapter → sidebar | Task 1 — `sidebar.py`; Task 3 Step 1 — deleted from chat.py |
@@ -668,7 +676,7 @@ git commit -m "docs: add Pre-LT-2 manual test plan and update project status ref
 | §6 chat.py cleanup — delete `_render_mode_and_chapter` | Task 3 Step 1 |
 | Testing: chat.py no longer has `st.radio` | Task 2 Step 1 — `test_chat_has_no_mode_radio` |
 | Testing: sidebar module has mode/chapter widgets | Task 1 — 6 structural tests |
-| Testing: all existing tests pass | Task 5 Step 3 — 264 total |
+| Testing: all existing tests pass | Task 5 Step 3 — 267 total |
 | Manual: layout, auto-scroll, sidebar collapse | Task 5 Step 1 — T1–T8 |
 
 No gaps found.

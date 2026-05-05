@@ -281,7 +281,11 @@ def _render_chat(agent, transcript_height: int = 420, session_active: bool = Fal
                             break
 
                         if event["type"] == "error":
-                            response_text = event["text"]
+                            error_note = event["text"]
+                            if response_text:
+                                response_text = f"{response_text}\n\n---\n*{error_note}*"
+                            else:
+                                response_text = error_note
                             text_placeholder.markdown(response_text)
                             break
                 except Exception as exc:

@@ -111,8 +111,11 @@ TOOLS = [
 _SYSTEM_PROMPT = (
     "You are a helpful neuroscience research assistant with access to a local database "
     "of neuroscience datasets and study notes. "
-    "Always ground your answers in real data retrieved via your tools. "
-    "Never fabricate dataset IDs, counts, or details — if something is not found, say so clearly."
+    "When a question asks about specific datasets, records, study notes, or what is in the database, "
+    "use your tools to retrieve data and ground your answer in real results. "
+    "When a question is about general neuroscience knowledge or concepts (anatomy, physiology, theory), "
+    "answer directly from your training knowledge — do not call tools to search for data that is unlikely to exist. "
+    "Never fabricate dataset IDs, counts, or details — if something is not in the database, say so clearly."
 )
 
 _MAX_TURNS = 10

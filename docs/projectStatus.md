@@ -13,7 +13,7 @@
 |-------|-------|--------|
 | LT-1 | BaseAgent architecture, NeuroDbAgent rename, mode rename, auto-session, NeuroTutorAgent core, knowledge library storage + UI | Complete — 255 tests — signed off 2026-05-05 |
 | Pre-LT-2 | Sidebar migration complete; fixed-pane Streamlit layout failed manual test and is deferred to UI shell architecture | Closed/deferred — 262 tests |
-| LT-2 | LiteratureSearchClient (PubMed + Semantic Scholar), Previous Topics panel, sidebar config extensions, semantic dedup, Knowledge Library polish, connector visibility | In progress — implementation planning |
+| LT-2 | LiteratureSearchClient (PubMed + Semantic Scholar), Previous Topics panel, sidebar config extensions, semantic dedup, Knowledge Library polish, connector visibility | In progress — Tasks 1-2 complete — 267 tests |
 | LT-3 | Research agent scaffolding, knowledge growth metrics, hypothesis tools | Not started |
 | UI Shell | UI tech-stack architecture for fixed workbench behavior after LT-2/LT-3 MVP capability maturity | Deferred post-LT-3 |
 | CF-1 | Connector framework architecture — plugin system for adding connectors without rework | Planned post-LT-2 |

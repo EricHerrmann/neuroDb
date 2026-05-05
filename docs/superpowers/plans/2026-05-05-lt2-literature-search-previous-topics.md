@@ -4,7 +4,7 @@
 
 **Scope decision:** Proceed in Streamlit. The failed Pre-LT-2 fixed-pane layout is not a blocker for LT-2. Full UI shell rearchitecture is deferred post-LT-3 unless Streamlit prevents capability testing.
 
-**Baseline:** 262 automated tests after removing failed fixed-pane bridge tests.
+**Current test count:** 267 after Task 1-2 schema/client/agent tests.
 
 ---
 
@@ -27,22 +27,22 @@
 
 ## Tasks
 
-### Task 1 — Schema + Literature Client
+### Task 1 — Schema + Literature Client ✅ COMPLETE
 
-- [ ] Add `LiteratureSearch` ORM model.
-- [ ] Add `LiteratureSearchClient.search(query)` with mocked-test coverage.
-- [ ] Parse PubMed ESearch/EFetch responses.
-- [ ] Parse Semantic Scholar search responses.
-- [ ] Deduplicate by DOI.
-- [ ] Gracefully skip timed-out/erroring sources.
-- [ ] Log one `literature_searches` row per search.
+- [x] Add `LiteratureSearch` ORM model.
+- [x] Add `LiteratureSearchClient.search(query)` with mocked-test coverage.
+- [x] Parse PubMed ESearch/EFetch responses.
+- [x] Parse Semantic Scholar search responses.
+- [x] Deduplicate by DOI.
+- [x] Gracefully skip timed-out/erroring sources.
+- [x] Log one `literature_searches` row per search.
 
-### Task 2 — Wire NeuroTutorAgent Search
+### Task 2 — Wire NeuroTutorAgent Search ✅ COMPLETE
 
-- [ ] Replace `_STARTER_LITERATURE` execution path with `LiteratureSearchClient`.
-- [ ] Preserve normalized JSON result contract.
-- [ ] Keep source queuing behavior unchanged.
-- [ ] Update tests so common LTP/plasticity queries no longer assert starter-only behavior.
+- [x] Replace `_STARTER_LITERATURE` execution path with `LiteratureSearchClient`.
+- [x] Preserve normalized JSON result contract.
+- [x] Keep source queuing behavior unchanged.
+- [x] Update tests so common LTP/plasticity queries no longer assert starter-only behavior.
 
 ### Task 3 — Previous Topics
 

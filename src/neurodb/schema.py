@@ -206,3 +206,15 @@ class ChatSession(Base):
     ended_at: Mapped[str | None] = mapped_column(String(32), nullable=True)
     summary_preview: Mapped[str | None] = mapped_column(String(200), nullable=True)
     message_count: Mapped[int] = mapped_column(Integer, nullable=False)
+
+
+class LiteratureSearch(Base):
+    """Observability log for literature searches run by Neuro-Tutor."""
+    __tablename__ = "literature_searches"
+
+    id: Mapped[int] = mapped_column(Integer, Sequence("literature_searches_id_seq"), primary_key=True)
+    query: Mapped[str] = mapped_column(Text, nullable=False)
+    pubmed_count: Mapped[int] = mapped_column(Integer, nullable=False, default=0)
+    semantic_scholar_count: Mapped[int] = mapped_column(Integer, nullable=False, default=0)
+    results_json: Mapped[str] = mapped_column(Text, nullable=False)
+    searched_at: Mapped[str] = mapped_column(String(32), nullable=False)

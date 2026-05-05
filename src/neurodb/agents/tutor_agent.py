@@ -40,10 +40,7 @@ _TUTOR_TOOLS = [
     },
     {
         "name": "search_literature",
-        "description": (
-            "Return candidate neuroscience papers, reviews, textbooks, or websites for a topic. "
-            "Phase LT-1 uses a built-in starter list; live PubMed/Semantic Scholar search is LT-2."
-        ),
+        "description": "Return candidate neuroscience papers and reviews for a topic.",
         "input_schema": {
             "type": "object",
             "properties": {
@@ -75,28 +72,6 @@ _TUTOR_TOOLS = [
     },
 ]
 
-_STARTER_LITERATURE = [
-    {
-        "title": "A synaptic model of memory: long-term potentiation in the hippocampus",
-        "source_type": "paper",
-        "doi": "10.1038/361031a0",
-        "description": "Classic review connecting hippocampal LTP to memory mechanisms.",
-    },
-    {
-        "title": "Principles of Neural Science",
-        "source_type": "textbook",
-        "doi": None,
-        "description": "Comprehensive textbook reference for synapses, plasticity, and systems neuroscience.",
-    },
-    {
-        "title": "Synapses, Circuits, and the Beginnings of Memory",
-        "source_type": "review",
-        "doi": "10.1016/j.cell.2014.08.025",
-        "description": "Review of synaptic and circuit mechanisms supporting memory.",
-    },
-]
-
-
 def normalize_title(title: str) -> str:
     """Normalize titles for exact deduplication."""
     value = unicodedata.normalize("NFKD", title.strip().lower())
@@ -115,9 +90,11 @@ class NeuroTutorAgent(BaseAgent):
         model: str = _MODEL,
         prior_context: str = "",
         knowledge_store: KnowledgeLibraryStore | None = None,
+        literature_client=None,
     ) -> None:
         super().__init__(client, engine, vector_store, model, prior_context)
         self._knowledge_store = knowledge_store
+        self._literature_client = literature_client
 
     def _get_active_tools(self) -> list[dict]:
         return list(_TUTOR_TOOLS) + list(_DB_TOOLS)
@@ -176,8 +153,8 @@ class NeuroTutorAgent(BaseAgent):
         return json.dumps(results)
 
     def _execute_search_literature(self, inputs: dict) -> str:
-        query = inputs["query"].lower()
-        if any(term in query for term in ("ltp", "potentiation", "plasticity", "memory")):
-            return json.dumps(_STARTER_LITERATURE)
-        return json.dumps([])
+        if self._literature_client is None:
+            from neurodb.literature_client import LiteratureSearchClient
 
+            self._literature_client = LiteratureSearchClient(self._engine)
+        return json.dumps(self._literature_client.search(inputs["query"]))

@@ -3,7 +3,7 @@ from sqlalchemy import create_engine, inspect
 from sqlalchemy.exc import IntegrityError
 from sqlalchemy.orm import Session
 
-from neurodb.schema import Base, ChatSession, KnowledgeSource
+from neurodb.schema import Base, ChatSession, KnowledgeSource, LiteratureSearch
 
 
 def _engine():
@@ -20,6 +20,16 @@ def test_knowledge_sources_table_created():
 def test_chat_sessions_table_created():
     inspector = inspect(_engine())
     assert "chat_sessions" in inspector.get_table_names()
+
+
+def test_literature_searches_table_created():
+    inspector = inspect(_engine())
+    assert "literature_searches" in inspector.get_table_names()
+
+
+def test_literature_search_has_observability_columns():
+    cols = {c.key for c in LiteratureSearch.__table__.columns}
+    assert {"query", "pubmed_count", "semantic_scholar_count", "results_json", "searched_at"} <= cols
 
 
 def test_knowledge_source_doi_unique():
@@ -113,4 +123,3 @@ def test_knowledge_source_optional_fields_default_to_none():
         assert row.summary is None
         assert row.chroma_id is None
         assert row.reviewed_at is None
-

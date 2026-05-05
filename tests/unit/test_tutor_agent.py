@@ -114,13 +114,39 @@ def test_search_knowledge_library_uses_store():
     assert results[0]["metadata"]["title"] == "LTP Review"
 
 
-def test_search_literature_returns_starter_sources_for_plasticity():
-    results = json.loads(_agent()._execute_search_literature({"query": "LTP plasticity"}))
-    assert any("potentiation" in row["title"].lower() for row in results)
+def test_search_literature_uses_literature_client():
+    class _LiteratureClient:
+        def __init__(self):
+            self.queries = []
+
+        def search(self, query):
+            self.queries.append(query)
+            return [{
+                "title": "Hippocampal long-term potentiation and memory",
+                "doi": "10.1000/ltp",
+                "abstract": "LTP abstract",
+                "source_type": "paper",
+                "year": 2024,
+                "citation_count": 10,
+                "source": "pubmed",
+            }]
+
+    literature_client = _LiteratureClient()
+    agent = NeuroTutorAgent(
+        MagicMock(),
+        _engine(),
+        knowledge_store=_store(),
+        literature_client=literature_client,
+    )
+
+    results = json.loads(agent._execute_search_literature({"query": "LTP plasticity"}))
+
+    assert literature_client.queries == ["LTP plasticity"]
+    assert results[0]["source"] == "pubmed"
+    assert results[0]["doi"] == "10.1000/ltp"
 
 
 def test_system_prompt_contains_tutor_instructions():
     prompt = _agent()._build_system_prompt().lower()
     assert "knowledge library" in prompt
     assert "queue_source" in prompt
-

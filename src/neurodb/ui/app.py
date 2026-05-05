@@ -97,6 +97,54 @@ def _inject_ui_styles() -> None:
         div[role="radiogroup"] label[data-baseweb="radio"]:has(input:checked) * {
           color: var(--ndb-ink) !important;
         }
+
+        /* Pre-LT-2: fixed workbench panes. The page shell never owns scrolling. */
+        html,
+        body,
+        .stApp,
+        div[data-testid="stAppViewContainer"],
+        section[data-testid="stMain"] {
+          height: 100vh;
+          max-height: 100vh;
+          overflow: hidden !important;
+        }
+
+        section[data-testid="stMain"] > div,
+        section[data-testid="stMain"] .block-container {
+          height: 100vh;
+          max-height: 100vh;
+          overflow: hidden !important;
+        }
+
+        section[data-testid="stMain"] .block-container {
+          padding-top: 1rem;
+          padding-bottom: 0 !important;
+        }
+
+        .ndb-pane-marker {
+          display: none;
+        }
+
+        div[data-testid="stHorizontalBlock"]:has(.ndb-chat-pane-marker):has(.ndb-workspace-pane-marker) {
+          height: calc(100vh - 2rem);
+          max-height: calc(100vh - 2rem);
+          overflow: hidden;
+          align-items: stretch;
+        }
+
+        div[data-testid="stColumn"]:has(.ndb-chat-pane-marker) {
+          height: calc(100vh - 2rem);
+          max-height: calc(100vh - 2rem);
+          overflow: hidden;
+        }
+
+        div[data-testid="stColumn"]:has(.ndb-workspace-pane-marker) {
+          height: calc(100vh - 2rem);
+          max-height: calc(100vh - 2rem);
+          overflow-y: auto;
+          overflow-x: hidden;
+          padding-right: 0.25rem;
+        }
         </style>
         """,
         unsafe_allow_html=True,
@@ -106,6 +154,8 @@ db_path = "neurodb.duckdb"
 for i, arg in enumerate(sys.argv):
     if arg == "--db" and i + 1 < len(sys.argv):
         db_path = sys.argv[i + 1]
+
+st.session_state["db_path"] = db_path
 
 engine = get_engine(f"duckdb:///{db_path}")
 init_db(engine)
@@ -136,25 +186,24 @@ if "knowledge_store" not in st.session_state:
         embedder=Embedder(),
     )
 
-# --- Sidebar: lightweight workspace status ---
-with st.sidebar:
-    st.caption(f"DB: `{db_path}`")
-    st.caption("Workspace")
-    st.markdown(
-        "\n".join([
-            f"- Mode: `{st.session_state.get('agent_mode', 'local_db')}`",
-            f"- Session: `{'active' if 'session_id' in st.session_state else 'none'}`",
-            f"- Chapter: `{st.session_state.get('chapter_context') or 'none'}`",
-        ])
-    )
+from neurodb.ui.sidebar import render_sidebar
+render_sidebar()
 
 col_chat, col_workspace = st.columns([1.7, 1.1], gap="large")
 
 with col_chat:
+    st.markdown(
+        '<span class="ndb-pane-marker ndb-chat-pane-marker"></span>',
+        unsafe_allow_html=True,
+    )
     from neurodb.ui.pages.chat import render_panel
-    render_panel(engine, transcript_height=520)
+    render_panel(engine, transcript_height=480)
 
 with col_workspace:
+    st.markdown(
+        '<span class="ndb-pane-marker ndb-workspace-pane-marker"></span>',
+        unsafe_allow_html=True,
+    )
     tab_suggestions, tab_study, tab_datasets, tab_registry, tab_knowledge, tab_sql = st.tabs([
         "Suggestions",
         "Study Log",

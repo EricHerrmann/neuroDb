@@ -19,7 +19,6 @@ def render_panel(engine: Engine, *, title: str = "", transcript_height: int = 42
         st.subheader(title)
 
     _init_agent(engine)
-    _render_mode_and_chapter()
 
     agent = st.session_state.get("neuro_agent")
     if agent is None:
@@ -60,87 +59,6 @@ def _init_agent(engine: Engine) -> None:
         mode=mode,
         chapter_context=st.session_state.get("chapter_context", ""),
     )
-
-
-def _render_mode_and_chapter() -> None:
-    from neurodb.chapter_registry import REGISTRY, lookup_chapter
-
-    st.divider()
-
-    mode_labels = {
-        "local_db": "Local DB",
-        "external_db": "External DB",
-        "neuro_tutor": "Neuro-Tutor",
-    }
-    mode_options = list(mode_labels)
-    current_mode = st.session_state.get("agent_mode", "local_db")
-    selected_mode = st.radio(
-        "Agent mode",
-        options=mode_options,
-        index=mode_options.index(current_mode) if current_mode in mode_options else 0,
-        format_func=lambda mode: mode_labels[mode],
-        horizontal=True,
-    )
-    if selected_mode != current_mode:
-        st.session_state["agent_mode"] = selected_mode
-        st.session_state["chapter_context"] = ""
-        st.session_state.pop("neuro_agent", None)
-        st.rerun()
-
-    if selected_mode == "neuro_tutor":
-        st.divider()
-        return
-
-    book_options = {key: value["display_name"] for key, value in REGISTRY.items()}
-    st.selectbox(
-        "Textbook",
-        options=list(book_options.keys()),
-        format_func=lambda key: book_options[key],
-        key="selected_book_key",
-    )
-
-    chapter_input = st.text_input(
-        "Current chapter (optional)",
-        placeholder="e.g. Ch12",
-        key="chapter_input_raw",
-    )
-
-    if chapter_input.strip():
-        raw = chapter_input.strip().lstrip("Cc").lstrip("hH").strip()
-        try:
-            chapter_num = int(raw)
-        except ValueError:
-            chapter_num = None
-
-        if chapter_num is not None:
-            info = lookup_chapter(st.session_state["selected_book_key"], chapter_num)
-            if info:
-                st.success(
-                    f"**Ch{chapter_num} — {info['title']}**\nTopics: {', '.join(info['topics'])}"
-                )
-                context_str = f"Ch{chapter_num} — {info['title']}\nTopics: {', '.join(info['topics'])}"
-                if st.button("Set chapter context", key="set_chapter_btn"):
-                    st.session_state["chapter_context"] = context_str
-                    agent = st.session_state.get("neuro_agent")
-                    if agent:
-                        agent.chapter_context = context_str
-                    st.rerun()
-            else:
-                st.warning(f"Ch{chapter_num} not yet in registry for this book — context not set.")
-        else:
-            st.warning("Could not parse chapter number — context not set.")
-
-    current_context = st.session_state.get("chapter_context", "")
-    if current_context:
-        st.caption(f"Active: {current_context[:60]}")
-        if st.button("Clear chapter context", key="clear_chapter_btn"):
-            st.session_state["chapter_context"] = ""
-            agent = st.session_state.get("neuro_agent")
-            if agent:
-                agent.chapter_context = ""
-            st.rerun()
-
-    st.divider()
 
 
 def _auto_start_session(first_message: str) -> None:
@@ -207,7 +125,7 @@ def _write_chat_session_row(
 
 
 def _render_chat(agent, transcript_height: int = 420) -> None:
-    transcript_container = st.container()
+    transcript_container = st.container(height=transcript_height, border=False)
     with transcript_container:
         visible_messages = [
             message for message in st.session_state["chat_history"]
@@ -318,6 +236,20 @@ def _render_chat(agent, transcript_height: int = 420) -> None:
 
         st.session_state["chat_history"].append({"role": "assistant", "content": response_text})
         st.session_state["pending_user_message"] = None
+        st.markdown(
+            """
+            <script>
+            (function() {
+              const wrappers = window.parent.document.querySelectorAll(
+                '[data-testid="stVerticalBlockBorderWrapper"]'
+              );
+              const el = wrappers[wrappers.length - 1];
+              if (el) { el.scrollTop = el.scrollHeight; }
+            })();
+            </script>
+            """,
+            unsafe_allow_html=True,
+        )
         st.rerun()
 
 
@@ -351,4 +283,3 @@ def _render_activity_log(activity_log: list[str]) -> str:
     for line in activity_log[-6:]:
         lines.append(f"- {line}")
     return "\n".join(lines)
-

@@ -38,11 +38,11 @@ def test_render_chat_renders_transcript_container(monkeypatch):
     monkeypatch.setattr(chat.st, "text_input", lambda *args, **kwargs: "")
     monkeypatch.setattr(chat.st, "form_submit_button", lambda *args, **kwargs: False)
     monkeypatch.setattr(chat.st, "button", lambda *args, **kwargs: False)
-    monkeypatch.setattr(chat.st, "markdown", lambda content: None)
+    monkeypatch.setattr(chat.st, "markdown", lambda content, **kwargs: None)
 
     chat._render_chat(agent=MagicMock(), transcript_height=480)
 
-    assert calls[0] == {}
+    assert calls[0] == {"height": 480, "border": False}
 
 
 def test_render_chat_shows_placeholder_when_history_empty(monkeypatch):
@@ -57,7 +57,7 @@ def test_render_chat_shows_placeholder_when_history_empty(monkeypatch):
     monkeypatch.setattr(chat.st, "text_input", lambda *args, **kwargs: "")
     monkeypatch.setattr(chat.st, "form_submit_button", lambda *args, **kwargs: False)
     monkeypatch.setattr(chat.st, "button", lambda *args, **kwargs: False)
-    monkeypatch.setattr(chat.st, "markdown", lambda content: events.append(("markdown", content)))
+    monkeypatch.setattr(chat.st, "markdown", lambda content, **kwargs: events.append(("markdown", content)))
 
     chat._render_chat(agent=MagicMock())
 
@@ -97,7 +97,7 @@ def test_render_chat_processes_pending_message_inside_transcript(monkeypatch):
     monkeypatch.setattr(chat.st, "text_input", lambda *args, **kwargs: "")
     monkeypatch.setattr(chat.st, "form_submit_button", lambda *args, **kwargs: False)
     monkeypatch.setattr(chat.st, "button", lambda *args, **kwargs: False)
-    monkeypatch.setattr(chat.st, "markdown", lambda content: events.append(("markdown", content)))
+    monkeypatch.setattr(chat.st, "markdown", lambda content, **kwargs: events.append(("markdown", content)))
     monkeypatch.setattr(chat.st, "empty", lambda: _Placeholder())
     monkeypatch.setattr(chat.st, "rerun", lambda: rerun_called.__setitem__("value", True))
 
@@ -146,7 +146,7 @@ def test_render_chat_enter_submits_send_not_clear(monkeypatch):
         "button",
         lambda label, **kwargs: clear_labels.append(label) or False,
     )
-    monkeypatch.setattr(chat.st, "markdown", lambda content: None)
+    monkeypatch.setattr(chat.st, "markdown", lambda content, **kwargs: None)
     monkeypatch.setattr(chat.st, "rerun", lambda: rerun_called.__setitem__("value", True))
 
     chat._render_chat(agent=_Agent())
@@ -183,4 +183,3 @@ def test_no_start_or_end_session_buttons_in_chat():
     source = pathlib.Path("src/neurodb/ui/pages/chat.py").read_text()
     assert "Start Session" not in source
     assert "End Session" not in source
-

@@ -18,6 +18,7 @@ Use `Log ID` for cross-references across Open, Resolved, triage, sprint planning
 | LOG-005 | 2026-05-05 | LT1-knowledge-title-size | Knowledge Library source titles render too large; reduce title font size | LT-1 manual/ad hoc review |
 | LOG-006 | 2026-05-05 | LT1-model-visibility | User cannot tell which agent/LLM/model is active; later work should add model selection and persistent model/user-preference prompt rules | LT-1 manual/ad hoc review |
 | LOG-007 | 2026-05-05 | LT1-test6-criteria | Test 6 chat-session verification query can return no visible value, making pass/fail unclear; manual plan needs more explicit command-line pass criteria | LT-1 manual test T6 |
+| LOG-013 | 2026-05-05 | UI-shell-rearchitecture | Pre-LT-2 fixed-pane layout failed in Streamlit even with a custom-component bridge; evaluate a UI tech-stack rearchitecture after LT-2/LT-3 once core learning capabilities mature to MVP | Pre-LT-2 manual test |
 
 ---
 
@@ -30,6 +31,7 @@ Use `Log ID` for cross-references across Open, Resolved, triage, sprint planning
 | Context selection ambiguity | LOG-001 | Add to LT-2 | LT-2 includes Previous Topics and user-editable topic labels. This issue is about ambiguous context state, so it belongs with session/context UI work. |
 | Manual test clarity | LOG-007 | Resolve before LT-2 starts, not as LT-2 product scope | This is a process/test-plan issue. Fix manual test criteria when drafting LT-2 plans so the same ambiguity does not recur. |
 | Agent/model visibility and preferences | LOG-006 | Defer until after LT-2; consider LT-3 or post-LT-3 platform UX | Showing active agent/model could be a small LT-2 improvement, but model selection and persistent preference prompts are broader product architecture. Better handled when adding more agents in LT-3. |
+| UI shell architecture | LOG-002, LOG-003, LOG-013 | Defer until after LT-2/LT-3; run a focused UI architecture design phase | LT-2 and LT-3 can mature backend/agent capability in Streamlit despite test friction. A full UI stack decision should wait until the required product surfaces are clearer, but the failed fixed-pane tests are evidence that Streamlit should not be stretched further for app-shell behavior. |
 
 | Sprint Bucket | Work Item | Log IDs | Notes |
 |---|---|---|---|
@@ -38,6 +40,7 @@ Use `Log ID` for cross-references across Open, Resolved, triage, sprint planning
 | LT-2 UX Spike | Persistent chat controls / scroll behavior | LOG-002, LOG-003 | Decide sticky mode bar vs reversed/latest-first chat vs independent pane scrolling. |
 | Pre-LT-2 Planning Fix | Manual test query pass criteria | LOG-007 | Update LT-2 manual plans with explicit expected command output and pass/fail examples. |
 | Deferred | Model/agent identity and preference system | LOG-006 | Possibly split into active-model display sooner and model selection/preferences later. |
+| Deferred Post-LT-3 | UI shell architecture decision | LOG-002, LOG-003, LOG-013 | Reassess Streamlit vs custom Streamlit component shell vs React/FastAPI after LT-2/LT-3 capabilities are in place. Do not block LT-2/LT-3 on this unless the UI prevents capability testing. |
 
 Note: `docs/projectStatus.md` should be updated the next time project status changes because its Open Issues summary still mentions `T4-clear`, which is now resolved.
 

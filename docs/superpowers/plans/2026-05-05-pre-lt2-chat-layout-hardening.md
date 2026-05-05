@@ -26,7 +26,7 @@
 
 ---
 
-### Task 1: Create `src/neurodb/ui/sidebar.py` — Sidebar Rendering Module
+### Task 1: Create `src/neurodb/ui/sidebar.py` — Sidebar Rendering Module ✅ COMPLETE (cab7ccd)
 
 The mode radio and chapter context controls move from `chat.py` to a dedicated `sidebar.py`. The module exposes one function: `render_sidebar()`. It reads/writes `st.session_state` only — no engine needed. It reads `db_path` from `st.session_state["db_path"]` (set by `app.py` before calling `render_sidebar()`).
 
@@ -229,7 +229,7 @@ git commit -m "feat: add sidebar module with Agent and Context sections"
 
 ---
 
-### Task 2: Update Existing Tests for the Sidebar Migration
+### Task 2: Update Existing Tests for the Sidebar Migration ✅ COMPLETE (f5088aa)
 
 `external_db` only appears in `_render_mode_and_chapter()` — once that function is deleted, `test_three_mode_options_present_in_chat` will fail because `external_db` won't be in `chat.py`. `test_set_chapter_button_is_guarded_by_lookup_result` reads `chat.py` for the chapter button that is moving to `sidebar.py`. Update both tests now, before touching the implementation, so the failing tests define the target state.
 

@@ -26,7 +26,7 @@ def test_set_chapter_button_is_guarded_by_lookup_result():
             btn_line = i
             break
 
-    assert btn_line is not None, "Could not find 'Set chapter context' button in chat.py"
+    assert btn_line is not None, "Could not find 'Set chapter context' button in sidebar.py"
 
     # Find the nearest preceding 'if info:' line
     info_guard_line = None

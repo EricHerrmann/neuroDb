@@ -8,7 +8,7 @@ from sqlalchemy import create_engine
 from sqlalchemy.orm import Session
 
 from neurodb.schema import DatasetIndex, IngestRun
-from neurodb.agent import TOOLS, NeuroAgent, execute_tool
+from neurodb.agents.db_agent import TOOLS, NeuroDbAgent, execute_tool
 
 
 # ---------------------------------------------------------------------------
@@ -216,7 +216,7 @@ def test_execute_unknown_tool_returns_error():
 
 
 # ---------------------------------------------------------------------------
-# NeuroAgent loop
+# NeuroDbAgent loop
 # ---------------------------------------------------------------------------
 
 def test_agent_end_turn_yields_text():
@@ -226,7 +226,7 @@ def test_agent_end_turn_yields_text():
         "end_turn", [_text_block("There are 1 datasets.")]
     )
 
-    agent = NeuroAgent(mock_client, engine)
+    agent = NeuroDbAgent(mock_client, engine)
     chunks = list(agent.chat("How many datasets?", []))
     assert "".join(chunks) == "There are 1 datasets."
     assert mock_client.messages.create.call_count == 1
@@ -242,7 +242,7 @@ def test_agent_tool_use_then_end_turn():
     second_response = _response("end_turn", [_text_block("Found 1 dataset.")])
     mock_client.messages.create.side_effect = [first_response, second_response]
 
-    agent = NeuroAgent(mock_client, engine)
+    agent = NeuroDbAgent(mock_client, engine)
     chunks = list(agent.chat("Count datasets", []))
     assert "".join(chunks) == "Found 1 dataset."
     assert mock_client.messages.create.call_count == 2
@@ -257,7 +257,7 @@ def test_agent_passes_history_to_api():
         {"role": "user", "content": "hello"},
         {"role": "assistant", "content": [_text_block("hi")]},
     ]
-    agent = NeuroAgent(mock_client, engine)
+    agent = NeuroDbAgent(mock_client, engine)
     list(agent.chat("next question", history))
 
     call_messages = mock_client.messages.create.call_args[1]["messages"]
@@ -279,7 +279,7 @@ def test_agent_tool_use_blocks_preserved_in_messages():
     second_response = _response("end_turn", [_text_block("Found 1 dataset.")])
     mock_client.messages.create.side_effect = [first_response, second_response]
 
-    agent = NeuroAgent(mock_client, engine)
+    agent = NeuroDbAgent(mock_client, engine)
     messages = []
     list(agent.chat("Count datasets", messages))
 
@@ -300,7 +300,7 @@ def test_agent_max_turns_guard():
         _tool_use_block("t1", "query_db", {"sql": "SELECT 1"})
     ])
 
-    agent = NeuroAgent(mock_client, engine)
+    agent = NeuroDbAgent(mock_client, engine)
     chunks = list(agent.chat("loop forever", []))
     assert any("maximum" in c.lower() for c in chunks)
 
@@ -314,7 +314,7 @@ def test_agent_chat_stream_yields_text_deltas_and_done():
         final_message,
     )
 
-    agent = NeuroAgent(mock_client, engine)
+    agent = NeuroDbAgent(mock_client, engine)
     messages = []
     events = list(agent.chat_stream("How many datasets?", messages))
 
@@ -336,7 +336,7 @@ def test_agent_chat_stream_surfaces_tool_activity_and_preserves_messages():
         _Stream([_text_delta_event("Found 1 dataset.")], _response("end_turn", [_text_block("Found 1 dataset.")])),
     ]
 
-    agent = NeuroAgent(mock_client, engine)
+    agent = NeuroDbAgent(mock_client, engine)
     messages = []
     events = list(agent.chat_stream("Count datasets", messages))
 

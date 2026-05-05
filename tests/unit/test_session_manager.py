@@ -215,7 +215,7 @@ def test_end_session_api_failure_does_not_raise():
 
 
 # ---------------------------------------------------------------------------
-# NeuroAgent prior_context injection
+# NeuroDbAgent prior_context injection
 # ---------------------------------------------------------------------------
 
 def test_agent_injects_prior_context_into_system_prompt():
@@ -223,7 +223,7 @@ def test_agent_injects_prior_context_into_system_prompt():
     from unittest.mock import MagicMock
     from sqlalchemy import create_engine
     from neurodb.schema import DatasetIndex
-    from neurodb.agent import NeuroAgent
+    from neurodb.agents.db_agent import NeuroDbAgent
 
     engine = create_engine("sqlite:///:memory:")
     DatasetIndex.metadata.create_all(engine)
@@ -232,7 +232,7 @@ def test_agent_injects_prior_context_into_system_prompt():
     resp = SimpleNamespace(stop_reason="end_turn", content=[SimpleNamespace(type="text", text="ok")])
     mock_client.messages.create.return_value = resp
 
-    agent = NeuroAgent(mock_client, engine, prior_context="Prior sessions: place cells explored")
+    agent = NeuroDbAgent(mock_client, engine, prior_context="Prior sessions: place cells explored")
     list(agent.chat("hello", []))
 
     system_arg = mock_client.messages.create.call_args[1]["system"]
@@ -245,7 +245,7 @@ def test_agent_no_prior_context_omits_block():
     from unittest.mock import MagicMock
     from sqlalchemy import create_engine
     from neurodb.schema import DatasetIndex
-    from neurodb.agent import NeuroAgent
+    from neurodb.agents.db_agent import NeuroDbAgent
 
     engine = create_engine("sqlite:///:memory:")
     DatasetIndex.metadata.create_all(engine)
@@ -254,7 +254,7 @@ def test_agent_no_prior_context_omits_block():
     resp = SimpleNamespace(stop_reason="end_turn", content=[SimpleNamespace(type="text", text="ok")])
     mock_client.messages.create.return_value = resp
 
-    agent = NeuroAgent(mock_client, engine)
+    agent = NeuroDbAgent(mock_client, engine)
     list(agent.chat("hello", []))
 
     system_arg = mock_client.messages.create.call_args[1]["system"]

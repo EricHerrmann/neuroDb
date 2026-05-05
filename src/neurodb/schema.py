@@ -167,3 +167,42 @@ class SourceSuggestion(Base):
     status: Mapped[str] = mapped_column(String(32), nullable=False, index=True)
     metadata_json: Mapped[str | None] = mapped_column(Text, nullable=True)
     suggested_at: Mapped[str] = mapped_column(String(32), nullable=False)
+
+
+class KnowledgeSource(Base):
+    """Candidate and approved learning sources surfaced by NeuroTutorAgent."""
+    __tablename__ = "knowledge_sources"
+    __table_args__ = (
+        UniqueConstraint("doi", name="uq_knowledge_sources_doi"),
+        UniqueConstraint("normalized_title", name="uq_knowledge_sources_normalized_title"),
+    )
+
+    id: Mapped[int] = mapped_column(Integer, Sequence("knowledge_sources_id_seq"), primary_key=True)
+    title: Mapped[str] = mapped_column(Text, nullable=False)
+    normalized_title: Mapped[str] = mapped_column(String(512), nullable=False, index=True)
+    doi: Mapped[str | None] = mapped_column(String(256), nullable=True)
+    url: Mapped[str | None] = mapped_column(Text, nullable=True)
+    source_type: Mapped[str] = mapped_column(String(32), nullable=False, index=True)
+    topic_context: Mapped[str] = mapped_column(Text, nullable=False)
+    status: Mapped[str] = mapped_column(String(16), nullable=False, index=True)
+    queued_at: Mapped[str] = mapped_column(String(32), nullable=False)
+    reviewed_at: Mapped[str | None] = mapped_column(String(32), nullable=True)
+    summary: Mapped[str | None] = mapped_column(Text, nullable=True)
+    chroma_id: Mapped[str | None] = mapped_column(String(128), nullable=True)
+
+
+class ChatSession(Base):
+    """Completed chat-session index for previous-topic retrieval UI."""
+    __tablename__ = "chat_sessions"
+    __table_args__ = (
+        UniqueConstraint("session_id", name="uq_chat_sessions_session_id"),
+    )
+
+    id: Mapped[int] = mapped_column(Integer, Sequence("chat_sessions_id_seq"), primary_key=True)
+    session_id: Mapped[str] = mapped_column(String(64), nullable=False, index=True)
+    inferred_topic: Mapped[str] = mapped_column(Text, nullable=False)
+    agent_mode: Mapped[str] = mapped_column(String(32), nullable=False, index=True)
+    started_at: Mapped[str] = mapped_column(String(32), nullable=False)
+    ended_at: Mapped[str | None] = mapped_column(String(32), nullable=True)
+    summary_preview: Mapped[str | None] = mapped_column(String(200), nullable=True)
+    message_count: Mapped[int] = mapped_column(Integer, nullable=False)

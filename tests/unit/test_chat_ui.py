@@ -1,3 +1,4 @@
+import pathlib
 from unittest.mock import MagicMock
 
 from neurodb.ui.pages import chat
@@ -25,48 +26,6 @@ class _ContextManager:
         return False
 
 
-def test_render_chat_shows_session_start_response_after_form(monkeypatch):
-    events: list[tuple[str, str]] = []
-    ctx = _ContextRecorder(events)
-
-    monkeypatch.setattr(
-        chat.st,
-        "session_state",
-        {
-            "chat_history": [
-                {
-                    "role": "assistant",
-                    "content": "No prior context found for this topic.",
-                    "_system": True,
-                }
-            ]
-        },
-    )
-    monkeypatch.setattr(chat.st, "container", lambda **kwargs: ctx("container"))
-    monkeypatch.setattr(chat.st, "chat_message", lambda role: ctx(f"chat_message:{role}"))
-    monkeypatch.setattr(chat.st, "form", lambda name, clear_on_submit=True: ctx(f"form:{name}"))
-    monkeypatch.setattr(chat.st, "columns", lambda spec: [ctx("column:composer"), ctx("column:clear")])
-    monkeypatch.setattr(chat.st, "text_input", lambda *args, **kwargs: "")
-    monkeypatch.setattr(chat.st, "form_submit_button", lambda *args, **kwargs: False)
-    monkeypatch.setattr(chat.st, "button", lambda *args, **kwargs: False)
-    monkeypatch.setattr(chat.st, "markdown", lambda content: events.append(("markdown", content)))
-    monkeypatch.setattr(chat.st, "divider", lambda: events.append(("divider", "")))
-    monkeypatch.setattr(
-        chat.st,
-        "rerun",
-        lambda: (_ for _ in ()).throw(AssertionError("rerun should not be called")),
-    )
-
-    chat._render_chat(agent=MagicMock())
-
-    assert events.count(("markdown", "No prior context found for this topic.")) == 1
-    assert ("enter", "chat_message:assistant") in events
-    assert any("Start a session to begin chatting" in content for kind, content in events if kind == "markdown")
-    assert events.index(("markdown", "No prior context found for this topic.")) > events.index(
-        ("exit", "form:agent_form")
-    )
-
-
 def test_render_chat_renders_transcript_container(monkeypatch):
     calls = []
     ctx = _ContextRecorder([])
@@ -80,14 +39,13 @@ def test_render_chat_renders_transcript_container(monkeypatch):
     monkeypatch.setattr(chat.st, "form_submit_button", lambda *args, **kwargs: False)
     monkeypatch.setattr(chat.st, "button", lambda *args, **kwargs: False)
     monkeypatch.setattr(chat.st, "markdown", lambda content: None)
-    monkeypatch.setattr(chat.st, "divider", lambda: None)
 
     chat._render_chat(agent=MagicMock(), transcript_height=480)
 
     assert calls[0] == {}
 
 
-def test_render_chat_shows_placeholder_when_session_inactive(monkeypatch):
+def test_render_chat_shows_placeholder_when_history_empty(monkeypatch):
     events: list[tuple[str, str]] = []
     ctx = _ContextRecorder(events)
 
@@ -100,12 +58,11 @@ def test_render_chat_shows_placeholder_when_session_inactive(monkeypatch):
     monkeypatch.setattr(chat.st, "form_submit_button", lambda *args, **kwargs: False)
     monkeypatch.setattr(chat.st, "button", lambda *args, **kwargs: False)
     monkeypatch.setattr(chat.st, "markdown", lambda content: events.append(("markdown", content)))
-    monkeypatch.setattr(chat.st, "divider", lambda: None)
 
-    chat._render_chat(agent=MagicMock(), session_active=False)
+    chat._render_chat(agent=MagicMock())
 
     assert ("enter", "chat_message:assistant") in events
-    assert any("Start a session to begin chatting" in content for kind, content in events if kind == "markdown")
+    assert any("Chat ready" in content for kind, content in events if kind == "markdown")
 
 
 def test_render_chat_processes_pending_message_inside_transcript(monkeypatch):
@@ -141,17 +98,15 @@ def test_render_chat_processes_pending_message_inside_transcript(monkeypatch):
     monkeypatch.setattr(chat.st, "form_submit_button", lambda *args, **kwargs: False)
     monkeypatch.setattr(chat.st, "button", lambda *args, **kwargs: False)
     monkeypatch.setattr(chat.st, "markdown", lambda content: events.append(("markdown", content)))
-    monkeypatch.setattr(chat.st, "divider", lambda: None)
     monkeypatch.setattr(chat.st, "empty", lambda: _Placeholder())
     monkeypatch.setattr(chat.st, "rerun", lambda: rerun_called.__setitem__("value", True))
 
-    chat._render_chat(agent=_Agent(), session_active=True)
+    chat._render_chat(agent=_Agent())
 
     assert rerun_called["value"] is True
     assert ("enter", "chat_message:user") in events
     assert ("enter", "chat_message:assistant") in events
     assert ("placeholder_markdown", "There are ") in events
-    assert ("placeholder_markdown", "There are 5 datasets.") in events
     assert chat.st.session_state["chat_history"] == [
         {"role": "user", "content": "How many datasets?"},
         {"role": "assistant", "content": "There are 5 datasets."},
@@ -165,6 +120,8 @@ def test_render_chat_enter_submits_send_not_clear(monkeypatch):
     clear_labels: list[str] = []
 
     class _Agent:
+        prior_context = ""
+
         def chat_stream(self, message, api_messages):
             assert message == "hi"
             yield {"type": "done", "text": "hello"}
@@ -190,10 +147,9 @@ def test_render_chat_enter_submits_send_not_clear(monkeypatch):
         lambda label, **kwargs: clear_labels.append(label) or False,
     )
     monkeypatch.setattr(chat.st, "markdown", lambda content: None)
-    monkeypatch.setattr(chat.st, "divider", lambda: None)
     monkeypatch.setattr(chat.st, "rerun", lambda: rerun_called.__setitem__("value", True))
 
-    chat._render_chat(agent=_Agent(), session_active=True)
+    chat._render_chat(agent=_Agent())
 
     assert submit_labels == ["Send"]
     assert clear_labels == ["Clear"]
@@ -203,3 +159,23 @@ def test_render_chat_enter_submits_send_not_clear(monkeypatch):
         {"role": "assistant", "content": "hello"},
     ]
     assert chat.st.session_state["pending_user_message"] is None
+
+
+def test_no_learning_or_discovery_mode_strings_in_chat():
+    source = pathlib.Path("src/neurodb/ui/pages/chat.py").read_text()
+    assert '"learning"' not in source
+    assert '"discovery"' not in source
+
+
+def test_three_mode_options_present_in_chat():
+    source = pathlib.Path("src/neurodb/ui/pages/chat.py").read_text()
+    assert "local_db" in source
+    assert "external_db" in source
+    assert "neuro_tutor" in source
+
+
+def test_no_start_or_end_session_buttons_in_chat():
+    source = pathlib.Path("src/neurodb/ui/pages/chat.py").read_text()
+    assert "Start Session" not in source
+    assert "End Session" not in source
+

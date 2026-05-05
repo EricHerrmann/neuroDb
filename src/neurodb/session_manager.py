@@ -96,15 +96,28 @@ class SessionManager:
         summaries = self._store.get_relevant(topic, n=3, threshold=threshold)
         return session_id, format_context(summaries)
 
-    def end_session(self, session_id: str, conversation: list[dict]) -> None:
-        """Generate a session summary via Claude and store it. Failures are swallowed."""
+    def get_context_for_topic(
+        self,
+        topic: str,
+        n: int = 3,
+        threshold: float = _RELEVANCE_THRESHOLD,
+    ) -> str:
+        """Return formatted prior context for a topic without opening a session."""
+        if not topic:
+            return ""
+        summaries = self._store.get_relevant(topic, n=n, threshold=threshold)
+        return format_context(summaries)
+
+    def end_session(self, session_id: str, conversation: list[dict]) -> str | None:
+        """Generate a session summary via Claude, store it, and return it."""
         if not conversation or self._client is None:
-            return
+            return None
         try:
             summary = self._generate_summary(conversation)
             self._store.add_summary(session_id, summary, {"session_id": session_id})
+            return summary
         except Exception:
-            pass  # losing one summary is acceptable per spec
+            return None  # losing one summary is acceptable per spec
 
     def _generate_summary(self, conversation: list[dict]) -> str:
         from datetime import date

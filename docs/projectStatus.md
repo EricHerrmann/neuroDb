@@ -1,8 +1,8 @@
 # NeuroDb — Project Status
 
 **Last updated:** 2026-05-05
-**Active focus:** Learning Epoch LT-1 — Neuro-Tutor agent, BaseAgent architecture, knowledge library
-**Next:** LT-1 implementation plan
+**Active focus:** LT-1 complete — post-signoff issues logged for prioritization
+**Next:** LT-2 planning
 **Goal alignment:** Give the user a capable neuroscience learning partner — one that remembers what has been explored and builds on it, so learning compounds over time.
 
 ---
@@ -11,7 +11,7 @@
 
 | Phase | Focus | Status |
 |-------|-------|--------|
-| LT-1 | BaseAgent architecture, NeuroDbAgent rename, mode rename, auto-session, NeuroTutorAgent core, knowledge library storage + UI | Spec complete — implementation plan pending |
+| LT-1 | BaseAgent architecture, NeuroDbAgent rename, mode rename, auto-session, NeuroTutorAgent core, knowledge library storage + UI | Complete — 255 tests — signed off 2026-05-05 |
 | LT-2 | PubMed/Semantic Scholar live search, Previous Topics panel, semantic dedup | Not started |
 | LT-3 | Research agent scaffolding, knowledge growth metrics, hypothesis tools | Not started |
 
@@ -59,6 +59,8 @@ See `docs/testLog.md`. Current open items: T4-clear (chat history transient clea
 | `docs/ClaudeDbEpochPlan.md` | DB epoch plan and architecture decisions |
 | `docs/testLog.md` | Running issue log — open and resolved items across all phases |
 | `docs/superpowers/specs/2026-05-05-neuro-tutor-epoch-design.md` | LT-1 design spec |
+| `docs/superpowers/plans/2026-05-05-lt1-neuro-tutor-foundation.md` | LT-1 implementation plan |
+| `docs/testsPlans/manualTestPlan_agent_lt1.md` | LT-1 manual test plan |
 | `docs/superpowers/plans/2026-05-04-tech-debt-td1.md` | TD-1 plan |
 | `docs/superpowers/plans/2026-05-04-tech-debt-td2.md` | TD-2 plan |
 | `docs/superpowers/plans/2026-05-04-tech-debt-td3.md` | TD-3 plan |

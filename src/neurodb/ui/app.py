@@ -128,14 +128,22 @@ if "session_manager" not in st.session_state:
     client = anthropic.Anthropic(api_key=api_key) if api_key else None
     st.session_state["session_manager"] = SessionManager(context_store, client=client)
 
+if "knowledge_store" not in st.session_state:
+    from neurodb.knowledge_store import KnowledgeLibraryStore
+    chroma_path = db_path.replace(".duckdb", "_chroma")
+    st.session_state["knowledge_store"] = KnowledgeLibraryStore(
+        path=chroma_path,
+        embedder=Embedder(),
+    )
+
 # --- Sidebar: lightweight workspace status ---
 with st.sidebar:
     st.caption(f"DB: `{db_path}`")
     st.caption("Workspace")
     st.markdown(
         "\n".join([
-            f"- Mode: `{st.session_state.get('agent_mode', 'learning')}`",
-            f"- Session: `{st.session_state.get('session_topic') or 'inactive'}`",
+            f"- Mode: `{st.session_state.get('agent_mode', 'local_db')}`",
+            f"- Session: `{'active' if 'session_id' in st.session_state else 'none'}`",
             f"- Chapter: `{st.session_state.get('chapter_context') or 'none'}`",
         ])
     )
@@ -147,11 +155,12 @@ with col_chat:
     render_panel(engine, transcript_height=520)
 
 with col_workspace:
-    tab_suggestions, tab_study, tab_datasets, tab_registry, tab_sql = st.tabs([
+    tab_suggestions, tab_study, tab_datasets, tab_registry, tab_knowledge, tab_sql = st.tabs([
         "Suggestions",
         "Study Log",
         "Datasets",
         "Registry",
+        "Knowledge Library",
         "SQL",
     ])
 
@@ -169,6 +178,10 @@ with col_workspace:
 
     with tab_registry:
         from neurodb.ui.pages.learning_registry import render
+        render(engine)
+
+    with tab_knowledge:
+        from neurodb.ui.pages.knowledge_library import render
         render(engine)
 
     with tab_sql:

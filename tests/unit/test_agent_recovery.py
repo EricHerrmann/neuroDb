@@ -1,11 +1,11 @@
 import pytest
 from unittest.mock import MagicMock, patch
 
-from neurodb.agent import NeuroAgent
+from neurodb.agents.db_agent import NeuroDbAgent
 
 
 def _make_agent():
-    return NeuroAgent(
+    return NeuroDbAgent(
         client=MagicMock(),
         engine=MagicMock(),
         vector_store=MagicMock(),

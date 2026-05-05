@@ -1,5 +1,7 @@
-import os
 import json
+import os
+import uuid
+from datetime import datetime, timezone
 
 import streamlit as st
 from sqlalchemy import Engine
@@ -20,18 +22,9 @@ def render_panel(engine: Engine, *, title: str = "", transcript_height: int = 42
     _render_mode_and_chapter()
 
     agent = st.session_state.get("neuro_agent")
-    session_active = "session_id" in st.session_state
-
-    if not session_active:
-        _render_start_session()
-
-    if agent is None and session_active:
-        st.warning("ANTHROPIC_API_KEY not found in `.env`. Add it to enable chat during a session.")
-    else:
-        _render_chat(agent, transcript_height=transcript_height, session_active=session_active)
-
-    if session_active:
-        _render_end_session_button(engine)
+    if agent is None:
+        st.warning("ANTHROPIC_API_KEY not found in `.env`. Add it to enable chat.")
+    _render_chat(agent, transcript_height=transcript_height)
 
 
 def _init_agent(engine: Engine) -> None:
@@ -39,40 +32,64 @@ def _init_agent(engine: Engine) -> None:
         return
     api_key = os.environ.get("ANTHROPIC_API_KEY")
     if not api_key:
-        st.warning("ANTHROPIC_API_KEY not found in `.env`. Add it to enable the Research Assistant.")
         return
+
     import anthropic
-    from neurodb.agent import NeuroAgent
+
     client = anthropic.Anthropic(api_key=api_key)
-    vs = st.session_state.get("vector_store")
-    agent = NeuroAgent(
-        client,
-        engine,
-        vector_store=vs,
-        mode=st.session_state.get("agent_mode", "learning"),
+    vector_store = st.session_state.get("vector_store")
+    mode = st.session_state.get("agent_mode", "local_db")
+
+    if mode == "neuro_tutor":
+        from neurodb.agents.tutor_agent import NeuroTutorAgent
+
+        st.session_state["neuro_agent"] = NeuroTutorAgent(
+            client=client,
+            engine=engine,
+            vector_store=vector_store,
+            knowledge_store=st.session_state.get("knowledge_store"),
+        )
+        return
+
+    from neurodb.agents.db_agent import NeuroDbAgent
+
+    st.session_state["neuro_agent"] = NeuroDbAgent(
+        client=client,
+        engine=engine,
+        vector_store=vector_store,
+        mode=mode,
         chapter_context=st.session_state.get("chapter_context", ""),
     )
-    st.session_state["neuro_agent"] = agent
 
 
 def _render_mode_and_chapter() -> None:
-    """Render mode toggle and chapter annotation controls."""
     from neurodb.chapter_registry import REGISTRY, lookup_chapter
 
     st.divider()
 
-    mode = st.radio(
+    mode_labels = {
+        "local_db": "Local DB",
+        "external_db": "External DB",
+        "neuro_tutor": "Neuro-Tutor",
+    }
+    mode_options = list(mode_labels)
+    current_mode = st.session_state.get("agent_mode", "local_db")
+    selected_mode = st.radio(
         "Agent mode",
-        options=["learning", "discovery"],
-        index=0 if st.session_state.get("agent_mode", "learning") == "learning" else 1,
+        options=mode_options,
+        index=mode_options.index(current_mode) if current_mode in mode_options else 0,
+        format_func=lambda mode: mode_labels[mode],
         horizontal=True,
-        help="Learning: local DB only. Discovery: searches external sources and queues suggestions.",
     )
-    if mode != st.session_state.get("agent_mode"):
-        st.session_state["agent_mode"] = mode
-        agent = st.session_state.get("neuro_agent")
-        if agent:
-            agent.mode = mode
+    if selected_mode != current_mode:
+        st.session_state["agent_mode"] = selected_mode
+        st.session_state["chapter_context"] = ""
+        st.session_state.pop("neuro_agent", None)
+        st.rerun()
+
+    if selected_mode == "neuro_tutor":
+        st.divider()
+        return
 
     book_options = {key: value["display_name"] for key, value in REGISTRY.items()}
     st.selectbox(
@@ -126,129 +143,131 @@ def _render_mode_and_chapter() -> None:
     st.divider()
 
 
-def _render_start_session() -> None:
-    from neurodb.prefs import load_prefs, save_prefs
+def _auto_start_session(first_message: str) -> None:
+    st.session_state["session_id"] = str(uuid.uuid4())
+    st.session_state["session_started_at"] = datetime.now(timezone.utc).isoformat()
 
-    if "relevance_threshold" not in st.session_state:
-        st.session_state["relevance_threshold"] = load_prefs()["relevance_threshold"]
+    manager = st.session_state.get("session_manager")
+    context = manager.get_context_for_topic(first_message) if manager else ""
+    agent = st.session_state.get("neuro_agent")
+    if agent:
+        agent.prior_context = context
 
-    topic = st.text_input("Topic (optional)", placeholder="e.g. hippocampus place cells")
 
-    threshold = st.slider(
-        "Context relevance",
-        min_value=0.1,
-        max_value=1.0,
-        step=0.1,
-        help="Lower = stricter topic match only; Higher = broader, more loosely related sessions included",
-        key="relevance_threshold",
+def _auto_summarize_if_sufficient() -> None:
+    api_messages = st.session_state.get("api_messages", [])
+    user_turns = sum(1 for message in api_messages if message["role"] == "user")
+    if user_turns < 3:
+        return
+
+    manager = st.session_state.get("session_manager")
+    session_id = st.session_state.get("session_id")
+    if manager is None or not session_id:
+        return
+
+    with st.spinner("Saving session summary..."):
+        summary = manager.end_session(session_id, api_messages)
+
+    engine = st.session_state.get("engine")
+    if engine is not None and summary:
+        _write_chat_session_row(engine, session_id, api_messages, user_turns, summary)
+
+
+def _write_chat_session_row(
+    engine,
+    session_id: str,
+    api_messages: list[dict],
+    user_turns: int,
+    summary: str,
+) -> None:
+    from neurodb.db import get_session
+    from neurodb.schema import ChatSession
+
+    first_user = next(
+        (
+            message["content"]
+            for message in api_messages
+            if message["role"] == "user" and isinstance(message["content"], str)
+        ),
+        "unknown",
     )
-
-    if st.button("Start Session", width="stretch"):
-        save_prefs({"relevance_threshold": threshold})
-
-        manager = st.session_state.get("session_manager")
-        if manager:
-            session_id, context = manager.start_session(topic.strip(), threshold=threshold)
-        else:
-            import uuid
-            session_id, context = str(uuid.uuid4()), ""
-        st.session_state["session_id"] = session_id
-        st.session_state["session_topic"] = topic.strip()
-        st.session_state["api_messages"] = []
-        agent = st.session_state.get("neuro_agent")
-        if agent:
-            agent.prior_context = context
-        if context:
-            st.session_state["chat_history"].append({
-                "role": "assistant",
-                "content": f"**Prior context loaded:**\n\n{context}",
-                "_system": True,
-            })
-        else:
-            st.session_state["chat_history"].append({
-                "role": "assistant",
-                "content": "No prior context found for this topic.",
-                "_system": True,
-            })
-        st.rerun()
-    st.caption("The agent will retrieve prior context for your topic.")
+    with get_session(engine) as session:
+        session.add(ChatSession(
+            session_id=session_id,
+            inferred_topic=first_user[:200],
+            agent_mode=st.session_state.get("agent_mode", "local_db"),
+            started_at=st.session_state.get(
+                "session_started_at",
+                datetime.now(timezone.utc).isoformat(),
+            ),
+            ended_at=datetime.now(timezone.utc).isoformat(),
+            summary_preview=summary[:200],
+            message_count=user_turns,
+        ))
 
 
-def _render_end_session_button(engine: Engine) -> None:
-    topic = st.session_state.get("session_topic", "")
-    label = f"Session: {topic}" if topic else "Session active"
-    st.caption(label)
-    if st.button("End Session", width="stretch"):
-        manager = st.session_state.get("session_manager")
-        session_id = st.session_state.pop("session_id", None)
-        if manager and session_id:
-            api_history = st.session_state.get("api_messages") or _to_api_history(st.session_state["chat_history"])
-            with st.spinner("Saving session summary…"):
-                manager.end_session(session_id, api_history)
-        for key in ("session_topic", "chat_history", "api_messages", "pending_user_message"):
-            st.session_state.pop(key, None)
-        agent = st.session_state.get("neuro_agent")
-        if agent:
-            agent.prior_context = ""
-        st.rerun()
-
-
-def _render_chat(agent, transcript_height: int = 420, session_active: bool = False) -> None:
+def _render_chat(agent, transcript_height: int = 420) -> None:
     transcript_container = st.container()
     with transcript_container:
         visible_messages = [
-            msg for msg in st.session_state["chat_history"]
-            if not msg.get("_system")
+            message for message in st.session_state["chat_history"]
+            if not message.get("_system")
         ]
         if not visible_messages:
             with st.chat_message("assistant"):
-                if session_active:
-                    st.markdown("Chat ready. Ask about your datasets.")
-                else:
-                    st.markdown("Start a session to begin chatting. The input stays disabled until a session is active.")
+                st.markdown("Chat ready. Ask about your datasets or a neuroscience topic.")
 
-        for msg in st.session_state["chat_history"]:
-            if msg.get("_system"):
+        for message in st.session_state["chat_history"]:
+            if message.get("_system"):
                 continue
-            with st.chat_message(msg["role"]):
-                st.markdown(msg["content"])
+            with st.chat_message(message["role"]):
+                st.markdown(message["content"])
 
     composer_col, clear_col = st.columns([4, 1])
     with composer_col:
         with st.form("agent_form", clear_on_submit=True):
             user_input = st.text_input(
                 "Message",
-                placeholder="Ask about your datasets…",
+                placeholder="Ask about your datasets or a neuroscience topic...",
                 label_visibility="collapsed",
-                disabled=not session_active or agent is None,
+                disabled=agent is None,
             )
             submitted = st.form_submit_button(
                 "Send",
                 width="stretch",
-                disabled=not session_active or agent is None,
+                disabled=agent is None,
             )
     with clear_col:
         clear_clicked = st.button(
             "Clear",
             width="stretch",
-            disabled=not session_active or not st.session_state["chat_history"],
+            disabled=not st.session_state["chat_history"],
         )
 
     if clear_clicked:
+        _auto_summarize_if_sufficient()
         st.session_state["chat_history"] = []
         st.session_state["api_messages"] = []
         st.session_state["pending_user_message"] = None
+        st.session_state.pop("session_id", None)
+        st.session_state.pop("session_started_at", None)
+        if agent:
+            agent.prior_context = ""
         st.rerun()
     elif submitted and user_input.strip():
         message = user_input.strip()
+        if "session_id" not in st.session_state:
+            _auto_start_session(message)
         st.session_state["chat_history"].append({"role": "user", "content": message})
         if "api_messages" not in st.session_state:
-            st.session_state["api_messages"] = _to_api_history(st.session_state["chat_history"][:-1])
+            st.session_state["api_messages"] = _to_api_history(
+                st.session_state["chat_history"][:-1]
+            )
         st.session_state["pending_user_message"] = message
         st.rerun()
 
     pending_message = st.session_state.get("pending_user_message")
-    if pending_message and session_active and agent is not None:
+    if pending_message and agent is not None:
         response_chunks: list[str] = []
         response_text = ""
         activity_log: list[str] = []
@@ -282,10 +301,11 @@ def _render_chat(agent, transcript_height: int = 420, session_active: bool = Fal
 
                         if event["type"] == "error":
                             error_note = event["text"]
-                            if response_text:
-                                response_text = f"{response_text}\n\n---\n*{error_note}*"
-                            else:
-                                response_text = error_note
+                            response_text = (
+                                f"{response_text}\n\n---\n*{error_note}*"
+                                if response_text
+                                else error_note
+                            )
                             text_placeholder.markdown(response_text)
                             break
                 except Exception as exc:
@@ -300,27 +320,18 @@ def _render_chat(agent, transcript_height: int = 420, session_active: bool = Fal
         st.session_state["pending_user_message"] = None
         st.rerun()
 
-    last_response = next(
-        (
-            msg["content"]
-            for msg in reversed(st.session_state["chat_history"])
-            if msg["role"] == "assistant" and msg.get("_system")
-        ),
-        None,
-    )
-    if last_response:
-        st.divider()
-        st.markdown(last_response)
-
 
 def _to_api_history(history: list[dict]) -> list[dict]:
     """Convert display history to API message format, skipping system-injected messages."""
     api = []
-    for msg in history:
-        if msg["role"] == "user":
-            api.append({"role": "user", "content": msg["content"]})
-        elif msg["role"] == "assistant" and not msg.get("_system"):
-            api.append({"role": "assistant", "content": [{"type": "text", "text": msg["content"]}]})
+    for message in history:
+        if message["role"] == "user":
+            api.append({"role": "user", "content": message["content"]})
+        elif message["role"] == "assistant" and not message.get("_system"):
+            api.append({
+                "role": "assistant",
+                "content": [{"type": "text", "text": message["content"]}],
+            })
     return api
 
 
@@ -340,3 +351,4 @@ def _render_activity_log(activity_log: list[str]) -> str:
     for line in activity_log[-6:]:
         lines.append(f"- {line}")
     return "\n".join(lines)
+

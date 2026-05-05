@@ -131,6 +131,12 @@ if "session_manager" not in st.session_state:
     client = anthropic.Anthropic(api_key=api_key) if api_key else None
     st.session_state["session_manager"] = SessionManager(context_store, client=client)
 
+if "active_prior_context" not in st.session_state:
+    manager = st.session_state.get("session_manager")
+    st.session_state["active_prior_context"] = (
+        manager.get_most_recent_context(engine) if manager is not None else ""
+    )
+
 if "knowledge_store" not in st.session_state:
     from neurodb.knowledge_store import KnowledgeLibraryStore
     chroma_path = db_path.replace(".duckdb", "_chroma")
@@ -141,7 +147,7 @@ if "knowledge_store" not in st.session_state:
 
 from neurodb.ui.sidebar import render_sidebar
 
-render_sidebar()
+render_sidebar(engine)
 
 col_chat, col_workspace = st.columns([1.7, 1.1], gap="large")
 

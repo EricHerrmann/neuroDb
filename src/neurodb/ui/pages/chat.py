@@ -47,6 +47,7 @@ def _init_agent(engine: Engine) -> None:
             engine=engine,
             vector_store=vector_store,
             knowledge_store=st.session_state.get("knowledge_store"),
+            prior_context=st.session_state.get("active_prior_context", ""),
         )
         return
 
@@ -58,6 +59,7 @@ def _init_agent(engine: Engine) -> None:
         vector_store=vector_store,
         mode=mode,
         chapter_context=st.session_state.get("chapter_context", ""),
+        prior_context=st.session_state.get("active_prior_context", ""),
     )
 
 
@@ -66,7 +68,9 @@ def _auto_start_session(first_message: str) -> None:
     st.session_state["session_started_at"] = datetime.now(timezone.utc).isoformat()
 
     manager = st.session_state.get("session_manager")
-    context = manager.get_context_for_topic(first_message) if manager else ""
+    context = st.session_state.get("active_prior_context", "")
+    if not context:
+        context = manager.get_context_for_topic(first_message) if manager else ""
     agent = st.session_state.get("neuro_agent")
     if agent:
         agent.prior_context = context
@@ -89,6 +93,16 @@ def _auto_summarize_if_sufficient() -> None:
     engine = st.session_state.get("engine")
     if engine is not None and summary:
         _write_chat_session_row(engine, session_id, api_messages, user_turns, summary)
+
+
+def clear_chat_state_for_context_switch() -> None:
+    """Clear transient chat state before loading a different prior-context session."""
+    st.session_state["chat_history"] = []
+    st.session_state["api_messages"] = []
+    st.session_state["pending_user_message"] = None
+    st.session_state.pop("session_id", None)
+    st.session_state.pop("session_started_at", None)
+    st.session_state.pop("neuro_agent", None)
 
 
 def _write_chat_session_row(
@@ -164,11 +178,7 @@ def _render_chat(agent, transcript_height: int = 420) -> None:
 
     if clear_clicked:
         _auto_summarize_if_sufficient()
-        st.session_state["chat_history"] = []
-        st.session_state["api_messages"] = []
-        st.session_state["pending_user_message"] = None
-        st.session_state.pop("session_id", None)
-        st.session_state.pop("session_started_at", None)
+        clear_chat_state_for_context_switch()
         if agent:
             agent.prior_context = ""
         st.rerun()

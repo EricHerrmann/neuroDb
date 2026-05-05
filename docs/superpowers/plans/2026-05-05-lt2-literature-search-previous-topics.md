@@ -4,7 +4,7 @@
 
 **Scope decision:** Proceed in Streamlit. The failed Pre-LT-2 fixed-pane layout is not a blocker for LT-2. Full UI shell rearchitecture is deferred post-LT-3 unless Streamlit prevents capability testing.
 
-**Current test count:** 267 after Task 1-2 schema/client/agent tests.
+**Current test count:** 271 after Tasks 1-4.
 
 ---
 
@@ -44,19 +44,19 @@
 - [x] Keep source queuing behavior unchanged.
 - [x] Update tests so common LTP/plasticity queries no longer assert starter-only behavior.
 
-### Task 3 — Previous Topics
+### Task 3 — Previous Topics ✅ COMPLETE
 
-- [ ] Add `SessionManager.get_most_recent_context(engine)`.
-- [ ] Add sidebar session list with 10 most recent sessions.
-- [ ] Add load-on-demand behavior.
-- [ ] Autosave current session before switching when user turns >= 3.
-- [ ] Add editable topic labels.
+- [x] Add `SessionManager.get_most_recent_context(engine)`.
+- [x] Add sidebar session list with 10 most recent sessions.
+- [x] Add load-on-demand behavior.
+- [x] Autosave current session before switching when user turns >= 3.
+- [x] Add editable topic labels.
 
-### Task 4 — Connections Sidebar
+### Task 4 — Connections Sidebar ✅ COMPLETE
 
-- [ ] Show `NCBI_API_KEY` and `SEMANTIC_SCHOLAR_API_KEY` present/not-set indicators.
-- [ ] Show pending connector request count from `source_suggestions`.
-- [ ] Keep section collapsed by default.
+- [x] Show `NCBI_API_KEY` and `SEMANTIC_SCHOLAR_API_KEY` present/not-set indicators.
+- [x] Show pending connector request count from `source_suggestions`.
+- [x] Keep section collapsed by default.
 
 ### Task 5 — Knowledge Library Polish + Dedup
 

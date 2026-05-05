@@ -14,6 +14,8 @@ def test_sidebar_module_defines_render_sidebar():
     tree = _get_tree()
     fn_names = [node.name for node in ast.walk(tree) if isinstance(node, ast.FunctionDef)]
     assert "render_sidebar" in fn_names
+    assert "_render_previous_topics" in fn_names
+    assert "_render_connections" in fn_names
 
 
 def test_sidebar_contains_mode_radio():
@@ -58,3 +60,12 @@ def test_sidebar_does_not_contain_form_or_chat_state():
     source = _get_source()
     assert "st.form(" not in source
     assert "pending_user_message" not in source
+
+
+def test_sidebar_contains_previous_topics_and_connections_sections():
+    source = _get_source()
+    assert "Previous Topics" in source
+    assert "Connections" in source
+    assert "NCBI_API_KEY" in source
+    assert "SEMANTIC_SCHOLAR_API_KEY" in source
+    assert "new_connector" in source

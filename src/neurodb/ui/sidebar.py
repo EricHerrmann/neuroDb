@@ -1,7 +1,7 @@
 import streamlit as st
 
 
-def render_sidebar() -> None:
+def render_sidebar(engine=None) -> None:
     from neurodb.chapter_registry import REGISTRY, lookup_chapter
 
     with st.sidebar:
@@ -84,7 +84,115 @@ def render_sidebar() -> None:
                             agent.chapter_context = ""
                         st.rerun()
 
+        _render_previous_topics(engine)
+        _render_connections(engine)
+
         db_path = st.session_state.get("db_path", "neurodb.duckdb")
         st.divider()
         st.caption(f"DB: `{db_path}`")
         st.caption(f"Session: `{'active' if 'session_id' in st.session_state else 'none'}`")
+
+
+def _render_previous_topics(engine=None) -> None:
+    engine = engine or st.session_state.get("engine")
+    with st.expander("Previous Topics", expanded=True):
+        if engine is None:
+            st.caption("No previous topics.")
+            return
+
+        rows = _list_chat_sessions(engine)
+        if not rows:
+            st.caption("No previous topics.")
+            return
+
+        _render_topic_rows(engine, rows[:10])
+        if len(rows) > 10:
+            with st.expander("Show all"):
+                _render_topic_rows(engine, rows[10:])
+
+
+def _render_topic_rows(engine, rows) -> None:
+    for row in rows:
+        if st.button(_format_topic_label(row), key=f"load_topic_{row.id}", width="stretch"):
+            _load_previous_topic(engine, row.session_id)
+
+        edited = st.text_input(
+            "Edit topic label",
+            value=row.inferred_topic,
+            key=f"edit_topic_{row.id}",
+            label_visibility="collapsed",
+        )
+        if edited.strip() and edited.strip() != row.inferred_topic:
+            if st.button("Save topic label", key=f"save_topic_{row.id}", width="stretch"):
+                _update_topic_label(engine, row.id, edited.strip())
+                st.rerun()
+
+
+def _render_connections(engine=None) -> None:
+    import os
+
+    engine = engine or st.session_state.get("engine")
+    with st.expander("Connections", expanded=False):
+        st.caption(f"NCBI (PubMed): {'present' if os.environ.get('NCBI_API_KEY') else 'not set'}")
+        st.caption(
+            "Semantic Scholar: "
+            f"{'present' if os.environ.get('SEMANTIC_SCHOLAR_API_KEY') else 'not set'}"
+        )
+        pending = _count_pending_connector_requests(engine) if engine is not None else 0
+        st.caption(f"Pending connector requests: {pending} -> see Suggestions tab")
+
+
+def _list_chat_sessions(engine):
+    from neurodb.db import get_session
+    from neurodb.schema import ChatSession
+
+    with get_session(engine) as session:
+        return (
+            session.query(ChatSession)
+            .order_by(ChatSession.ended_at.desc().nullslast(), ChatSession.started_at.desc())
+            .all()
+        )
+
+
+def _format_topic_label(row) -> str:
+    date_text = (row.ended_at or row.started_at or "")[:10] or "unknown"
+    mode_label = {
+        "local_db": "Local DB",
+        "external_db": "External DB",
+        "neuro_tutor": "Neuro-Tutor",
+    }.get(row.agent_mode, row.agent_mode)
+    return f"{row.inferred_topic[:48]} | {date_text} | {mode_label} | {row.message_count} turns"
+
+
+def _load_previous_topic(engine, session_id: str) -> None:
+    from neurodb.ui.pages.chat import _auto_summarize_if_sufficient, clear_chat_state_for_context_switch
+
+    _auto_summarize_if_sufficient()
+    manager = st.session_state.get("session_manager")
+    st.session_state["active_prior_context"] = (
+        manager.get_context_for_session_id(session_id) if manager is not None else ""
+    )
+    clear_chat_state_for_context_switch()
+    st.rerun()
+
+
+def _update_topic_label(engine, row_id: int, label: str) -> None:
+    from neurodb.db import get_session
+    from neurodb.schema import ChatSession
+
+    with get_session(engine) as session:
+        row = session.get(ChatSession, row_id)
+        if row is not None:
+            row.inferred_topic = label
+
+
+def _count_pending_connector_requests(engine) -> int:
+    from neurodb.db import get_session
+    from neurodb.schema import SourceSuggestion
+
+    with get_session(engine) as session:
+        return (
+            session.query(SourceSuggestion)
+            .filter_by(status="pending", suggestion_type="new_connector")
+            .count()
+        )

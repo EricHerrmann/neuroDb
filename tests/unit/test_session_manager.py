@@ -5,7 +5,10 @@ from unittest.mock import MagicMock
 
 import chromadb
 import pytest
+from sqlalchemy import create_engine
+from sqlalchemy.orm import Session
 
+from neurodb.schema import Base, ChatSession
 from neurodb.session_manager import AgentContextStore, SessionManager, format_context
 
 
@@ -45,6 +48,15 @@ def test_context_store_add_and_retrieve():
     assert "place cells" in results[0]
 
 
+def test_context_store_get_summary_by_session_id():
+    store = _store()
+    store.add_summary("sess-1", "Topic: hippocampus\nConcepts: place cells", {"date": "2026-04-27"})
+
+    result = store.get_summary_by_session_id("sess-1")
+
+    assert "place cells" in result
+
+
 def test_context_store_add_multiple_returns_most_relevant():
     store = _store()
     store.add_summary("sess-1", "Topic: hippocampus\nConcepts: place cells", {"date": "2026-04-27"})
@@ -59,6 +71,7 @@ def test_context_store_is_append_only():
     store.add_summary("sess-1", "Topic: V1 updated\nConcepts: orientation columns", {"date": "2026-04-28"})
     # Both documents stored (unique IDs per call, no upsert)
     assert store._col.count() == 2
+    assert "orientation columns" in store.get_summary_by_session_id("sess-1")
 
 
 def test_context_store_filters_out_high_distance_results():
@@ -170,6 +183,46 @@ def test_start_session_respects_custom_threshold():
 
     _, context_strict = manager.start_session("hippocampus", threshold=0.6)
     assert context_strict == ""
+
+
+def test_get_most_recent_context_returns_latest_chat_session_summary():
+    engine = create_engine("sqlite:///:memory:")
+    Base.metadata.create_all(engine)
+    store = _store()
+    store.add_summary("old", "Topic: old\nConcepts: old context", {})
+    store.add_summary("new", "Topic: new\nConcepts: fresh context", {})
+    with Session(engine) as session:
+        session.add(ChatSession(
+            session_id="old",
+            inferred_topic="old",
+            agent_mode="neuro_tutor",
+            started_at="2026-05-04T00:00:00",
+            ended_at="2026-05-04T00:05:00",
+            message_count=3,
+        ))
+        session.add(ChatSession(
+            session_id="new",
+            inferred_topic="new",
+            agent_mode="neuro_tutor",
+            started_at="2026-05-05T00:00:00",
+            ended_at="2026-05-05T00:05:00",
+            message_count=4,
+        ))
+        session.commit()
+
+    context = SessionManager(store).get_most_recent_context(engine)
+
+    assert "fresh context" in context
+    assert "old context" not in context
+
+
+def test_get_most_recent_context_returns_empty_on_cold_start():
+    engine = create_engine("sqlite:///:memory:")
+    Base.metadata.create_all(engine)
+
+    context = SessionManager(_store()).get_most_recent_context(engine)
+
+    assert context == ""
 
 
 # ---------------------------------------------------------------------------

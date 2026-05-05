@@ -167,11 +167,16 @@ def test_no_learning_or_discovery_mode_strings_in_chat():
     assert '"discovery"' not in source
 
 
-def test_three_mode_options_present_in_chat():
-    source = pathlib.Path("src/neurodb/ui/pages/chat.py").read_text()
+def test_three_mode_options_present_in_sidebar():
+    source = pathlib.Path("src/neurodb/ui/sidebar.py").read_text()
     assert "local_db" in source
     assert "external_db" in source
     assert "neuro_tutor" in source
+
+
+def test_chat_has_no_mode_radio():
+    source = pathlib.Path("src/neurodb/ui/pages/chat.py").read_text()
+    assert "st.radio" not in source
 
 
 def test_no_start_or_end_session_buttons_in_chat():

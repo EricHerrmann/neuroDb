@@ -8,7 +8,7 @@ import pathlib
 
 
 def _get_chat_source() -> str:
-    return pathlib.Path("src/neurodb/ui/pages/chat.py").read_text()
+    return pathlib.Path("src/neurodb/ui/sidebar.py").read_text()
 
 
 def test_set_chapter_button_is_guarded_by_lookup_result():

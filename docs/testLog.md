@@ -11,7 +11,7 @@ Use `Log ID` for cross-references across Open, Resolved, triage, sprint planning
 
 | Log ID | Issue ID | Description | Priority |
 |--------|----------|-------------|----------|
-| LOG-001 | P6-selector | Textbook dropdown appears pre-selected without explicit user action — agent context state is ambiguous | LT-3 |
+| LOG-001 | P6-selector | Textbook dropdown appears pre-selected without explicit user action — agent context state is ambiguous | Deferred post-LT-3 |
 | LOG-006 | LT1-model-visibility | User cannot tell which agent/LLM/model is active; no model selection or persistent preference rules | Deferred post-LT-3 |
 | LOG-013 | UI-shell-rearchitecture | Streamlit cannot support fixed-pane app-shell behavior; reassess UI stack after LT-3 | Deferred post-LT-3 |
 | LOG-014 | semscholar-no-apikey | Semantic Scholar does not issue API keys to non-academic accounts; connector setup docs and architecture must reflect source-dependent key requirements | Next arch update |

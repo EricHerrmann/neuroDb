@@ -117,6 +117,15 @@ _inject_ui_styles()
 
 st.session_state["engine"] = engine
 
+if "agent_mode" not in st.session_state:
+    from neurodb.research_tools import load_app_preference
+
+    saved_mode = load_app_preference(engine, "agent_mode", "local_db")
+    valid_modes = {"local_db", "external_db", "neuro_tutor", "neuro_research"}
+    st.session_state["agent_mode"] = (
+        saved_mode if saved_mode in valid_modes else "local_db"
+    )
+
 if "vector_store" not in st.session_state:
     chroma_path = db_path.replace(".duckdb", "_chroma")
     st.session_state["vector_store"] = VectorStore(path=chroma_path, embedder=Embedder())
@@ -160,12 +169,13 @@ with col_chat:
     render_panel(engine, transcript_height=480)
 
 with col_workspace:
-    tab_suggestions, tab_study, tab_datasets, tab_registry, tab_knowledge, tab_sql = st.tabs([
+    tab_suggestions, tab_study, tab_datasets, tab_registry, tab_knowledge, tab_research, tab_sql = st.tabs([
         "Suggestions",
         "Study Log",
         "Datasets",
         "Registry",
         "Knowledge Library",
+        "Research",
         "SQL",
     ])
 
@@ -187,6 +197,10 @@ with col_workspace:
 
     with tab_knowledge:
         from neurodb.ui.pages.knowledge_library import render
+        render(engine)
+
+    with tab_research:
+        from neurodb.ui.pages.research import render
         render(engine)
 
     with tab_sql:

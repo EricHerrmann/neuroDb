@@ -10,6 +10,7 @@ def render_sidebar(engine=None) -> None:
                 "local_db": "Local DB",
                 "external_db": "External DB",
                 "neuro_tutor": "Neuro-Tutor",
+                "neuro_research": "Neuro-Research",
             }
             mode_options = list(mode_labels)
             current_mode = st.session_state.get("agent_mode", "local_db")
@@ -21,12 +22,16 @@ def render_sidebar(engine=None) -> None:
                 label_visibility="collapsed",
             )
             if selected_mode != current_mode:
+                from neurodb.research_tools import save_app_preference
+
                 st.session_state["agent_mode"] = selected_mode
                 st.session_state["chapter_context"] = ""
+                if engine is not None:
+                    save_app_preference(engine, "agent_mode", selected_mode)
                 st.session_state.pop("neuro_agent", None)
                 st.rerun()
 
-        if st.session_state.get("agent_mode", "local_db") != "neuro_tutor":
+        if st.session_state.get("agent_mode", "local_db") not in {"neuro_tutor", "neuro_research"}:
             with st.expander("Context", expanded=True):
                 book_options = {key: value["display_name"] for key, value in REGISTRY.items()}
                 st.selectbox(
@@ -167,6 +172,7 @@ def _format_topic_label(row) -> str:
         "local_db": "Local DB",
         "external_db": "External DB",
         "neuro_tutor": "Neuro-Tutor",
+        "neuro_research": "Neuro-Research",
     }.get(row.agent_mode, row.agent_mode)
     return f"{row.inferred_topic[:48]} | {date_text} | {mode_label} | {row.message_count} turns"
 

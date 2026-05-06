@@ -1,7 +1,7 @@
 import json
 import os
 import uuid
-from datetime import datetime, timezone
+from datetime import date, datetime, timezone
 
 import streamlit as st
 from sqlalchemy import Engine
@@ -57,6 +57,21 @@ def _init_agent(engine: Engine) -> None:
             vector_store=vector_store,
             knowledge_store=st.session_state.get("knowledge_store"),
             prior_context=st.session_state.get("active_prior_context", ""),
+        )
+        return
+
+    if mode == "neuro_research":
+        from neurodb.agents.research_agent import NeuroResearchAgent
+
+        manager = st.session_state.get("session_manager")
+        st.session_state["neuro_agent"] = NeuroResearchAgent(
+            client=client,
+            engine=engine,
+            vector_store=vector_store,
+            knowledge_store=st.session_state.get("knowledge_store"),
+            prior_context=st.session_state.get("active_prior_context", ""),
+            context_store=getattr(manager, "_store", None),
+            current_date=date.today().isoformat(),
         )
         return
 

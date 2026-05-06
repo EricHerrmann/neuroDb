@@ -23,11 +23,18 @@ def test_sidebar_contains_mode_radio():
     assert "st.radio" in source
 
 
-def test_sidebar_contains_all_three_mode_keys():
+def test_sidebar_contains_all_four_mode_keys():
     source = _get_source()
     assert "local_db" in source
     assert "external_db" in source
     assert "neuro_tutor" in source
+    assert "neuro_research" in source
+
+
+def test_sidebar_persists_agent_mode_selection():
+    source = _get_source()
+    assert "save_app_preference" in source
+    assert "agent_mode" in source
 
 
 def test_sidebar_contains_chapter_controls():

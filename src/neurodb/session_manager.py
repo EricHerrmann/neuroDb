@@ -7,11 +7,12 @@ _SUMMARY_MODEL = os.environ.get("NEURODB_MODEL", "claude-opus-4-7")
 _RELEVANCE_THRESHOLD = 0.7  # cosine distance; summaries above this are not injected
 
 _SUMMARY_PROMPT = """You are summarizing a neuroscience research session for future reference.
+Current date: {current_date}
 Given the conversation below, produce a concise structured summary.
 
 Format exactly:
 Topic: <main topic>
-Date: <today's date>
+Date: {current_date}
 Concepts covered: <comma-separated list>
 Datasets explored: <dataset IDs if any, else "none">
 Knowledge state: <one sentence on what the user understands>
@@ -92,9 +93,10 @@ def format_context(summaries: list[str]) -> str:
 class SessionManager:
     """Manages session lifecycle: prior context retrieval and summary generation."""
 
-    def __init__(self, context_store: AgentContextStore, client=None) -> None:
+    def __init__(self, context_store: AgentContextStore, client=None, date_provider=None) -> None:
         self._store = context_store
         self._client = client  # Anthropic client
+        self._date_provider = date_provider
 
     def start_session(
         self,
@@ -189,7 +191,15 @@ class SessionManager:
             f"{m['role'].upper()}: {m['content'] if isinstance(m['content'], str) else '[tool content]'}"
             for m in conversation
         )
-        prompt = _SUMMARY_PROMPT.format(conversation=convo_text)
+        current_date = (
+            self._date_provider()
+            if self._date_provider is not None
+            else date.today().isoformat()
+        )
+        prompt = _SUMMARY_PROMPT.format(
+            conversation=convo_text,
+            current_date=current_date,
+        )
         response = self._client.messages.create(
             model=_SUMMARY_MODEL,
             max_tokens=512,
@@ -198,4 +208,4 @@ class SessionManager:
         for block in response.content:
             if block.type == "text":
                 return block.text.strip()
-        return f"Topic: unknown\nDate: {date.today()}"
+        return f"Topic: unknown\nDate: {current_date}"

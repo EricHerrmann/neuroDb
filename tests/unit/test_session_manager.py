@@ -280,6 +280,38 @@ def test_end_session_no_client_skips_silently():
     assert store.get_relevant("hi", n=3) == []
 
 
+def test_summary_prompt_includes_injected_current_date():
+    store = _store()
+    client = _mock_client("Topic: LTP\nDate: 2026-05-06\nConcepts covered: LTP")
+    manager = SessionManager(
+        store,
+        client=client,
+        date_provider=lambda: "2026-05-06",
+    )
+
+    manager.end_session("sess-date", [{"role": "user", "content": "Discuss LTP"}])
+
+    prompt = client.messages.create.call_args[1]["messages"][0]["content"]
+    assert "Current date: 2026-05-06" in prompt
+    assert "Date: 2026-05-06" in prompt
+
+
+def test_summary_fallback_uses_injected_current_date():
+    block = SimpleNamespace(type="tool_use", text="")
+    response = SimpleNamespace(content=[block])
+    client = MagicMock()
+    client.messages.create.return_value = response
+    manager = SessionManager(
+        _store(),
+        client=client,
+        date_provider=lambda: "2026-05-06",
+    )
+
+    summary = manager._generate_summary([{"role": "user", "content": "Discuss LTP"}])
+
+    assert summary == "Topic: unknown\nDate: 2026-05-06"
+
+
 def test_end_session_api_failure_does_not_raise():
     store = _store()
     bad_client = MagicMock()

@@ -2,7 +2,7 @@
 
 Date: 2026-04-13
 Reviewer: Codex
-Target: `docs/manualTestPlan_phase5.md`
+Target: `docs/testsPlans/old test completed test plans/manualTestPlan_phase5.md`
 
 ## Verdict
 
@@ -14,7 +14,7 @@ It is not sufficient as a full Phase 5 sign-off for "replace the SQLite backend 
 
 ### 1. High — No manual coverage for the Streamlit UI on DuckDB
 
-`docs/manualTestPlan_phase5.md:5` limits scope to ingest, query CLI, SQL mode, cross-source views, and migration. The plan never exercises the Streamlit app, even though Phase 3 explicitly treated it as a shipped surface in manual testing (`docs/testsPlans/manualTestPlan_phase3.md:178-205`).
+`docs/testsPlans/old test completed test plans/manualTestPlan_phase5.md:5` limits scope to ingest, query CLI, SQL mode, cross-source views, and migration. The plan never exercises the Streamlit app, even though Phase 3 explicitly treated it as a shipped surface in manual testing (`docs/testsPlans/old test completed test plans/manualTestPlan_phase3.md:178-205`).
 
 That omission matters because the UI entrypoint still defaults to `neurodb.db` and hardcodes a SQLite engine:
 
@@ -33,7 +33,7 @@ Recommended addition:
 
 ### 2. High — No DuckDB regression coverage for `scripts/field_coverage_audit.py`
 
-Phase 4 regression explicitly required the field coverage audit to keep working (`docs/testsPlans/manualTestPlan_phase4.md:43-47`). Phase 5 regression narrows that to only `scripts/query_cli.py` and default DB strings (`docs/manualTestPlan_phase5.md:33-37`).
+Phase 4 regression explicitly required the field coverage audit to keep working (`docs/testsPlans/old test completed test plans/manualTestPlan_phase4.md:43-47`). Phase 5 regression narrows that to only `scripts/query_cli.py` and default DB strings (`docs/testsPlans/old test completed test plans/manualTestPlan_phase5.md:33-37`).
 
 That reduction leaves a real gap because `scripts/field_coverage_audit.py` still defaults to SQLite and constructs a SQLite URL:
 
@@ -45,7 +45,7 @@ Assuming prior-phase regression passed on SQLite does not validate this script a
 
 ### 3. Medium — Migration coverage only proves single-source copy, not the full multi-source path
 
-The migration script copies both source tables (`scripts/migrate_to_duckdb.py:16-25`), but the manual test seeds only OpenNeuro before migration (`docs/manualTestPlan_phase5.md:143-154`). The expected outcome also treats Allen as an empty-table skip case (`docs/manualTestPlan_phase5.md:167-169`).
+The migration script copies both source tables (`scripts/migrate_to_duckdb.py:16-25`), but the manual test seeds only OpenNeuro before migration (`docs/testsPlans/old test completed test plans/manualTestPlan_phase5.md:143-154`). The expected outcome also treats Allen as an empty-table skip case (`docs/testsPlans/old test completed test plans/manualTestPlan_phase5.md:167-169`).
 
 That means the manual plan does not actually prove:
 
@@ -61,7 +61,7 @@ Recommended addition:
 
 ### 4. Medium — No negative-path SQL test on DuckDB
 
-Phase 4 covered invalid SQL handling (`docs/testsPlans/manualTestPlan_phase4.md:181-189`). Phase 5 keeps the SQL happy path (`docs/manualTestPlan_phase5.md:113-135`) but removes the error-path check, even though the backend and dialect changed.
+Phase 4 covered invalid SQL handling (`docs/testsPlans/old test completed test plans/manualTestPlan_phase4.md:181-189`). Phase 5 keeps the SQL happy path (`docs/testsPlans/old test completed test plans/manualTestPlan_phase5.md:113-135`) but removes the error-path check, even though the backend and dialect changed.
 
 That is the wrong place to reduce coverage. `docs/ClaudeDbEpochPlan.md:2051-2053` already calls out `duckdb-engine` maturity as a trade-off, so manual validation should include at least one intentionally bad query to confirm the CLI still fails visibly and does not hang.
 
@@ -72,7 +72,7 @@ Recommended addition:
 
 ### 5. Low — The regression prerequisite points to a stale Phase 4 document path
 
-`docs/manualTestPlan_phase5.md:31` tells the tester to rely on `docs/manualTestPlan_phase4.md`, but the current tracked Phase 4 plan is `docs/testsPlans/manualTestPlan_phase4.md:1`.
+`docs/testsPlans/old test completed test plans/manualTestPlan_phase5.md:31` tells the tester to rely on `docs/testsPlans/old test completed test plans/manualTestPlan_phase4.md`, but the current tracked Phase 4 plan is `docs/testsPlans/old test completed test plans/manualTestPlan_phase4.md:1`.
 
 This is a documentation/reproducibility issue rather than a runtime defect, but it makes execution ambiguous and should be corrected before sign-off.
 
@@ -80,11 +80,11 @@ This is a documentation/reproducibility issue rather than a runtime defect, but 
 
 The current Phase 5 plan does cover these areas well:
 
-- Fresh DuckDB ingest for both sources (`docs/manualTestPlan_phase5.md:43-69`)
-- Query CLI keyword, modality, source, and combined filters (`docs/manualTestPlan_phase5.md:73-109`)
-- SQL summary and cross-source aggregation checks (`docs/manualTestPlan_phase5.md:113-135`)
-- Migration script happy path plus rerun idempotency (`docs/manualTestPlan_phase5.md:139-197`)
-- Re-ingest idempotency on DuckDB (`docs/manualTestPlan_phase5.md:201-225`)
+- Fresh DuckDB ingest for both sources (`docs/testsPlans/old test completed test plans/manualTestPlan_phase5.md:43-69`)
+- Query CLI keyword, modality, source, and combined filters (`docs/testsPlans/old test completed test plans/manualTestPlan_phase5.md:73-109`)
+- SQL summary and cross-source aggregation checks (`docs/testsPlans/old test completed test plans/manualTestPlan_phase5.md:113-135`)
+- Migration script happy path plus rerun idempotency (`docs/testsPlans/old test completed test plans/manualTestPlan_phase5.md:139-197`)
+- Re-ingest idempotency on DuckDB (`docs/testsPlans/old test completed test plans/manualTestPlan_phase5.md:201-225`)
 
 ## Recommended Minimum Additions Before Approval
 

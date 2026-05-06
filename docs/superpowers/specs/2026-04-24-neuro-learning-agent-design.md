@@ -174,7 +174,7 @@ uv run scripts/study.py search "retinotopic"
 
 App tab layout from P1: **Dataset Explorer | SQL Query | Study Log**
 
-**Manual test plan:** `docs/testsPlans/manualTestPlan_agent_p1.md`
+**Manual test plan:** `docs/testsPlans/old test completed test plans/manualTestPlan_agent_p1.md`
 
 ---
 
@@ -199,7 +199,7 @@ App tab layout from P1: **Dataset Explorer | SQL Query | Study Log**
 - `ingest.py`: one call after each successful dataset write → `embedder.embed_dataset(record)`
 - `study.py tag` and Study Log UI tag form: one call after study_note write → `embedder.embed_study_note(note)`
 
-**Manual test plan:** `docs/testsPlans/manualTestPlan_agent_p2.md`
+**Manual test plan:** `docs/testsPlans/old test completed test plans/manualTestPlan_agent_p2.md`
 
 ---
 
@@ -231,7 +231,7 @@ System prompt establishes: agent role, awareness of the four data sources and th
 
 App tab layout from P3: **Dataset Explorer | SQL Query | Study Log | Agent Chat**
 
-**Manual test plan:** `docs/testsPlans/manualTestPlan_agent_p3.md`
+**Manual test plan:** `docs/testsPlans/old test completed test plans/manualTestPlan_agent_p3.md`
 
 ---
 
@@ -263,7 +263,7 @@ Prior sessions relevant to this topic:
 
 **Session summary failure:** log warning, session ends cleanly — losing one summary is acceptable. Do not block exit.
 
-**Manual test plan:** `docs/testsPlans/manualTestPlan_agent_p4.md`
+**Manual test plan:** `docs/testsPlans/old test completed test plans/manualTestPlan_agent_p4.md`
 
 ---
 
@@ -334,7 +334,7 @@ Session end:   end_session(id, conversation)
 - Unit: `study_notes` schema; FK constraint enforced on unknown (source, source_id)
 - Unit: `study.py` tag, list, search subcommands with fixture data
 - Integration: tag a dataset → query `study_notes` → confirm row visible with correct fields
-- Manual: `docs/testsPlans/manualTestPlan_agent_p1.md`
+- Manual: `docs/testsPlans/old test completed test plans/manualTestPlan_agent_p1.md`
 
 **P2**
 - Unit: `embedder.py` — compose text from dataset record, returns vector of correct dimension
@@ -342,18 +342,18 @@ Session end:   end_session(id, conversation)
 - Integration: ingest fixture dataset → confirm `neuro_research` collection count increments
 - Integration: add study tag → confirm note appears in semantic search results
 - Integration: drop ChromaDB → run re-embed script → confirm count matches DuckDB record count
-- Manual: `docs/testsPlans/manualTestPlan_agent_p2.md`
+- Manual: `docs/testsPlans/old test completed test plans/manualTestPlan_agent_p2.md`
 
 **P3**
 - Unit: each tool function tested independently with mocked DuckDB/ChromaDB
 - Integration (`@pytest.mark.live`): fixed prompt → assert correct tool called with correct parameters
-- Manual: `docs/testsPlans/manualTestPlan_agent_p3.md`
+- Manual: `docs/testsPlans/old test completed test plans/manualTestPlan_agent_p3.md`
 
 **P4**
 - Unit: `start_session` — real ChromaDB temp instance, confirm correct summaries retrieved and formatted
 - Unit: `end_session` — real ChromaDB temp instance + `@pytest.mark.live` for Claude summarization call
 - Integration (`@pytest.mark.live`): full session lifecycle — start → exchange messages → end → start new session → confirm prior context appears in system prompt
-- Manual: `docs/testsPlans/manualTestPlan_agent_p4.md`
+- Manual: `docs/testsPlans/old test completed test plans/manualTestPlan_agent_p4.md`
 
 ---
 

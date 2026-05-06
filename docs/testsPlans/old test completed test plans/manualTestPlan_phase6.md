@@ -30,7 +30,7 @@ Expected: all automated tests pass.
 
 Before testing Phase 6 additions, verify that Phase 5 behaviour is intact.
 
-Execute all tests in `docs/testsPlans/manualTestPlan_phase5.md` (Tests 1–6). All pass criteria in that document must be satisfied before proceeding.
+Execute all tests in `docs/testsPlans/old test completed test plans/manualTestPlan_phase5.md` (Tests 1–6). All pass criteria in that document must be satisfied before proceeding.
 
 | # | Check | Expected |
 |---|-------|----------|

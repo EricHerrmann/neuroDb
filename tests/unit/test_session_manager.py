@@ -225,6 +225,29 @@ def test_get_most_recent_context_returns_empty_on_cold_start():
     assert context == ""
 
 
+def test_get_most_recent_context_falls_back_to_inferred_topic_when_no_chroma_summary():
+    """If a ChatSession row exists but has no ChromaDB summary, fall back to inferred_topic."""
+    engine = create_engine("sqlite:///:memory:")
+    Base.metadata.create_all(engine)
+    store = _store()  # empty — no summary added
+
+    with Session(engine) as session:
+        session.add(ChatSession(
+            session_id="orphan-sess",
+            inferred_topic="What is LTP?",
+            agent_mode="neuro_tutor",
+            started_at="2026-05-06T10:00:00",
+            ended_at=None,
+            message_count=1,
+        ))
+        session.commit()
+
+    context = SessionManager(store).get_most_recent_context(engine)
+
+    assert context
+    assert "LTP" in context
+
+
 # ---------------------------------------------------------------------------
 # SessionManager.end_session
 # ---------------------------------------------------------------------------

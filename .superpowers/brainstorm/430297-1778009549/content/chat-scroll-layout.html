@@ -1,0 +1,108 @@
+<h2>Chat Controls + Scroll — Layout Direction</h2>
+<p class="subtitle">As conversations grow, users lose access to the mode toggle and the workspace pane falls out of sync. Pick the approach that feels right.</p>
+
+<div class="cards">
+
+  <div class="card" data-choice="a" onclick="toggleSelect(this)">
+    <div class="card-image" style="background:#f8fafc;padding:12px;font-family:monospace;font-size:11px;">
+      <div style="display:flex;gap:8px;height:220px;">
+        <!-- left: chat pane -->
+        <div style="flex:1.7;display:flex;flex-direction:column;gap:4px;">
+          <div style="background:#e2e8f0;padding:4px 6px;border-radius:4px;font-weight:bold;font-size:10px;position:sticky;top:0;">
+            🔒 STICKY BAR — Local DB | External DB | Neuro-Tutor
+          </div>
+          <div style="flex:1;overflow:hidden;background:#fff;border:1px solid #cbd5e1;border-radius:4px;padding:6px;display:flex;flex-direction:column;gap:3px;">
+            <div style="background:#eff6ff;border-radius:3px;padding:3px 5px;font-size:9px;">User: What is LTP?</div>
+            <div style="background:#f0fdf4;border-radius:3px;padding:3px 5px;font-size:9px;">Agent: LTP is long-term potentiation...</div>
+            <div style="background:#eff6ff;border-radius:3px;padding:3px 5px;font-size:9px;">User: How does calcium help?</div>
+            <div style="background:#f0fdf4;border-radius:3px;padding:3px 5px;font-size:9px;">Agent: NMDA receptors gate calcium influx...</div>
+            <div style="background:#eff6ff;border-radius:3px;padding:3px 5px;font-size:9px;">User: What about AMPA?</div>
+            <div style="background:#f0fdf4;border-radius:3px;padding:3px 5px;font-size:9px;">Agent: AMPA receptors are trafficked to...</div>
+          </div>
+          <div style="background:#1e293b;color:#fff;border-radius:4px;padding:4px 6px;font-size:9px;">[ Type message… ] [Send] [Clear]</div>
+        </div>
+        <!-- right: workspace pane -->
+        <div style="flex:1.1;background:#fff;border:1px solid #cbd5e1;border-radius:4px;padding:6px;font-size:9px;overflow:hidden;">
+          <div style="font-weight:bold;margin-bottom:3px;font-size:10px;">Knowledge Library | Study Log | ...</div>
+          <div style="color:#64748b;font-size:9px;">Independent scroll — stays wherever the user left it</div>
+        </div>
+      </div>
+    </div>
+    <div class="card-body">
+      <h3>A — Sticky Mode Bar</h3>
+      <p>The mode toggle (Local DB / External DB / Neuro-Tutor) sticks to the top of the chat pane and stays visible as the transcript scrolls. Mode controls are always reachable. Workspace pane scrolls independently. Simplest change.</p>
+      <div class="pros-cons">
+        <div class="pros"><h4>Pros</h4><ul><li>Minimal implementation</li><li>Mode toggle always visible</li><li>Workspace already independent</li></ul></div>
+        <div class="cons"><h4>Cons</h4><ul><li>Doesn't fix workspace sync (LOG-002)</li><li>Chapter/textbook controls not sticky</li></ul></div>
+      </div>
+    </div>
+  </div>
+
+  <div class="card" data-choice="b" onclick="toggleSelect(this)">
+    <div class="card-image" style="background:#f8fafc;padding:12px;font-family:monospace;font-size:11px;">
+      <div style="display:flex;gap:8px;height:220px;">
+        <div style="flex:1.7;display:flex;flex-direction:column;gap:4px;">
+          <div style="background:#e2e8f0;padding:4px 6px;border-radius:4px;font-weight:bold;font-size:10px;">
+            Mode: Local DB | External DB | Neuro-Tutor
+          </div>
+          <div style="flex:1;overflow:hidden;background:#fff;border:1px solid #cbd5e1;border-radius:4px;padding:6px;display:flex;flex-direction:column;gap:3px;">
+            <div style="background:#f0fdf4;border-radius:3px;padding:3px 5px;font-size:9px;">Agent: AMPA receptors are trafficked to... <span style="color:#94a3b8;font-size:8px;">[newest]</span></div>
+            <div style="background:#eff6ff;border-radius:3px;padding:3px 5px;font-size:9px;">User: What about AMPA?</div>
+            <div style="background:#f0fdf4;border-radius:3px;padding:3px 5px;font-size:9px;">Agent: NMDA receptors gate calcium influx...</div>
+            <div style="background:#eff6ff;border-radius:3px;padding:3px 5px;font-size:9px;">User: How does calcium help?</div>
+            <div style="background:#f0fdf4;border-radius:3px;padding:3px 5px;font-size:9px;">Agent: LTP is long-term potentiation...</div>
+            <div style="background:#eff6ff;border-radius:3px;padding:3px 5px;font-size:9px;">User: What is LTP? <span style="color:#94a3b8;font-size:8px;">[oldest]</span></div>
+          </div>
+          <div style="background:#1e293b;color:#fff;border-radius:4px;padding:4px 6px;font-size:9px;">[ Type message… ] [Send] [Clear]</div>
+        </div>
+        <div style="flex:1.1;background:#fff;border:1px solid #cbd5e1;border-radius:4px;padding:6px;font-size:9px;">
+          <div style="font-weight:bold;margin-bottom:3px;font-size:10px;">Knowledge Library | Study Log | ...</div>
+          <div style="color:#64748b;font-size:9px;">Workspace still independent</div>
+        </div>
+      </div>
+    </div>
+    <div class="card-body">
+      <h3>B — Newest-First Chat</h3>
+      <p>Messages render in reverse chronological order — most recent at the top. The input and mode controls sit at the top too. No scrolling needed for active conversation. Older messages scroll down.</p>
+      <div class="pros-cons">
+        <div class="pros"><h4>Pros</h4><ul><li>Active turn always visible without scrolling</li><li>Mode toggle naturally stays in view</li></ul></div>
+        <div class="cons"><h4>Cons</h4><ul><li>Unfamiliar reading direction</li><li>Streaming new text appears at top — jarring</li><li>Harder to implement correctly</li></ul></div>
+      </div>
+    </div>
+  </div>
+
+  <div class="card" data-choice="c" onclick="toggleSelect(this)">
+    <div class="card-image" style="background:#f8fafc;padding:12px;font-family:monospace;font-size:11px;">
+      <div style="display:flex;gap:8px;height:220px;">
+        <div style="flex:1.7;display:flex;flex-direction:column;gap:4px;">
+          <div style="background:#e2e8f0;padding:4px 6px;border-radius:4px;font-weight:bold;font-size:10px;">
+            🔒 STICKY — Local DB | Ext DB | Neuro-Tutor &nbsp;&nbsp; Session: active
+          </div>
+          <div style="flex:1;overflow:hidden;background:#fff;border:1px solid #cbd5e1;border-radius:4px;padding:6px;display:flex;flex-direction:column;gap:3px;">
+            <div style="background:#eff6ff;border-radius:3px;padding:3px 5px;font-size:9px;">User: What is LTP?</div>
+            <div style="background:#f0fdf4;border-radius:3px;padding:3px 5px;font-size:9px;">Agent: LTP is long-term potentiation...</div>
+            <div style="background:#eff6ff;border-radius:3px;padding:3px 5px;font-size:9px;">User: How does calcium help?</div>
+            <div style="background:#f0fdf4;border-radius:3px;padding:3px 5px;font-size:9px;">Agent: NMDA receptors gate calcium influx...</div>
+            <div style="background:#eff6ff;border-radius:3px;padding:3px 5px;font-size:9px;">User: What about AMPA?</div>
+            <div style="background:#f0fdf4;border-radius:3px;padding:3px 5px;font-size:9px;">Agent: AMPA receptors are trafficked... <span style="color:#94a3b8;font-size:8px;">← auto-scrolled here</span></div>
+          </div>
+          <div style="background:#1e293b;color:#fff;border-radius:4px;padding:4px 6px;font-size:9px;">[ Type message… ] [Send] [Clear]</div>
+        </div>
+        <div style="flex:1.1;background:#fff;border:1px solid #cbd5e1;border-radius:4px;padding:6px;font-size:9px;display:flex;flex-direction:column;gap:3px;">
+          <div style="font-weight:bold;margin-bottom:3px;font-size:10px;">Knowledge Library | Study Log | ...</div>
+          <div style="background:#eff6ff;border-radius:3px;padding:3px 5px;font-size:9px;">🔒 Workspace scrolls independently</div>
+          <div style="color:#64748b;font-size:9px;margin-top:4px;">Each pane owns its own scroll position. Mode bar sticks. Chat auto-scrolls to new messages.</div>
+        </div>
+      </div>
+    </div>
+    <div class="card-body">
+      <h3>C — Sticky Controls + Auto-Scroll</h3>
+      <p>Mode toggle (and session status) stick to the top of the chat pane. Chat transcript auto-scrolls to the latest message after each turn. Workspace pane is fully independent. This is the most complete fix for LOG-002/003.</p>
+      <div class="pros-cons">
+        <div class="pros"><h4>Pros</h4><ul><li>Fixes both LOG-002 and LOG-003</li><li>Chat scrolls to new content automatically</li><li>Familiar reading order preserved</li></ul></div>
+        <div class="cons"><h4>Cons</h4><ul><li>Streamlit auto-scroll requires JS injection or scroll container trick</li><li>More implementation work than A</li></ul></div>
+      </div>
+    </div>
+  </div>
+
+</div>

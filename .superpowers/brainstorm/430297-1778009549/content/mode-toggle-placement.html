@@ -1,0 +1,102 @@
+<h2>Mode Toggle Placement</h2>
+<p class="subtitle">With the fixed-pane layout, where does the agent mode control live? Input is always pinned to the bottom of the left pane.</p>
+
+<div class="cards">
+
+  <div class="card" data-choice="a" onclick="toggleSelect(this)">
+    <div class="card-image" style="background:#f8fafc;padding:10px;font-size:9px;font-family:monospace;">
+      <div style="display:flex;gap:6px;height:200px;">
+        <div style="flex:1.7;display:flex;flex-direction:column;gap:2px;">
+          <div style="background:#1e3a8a;color:#fff;padding:3px 6px;border-radius:3px;font-size:9px;font-weight:bold;flex-shrink:0;">
+            🔒 LOCAL DB &nbsp;|&nbsp; EXTERNAL DB &nbsp;|&nbsp; NEURO-TUTOR
+          </div>
+          <div style="flex:1;background:#fff;border:1px solid #cbd5e1;border-radius:3px;padding:4px;overflow:hidden;font-size:8px;color:#64748b;">
+            Transcript scrolls here…
+          </div>
+          <div style="background:#1e293b;color:#fff;border-radius:3px;padding:3px 6px;font-size:9px;flex-shrink:0;">
+            [ Type message… ] [Send] [Clear]
+          </div>
+        </div>
+        <div style="flex:1.1;background:#fff;border:1px solid #cbd5e1;border-radius:3px;padding:4px;font-size:8px;color:#64748b;">
+          Workspace tabs…
+        </div>
+      </div>
+    </div>
+    <div class="card-body">
+      <h3>A — Sticky header (top of left pane)</h3>
+      <p>Mode toggle stays where it is but is part of the fixed header above the transcript. Always visible, doesn't scroll. Simplest to implement — no structural change, just the fixed-pane CSS makes it sticky naturally.</p>
+      <div class="pros-cons">
+        <div class="pros"><h4>Pros</h4><ul><li>No change to existing layout logic</li><li>Mode always visible</li></ul></div>
+        <div class="cons"><h4>Cons</h4><ul><li>Eats vertical space from transcript area</li><li>Chapter/textbook controls also need to go somewhere</li></ul></div>
+      </div>
+    </div>
+  </div>
+
+  <div class="card" data-choice="b" onclick="toggleSelect(this)">
+    <div class="card-image" style="background:#f8fafc;padding:10px;font-size:9px;font-family:monospace;">
+      <div style="display:flex;gap:6px;height:200px;">
+        <div style="flex:1.7;display:flex;flex-direction:column;gap:2px;">
+          <div style="flex:1;background:#fff;border:1px solid #cbd5e1;border-radius:3px;padding:4px;overflow:hidden;font-size:8px;color:#64748b;">
+            Transcript scrolls here…
+          </div>
+          <!-- bottom bar: mode + input -->
+          <div style="background:#0f172a;color:#fff;border-radius:3px;padding:4px 6px;flex-shrink:0;display:flex;flex-direction:column;gap:2px;">
+            <div style="display:flex;gap:4px;font-size:8px;border-bottom:1px solid #334155;padding-bottom:3px;margin-bottom:1px;">
+              <span style="background:#1d4ed8;border-radius:2px;padding:1px 5px;">Local DB</span>
+              <span style="color:#94a3b8;">External DB</span>
+              <span style="color:#94a3b8;">Neuro-Tutor</span>
+            </div>
+            <div style="font-size:9px;">[ Type message… ] [Send] [Clear]</div>
+          </div>
+        </div>
+        <div style="flex:1.1;background:#fff;border:1px solid #cbd5e1;border-radius:3px;padding:4px;font-size:8px;color:#64748b;">
+          Workspace tabs…
+        </div>
+      </div>
+    </div>
+    <div class="card-body">
+      <h3>B — Bottom bar (above input, below transcript)</h3>
+      <p>Mode toggle moves into the bottom of the left pane, just above the text input. Both controls are in the same pinned bottom area. Transcript gets the full height above. Like a VSCode status bar combined with editor tabs.</p>
+      <div class="pros-cons">
+        <div class="pros"><h4>Pros</h4><ul><li>Maximizes transcript height</li><li>Mode and input close together — natural flow</li></ul></div>
+        <div class="cons"><h4>Cons</h4><ul><li>Mode toggle competes visually with input area</li><li>Bottom area gets dense</li></ul></div>
+      </div>
+    </div>
+  </div>
+
+  <div class="card" data-choice="c" onclick="toggleSelect(this)">
+    <div class="card-image" style="background:#f8fafc;padding:10px;font-size:9px;font-family:monospace;">
+      <div style="display:flex;gap:6px;height:200px;">
+        <!-- streamlit sidebar (narrow) -->
+        <div style="width:60px;background:#0f172a;color:#fff;border-radius:3px;padding:4px;font-size:7px;display:flex;flex-direction:column;gap:4px;flex-shrink:0;">
+          <div style="color:#94a3b8;font-size:7px;">MODE</div>
+          <div style="background:#1d4ed8;border-radius:2px;padding:2px 3px;font-size:7px;">Local DB</div>
+          <div style="color:#94a3b8;border-radius:2px;padding:2px 3px;font-size:7px;">Ext DB</div>
+          <div style="color:#94a3b8;border-radius:2px;padding:2px 3px;font-size:7px;">Tutor</div>
+          <div style="margin-top:4px;color:#94a3b8;font-size:7px;">DB: neurodb.duckdb</div>
+          <div style="color:#94a3b8;font-size:7px;">Session: active</div>
+        </div>
+        <div style="flex:1.7;display:flex;flex-direction:column;gap:2px;">
+          <div style="flex:1;background:#fff;border:1px solid #cbd5e1;border-radius:3px;padding:4px;overflow:hidden;font-size:8px;color:#64748b;">
+            Transcript — full height
+          </div>
+          <div style="background:#1e293b;color:#fff;border-radius:3px;padding:3px 6px;font-size:9px;flex-shrink:0;">
+            [ Type message… ] [Send] [Clear]
+          </div>
+        </div>
+        <div style="flex:1.1;background:#fff;border:1px solid #cbd5e1;border-radius:3px;padding:4px;font-size:8px;color:#64748b;">
+          Workspace tabs…
+        </div>
+      </div>
+    </div>
+    <div class="card-body">
+      <h3>C — Streamlit sidebar</h3>
+      <p>Mode toggle moves into Streamlit's native left sidebar (the collapsible panel). Transcript gets full height. The sidebar already shows DB path and session status — mode fits naturally there. User opens/collapses it as needed.</p>
+      <div class="pros-cons">
+        <div class="pros"><h4>Pros</h4><ul><li>Transcript + input get full left-pane width</li><li>Sidebar is collapsible — out of the way when not needed</li><li>Chapter context could live here too</li></ul></div>
+        <div class="cons"><h4>Cons</h4><ul><li>Mode is hidden when sidebar is collapsed</li><li>Sidebar adds a nav layer — user must open it to switch modes</li></ul></div>
+      </div>
+    </div>
+  </div>
+
+</div>

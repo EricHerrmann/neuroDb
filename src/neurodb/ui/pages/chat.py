@@ -20,6 +20,15 @@ def render_panel(engine: Engine, *, title: str = "", transcript_height: int = 42
 
     _init_agent(engine)
 
+    prior_topic = st.session_state.get("active_prior_topic", "")
+    if prior_topic:
+        st.markdown(
+            f'<div style="background:#1e3a8a;color:#f8fafc;padding:0.3rem 0.75rem;'
+            f'border-radius:0.5rem;font-size:0.85rem;margin-bottom:0.4rem;">'
+            f'Prior context: {prior_topic[:80]}</div>',
+            unsafe_allow_html=True,
+        )
+
     agent = st.session_state.get("neuro_agent")
     if agent is None:
         st.warning("ANTHROPIC_API_KEY not found in `.env`. Add it to enable chat.")
@@ -64,8 +73,13 @@ def _init_agent(engine: Engine) -> None:
 
 
 def _auto_start_session(first_message: str) -> None:
-    st.session_state["session_id"] = str(uuid.uuid4())
+    session_id = str(uuid.uuid4())
+    st.session_state["session_id"] = session_id
     st.session_state["session_started_at"] = datetime.now(timezone.utc).isoformat()
+
+    engine = st.session_state.get("engine")
+    if engine is not None:
+        _write_chat_session_draft(engine, session_id, first_message)
 
     manager = st.session_state.get("session_manager")
     context = st.session_state.get("active_prior_context", "")
@@ -105,6 +119,24 @@ def clear_chat_state_for_context_switch() -> None:
     st.session_state.pop("neuro_agent", None)
 
 
+def _write_chat_session_draft(engine, session_id: str, first_message: str) -> None:
+    from neurodb.db import get_session
+    from neurodb.schema import ChatSession
+
+    with get_session(engine) as session:
+        existing = session.query(ChatSession).filter_by(session_id=session_id).one_or_none()
+        if existing is None:
+            session.add(ChatSession(
+                session_id=session_id,
+                inferred_topic=first_message[:200],
+                agent_mode=st.session_state.get("agent_mode", "local_db"),
+                started_at=datetime.now(timezone.utc).isoformat(),
+                ended_at=None,
+                summary_preview=None,
+                message_count=0,
+            ))
+
+
 def _write_chat_session_row(
     engine,
     session_id: str,
@@ -123,19 +155,27 @@ def _write_chat_session_row(
         ),
         "unknown",
     )
+    ended_at = datetime.now(timezone.utc).isoformat()
     with get_session(engine) as session:
-        session.add(ChatSession(
-            session_id=session_id,
-            inferred_topic=first_user[:200],
-            agent_mode=st.session_state.get("agent_mode", "local_db"),
-            started_at=st.session_state.get(
-                "session_started_at",
-                datetime.now(timezone.utc).isoformat(),
-            ),
-            ended_at=datetime.now(timezone.utc).isoformat(),
-            summary_preview=summary[:200],
-            message_count=user_turns,
-        ))
+        row = session.query(ChatSession).filter_by(session_id=session_id).one_or_none()
+        if row is not None:
+            row.inferred_topic = first_user[:200]
+            row.ended_at = ended_at
+            row.summary_preview = summary[:200]
+            row.message_count = user_turns
+        else:
+            session.add(ChatSession(
+                session_id=session_id,
+                inferred_topic=first_user[:200],
+                agent_mode=st.session_state.get("agent_mode", "local_db"),
+                started_at=st.session_state.get(
+                    "session_started_at",
+                    datetime.now(timezone.utc).isoformat(),
+                ),
+                ended_at=ended_at,
+                summary_preview=summary[:200],
+                message_count=user_turns,
+            ))
 
 
 def _render_chat(agent, transcript_height: int = 420) -> None:

@@ -1,0 +1,82 @@
+<h2>Layout — Current vs Fixed-Pane</h2>
+<p class="subtitle">The real fix is making both columns behave like independent scroll containers, so the page itself never scrolls. The input stays pinned at the bottom of the left pane; the workspace stays visible on the right.</p>
+
+<div class="split">
+
+  <div class="mockup">
+    <div class="mockup-header">Current — page scrolls as one unit</div>
+    <div class="mockup-body" style="padding:8px;font-family:monospace;font-size:10px;">
+      <div style="display:flex;gap:6px;height:300px;overflow:hidden;">
+        <!-- left -->
+        <div style="flex:1.7;display:flex;flex-direction:column;gap:3px;">
+          <div style="background:#e2e8f0;padding:3px 5px;border-radius:3px;font-size:9px;font-weight:bold;">Mode: Local DB | Ext DB | Tutor</div>
+          <!-- messages overflowing the viewport, pushing input down -->
+          <div style="flex:1;background:#fff;border:1px solid #cbd5e1;border-radius:3px;padding:4px;display:flex;flex-direction:column;gap:2px;overflow:hidden;">
+            <div style="background:#eff6ff;border-radius:2px;padding:2px 4px;font-size:8px;">User: What is LTP?</div>
+            <div style="background:#f0fdf4;border-radius:2px;padding:2px 4px;font-size:8px;">Agent: Long-term potentiation (LTP) is...</div>
+            <div style="background:#eff6ff;border-radius:2px;padding:2px 4px;font-size:8px;">User: How does calcium help?</div>
+            <div style="background:#f0fdf4;border-radius:2px;padding:2px 4px;font-size:8px;">Agent: NMDA receptors gate calcium influx, which triggers kinase cascades that...</div>
+            <div style="background:#eff6ff;border-radius:2px;padding:2px 4px;font-size:8px;">User: What about AMPA receptor trafficking?</div>
+            <div style="background:#f0fdf4;border-radius:2px;padding:2px 4px;font-size:8px;">Agent: AMPA receptors are inserted into the synaptic membrane via exocytosis...</div>
+            <div style="background:#eff6ff;border-radius:2px;padding:2px 4px;font-size:8px;">User: Is spine morphology relevant?</div>
+            <div style="background:#f0fdf4;border-radius:2px;padding:2px 4px;font-size:8px;">Agent: Yes — dendritic spine enlargement accompanies LTP and is thought to...</div>
+          </div>
+          <!-- input is below viewport — user must scroll to reach it -->
+          <div style="background:#fca5a5;color:#7f1d1d;border-radius:3px;padding:3px 5px;font-size:8px;text-align:center;">
+            ↓ TEXT INPUT SCROLLED OFF SCREEN — user must scroll to reach
+          </div>
+        </div>
+        <!-- right workspace, offset from view -->
+        <div style="flex:1.1;background:#fff;border:1px solid #cbd5e1;border-radius:3px;padding:4px;font-size:8px;display:flex;flex-direction:column;gap:2px;">
+          <div style="font-weight:bold;font-size:9px;margin-bottom:3px;">Knowledge Library | Study Log | ...</div>
+          <div style="background:#fca5a5;color:#7f1d1d;border-radius:2px;padding:2px 4px;">When user scrolls down to reach the input, this pane scrolls with the page and disappears from view too</div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="mockup">
+    <div class="mockup-header">Fixed-pane — viewport-height columns, independent scroll</div>
+    <div class="mockup-body" style="padding:8px;font-family:monospace;font-size:10px;">
+      <div style="display:flex;gap:6px;height:300px;">
+        <!-- left: fixed height, input pinned to bottom -->
+        <div style="flex:1.7;display:flex;flex-direction:column;gap:3px;height:100%;">
+          <div style="background:#1e3a8a;color:#fff;padding:3px 5px;border-radius:3px;font-size:9px;font-weight:bold;flex-shrink:0;">
+            🔒 Local DB | Ext DB | Neuro-Tutor
+          </div>
+          <!-- transcript scrolls inside this fixed box -->
+          <div style="flex:1;background:#fff;border:1px solid #cbd5e1;border-radius:3px;padding:4px;overflow-y:auto;display:flex;flex-direction:column;gap:2px;">
+            <div style="background:#eff6ff;border-radius:2px;padding:2px 4px;font-size:8px;">User: What is LTP?</div>
+            <div style="background:#f0fdf4;border-radius:2px;padding:2px 4px;font-size:8px;">Agent: Long-term potentiation (LTP) is...</div>
+            <div style="background:#eff6ff;border-radius:2px;padding:2px 4px;font-size:8px;">User: How does calcium help?</div>
+            <div style="background:#f0fdf4;border-radius:2px;padding:2px 4px;font-size:8px;">Agent: NMDA receptors gate calcium influx...</div>
+            <div style="background:#eff6ff;border-radius:2px;padding:2px 4px;font-size:8px;">User: What about AMPA?</div>
+            <div style="background:#f0fdf4;border-radius:2px;padding:2px 4px;font-size:8px;">Agent: AMPA receptors are inserted...</div>
+            <div style="background:#eff6ff;border-radius:2px;padding:2px 4px;font-size:8px;">User: Is spine morphology relevant?</div>
+            <div style="background:#f0fdf4;border-radius:2px;padding:2px 4px;font-size:8px;font-weight:bold;color:#1e3a8a;">Agent: [newest — auto-scrolled here] ↑</div>
+          </div>
+          <!-- input always visible at bottom -->
+          <div style="background:#1e293b;color:#fff;border-radius:3px;padding:4px 6px;font-size:9px;flex-shrink:0;">
+            ✅ [ Type message… ] [Send] [Clear] — always visible
+          </div>
+        </div>
+        <!-- right: fixed height, scrolls independently -->
+        <div style="flex:1.1;display:flex;flex-direction:column;gap:3px;height:100%;">
+          <div style="background:#1e3a8a;color:#fff;padding:3px 5px;border-radius:3px;font-size:9px;font-weight:bold;flex-shrink:0;">
+            🔒 Knowledge Library | Study | SQL
+          </div>
+          <div style="flex:1;background:#fff;border:1px solid #cbd5e1;border-radius:3px;padding:4px;overflow-y:auto;font-size:8px;">
+            <div style="color:#059669;font-weight:bold;">✅ Workspace always visible at same height as chat</div>
+            <div style="margin-top:6px;color:#475569;">Library content scrolls independently. User can browse sources while chat is active.</div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+</div>
+
+<div class="section" style="margin-top:20px;">
+  <h3>How it works in Streamlit</h3>
+  <p>CSS injection via <code>st.markdown(unsafe_allow_html=True)</code> sets each column to <code>height: calc(100vh - Npx)</code> with <code>overflow-y: hidden</code> on the outer container. The transcript container gets <code>overflow-y: auto; flex: 1</code>. The input stays at the bottom via flexbox. The same pattern applies to the right pane. No Streamlit internals change — only CSS overrides.</p>
+</div>

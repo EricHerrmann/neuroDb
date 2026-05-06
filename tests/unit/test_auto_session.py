@@ -8,6 +8,7 @@ from sqlalchemy.orm import Session
 
 from neurodb.schema import Base, ChatSession
 from neurodb.session_manager import AgentContextStore, SessionManager
+from neurodb.ui.pages import chat as chat_module
 
 
 def _store():
@@ -94,4 +95,74 @@ def test_chat_session_row_written_after_summary():
         row = session.query(ChatSession).one()
         assert row.session_id == "test-session-id"
         assert row.message_count == 3
+
+
+def test_write_chat_session_draft_creates_row_with_no_ended_at(monkeypatch):
+    """Draft row is written immediately on first message; ended_at and summary_preview are None."""
+    engine = _engine()
+    monkeypatch.setattr(chat_module.st, "session_state", {"agent_mode": "neuro_tutor"})
+
+    chat_module._write_chat_session_draft(engine, "sess-draft", "What is LTP?")
+
+    with Session(engine) as session:
+        row = session.query(ChatSession).filter_by(session_id="sess-draft").one_or_none()
+    assert row is not None
+    assert row.ended_at is None
+    assert row.summary_preview is None
+    assert row.inferred_topic == "What is LTP?"
+    assert row.agent_mode == "neuro_tutor"
+
+
+def test_write_chat_session_row_updates_existing_draft(monkeypatch):
+    """Finalizing a session updates the draft row in place — only one row exists after."""
+    engine = _engine()
+    session_id = "sess-finalize"
+    monkeypatch.setattr(chat_module.st, "session_state", {
+        "agent_mode": "neuro_tutor",
+        "session_started_at": "2026-05-06T10:00:00",
+    })
+
+    chat_module._write_chat_session_draft(engine, session_id, "What is LTP?")
+
+    api_messages = [
+        {"role": "user", "content": "What is LTP?"},
+        {"role": "assistant", "content": "LTP is long-term potentiation."},
+        {"role": "user", "content": "Tell me more"},
+        {"role": "assistant", "content": "Sure..."},
+        {"role": "user", "content": "Thanks"},
+    ]
+    chat_module._write_chat_session_row(engine, session_id, api_messages, 3, "Topic: LTP\nDate: 2026-05-06")
+
+    with Session(engine) as session:
+        rows = session.query(ChatSession).filter_by(session_id=session_id).all()
+
+    assert len(rows) == 1
+    assert rows[0].ended_at is not None
+    assert rows[0].summary_preview == "Topic: LTP\nDate: 2026-05-06"
+    assert rows[0].message_count == 3
+
+
+def test_write_chat_session_row_inserts_if_no_draft(monkeypatch):
+    """If no draft row exists, _write_chat_session_row inserts a new complete row."""
+    engine = _engine()
+    monkeypatch.setattr(chat_module.st, "session_state", {
+        "agent_mode": "neuro_tutor",
+        "session_started_at": "2026-05-06T10:00:00",
+    })
+
+    api_messages = [
+        {"role": "user", "content": "What is LTD?"},
+        {"role": "assistant", "content": "LTD is long-term depression."},
+        {"role": "user", "content": "msg2"},
+        {"role": "assistant", "content": "resp2"},
+        {"role": "user", "content": "msg3"},
+    ]
+    chat_module._write_chat_session_row(engine, "sess-nodraft", api_messages, 3, "Topic: LTD")
+
+    with Session(engine) as session:
+        rows = session.query(ChatSession).filter_by(session_id="sess-nodraft").all()
+
+    assert len(rows) == 1
+    assert rows[0].ended_at is not None
+    assert rows[0].message_count == 3
 

@@ -7,42 +7,29 @@ Use `Log ID` for cross-references across Open, Resolved, triage, sprint planning
 
 ---
 
+## Open Issues Summary
+
+| Log ID | Issue ID | Description | Priority |
+|--------|----------|-------------|----------|
+| LOG-001 | P6-selector | Textbook dropdown appears pre-selected without explicit user action — agent context state is ambiguous | LT-3 |
+| LOG-006 | LT1-model-visibility | User cannot tell which agent/LLM/model is active; no model selection or persistent preference rules | Deferred post-LT-3 |
+| LOG-013 | UI-shell-rearchitecture | Streamlit cannot support fixed-pane app-shell behavior; reassess UI stack after LT-3 | Deferred post-LT-3 |
+| LOG-014 | semscholar-no-apikey | Semantic Scholar does not issue API keys to non-academic accounts; connector setup docs and architecture must reflect source-dependent key requirements | Next arch update |
+| LOG-015 | agent-session-date | Agent writes incorrect session date in ChromaDB summary (uses training knowledge rather than actual date) | LT-3 |
+| LOG-021 | agent-mode-not-persisted | Agent mode selection does not persist across Streamlit restarts | LT-3 |
+
+---
+
 ## Open
 
 | Log ID | Date | Issue ID | Description | Context |
 |---|---|---|---|---|
 | LOG-001 | 2026-05-04 | P6-selector | Textbook dropdown appears pre-selected without explicit user action — actual agent context is ambiguous | P6 manual test |
-| LOG-002 | 2026-05-05 | LT1-scroll-sync | Right workspace pane remains at top while the left agent conversation grows and scrolls down; possible design direction is newest conversation at top with older conversation below | LT-1 manual/ad hoc review |
-| LOG-003 | 2026-05-05 | LT1-mode-scroll | As conversation history grows, user must scroll back to the top to change agent modes; reinforces need to revisit chat scroll/layout behavior | LT-1 manual/ad hoc review |
-| LOG-004 | 2026-05-05 | LT1-pending-source-visibility | In T4, pending source box does not make title, source, and topic content clear enough; source link should be selectable so user can verify source veracity | LT-1 manual/ad hoc review |
-| LOG-005 | 2026-05-05 | LT1-knowledge-title-size | Knowledge Library source titles render too large; reduce title font size | LT-1 manual/ad hoc review |
 | LOG-006 | 2026-05-05 | LT1-model-visibility | User cannot tell which agent/LLM/model is active; later work should add model selection and persistent model/user-preference prompt rules | LT-1 manual/ad hoc review |
-| LOG-007 | 2026-05-05 | LT1-test6-criteria | Test 6 chat-session verification query can return no visible value, making pass/fail unclear; manual plan needs more explicit command-line pass criteria | LT-1 manual test T6 |
 | LOG-013 | 2026-05-05 | UI-shell-rearchitecture | Pre-LT-2 fixed-pane layout failed in Streamlit even with a custom-component bridge; evaluate a UI tech-stack rearchitecture after LT-2/LT-3 once core learning capabilities mature to MVP | Pre-LT-2 manual test |
-
----
-
-## Triage for LT-2 / LT-3 Planning
-
-| Group | Log IDs | Recommendation | Why |
-|---|---|---|---|
-| Knowledge Library review UX | LOG-004, LOG-005 | Add to LT-2 | LT-2 expands literature search and source review. Before adding PubMed/Semantic Scholar volume, pending source cards need clearer title/source/topic fields, smaller titles, and clickable source/DOI/URL verification. |
-| Conversation layout / navigation | LOG-002, LOG-003 | Add to LT-2 as a UX/design task or pre-LT-2 hardening task | LT-2 adds Previous Topics, which will increase sidebar/workspace navigation pressure. Mode controls becoming hard to reach during long chats is a direct usability blocker. Group these into one chat layout and persistent-controls design problem. |
-| Context selection ambiguity | LOG-001 | Add to LT-2 | LT-2 includes Previous Topics and user-editable topic labels. This issue is about ambiguous context state, so it belongs with session/context UI work. |
-| Manual test clarity | LOG-007 | Resolve before LT-2 starts, not as LT-2 product scope | This is a process/test-plan issue. Fix manual test criteria when drafting LT-2 plans so the same ambiguity does not recur. |
-| Agent/model visibility and preferences | LOG-006 | Defer until after LT-2; consider LT-3 or post-LT-3 platform UX | Showing active agent/model could be a small LT-2 improvement, but model selection and persistent preference prompts are broader product architecture. Better handled when adding more agents in LT-3. |
-| UI shell architecture | LOG-002, LOG-003, LOG-013 | Defer until after LT-2/LT-3; run a focused UI architecture design phase | LT-2 and LT-3 can mature backend/agent capability in Streamlit despite test friction. A full UI stack decision should wait until the required product surfaces are clearer, but the failed fixed-pane tests are evidence that Streamlit should not be stretched further for app-shell behavior. |
-
-| Sprint Bucket | Work Item | Log IDs | Notes |
-|---|---|---|---|
-| LT-2 Required | Knowledge Library source review polish | LOG-004, LOG-005 | Make source identity, topic context, source type, and verification links prominent before increasing source volume. |
-| LT-2 Required | Session/context UX clarity | LOG-001 | Align textbook/chapter state with Previous Topics context state and editable topic labels. |
-| LT-2 UX Spike | Persistent chat controls / scroll behavior | LOG-002, LOG-003 | Decide sticky mode bar vs reversed/latest-first chat vs independent pane scrolling. |
-| Pre-LT-2 Planning Fix | Manual test query pass criteria | LOG-007 | Update LT-2 manual plans with explicit expected command output and pass/fail examples. |
-| Deferred | Model/agent identity and preference system | LOG-006 | Possibly split into active-model display sooner and model selection/preferences later. |
-| Deferred Post-LT-3 | UI shell architecture decision | LOG-002, LOG-003, LOG-013 | Reassess Streamlit vs custom Streamlit component shell vs React/FastAPI after LT-2/LT-3 capabilities are in place. Do not block LT-2/LT-3 on this unless the UI prevents capability testing. |
-
-Note: `docs/projectStatus.md` should be updated the next time project status changes because its Open Issues summary still mentions `T4-clear`, which is now resolved.
+| LOG-014 | 2026-05-06 | semscholar-no-apikey | Semantic Scholar does not issue API keys to non-academic (gmail.com) accounts; unauthenticated rate limit appears sufficient for current use, but connector design and architecture docs must reflect that API keys are source-dependent and not universally required | Ad hoc discovery |
+| LOG-015 | 2026-05-06 | agent-session-date | Agent logged the LTP vs. LTD study session with an incorrect date (January 27 instead of May 4, 2026); agent is not using the correct current date when writing session records | LT-2 manual testing T1 |
+| LOG-021 | 2026-05-06 | agent-mode-not-persisted | Agent mode selection does not persist across sessions; user must re-select mode each time the app is restarted | LT-2 manual testing |
 
 ---
 
@@ -50,8 +37,25 @@ Note: `docs/projectStatus.md` should be updated the next time project status cha
 
 | Log ID | Date | Issue ID | Description | Resolution |
 |---|---|---|---|---|
+| LOG-002 | 2026-05-05 | LT1-scroll-sync | Right workspace pane remains at top while left agent conversation scrolls | Resolved in LT-2: workspace/chat layout redesigned; accepted as current behavior pending post-LT-3 UI shell work |
+| LOG-003 | 2026-05-05 | LT1-mode-scroll | Mode controls require scrolling to top as conversation grows | Resolved in LT-2: mode radio always visible in sidebar; deeper layout work deferred to UI shell phase |
+| LOG-004 | 2026-05-05 | LT1-pending-source-visibility | Pending source cards lacked clear title/source/topic and selectable links | Resolved in LT-2: Knowledge Library polish — T7 passed |
+| LOG-005 | 2026-05-05 | LT1-knowledge-title-size | Knowledge Library source titles rendered too large | Resolved in LT-2: Knowledge Library polish — T7 passed |
+| LOG-007 | 2026-05-05 | LT1-test6-criteria | T6 chat-session verification query had ambiguous pass/fail criteria | Resolved: LT-2 manual plan updated with explicit expected output and DuckDB read-only query |
 | LOG-008 | 2026-05-04 | T6-lock | Import from Suggestions tab failed with DuckDB lock conflict (subprocess vs Streamlit connection) | Replaced subprocess ingest with in-process `run_ingest` call |
 | LOG-009 | 2026-05-04 | T5-ctx | Agent lost multi-turn context — "yes" confirmation after dataset suggestion did not queue item | Fixed `agent.chat()` to mutate caller's message list; `chat.py` maintains `api_messages` in session state |
 | LOG-010 | 2026-05-04 | H1-clear | Clear button triggered by Enter key (form default submit) | Moved Clear outside `st.form`; now requires explicit mouse click |
 | LOG-011 | 2026-05-04 | ON-search | OpenNeuro connector sent invalid GraphQL `search` argument — HTTP 400 | Switched to `advancedSearch(query: DatasetSearchInput!)` |
 | LOG-012 | 2026-05-05 | T4-clear | Chat history clears transiently after import action reported to agent; second query recovers without restart | Resolved during LT-1 manual testing; user approved tests 1-7 and marked issue resolved |
+| LOG-016 | 2026-05-06 | prev-session-context-invisible | No visible indicator when a previous session is loaded as context | Fixed in LT-2: blue prior-context badge added to chat panel; ▸ prefix and "Active:" caption added to sidebar |
+| LOG-017 | 2026-05-06 | knowledge-library-indent-error | Streamlit crashed on Knowledge Library tab with IndentationError at knowledge_library.py:111 in `_reject_source` | Fixed: removed extra indent on `row.reviewed_at` line |
+| LOG-018 | 2026-05-06 | t3-prior-context-not-loaded | T3 fails: prior context not applied when session selected | Fixed in LT-2: draft ChatSession row written on first message; context fallback from inferred_topic added; T3 re-run passed |
+| LOG-019 | 2026-05-06 | t4-previous-topics-not-loaded | T4 fails: Previous Topics sidebar did not populate; transcripts not visible | Fixed in LT-2: same root cause as LOG-018; T4 re-run passed |
+| LOG-020 | 2026-05-06 | t5-pass | T5 passed | LT-2 signed off |
+| LOG-022 | 2026-05-06 | t1-t2-t9-pass | T1, T2, T9 passed | LT-2 signed off |
+| LOG-023 | 2026-05-06 | t4-arrow-indicator-works | ▸ prefix confirmed working on active session selection | LT-2 signed off |
+| LOG-024 | 2026-05-06 | t3-t4-context-verified | Agent recalled prior session when asked | LT-2 signed off |
+| LOG-025 | 2026-05-06 | t3-pass | T3 passed | LT-2 signed off |
+| LOG-026 | 2026-05-06 | t4-pass | T4 passed | LT-2 signed off |
+| LOG-027 | 2026-05-06 | prior-context-indicator-low-visibility | Prior context caption at top of chat window had low visibility | Fixed: replaced `st.caption` with styled `st.markdown` — navy background (#1e3a8a), white text, matching active tab style |
+| LOG-028 | 2026-05-06 | t7-t8-t9-pass | T7, T8, T9 passed | LT-2 signed off |

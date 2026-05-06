@@ -125,8 +125,34 @@ class SessionManager:
         summary = self._store.get_summary_by_session_id(session_id)
         return format_context([summary]) if summary else ""
 
+    def get_most_recent_session_info(self, engine) -> tuple[str, str]:
+        """Return (prior_context, inferred_topic) for the most recent ChatSession row."""
+        from neurodb.db import get_session
+        from neurodb.schema import ChatSession
+
+        with get_session(engine) as session:
+            row = (
+                session.query(ChatSession)
+                .order_by(ChatSession.ended_at.desc().nullslast(), ChatSession.started_at.desc())
+                .first()
+            )
+            if row is None:
+                return "", ""
+            session_id = row.session_id
+            inferred_topic = row.inferred_topic
+
+        summary = self._store.get_summary_by_session_id(session_id)
+        if summary:
+            return format_context([summary]), inferred_topic
+        fallback = f"Most recent study session: {inferred_topic}" if inferred_topic else ""
+        return fallback, inferred_topic
+
     def get_most_recent_context(self, engine) -> str:
-        """Return formatted context for the most recent persisted ChatSession row."""
+        """Return formatted context for the most recent persisted ChatSession row.
+
+        Falls back to the inferred_topic string when no ChromaDB summary exists
+        (e.g. session was written as a draft but never properly ended).
+        """
         from neurodb.db import get_session
         from neurodb.schema import ChatSession
 
@@ -138,9 +164,13 @@ class SessionManager:
             )
             if row is None:
                 return ""
+            session_id = row.session_id
+            inferred_topic = row.inferred_topic
 
-        summary = self._store.get_summary_by_session_id(row.session_id)
-        return format_context([summary]) if summary else ""
+        summary = self._store.get_summary_by_session_id(session_id)
+        if summary:
+            return format_context([summary])
+        return f"Most recent study session: {inferred_topic}" if inferred_topic else ""
 
     def end_session(self, session_id: str, conversation: list[dict]) -> str | None:
         """Generate a session summary via Claude, store it, and return it."""

@@ -108,7 +108,7 @@ def _reject_source(engine: Engine, source_id: int) -> None:
     with get_session(engine) as session:
         row = session.query(KnowledgeSource).filter_by(id=source_id).one()
         row.status = "rejected"
-            row.reviewed_at = datetime.now(timezone.utc).isoformat()
+        row.reviewed_at = datetime.now(timezone.utc).isoformat()
 
 
 def _find_near_duplicate(row: KnowledgeSource) -> dict | None:

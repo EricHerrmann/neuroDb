@@ -96,6 +96,10 @@ def render_sidebar(engine=None) -> None:
 def _render_previous_topics(engine=None) -> None:
     engine = engine or st.session_state.get("engine")
     with st.expander("Previous Topics", expanded=True):
+        active_topic = st.session_state.get("active_prior_topic", "")
+        if active_topic:
+            st.caption(f"Active: {active_topic[:60]}")
+
         if engine is None:
             st.caption("No previous topics.")
             return
@@ -112,9 +116,12 @@ def _render_previous_topics(engine=None) -> None:
 
 
 def _render_topic_rows(engine, rows) -> None:
+    active_session_id = st.session_state.get("active_session_id")
     for row in rows:
-        if st.button(_format_topic_label(row), key=f"load_topic_{row.id}", width="stretch"):
-            _load_previous_topic(engine, row.session_id)
+        is_active = active_session_id and row.session_id == active_session_id
+        label = ("▸ " if is_active else "") + _format_topic_label(row)
+        if st.button(label, key=f"load_topic_{row.id}", width="stretch"):
+            _load_previous_topic(engine, row.session_id, row.inferred_topic)
 
         edited = st.text_input(
             "Edit topic label",
@@ -164,14 +171,17 @@ def _format_topic_label(row) -> str:
     return f"{row.inferred_topic[:48]} | {date_text} | {mode_label} | {row.message_count} turns"
 
 
-def _load_previous_topic(engine, session_id: str) -> None:
+def _load_previous_topic(engine, session_id: str, inferred_topic: str = "") -> None:
     from neurodb.ui.pages.chat import _auto_summarize_if_sufficient, clear_chat_state_for_context_switch
 
     _auto_summarize_if_sufficient()
     manager = st.session_state.get("session_manager")
-    st.session_state["active_prior_context"] = (
-        manager.get_context_for_session_id(session_id) if manager is not None else ""
-    )
+    context = manager.get_context_for_session_id(session_id) if manager is not None else ""
+    if not context:
+        context = f"Most recent study session: {inferred_topic}" if inferred_topic else ""
+    st.session_state["active_prior_context"] = context
+    st.session_state["active_prior_topic"] = inferred_topic
+    st.session_state["active_session_id"] = session_id
     clear_chat_state_for_context_switch()
     st.rerun()
 

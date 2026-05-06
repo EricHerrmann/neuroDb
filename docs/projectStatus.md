@@ -1,8 +1,8 @@
 # NeuroDb — Project Status
 
-**Last updated:** 2026-05-05
-**Active focus:** LT-2 implementation in Streamlit — literature search, previous topics, Knowledge Library polish
-**Next:** LT-2 manual test sign-off
+**Last updated:** 2026-05-06
+**Active focus:** LT-2 signed off — deciding next phase (LT-3 or CF-1)
+**Next:** LT-3 (research agent, knowledge growth metrics, hypothesis tools) or CF-1 (connector framework)
 **Goal alignment:** Give the user a capable neuroscience learning partner — one that remembers what has been explored and builds on it, so learning compounds over time.
 
 ---
@@ -13,7 +13,7 @@
 |-------|-------|--------|
 | LT-1 | BaseAgent architecture, NeuroDbAgent rename, mode rename, auto-session, NeuroTutorAgent core, knowledge library storage + UI | Complete — 255 tests — signed off 2026-05-05 |
 | Pre-LT-2 | Sidebar migration complete; fixed-pane Streamlit layout failed manual test and is deferred to UI shell architecture | Closed/deferred — 262 tests |
-| LT-2 | LiteratureSearchClient (PubMed + Semantic Scholar), Previous Topics panel, sidebar config extensions, semantic dedup, Knowledge Library polish, connector visibility | Manual test ready — 274 tests |
+| LT-2 | LiteratureSearchClient (PubMed + Semantic Scholar), Previous Topics panel, sidebar config extensions, semantic dedup, Knowledge Library polish, connector visibility | Complete — 278 tests — signed off 2026-05-06 |
 | LT-3 | Research agent scaffolding, knowledge growth metrics, hypothesis tools | Not started |
 | UI Shell | UI tech-stack architecture for fixed workbench behavior after LT-2/LT-3 MVP capability maturity | Deferred post-LT-3 |
 | CF-1 | Connector framework architecture — plugin system for adding connectors without rework | Planned post-LT-2 |
@@ -37,7 +37,7 @@
 
 ## Open Issues
 
-See `docs/testLog.md`. Open items triaged for LT-2: LOG-001 (textbook dropdown ambiguity), LOG-004/005 (knowledge library card polish). LOG-002/003 and LOG-013 are deferred to the post-LT-3 UI shell architecture phase. LOG-006 (model visibility) deferred post-LT-2. LOG-007 (test plan clarity) resolved in planning.
+See `docs/testLog.md`. Current open items: LOG-001 (textbook dropdown ambiguity — LT-3), LOG-015 (agent session date — LT-3), LOG-021 (agent mode not persisted — LT-3), LOG-014 (Semantic Scholar API key policy — arch doc update), LOG-006 (model visibility — deferred post-LT-3), LOG-013 (UI shell rearchitecture — deferred post-LT-3).
 
 ---
 
@@ -45,6 +45,9 @@ See `docs/testLog.md`. Open items triaged for LT-2: LOG-001 (textbook dropdown a
 
 | Phase | What | Date |
 |-------|------|------|
+| LT-1 | BaseAgent architecture, NeuroTutorAgent, auto-session, Knowledge Library storage + UI | 2026-05-05 |
+| LT-2 | Live literature search, Previous Topics, session memory, Knowledge Library polish | 2026-05-06 |
+| Pre-LT-2 | Sidebar migration | 2026-05-05 |
 | P1–P4 | Learning agent MVP: study tags, embeddings, agent interface, context persistence | 2026-04-29 |
 | P5 | Learning Agent Enhancement: mode toggle, chapter registry, discovery tools, suggestions UI | 2026-05-04 |
 | P6 | Learning Agent Features: embedding dedup, agent streaming, split-workspace UI | 2026-05-04 |

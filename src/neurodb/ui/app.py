@@ -133,9 +133,13 @@ if "session_manager" not in st.session_state:
 
 if "active_prior_context" not in st.session_state:
     manager = st.session_state.get("session_manager")
-    st.session_state["active_prior_context"] = (
-        manager.get_most_recent_context(engine) if manager is not None else ""
-    )
+    if manager is not None:
+        ctx, topic = manager.get_most_recent_session_info(engine)
+        st.session_state["active_prior_context"] = ctx
+        if topic and "active_prior_topic" not in st.session_state:
+            st.session_state["active_prior_topic"] = topic
+    else:
+        st.session_state["active_prior_context"] = ""
 
 if "knowledge_store" not in st.session_state:
     from neurodb.knowledge_store import KnowledgeLibraryStore

@@ -27,7 +27,7 @@
 | Create | `tests/integration/test_neurovault_ingest.py` | Full ingest + idempotency test for NeuroVault |
 | Create | `tests/integration/test_dandi_ingest.py` | Full ingest + idempotency test for DANDI |
 | Create | `tests/integration/test_dandi_enrich.py` | Enrichment + idempotency + error-handling tests |
-| Create | `docs/testsPlans/old test completed test plans/manualTestPlan_phase6.md` | Manual test plan for Phase 6 |
+| Create | `docs/testsPlans/completedAndPassedTestPlans/manualTestPlan_phase6.md` | Manual test plan for Phase 6 |
 | Modify | `pyproject.toml` | Add dandi, pynwb, h5py dependencies |
 | Modify | `src/neurodb/db.py` | Extend `create_views` with neurovault + dandi UNION branches |
 | Modify | `scripts/ingest.py` | Register `neurovault` and `dandi` sources in CONNECTORS dict |
@@ -1324,11 +1324,11 @@ git commit -m "feat: enrich.py CLI for DANDI NWB enrichment"
 ## Task 9: Manual Test Plan
 
 **Files:**
-- Create: `docs/testsPlans/old test completed test plans/manualTestPlan_phase6.md`
+- Create: `docs/testsPlans/completedAndPassedTestPlans/manualTestPlan_phase6.md`
 
 - [ ] **Step 1: Write the manual test plan**
 
-Write `docs/testsPlans/old test completed test plans/manualTestPlan_phase6.md`:
+Write `docs/testsPlans/completedAndPassedTestPlans/manualTestPlan_phase6.md`:
 
 ```markdown
 # Phase 6 Manual Test Plan — NeuroVault + DANDI Connectors
@@ -1475,7 +1475,7 @@ uv run scripts/enrich.py --source dandi --limit 5
 - [ ] **Step 2: Commit**
 
 ```bash
-git add docs/testsPlans/old test completed test plans/manualTestPlan_phase6.md
+git add docs/testsPlans/completedAndPassedTestPlans/manualTestPlan_phase6.md
 git commit -m "docs: Phase 6 manual test plan"
 ```
 

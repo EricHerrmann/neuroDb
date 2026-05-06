@@ -1459,7 +1459,7 @@ Present the following to the user for review before proceeding:
 - All Phase 2 task checkboxes are checked
 - `uv run pytest tests/ -v` passes
 - Streamlit UI is running and user has confirmed dataset browsing and SQL query page work as expected: `uv run streamlit run src/neurodb/ui/app.py`
-- User has completed all steps in `docs/testsPlans/old test completed test plans/manualTestPlan_phase2.md` and signed off
+- User has completed all steps in `docs/testsPlans/completedAndPassedTestPlans/manualTestPlan_phase2.md` and signed off
 
 **Approval:** Approved by Eric Herrmann on 2026-04-11 — manual UI verification deferred (Streamlit server not tested live; all automated tests pass); manual test plan file was created then removed
 
@@ -1990,7 +1990,7 @@ Present the following to the user for review before proceeding:
 - `uv run pytest tests/ -v` passes
 - `docs/reviews/phase3-field-coverage.md` exists and is committed
 - User has reviewed the field-coverage findings and confirmed the Approach B decision (defer or proceed)
-- User has completed all steps in `docs/testsPlans/old test completed test plans/manualTestPlan_phase3.md` and signed off
+- User has completed all steps in `docs/testsPlans/completedAndPassedTestPlans/manualTestPlan_phase3.md` and signed off
 
 **Approval:** Approved by Eric Herrmann on 2026-04-13
 
@@ -2084,7 +2084,7 @@ git commit -m "feat: query CLI with keyword, modality, and raw SQL modes"
 Present the following to the user for review before proceeding:
 - All Phase 4 task checkboxes are checked
 - `uv run pytest tests/ -v` passes
-- User has completed all steps in `docs/testsPlans/old test completed test plans/manualTestPlan_phase4.md` and signed off
+- User has completed all steps in `docs/testsPlans/completedAndPassedTestPlans/manualTestPlan_phase4.md` and signed off
 - User has reviewed the hypothesis query output and confirmed the data layer is stable enough to build on
 - User has decided which Future Phase (5, 6, 7, or 8) to prioritize next
 
@@ -2606,7 +2606,7 @@ Present the following to the user for review before proceeding:
 - `uv run pytest tests/ -v` passes (35 tests: 29 existing + 6 new DuckDB integration)
 - `uv run scripts/ingest.py --source openneuro --limit 5` completes against `neurodb.duckdb`
 - `uv run scripts/query_cli.py --search "brain"` returns results from DuckDB
-- User has completed all steps in `docs/testsPlans/old test completed test plans/manualTestPlan_phase5.md` and signed off
+- User has completed all steps in `docs/testsPlans/completedAndPassedTestPlans/manualTestPlan_phase5.md` and signed off
 - User has decided which Future Phase (6, 7, or 8) to prioritize next
 
 **Approval:** Approved by Eric Herrmann on 2026-04-13 — next phase: Phase 6 (NeuroVault + DANDI)
@@ -2625,7 +2625,7 @@ Present the following to the user for review before proceeding:
 
 **Design doc:** `docs/superpowers/specs/2026-04-13-phase6-design.md`  
 **Implementation plan:** `docs/superpowers/plans/2026-04-13-phase6-neurovault-dandi.md`  
-**Manual test plan:** `docs/testsPlans/old test completed test plans/manualTestPlan_phase6.md`
+**Manual test plan:** `docs/testsPlans/completedAndPassedTestPlans/manualTestPlan_phase6.md`
 
 ### What was built
 
@@ -2668,7 +2668,7 @@ Flow: download first NWB asset per dandiset to a tempfile → parse with `pynwb.
 - [x] `uv run scripts/ingest.py --source dandi --limit 50` completes without error
 - [x] `uv run scripts/enrich.py --source dandi --limit 10` populates NWB fields on 10 records
 - [x] `uv run scripts/query_cli.py --sql "SELECT source, COUNT(*) FROM v_all_datasets GROUP BY source"` returns 4 rows
-- [ ] User has completed `docs/testsPlans/old test completed test plans/manualTestPlan_phase6.md` and signed off
+- [ ] User has completed `docs/testsPlans/completedAndPassedTestPlans/manualTestPlan_phase6.md` and signed off
 - [x] Branch merged to main
 
 **Approval:** <!-- Automated gates passed 2026-04-25; manual test plan sign-off pending -->
@@ -2788,7 +2788,7 @@ Skip entity resolution and proceed directly to Phase 8 (hypothesis testing + rep
 **Goal:** Add a `study_notes` table to DuckDB with a Python module for tagging, a CLI script, and a Streamlit Study Log page so datasets can be linked to neuroscience concepts encountered during reading.
 
 **Implementation plan:** `docs/superpowers/plans/2026-04-24-agent-p1-study-tag-layer.md`  
-**Manual test plan:** `docs/testsPlans/old test completed test plans/manualTestPlan_agent_p1.md`
+**Manual test plan:** `docs/testsPlans/completedAndPassedTestPlans/manualTestPlan_agent_p1.md`
 
 ### What was built
 
@@ -2809,7 +2809,7 @@ Skip entity resolution and proceed directly to Phase 8 (hypothesis testing + rep
 
 - [x] All P1 task checkboxes checked
 - [x] `uv run pytest tests/ -v` passes (74 tests)
-- [ ] User has completed `docs/testsPlans/old test completed test plans/manualTestPlan_agent_p1.md` and signed off
+- [ ] User has completed `docs/testsPlans/completedAndPassedTestPlans/manualTestPlan_agent_p1.md` and signed off
 
 **Approval:** <!-- Automated gates passed 2026-04-25; manual test plan sign-off pending -->
 
@@ -2823,7 +2823,7 @@ Skip entity resolution and proceed directly to Phase 8 (hypothesis testing + rep
 
 **Key files to create:** `src/neurodb/embedder.py`, `src/neurodb/vector_store.py`  
 **Hooks into existing code:** `ingest.py` (post-write), `study.py tag` and Study Log UI form (post-tag write)  
-**Manual test plan:** `docs/testsPlans/old test completed test plans/manualTestPlan_agent_p2.md` *(to be written before implementation)*
+**Manual test plan:** `docs/testsPlans/completedAndPassedTestPlans/manualTestPlan_agent_p2.md` *(to be written before implementation)*
 
 ---
 
@@ -2834,7 +2834,7 @@ Skip entity resolution and proceed directly to Phase 8 (hypothesis testing + rep
 **Goal:** Add a Claude API agent with four tools (`query_db`, `semantic_search`, `get_study_notes`, `tag_dataset`) and a Streamlit Agent Chat tab. Answers are grounded in real dataset IDs — the agent never fabricates data.
 
 **Key files to create:** `src/neurodb/agent.py`, `src/neurodb/ui/pages/chat.py`  
-**Manual test plan:** `docs/testsPlans/old test completed test plans/manualTestPlan_agent_p3.md` *(to be written before implementation)*
+**Manual test plan:** `docs/testsPlans/completedAndPassedTestPlans/manualTestPlan_agent_p3.md` *(to be written before implementation)*
 
 **UI tab layout after P3:** Dataset Browser | SQL Query | Study Log | Agent Chat
 
@@ -2847,7 +2847,7 @@ Skip entity resolution and proceed directly to Phase 8 (hypothesis testing + rep
 **Goal:** Persist cross-session learning context. On session end, Claude generates a structured summary (concepts covered, datasets explored, open questions) which is embedded and stored in a ChromaDB `agent_context` collection. On session start, relevant prior summaries are retrieved and injected into the system prompt.
 
 **Key files to create:** `src/neurodb/session_manager.py`  
-**Manual test plan:** `docs/testsPlans/old test completed test plans/manualTestPlan_agent_p4.md` *(to be written before implementation)*
+**Manual test plan:** `docs/testsPlans/completedAndPassedTestPlans/manualTestPlan_agent_p4.md` *(to be written before implementation)*
 
 ---
 

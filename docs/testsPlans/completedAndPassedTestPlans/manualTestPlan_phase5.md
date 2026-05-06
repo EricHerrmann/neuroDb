@@ -28,7 +28,7 @@ Expected: `35 passed` (29 prior + 6 new DuckDB integration tests)
 
 ## Regression Check — Re-run Phase 4 Plan
 
-**Assumption:** You have already run `docs/testsPlans/old test completed test plans/manualTestPlan_phase4.md` (Tests 1–7) and all pass criteria were met. You do not need to re-run Phase 4 from scratch — only confirm the regression items below.
+**Assumption:** You have already run `docs/testsPlans/completedAndPassedTestPlans/manualTestPlan_phase4.md` (Tests 1–7) and all pass criteria were met. You do not need to re-run Phase 4 from scratch — only confirm the regression items below.
 
 | # | Check | Expected |
 |---|-------|----------|

@@ -30,7 +30,7 @@ Expected: `27 passed`
 
 Before testing Phase 3 additions, verify that Phase 2 behaviour is intact.
 
-Execute all tests in `docs/testsPlans/old test completed test plans/manualTestPlan_phase2.md` (Tests 1–6). All pass criteria in that document must be satisfied before proceeding.
+Execute all tests in `docs/testsPlans/completedAndPassedTestPlans/manualTestPlan_phase2.md` (Tests 1–6). All pass criteria in that document must be satisfied before proceeding.
 
 | # | Check | Expected |
 |---|-------|----------|

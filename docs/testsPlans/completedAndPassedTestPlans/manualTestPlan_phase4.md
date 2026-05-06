@@ -28,7 +28,7 @@ Expected: `29 passed`
 
 ## Regression Check — Re-run Phase 3 Plan
 
-**Assumption:** You have already run `docs/testsPlans/old test completed test plans/manualTestPlan_phase3.md` (Tests 1–7) and all pass criteria in that document were met. You do not need to re-run Phase 3 from scratch — only confirm the regression items below.
+**Assumption:** You have already run `docs/testsPlans/completedAndPassedTestPlans/manualTestPlan_phase3.md` (Tests 1–7) and all pass criteria in that document were met. You do not need to re-run Phase 3 from scratch — only confirm the regression items below.
 
 Run the two ingest commands to populate a fresh DB (required for all Phase 4 tests):
 

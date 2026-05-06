@@ -26,7 +26,7 @@
 | `src/neurodb/ui/pages/datasets.py` | Modify | Add inline "Tag a dataset" expander below search results |
 | `tests/unit/test_study_notes.py` | Create | Schema and study module unit tests |
 | `tests/integration/test_study_tag_flow.py` | Create | Full tag round-trip integration test |
-| `docs/testsPlans/old test completed test plans/manualTestPlan_agent_p1.md` | Create | Manual test plan for phase gate |
+| `docs/testsPlans/completedAndPassedTestPlans/manualTestPlan_agent_p1.md` | Create | Manual test plan for phase gate |
 
 ---
 
@@ -1025,7 +1025,7 @@ git commit -m "feat: add inline tag expander to Dataset Browser"
 ## Task 10: Write manual test plan
 
 **Files:**
-- Create: `docs/testsPlans/old test completed test plans/manualTestPlan_agent_p1.md`
+- Create: `docs/testsPlans/completedAndPassedTestPlans/manualTestPlan_agent_p1.md`
 
 - [ ] **Step 1: Create the manual test plan**
 
@@ -1205,7 +1205,7 @@ Navigate to **Dataset Browser**. Run a search that returns results.
 - [ ] **Step 2: Commit**
 
 ```bash
-git add docs/testsPlans/old test completed test plans/manualTestPlan_agent_p1.md
+git add docs/testsPlans/completedAndPassedTestPlans/manualTestPlan_agent_p1.md
 git commit -m "docs: manual test plan for Agent P1 study tag layer"
 ```
 

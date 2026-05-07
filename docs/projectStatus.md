@@ -64,7 +64,8 @@ See `docs/testLog.md`. Current open items: LOG-001 (textbook dropdown ambiguity 
 
 | Document | Purpose |
 |----------|---------|
-| `NeuroDbGoals.md` | Top-level project goals |
+| `NeuroDbGoals.md` | Top-level project goals and feedback loop |
+| `docs/superpowers/specs/2026-05-07-epoch-architecture-design.md` | Epoch architecture spec — six epochs, interface contracts, coupling rules, goal-to-epoch mapping |
 | `CLAUDE.md` | Engineering rules, process, environment |
 | `docs/ClaudeLearnEpochPlan.md` | Learning Epoch plan — Neuro-Tutor, agent architecture pattern, phased roadmap |
 | `docs/ClaudeDbEpochPlan.md` | DB epoch plan and architecture decisions |

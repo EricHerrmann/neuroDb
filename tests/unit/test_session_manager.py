@@ -378,16 +378,11 @@ def test_agent_no_prior_context_omits_block():
 def test_summary_model_default_is_haiku():
     """_SUMMARY_MODEL defaults to Haiku when NEURODB_SUMMARY_MODEL is not set."""
     import neurodb.session_manager as sm_module
-    with patch.dict("os.environ", {}, clear=False):
-        # Remove the key if present so we test the true default
-        env_backup = os.environ.pop("NEURODB_SUMMARY_MODEL", None)
-        try:
-            reloaded = importlib.reload(sm_module)
-            assert reloaded._SUMMARY_MODEL == "claude-haiku-4-5-20251001"
-        finally:
-            if env_backup is not None:
-                os.environ["NEURODB_SUMMARY_MODEL"] = env_backup
-            importlib.reload(sm_module)
+    env = {k: v for k, v in os.environ.items() if k != "NEURODB_SUMMARY_MODEL"}
+    with patch.dict(os.environ, env, clear=True):
+        reloaded = importlib.reload(sm_module)
+        assert reloaded._SUMMARY_MODEL == "claude-haiku-4-5-20251001"
+    importlib.reload(sm_module)  # restore module state
 
 
 def test_summary_model_reads_from_neurodb_summary_model_env():

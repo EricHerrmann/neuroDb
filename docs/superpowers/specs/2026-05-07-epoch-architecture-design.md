@@ -177,7 +177,7 @@ Hard constraints, not conventions.
 | Config Control | `src/neurodb/config/` and `src/neurodb/providers/` |
 | Research | `src/neurodb/research/` |
 | Tutor | `src/neurodb/tutor/` |
-| DB | `src/neurodb/` root (connectors, schema, query helpers) |
+| DB | `src/neurodb/db/` (connectors, schema, query helpers) |
 | UI | `src/neurodb/ui/` |
 
 6. **Existing modules in transition.** Flat-layout modules (`research_tools.py`, `knowledge_library.py`, `session_manager.py`) are migrated to epoch-scoped directories when they are next significantly changed — not as a separate migration sprint. Until migrated, epoch ownership is declared in the module docstring.

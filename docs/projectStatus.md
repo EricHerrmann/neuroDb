@@ -1,8 +1,8 @@
 # NeuroDb — Project Status
 
 **Last updated:** 2026-05-07
-**Active focus:** LT-3 complete — signed off 2026-05-06
-**Next:** Config Control Phase 1 (per-agent model env vars) — see `docs/superpowers/plans/2026-05-07-model-routing-impl.md`
+**Active focus:** Config Control Phase 1 complete — signed off 2026-05-07
+**Next:** Config Control Phase 2 (BaseAgent instrumentation) — see `docs/superpowers/plans/2026-05-07-model-routing-impl.md`
 **Goal alignment:** Two co-equal goals in a feedback loop — accumulate neuroscience understanding grounded in real data (Goal 1), and conduct structured neuroscience investigations using existing public datasets and good scientific method (Goal 2). See `NeuroDbGoals.md`.
 
 ---
@@ -16,7 +16,7 @@
 | Tutor | MVP complete (LT-1/2/3) | Open backlog: LOG-001, LOG-006, LOG-014, LOG-030 |
 | Research | Scaffolded (LT-3) | Hypothesis review, research run management, research question actions (LOG-037) |
 | UI | Streamlit MVP; migration designed | UI-0 architecture decision, FastAPI + React vertical slice |
-| Config Control | Phase 1 in progress (Tasks 1.1–1.3 complete) | Phase 2: BaseAgent instrumentation |
+| Config Control | Phase 1 complete — 332 tests; signed off 2026-05-07 | Phase 2: BaseAgent instrumentation |
 
 ---
 
@@ -32,7 +32,7 @@
 
 ## Open Issues
 
-See `docs/testLog.md`. Current open items: LOG-001 (textbook dropdown ambiguity — deferred post-LT-3), LOG-006 (model visibility — deferred post-LT-3), LOG-013 (UI shell rearchitecture — deferred post-LT-3), LOG-014 (Semantic Scholar API key policy — arch doc update), LOG-030 (LT-3 header/title sizing), LOG-037 (research-question actions).
+See `docs/testLog.md`. Current open items: LOG-001 (textbook dropdown ambiguity — deferred post-LT-3), LOG-006 (model visibility — deferred post-LT-3), LOG-013 (UI shell rearchitecture — deferred post-LT-3), LOG-014 (Semantic Scholar API key policy — arch doc update), LOG-030 (LT-3 header/title sizing), LOG-037 (research-question actions), LOG-040 (Config Phase 1 local DB no-results wait behavior), LOG-041 (session summary visibility).
 
 ---
 
@@ -43,6 +43,7 @@ See `docs/testLog.md`. Current open items: LOG-001 (textbook dropdown ambiguity 
 | LT-1 | BaseAgent architecture, NeuroTutorAgent, auto-session, Knowledge Library storage + UI | 2026-05-05 |
 | LT-2 | Live literature search, Previous Topics, session memory, Knowledge Library polish | 2026-05-06 |
 | LT-3 | Research agent scaffolding, knowledge growth metrics, hypothesis tools | 2026-05-06 |
+| Config Control Phase 1 | Per-agent model env vars and summary model routing — 332 tests plus 5 manual evals passed | 2026-05-07 |
 | Pre-LT-2 | Sidebar migration | 2026-05-05 |
 | P1–P4 | Learning agent MVP: study tags, embeddings, agent interface, context persistence | 2026-04-29 |
 | P5 | Learning Agent Enhancement: mode toggle, chapter registry, discovery tools, suggestions UI | 2026-05-04 |
@@ -81,7 +82,7 @@ See `docs/testLog.md`. Current open items: LOG-001 (textbook dropdown ambiguity 
 | `docs/testsPlans/manualTestPlan_pre_lt2_layout.md` | Pre-LT-2 manual test plan — layout, sidebar, input pinning |
 | `docs/testsPlans/manualTestPlan_agent_lt2.md` | LT-2 manual test plan |
 | `docs/testsPlans/manualTestPlan_agent_lt3.md` | LT-3 manual test plan — Neuro-Research mode, metrics, hypotheses |
-| `docs/testsPlans/manualTestPlan_config_phase1.md` | Config Phase 1 manual test plan — per-agent model env var evals |
+| `docs/testsPlans/manualTestPlan_config_phase1.md` | Config Phase 1 signed-off manual test plan — per-agent model env var evals |
 | `docs/superpowers/plans/2026-05-04-tech-debt-td1.md` | TD-1 plan |
 | `docs/superpowers/plans/2026-05-04-tech-debt-td2.md` | TD-2 plan |
 | `docs/superpowers/plans/2026-05-04-tech-debt-td3.md` | TD-3 plan |

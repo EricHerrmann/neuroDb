@@ -1,7 +1,7 @@
 # Model Routing — Phased Implementation Plan
 
 **Design source:** `docs/superpowers/plans/claudeTaskArch.md`
-**Status:** Not started
+**Status:** Phase 1 passed — signed off 2026-05-07; Phase 2 not started
 **Scope decision:** Implement in four gated phases. Each phase requires its eval criteria to pass before the next phase begins. Do not work provider abstraction, config table, or TaskRouter during Phase 1–3.
 
 ---
@@ -15,7 +15,7 @@
 | 1 | Modify | `src/neurodb/agents/research_agent.py` | Read `NEURODB_RESEARCH_MODEL`; default `claude-sonnet-4-6` |
 | 1 | Modify | `src/neurodb/session_manager.py` | Read `NEURODB_SUMMARY_MODEL`; default `claude-haiku-4-5-20251001` |
 | 1 | Modify | `src/neurodb/ui/pages/knowledge_library.py` | Read `NEURODB_KNOWLEDGE_SUMMARY_MODEL`; default `claude-haiku-4-5-20251001` |
-| 1 | Modify | `.env` | Add five new env vars with current values |
+| 1 | Modify | `.env` | Add four new model-routing env vars with current values |
 | 1 | **Create** | `.env.example` | Template for all required env vars with placeholder values and tier labels; does not exist yet |
 | 1 | Modify | `tests/unit/test_agent.py` | Tests: each agent reads its own env var; Sonnet default |
 | 1 | Modify | `tests/unit/test_research_agent.py` | Test: research agent reads `NEURODB_RESEARCH_MODEL` |
@@ -56,36 +56,36 @@
 
 #### Task 1.1 — Agent model env vars
 
-- [ ] In `db_agent.py`: replace `os.environ.get("NEURODB_MODEL", _DEFAULT_MODEL)` with `os.environ.get("NEURODB_AGENT_MODEL", "claude-sonnet-4-6")` at module level
-- [ ] In `tutor_agent.py`: same substitution for `NEURODB_AGENT_MODEL`
-- [ ] In `research_agent.py`: replace with `os.environ.get("NEURODB_RESEARCH_MODEL", "claude-sonnet-4-6")`
-- [ ] Remove any remaining references to global `NEURODB_MODEL` in agent modules (keep it only in `base.py` as the fallback constant, or remove entirely)
-- [ ] Write failing test: `NeuroDbAgent` reads `NEURODB_AGENT_MODEL`, not `NEURODB_MODEL`
-- [ ] Write failing test: `NeuroTutorAgent` reads `NEURODB_AGENT_MODEL`
-- [ ] Write failing test: `NeuroResearchAgent` reads `NEURODB_RESEARCH_MODEL`
-- [ ] Run tests — confirm red
-- [ ] Implement changes — confirm green
-- [ ] Run full `uv run pytest tests/ -q --tb=no`
+- [x] In `db_agent.py`: replace `os.environ.get("NEURODB_MODEL", _DEFAULT_MODEL)` with `os.environ.get("NEURODB_AGENT_MODEL", "claude-sonnet-4-6")` at module level
+- [x] In `tutor_agent.py`: same substitution for `NEURODB_AGENT_MODEL`
+- [x] In `research_agent.py`: replace with `os.environ.get("NEURODB_RESEARCH_MODEL", "claude-sonnet-4-6")`
+- [x] Remove any remaining references to global `NEURODB_MODEL` in agent modules (keep it only in `base.py` as the fallback constant, or remove entirely)
+- [x] Write failing test: `NeuroDbAgent` reads `NEURODB_AGENT_MODEL`, not `NEURODB_MODEL`
+- [x] Write failing test: `NeuroTutorAgent` reads `NEURODB_AGENT_MODEL`
+- [x] Write failing test: `NeuroResearchAgent` reads `NEURODB_RESEARCH_MODEL`
+- [x] Run tests — confirm red
+- [x] Implement changes — confirm green
+- [x] Run full `uv run pytest tests/ -q --tb=no`
 
 #### Task 1.2 — Summary model env vars
 
-- [ ] In `session_manager.py`: replace `_SUMMARY_MODEL = os.environ.get("NEURODB_MODEL", ...)` with `_SUMMARY_MODEL = os.environ.get("NEURODB_SUMMARY_MODEL", "claude-haiku-4-5-20251001")`
-- [ ] In `knowledge_library.py` `_generate_summary()`: replace inline `os.environ.get("NEURODB_MODEL", ...)` with `os.environ.get("NEURODB_KNOWLEDGE_SUMMARY_MODEL", "claude-haiku-4-5-20251001")`
-- [ ] Write failing test: session summary uses `NEURODB_SUMMARY_MODEL`
-- [ ] Write failing test: Knowledge Library summary uses `NEURODB_KNOWLEDGE_SUMMARY_MODEL`
-- [ ] Run tests — confirm red
-- [ ] Implement changes — confirm green
-- [ ] Run full `uv run pytest tests/ -q --tb=no`
+- [x] In `session_manager.py`: replace `_SUMMARY_MODEL = os.environ.get("NEURODB_MODEL", ...)` with `_SUMMARY_MODEL = os.environ.get("NEURODB_SUMMARY_MODEL", "claude-haiku-4-5-20251001")`
+- [x] In `knowledge_library.py` `_generate_summary()`: replace inline `os.environ.get("NEURODB_MODEL", ...)` with `os.environ.get("NEURODB_KNOWLEDGE_SUMMARY_MODEL", "claude-haiku-4-5-20251001")`
+- [x] Write failing test: session summary uses `NEURODB_SUMMARY_MODEL`
+- [x] Write failing test: Knowledge Library summary uses `NEURODB_KNOWLEDGE_SUMMARY_MODEL`
+- [x] Run tests — confirm red
+- [x] Implement changes — confirm green
+- [x] Run full `uv run pytest tests/ -q --tb=no`
 
 #### Task 1.3 — Env file and chat wiring
 
 **`.env` vs `.env.example`:** `.env` holds real API keys and is gitignored (line 130 of `.gitignore`). `.env.example` is a committed template showing every required env var with placeholder values — its purpose is to tell contributors what keys they need without exposing real credentials. `.env.example` does not currently exist and must be created.
 
-- [ ] Add all five new vars to `.env` with current values and tier comments
-- [ ] **Create** `.env.example` with placeholder values for all env vars (model keys, tool keys, and the five new model-routing vars); include tier labels as comments
-- [ ] Verify `chat.py` agent construction passes the model read from the agent's own env var (should follow automatically from Task 1.1)
-- [ ] Run full `uv run pytest tests/ -q --tb=no`
-- [ ] Update `docs/projectStatus.md` with new test count
+- [x] Add all four new model-routing vars to `.env` with current values and tier comments
+- [x] **Create** `.env.example` with placeholder values for all env vars (model keys, tool keys, and the four new model-routing vars); include tier labels as comments
+- [x] Verify `chat.py` agent construction passes the model read from the agent's own env var (should follow automatically from Task 1.1)
+- [x] Run full `uv run pytest tests/ -q --tb=no`
+- [x] Update `docs/projectStatus.md` with new test count
 
 #### Task 1.4 — Phase 1 evals (manual)
 
@@ -99,7 +99,7 @@ Run against the live Streamlit app with new env vars active. Record pass/fail fo
 | Session summary on Clear | Haiku | Correct date/topic/concepts, no invented datasets |
 | Knowledge Library source summary | Haiku | Useful structured summary, no invented DOI or source claims |
 
-- [ ] All Phase 1 evals pass before proceeding to Phase 2
+- [x] All Phase 1 evals pass before proceeding to Phase 2
 
 ---
 

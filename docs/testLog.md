@@ -17,6 +17,8 @@ Use `Log ID` for cross-references across Open, Resolved, triage, sprint planning
 | LOG-014 | semscholar-no-apikey | Tutor | Semantic Scholar does not issue API keys to non-academic accounts; connector setup docs and architecture must reflect source-dependent key requirements | Next arch update |
 | LOG-030 | lt3-t2-pass-header-size | UI | LT-3 T2 passed, but titles/headers render too large | UI polish |
 | LOG-037 | lt3-t6-research-question-actions | Research | Research pane shows several research questions, but there is no way to delete or use them | Post-LT-3 polish |
+| LOG-040 | config-phase1-t3-localdb-no-results-hang | Config | Config control Phase 1 passed; during T3 the agent appeared to hang on a local DB no-results response; monitor for possible model-tier fit issue | Monitor |
+| LOG-041 | config-session-summary-visibility | Config | Config control T4 requires date/topic/key-concepts checks, but there is no UI path to view the generated session summary | Feature review |
 
 ---
 
@@ -30,6 +32,8 @@ Use `Log ID` for cross-references across Open, Resolved, triage, sprint planning
 | LOG-014 | 2026-05-06 | semscholar-no-apikey | Tutor | Semantic Scholar does not issue API keys to non-academic (gmail.com) accounts; unauthenticated rate limit appears sufficient for current use, but connector design and architecture docs must reflect that API keys are source-dependent and not universally required | Ad hoc discovery |
 | LOG-030 | 2026-05-06 | lt3-t2-pass-header-size | UI | LT-3 T2 passed, agent has correct date and knows context; minor UI fix: reduce titles/headers font, it is too big | LT-3 manual testing |
 | LOG-037 | 2026-05-06 | lt3-t6-research-question-actions | Research | T6: Research pane shows several research questions, but there is no way to delete or use them | LT-3 manual testing |
+| LOG-040 | 2026-05-07 | config-phase1-t3-localdb-no-results-hang | Config | Config control Phase 1 T1-T5 passed; during T3 the agent eventually produced good results but appeared to hang querying the local DB after a no-results response. Monitor because it may indicate an issue with the level of model used. | Config control Phase 1 manual testing |
+| LOG-041 | 2026-05-07 | config-session-summary-visibility | Config | T4 has explicit checks for date, topic, and key concepts, so there needs to be a way to view the generated session summary in the app. | Config control Phase 1 manual testing |
 
 ---
 

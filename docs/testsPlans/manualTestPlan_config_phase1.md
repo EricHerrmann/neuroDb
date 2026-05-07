@@ -3,7 +3,7 @@
 **Epoch scope:** Config Control — tests per-agent model env var wiring against the live Streamlit app.
 
 **Feature:** Per-task model env vars replacing single global `NEURODB_MODEL`
-**Status:** Not started
+**Status:** Passed — signed off 2026-05-07
 **Plan:** `docs/superpowers/plans/2026-05-07-model-routing-impl.md` (Phase 1, Task 1.4)
 **Date:** 2026-05-07
 
@@ -43,6 +43,18 @@ Per the model routing plan: if Sonnet produces fabricated dataset IDs or incorre
 
 ---
 
+## Run Summary — 2026-05-07
+
+| Eval | Result | Notes |
+|------|--------|-------|
+| T1 — Local DB query | Pass | Query executed without fabricated dataset IDs or source names. |
+| T2 — External DB discovery | Pass | Discovery flow returned grounded candidates or no-results behavior without fabricated accessions. |
+| T3 — Neuro-Tutor explanation | Pass | Final response was clear and scientifically useful; local DB no-results wait behavior remains logged for monitoring in `LOG-040`. |
+| T4 — Session summary on Clear | Pass | Summary generation passed; UI visibility for directly reviewing summary date/topic/key concepts remains logged as `LOG-041`. |
+| T5 — Knowledge Library source summary | Pass | Source summary generated without invented source metadata. |
+
+---
+
 ## Evals
 
 ### T1 — Local DB query (Sonnet via `NEURODB_AGENT_MODEL`)
@@ -58,8 +70,8 @@ Per the model routing plan: if Sonnet produces fabricated dataset IDs or incorre
 
 | | Result |
 |--|--------|
-| Pass / Fail | |
-| Notes | |
+| Pass / Fail | Pass |
+| Notes | Query executed without error and stayed grounded in DB contents. |
 
 ---
 
@@ -75,8 +87,8 @@ Per the model routing plan: if Sonnet produces fabricated dataset IDs or incorre
 
 | | Result |
 |--|--------|
-| Pass / Fail | |
-| Notes | |
+| Pass / Fail | Pass |
+| Notes | Search behavior completed without fabricated OpenNeuro accession numbers. |
 
 ---
 
@@ -92,8 +104,8 @@ Per the model routing plan: if Sonnet produces fabricated dataset IDs or incorre
 
 | | Result |
 |--|--------|
-| Pass / Fail | |
-| Notes | |
+| Pass / Fail | Pass |
+| Notes | Good final response. A local DB no-results wait/hang observation is tracked separately as `LOG-040`. |
 
 ---
 
@@ -109,8 +121,8 @@ Per the model routing plan: if Sonnet produces fabricated dataset IDs or incorre
 
 | | Result |
 |--|--------|
-| Pass / Fail | |
-| Notes | |
+| Pass / Fail | Pass |
+| Notes | Summary generation passed. Direct UI review of generated summaries is tracked as a feature review in `LOG-041`. |
 
 ---
 
@@ -126,8 +138,8 @@ Per the model routing plan: if Sonnet produces fabricated dataset IDs or incorre
 
 | | Result |
 |--|--------|
-| Pass / Fail | |
-| Notes | |
+| Pass / Fail | Pass |
+| Notes | Generated a useful structured source summary without invented DOI, author, or source claims. |
 
 ---
 
@@ -137,4 +149,4 @@ All 5 evals must pass before proceeding to Phase 2.
 
 | Tester | Date | Result |
 |--------|------|--------|
-| | | Pass / Fail |
+| User | 2026-05-07 | Pass |

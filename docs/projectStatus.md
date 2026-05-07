@@ -81,6 +81,7 @@ See `docs/testLog.md`. Current open items: LOG-001 (textbook dropdown ambiguity 
 | `docs/testsPlans/manualTestPlan_pre_lt2_layout.md` | Pre-LT-2 manual test plan — layout, sidebar, input pinning |
 | `docs/testsPlans/manualTestPlan_agent_lt2.md` | LT-2 manual test plan |
 | `docs/testsPlans/manualTestPlan_agent_lt3.md` | LT-3 manual test plan — Neuro-Research mode, metrics, hypotheses |
+| `docs/testsPlans/manualTestPlan_config_phase1.md` | Config Phase 1 manual test plan — per-agent model env var evals |
 | `docs/superpowers/plans/2026-05-04-tech-debt-td1.md` | TD-1 plan |
 | `docs/superpowers/plans/2026-05-04-tech-debt-td2.md` | TD-2 plan |
 | `docs/superpowers/plans/2026-05-04-tech-debt-td3.md` | TD-3 plan |

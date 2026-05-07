@@ -145,7 +145,7 @@ Agent session
 ## Components
 
 ### 1. Capability Tier Env Vars (Phase 1)
-**Epoch:** Config Control
+**Epoch owner:** Config Control
 
 Replace the single `NEURODB_MODEL` with per-purpose variables. Each maps to a tier; tier maps to a concrete model.
 
@@ -172,7 +172,7 @@ Each agent reads its own var at construction. `BaseAgent` itself does not change
 ---
 
 ### 2. Telemetry (Phase 2)
-**Epoch:** Config Control (feature + feedback loop), Agent Core (instrumentation in BaseAgent), DB (ModelCallLog table)
+**Epoch owner:** Config Control (feature + feedback loop), Agent Core (instrumentation in BaseAgent), DB (ModelCallLog table)
 
 Lightweight structured logging on every model call. No external service required in Phase 2 — append to a local log or DuckDB table.
 
@@ -212,7 +212,7 @@ Without this loop, tier assignments remain fixed assumptions. With it, they beco
 ---
 
 ### 3. Research Synthesis Split (Phase 3)
-**Epoch:** Research (capability story), Config Control (routing mechanism), DB (HypothesisReview table)
+**Epoch owner:** Research (capability story), Config Control (routing mechanism), DB (HypothesisReview table)
 
 **The synthesis boundary problem:**
 
@@ -250,7 +250,7 @@ Alternative designs (lower priority):
 ---
 
 ### 4. ModelClient Abstraction (Phase 4)
-**Epoch:** Config Control (interface + provider adapters), Agent Core (BaseAgent accepts ModelClient at construction)
+**Epoch owner:** Config Control (interface + provider adapters), Agent Core (BaseAgent accepts ModelClient at construction)
 
 A provider-neutral interface that `BaseAgent` calls instead of the Anthropic SDK directly.
 
@@ -304,7 +304,7 @@ Provider implementations handle the translation between the provider's SDK forma
 ---
 
 ### 5. Config-Driven Model Table (Phase 4)
-**Epoch:** Config Control
+**Epoch owner:** Config Control
 
 Model IDs live in `neurodb_models.toml`, not in source or env vars. The config maps tier → provider → current model ID with metadata.
 
@@ -386,7 +386,7 @@ max_tokens = 4096
 ---
 
 ### 6. TaskRouter (Phase 4)
-**Epoch:** Config Control
+**Epoch owner:** Config Control
 
 Maps task type string → `ModelClient` instance backed by the config table.
 

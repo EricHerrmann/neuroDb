@@ -49,6 +49,11 @@
 
 **Goal:** Stop using Opus as the universal default. No architectural change.
 
+#### Task 1.0 — Manual test plan
+
+- [x] Create `docs/testsPlans/manualTestPlan_config_phase1.md` with evals for all workflows affected by this phase
+- [x] Add plan to `docs/projectStatus.md` reference table
+
 #### Task 1.1 — Agent model env vars
 
 - [ ] In `db_agent.py`: replace `os.environ.get("NEURODB_MODEL", _DEFAULT_MODEL)` with `os.environ.get("NEURODB_AGENT_MODEL", "claude-sonnet-4-6")` at module level
@@ -102,6 +107,11 @@ Run against the live Streamlit app with new env vars active. Record pass/fail fo
 
 **Goal:** Measure actual iteration and token distribution. Gate on data before making stronger tier claims.
 
+#### Task 2.0 — Manual test plan
+
+- [ ] Create `docs/testsPlans/manualTestPlan_config_phase2.md` with evals covering: telemetry rows written per agent call, telemetry rows written per summary call, all fields present and correctly typed
+- [ ] Add plan to `docs/projectStatus.md` reference table
+
 #### Task 2.1 — Schema
 
 - [ ] Add `ModelCallLog` ORM table to `src/neurodb/schema.py` with columns: `id`, `recorded_at`, `task_type`, `provider`, `model`, `mode`, `tool_name`, `iteration`, `input_tokens`, `output_tokens`, `stop_reason`, `elapsed_ms`, `estimated_cost_usd`
@@ -139,6 +149,11 @@ Run against the live Streamlit app with new env vars active. Record pass/fail fo
 ### Phase 3 — Research Synthesis Split
 
 **Goal:** Reserve a bounded Opus call for hypothesis review; research loop stays on Sonnet.
+
+#### Task 3.0 — Manual test plan
+
+- [ ] Create `docs/testsPlans/manualTestPlan_config_phase3.md` with evals covering: hypothesis draft on Sonnet, hypothesis review on Opus, no double persistence, telemetry rows for both calls
+- [ ] Add plan to `docs/projectStatus.md` reference table
 
 #### Task 3.1 — HypothesisReview schema
 
@@ -192,6 +207,11 @@ Run against the live Streamlit app with new env vars active. Record pass/fail fo
 ### Phase 4 — Provider Abstraction + Config-Driven Model Table
 
 **Goal:** Decouple `BaseAgent` from the Anthropic SDK; make model ID updates a config change; add OpenAI/Groq support.
+
+#### Task 4.0 — Manual test plan
+
+- [ ] Create `docs/testsPlans/manualTestPlan_config_phase4.md` with evals covering: agent loop against OpenAI model, research loop against OpenAI model, Phase 1 evals re-run against OpenAI provider for parity
+- [ ] Add plan to `docs/projectStatus.md` reference table
 
 #### Task 4.1 — ModelClient interface and normalized types
 

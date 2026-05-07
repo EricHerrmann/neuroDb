@@ -73,7 +73,7 @@ The conversation loop, checkpoint/rollback logic, and streaming protocol are imp
 
 **Interface to Research epoch:** The knowledge library is a queryable read surface for the Research epoch. Research reads via `search_knowledge_library()`. Research cannot call write operations on knowledge library storage. If a research investigation surfaces a source worth adding to the library, it goes through the Tutor curation queue — the same path a user would use.
 
-**Open backlog:** LOG-001 (textbook dropdown ambiguity), LOG-006 (model visibility), LOG-030 (LT-3 header/title sizing), LOG-037 (research question actions).
+**Open backlog:** LOG-001 (textbook dropdown ambiguity), LOG-006 (model visibility), LOG-014 (Semantic Scholar API key policy), LOG-030 (LT-3 header/title sizing).
 
 ---
 

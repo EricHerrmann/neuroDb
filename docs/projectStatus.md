@@ -12,7 +12,7 @@
 | Epoch | Maturity | Next |
 |---|---|---|
 | DB | MVP complete (phases 0–6) | Entity resolution (7), research storage schema (8) |
-| Agent Core | Stable | Config Control Phase 4 — ModelClient interface refactor |
+| Agent Core | Stable | Config Control Phases 1–4: env-var wiring (1), BaseAgent instrumentation (2), ModelClient refactor (4) |
 | Tutor | MVP complete (LT-1/2/3) | Open backlog: LOG-001, LOG-006, LOG-014, LOG-030 |
 | Research | Scaffolded (LT-3) | Hypothesis review, research run management, research question actions (LOG-037) |
 | UI | Streamlit MVP; migration designed | UI-0 architecture decision, FastAPI + React vertical slice |

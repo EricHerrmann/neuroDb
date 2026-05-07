@@ -1,5 +1,7 @@
 # NeuroDb Learning Epoch — Phased Design & Implementation Plan
 
+> **Architecture note:** The agent architecture pattern and epoch definitions in this document are superseded by `docs/superpowers/specs/2026-05-07-epoch-architecture-design.md`. This document is retained as the historical record of LT-1/2/3 phase design and decisions.
+
 ---
 
 ## Executive Summary

@@ -1,5 +1,7 @@
 # NeuroDb DB Epoch — Phased Design & Implementation Plan
 
+> **Architecture note:** The DB epoch's role, interface contracts, and directory target (`src/neurodb/db/`) are defined in `docs/superpowers/specs/2026-05-07-epoch-architecture-design.md`. This document is retained as the historical record of DB phases 0–6 design and decisions. Phases 7 (entity resolution) and 8 (research storage schema) are the active next steps for the DB epoch.
+
 > **For agentic workers:** REQUIRED SUB-SKILL: Use superpowers:subagent-driven-development (recommended) or superpowers:executing-plans to implement this plan task-by-task. Steps use checkbox (`- [ ]`) syntax for tracking.
 
 ---

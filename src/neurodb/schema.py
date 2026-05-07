@@ -1,3 +1,11 @@
+"""DB epoch — ORM schema definitions for all NeuroDb structured storage.
+
+Owns: all SQLAlchemy ORM models including source tables, DatasetIndex,
+StudyNote, ChatSession, KnowledgeSource, ResearchHypothesis, HypothesisReview,
+ModelCallLog, and any future research artifact tables.
+
+Migration target: src/neurodb/db/schema.py
+"""
 from sqlalchemy import Float, ForeignKey, Index, Integer, Sequence, String, Text, UniqueConstraint
 from sqlalchemy.orm import DeclarativeBase, Mapped, mapped_column, relationship
 

@@ -1,4 +1,12 @@
-"""ChromaDB-backed Knowledge Library for approved source summaries."""
+"""Tutor epoch — knowledge library storage and retrieval.
+
+Owns the write path to the knowledge library: curation queue,
+approval workflow, embedding, and semantic retrieval. The Research
+epoch reads from this store via search_knowledge_library() only —
+it does not call write operations here directly.
+
+Migration target: src/neurodb/tutor/knowledge_store.py
+"""
 import chromadb
 
 COLLECTION_NAME = "knowledge_library"

@@ -1,3 +1,7 @@
+"""DB epoch — provenance and lineage metadata helpers.
+
+Migration target: src/neurodb/db/provenance.py
+"""
 from datetime import datetime, timezone
 from sqlalchemy import Engine, select
 from neurodb.db import get_session

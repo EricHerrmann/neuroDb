@@ -1,3 +1,7 @@
+"""DB epoch — study tag operations and study note persistence.
+
+Migration target: src/neurodb/db/study.py
+"""
 from datetime import datetime, timezone
 
 from sqlalchemy import select

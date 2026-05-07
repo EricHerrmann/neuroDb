@@ -1,3 +1,7 @@
+"""DB epoch — database connection and initialization.
+
+Migration target: src/neurodb/db/connection.py
+"""
 from collections.abc import Generator
 from contextlib import contextmanager
 

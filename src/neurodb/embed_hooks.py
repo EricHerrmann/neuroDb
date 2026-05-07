@@ -1,4 +1,7 @@
-"""Post-write hooks: sync DB records into the vector store after ingest or tag operations."""
+"""DB epoch — embedding trigger hooks called on dataset write paths.
+
+Migration target: src/neurodb/db/embed_hooks.py
+"""
 from datetime import datetime, timezone
 import hashlib
 

@@ -1,4 +1,7 @@
-"""Live literature search client for PubMed and Semantic Scholar."""
+"""Tutor epoch — live literature search client (PubMed, Semantic Scholar).
+
+Migration target: src/neurodb/tutor/literature_client.py
+"""
 from __future__ import annotations
 
 import json

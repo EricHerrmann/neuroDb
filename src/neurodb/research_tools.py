@@ -1,4 +1,8 @@
-"""Research-agent helper tools and narrow app preferences."""
+"""Research epoch — hypothesis tools, research question persistence,
+and evidence tracking helpers.
+
+Migration target: src/neurodb/research/tools.py
+"""
 import json
 from datetime import datetime, timezone
 from typing import Any

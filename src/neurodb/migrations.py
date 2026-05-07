@@ -1,3 +1,7 @@
+"""DB epoch — schema migration utilities.
+
+Migration target: src/neurodb/db/migrations.py
+"""
 from datetime import datetime, timezone
 
 from sqlalchemy import Engine, text

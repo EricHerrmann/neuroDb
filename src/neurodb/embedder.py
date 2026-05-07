@@ -1,3 +1,7 @@
+"""DB epoch — embedding generation and ChromaDB write helpers.
+
+Migration target: src/neurodb/db/embedder.py
+"""
 try:
     from sentence_transformers import SentenceTransformer
 except ImportError:

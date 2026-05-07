@@ -1,3 +1,7 @@
+"""DB epoch — query helper functions over the DuckDB analytical store.
+
+Migration target: src/neurodb/db/query.py
+"""
 from sqlalchemy.orm import Session
 from sqlalchemy import select, text
 from neurodb.connectors.openneuro import OpenNeuroDataset

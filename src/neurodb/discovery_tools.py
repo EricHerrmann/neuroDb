@@ -1,8 +1,6 @@
-"""Discovery mode tool implementations for NeuroAgent.
+"""Research epoch — dataset discovery tools for research workflows.
 
-These tools are only registered with Claude when the agent is in discovery
-mode. They write to import_queue and source_suggestions; nothing is ingested
-automatically.
+Migration target: src/neurodb/research/discovery.py
 """
 import json
 from datetime import datetime, timezone

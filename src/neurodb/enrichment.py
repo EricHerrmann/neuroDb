@@ -1,3 +1,7 @@
+"""DB epoch — data enrichment transforms applied after initial ingest.
+
+Migration target: src/neurodb/db/enrichment.py
+"""
 import json
 import tempfile
 from datetime import datetime, timezone

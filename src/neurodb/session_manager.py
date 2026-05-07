@@ -1,4 +1,11 @@
-"""Cross-session memory via a ChromaDB agent_context collection."""
+"""Agent Core epoch — session lifecycle management.
+
+Owns: ChatSession row creation, session summary generation, and
+cross-session context retrieval. Called by BaseAgent; subclasses
+do not manage session records directly.
+
+Migration target: src/neurodb/agents/session_manager.py
+"""
 import os
 import uuid
 

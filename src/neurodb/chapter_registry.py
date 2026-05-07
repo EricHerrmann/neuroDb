@@ -1,3 +1,7 @@
+"""Tutor epoch — textbook chapter registry and context helpers.
+
+Migration target: src/neurodb/tutor/chapter_registry.py
+"""
 REGISTRY: dict = {
     "augustine_7e": {
         "display_name": "Neuroscience, 7th ed. — Augustine et al.",

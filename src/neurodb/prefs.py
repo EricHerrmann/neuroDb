@@ -1,4 +1,11 @@
-"""User preferences persisted in a local JSON file."""
+"""Config Control epoch — user preference storage and retrieval.
+
+Stores user-configurable preferences that affect agent behavior
+(agent mode, model preferences). Read by the UI layer and agent
+construction call sites.
+
+Migration target: src/neurodb/config/prefs.py
+"""
 
 import json
 from pathlib import Path

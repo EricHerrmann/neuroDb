@@ -1,3 +1,11 @@
+"""DB epoch — ChromaDB collection management and initialization.
+
+Owns: collection creation, client initialization, and the collection
+name registry. All epochs access ChromaDB collections through helpers
+in this module — never by collection name string directly.
+
+Migration target: src/neurodb/db/vector_store.py
+"""
 import chromadb
 
 COLLECTION_NAME = "neuro_research"

@@ -9,33 +9,27 @@ Use `Log ID` for cross-references across Open, Resolved, triage, sprint planning
 
 ## Open Issues Summary
 
-| Log ID | Issue ID | Description | Priority |
-|--------|----------|-------------|----------|
-| LOG-001 | P6-selector | Textbook dropdown appears pre-selected without explicit user action — agent context state is ambiguous | Deferred post-LT-3 |
-| LOG-006 | LT1-model-visibility | User cannot tell which agent/LLM/model is active; no model selection or persistent preference rules | Deferred post-LT-3 |
-| LOG-013 | UI-shell-rearchitecture | Streamlit cannot support fixed-pane app-shell behavior; reassess UI stack after LT-3 | Deferred post-LT-3 |
-| LOG-014 | semscholar-no-apikey | Semantic Scholar does not issue API keys to non-academic accounts; connector setup docs and architecture must reflect source-dependent key requirements | Next arch update |
-| LOG-030 | lt3-t2-pass-header-size | LT-3 T2 passed, but titles/headers render too large | UI polish |
-| LOG-037 | lt3-t6-research-question-actions | Research pane shows several research questions, but there is no way to delete or use them | Post-LT-3 polish |
+| Log ID | Issue ID | Epoch | Description | Priority |
+|--------|----------|-------|-------------|----------|
+| LOG-001 | P6-selector | Tutor | Textbook dropdown appears pre-selected without explicit user action — agent context state is ambiguous | Deferred post-LT-3 |
+| LOG-006 | LT1-model-visibility | Config | User cannot tell which agent/LLM/model is active; no model selection or persistent preference rules | Deferred post-LT-3 |
+| LOG-013 | UI-shell-rearchitecture | UI | Streamlit cannot support fixed-pane app-shell behavior; reassess UI stack after LT-3 | Deferred post-LT-3 |
+| LOG-014 | semscholar-no-apikey | Tutor | Semantic Scholar does not issue API keys to non-academic accounts; connector setup docs and architecture must reflect source-dependent key requirements | Next arch update |
+| LOG-030 | lt3-t2-pass-header-size | UI | LT-3 T2 passed, but titles/headers render too large | UI polish |
+| LOG-037 | lt3-t6-research-question-actions | Research | Research pane shows several research questions, but there is no way to delete or use them | Post-LT-3 polish |
 
 ---
 
 ## Open
 
-| Log ID | Date | Issue ID | Description | Context |
-|---|---|---|---|---|
-| LOG-001 | 2026-05-04 | P6-selector | Textbook dropdown appears pre-selected without explicit user action — actual agent context is ambiguous | P6 manual test |
-| LOG-006 | 2026-05-05 | LT1-model-visibility | User cannot tell which agent/LLM/model is active; later work should add model selection and persistent model/user-preference prompt rules | LT-1 manual/ad hoc review |
-| LOG-013 | 2026-05-05 | UI-shell-rearchitecture | Pre-LT-2 fixed-pane layout failed in Streamlit even with a custom-component bridge; evaluate a UI tech-stack rearchitecture after LT-2/LT-3 once core learning capabilities mature to MVP | Pre-LT-2 manual test |
-| LOG-014 | 2026-05-06 | semscholar-no-apikey | Semantic Scholar does not issue API keys to non-academic (gmail.com) accounts; unauthenticated rate limit appears sufficient for current use, but connector design and architecture docs must reflect that API keys are source-dependent and not universally required | Ad hoc discovery |
-| LOG-029 | 2026-05-06 | t1-pass | T1 pass | LT-3 manual testing |
-| LOG-030 | 2026-05-06 | lt3-t2-pass-header-size | LT-3 T2 passed, agent has correct date and knows context; minor UI fix: reduce titles/headers font, it is too big | LT-3 manual testing |
-| LOG-031 | 2026-05-06 | lt3-t3-pass | LT-3 T3 pass | LT-3 manual testing |
-| LOG-032 | 2026-05-06 | lt3-t4-pass | LT-3 T4 pass | LT-3 manual testing |
-| LOG-033 | 2026-05-06 | lt3-t5-pass | LT-3 T5 pass | LT-3 manual testing |
-| LOG-037 | 2026-05-06 | lt3-t6-research-question-actions | T6: Research pane shows several research questions, but there is no way to delete or use them | LT-3 manual testing |
-| LOG-038 | 2026-05-06 | lt3-t6-pass | LT-3 T6 pass | LT-3 manual testing |
-| LOG-039 | 2026-05-06 | lt3-t7-pass | LT-3 T7 pass | LT-3 manual testing |
+| Log ID | Date | Issue ID | Epoch | Description | Context |
+|---|---|---|---|---|---|
+| LOG-001 | 2026-05-04 | P6-selector | Tutor | Textbook dropdown appears pre-selected without explicit user action — actual agent context is ambiguous | P6 manual test |
+| LOG-006 | 2026-05-05 | LT1-model-visibility | Config | User cannot tell which agent/LLM/model is active; later work should add model selection and persistent model/user-preference prompt rules | LT-1 manual/ad hoc review |
+| LOG-013 | 2026-05-05 | UI-shell-rearchitecture | UI | Pre-LT-2 fixed-pane layout failed in Streamlit even with a custom-component bridge; evaluate a UI tech-stack rearchitecture after LT-2/LT-3 once core learning capabilities mature to MVP | Pre-LT-2 manual test |
+| LOG-014 | 2026-05-06 | semscholar-no-apikey | Tutor | Semantic Scholar does not issue API keys to non-academic (gmail.com) accounts; unauthenticated rate limit appears sufficient for current use, but connector design and architecture docs must reflect that API keys are source-dependent and not universally required | Ad hoc discovery |
+| LOG-030 | 2026-05-06 | lt3-t2-pass-header-size | UI | LT-3 T2 passed, agent has correct date and knows context; minor UI fix: reduce titles/headers font, it is too big | LT-3 manual testing |
+| LOG-037 | 2026-05-06 | lt3-t6-research-question-actions | Research | T6: Research pane shows several research questions, but there is no way to delete or use them | LT-3 manual testing |
 
 ---
 
@@ -70,3 +64,9 @@ Use `Log ID` for cross-references across Open, Resolved, triage, sprint planning
 | LOG-034 | 2026-05-06 | lt3-t6-max-turns-tool-result | LT-3 T6 failed: agent reached maximum tool iterations during grounded hypothesis drafting; retry after clearing context produced Anthropic 400 because a tool_use block lacked an immediately following tool_result. Need to understand max tool-iteration limit, whether research workflows need higher limits, context compaction, or another turn/context-management strategy. | Resolved: terminal draft-hypothesis response and valid API-history recovery verified by T6 pass |
 | LOG-035 | 2026-05-06 | lt3-t6-max-turns-after-clear | LT-3 T6 fails with max turns issue even after clearing context before running T6 | Resolved: T6 passed after max-turn/tool-result remediation |
 | LOG-036 | 2026-05-06 | lt3-t7-max-turns-localdb | LT-3 T7 failed with max turns error after the agent had retrieved information from the local DB; T8 deferred | Resolved: T7 and T8 passed after remediation |
+| LOG-029 | 2026-05-06 | t1-pass | LT-3 T1 pass record | Test pass — not an issue |
+| LOG-031 | 2026-05-06 | lt3-t3-pass | LT-3 T3 pass record | Test pass — not an issue |
+| LOG-032 | 2026-05-06 | lt3-t4-pass | LT-3 T4 pass record | Test pass — not an issue |
+| LOG-033 | 2026-05-06 | lt3-t5-pass | LT-3 T5 pass record | Test pass — not an issue |
+| LOG-038 | 2026-05-06 | lt3-t6-pass | LT-3 T6 pass record | Test pass — not an issue |
+| LOG-039 | 2026-05-06 | lt3-t7-pass | LT-3 T7 pass record | Test pass — not an issue |

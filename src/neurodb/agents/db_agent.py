@@ -237,8 +237,18 @@ class NeuroDbAgent(BaseAgent):
         prior_context: str = "",
         mode: str = "local_db",
         chapter_context: str = "",
+        max_tool_iterations: int = 10,
+        max_tokens: int = 2048,
     ) -> None:
-        super().__init__(client, engine, vector_store, model, prior_context)
+        super().__init__(
+            client,
+            engine,
+            vector_store,
+            model,
+            prior_context,
+            max_tool_iterations=max_tool_iterations,
+            max_tokens=max_tokens,
+        )
         self.mode = mode
         self.chapter_context = chapter_context
 
@@ -269,4 +279,3 @@ class NeuroDbAgent(BaseAgent):
         return execute_tool(
             block.name, block.input, self._engine, self._vector_store
         )
-

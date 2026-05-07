@@ -308,6 +308,22 @@ Exit criteria:
 
 ---
 
+## Deferred Research Runtime Enhancements
+
+LT-3 exposed that research workflows can legitimately require more tool use than tutor or DB chat. The immediate LT-3 fix is to use a larger configurable research-agent budget, save compact partial research progress to valid API history when the budget is reached, roll back invalid tool-use messages, and surface step/budget progress to the user.
+
+Deeper runtime changes are deferred to a later enhancement, likely alongside or after the FastAPI + React shell:
+
+| Enhancement | Purpose | Why deferred |
+|---|---|---|
+| Stuck detection | Detect repeated same-tool/same-input loops, repeated empty results, and no-new-evidence cycles; pause and ask the user to continue, narrow, or draft from current evidence | Requires run-state observability and heuristics beyond the LT-3 fix |
+| Evidence compaction | Periodically summarize raw tool results into compact evidence packets so long research turns do not carry every intermediate result forward | Needs durable artifact design and careful citation/provenance handling |
+| Long-running `ResearchRun` orchestration | Support minute/hour-scale research jobs with queued runs, resumability, cancellation, checkpoints, progress UI, and final artifacts | Better suited to FastAPI + React than Streamlit's rerun model |
+
+These are not abandoned. They are intentionally separated from the LT-3 fix so T6/T7 can be unblocked without prematurely building a full deep-research runtime.
+
+---
+
 ## Open Questions
 
 - Should the first React prototype use Vite, React Router framework, or another full-stack React framework?

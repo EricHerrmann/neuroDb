@@ -181,6 +181,12 @@ def test_chat_init_knows_research_agent():
     assert "neuro_research" in source
 
 
+def test_tool_start_activity_can_show_budget():
+    text = chat._format_tool_start("query_db", {"sql": "SELECT 1"}, 3, 25)
+    assert text.startswith("Step 3/25")
+    assert "query_db" in text
+
+
 def test_chat_has_no_mode_radio():
     source = pathlib.Path("src/neurodb/ui/pages/chat.py").read_text()
     assert "st.radio" not in source

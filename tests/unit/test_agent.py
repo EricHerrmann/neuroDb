@@ -305,6 +305,21 @@ def test_agent_max_turns_guard():
     assert any("maximum" in c.lower() for c in chunks)
 
 
+def test_agent_max_turns_rolls_back_partial_api_history():
+    engine = _engine_with_dataset()
+    mock_client = MagicMock()
+    mock_client.messages.create.return_value = _response("tool_use", [
+        _tool_use_block("t1", "query_db", {"sql": "SELECT 1"})
+    ])
+
+    agent = NeuroDbAgent(mock_client, engine, max_tool_iterations=1)
+    messages = []
+    chunks = list(agent.chat("loop forever", messages))
+
+    assert any("maximum" in c.lower() for c in chunks)
+    assert messages == []
+
+
 def test_agent_chat_stream_yields_text_deltas_and_done():
     engine = _engine_with_dataset()
     mock_client = MagicMock()
@@ -341,6 +356,9 @@ def test_agent_chat_stream_surfaces_tool_activity_and_preserves_messages():
     events = list(agent.chat_stream("Count datasets", messages))
 
     assert any(event["type"] == "tool_start" for event in events)
+    tool_start = next(event for event in events if event["type"] == "tool_start")
+    assert tool_start["iteration"] == 1
+    assert tool_start["limit"] == 10
     assert any(event["type"] == "tool_result" for event in events)
     assert events[-1]["type"] == "done"
     assert len(messages) == 4
@@ -349,3 +367,81 @@ def test_agent_chat_stream_surfaces_tool_activity_and_preserves_messages():
     assert messages[2]["role"] == "user"
     assert messages[2]["content"][0]["type"] == "tool_result"
     assert messages[3]["role"] == "assistant"
+
+
+def test_agent_chat_stream_max_turns_rolls_back_partial_api_history():
+    engine = _engine_with_dataset()
+    mock_client = MagicMock()
+    mock_client.messages.stream.return_value = _Stream([], _response("tool_use", [
+        _tool_use_block("t1", "query_db", {"sql": "SELECT 1"})
+    ]))
+
+    agent = NeuroDbAgent(mock_client, engine, max_tool_iterations=1)
+    messages = []
+    events = list(agent.chat_stream("loop forever", messages))
+
+    assert events[-1]["type"] == "error"
+    assert "maximum tool iterations" in events[-1]["text"]
+    assert messages == []
+
+
+def test_chat_stream_yields_token_limit_error_when_max_tokens_fires():
+    engine = _engine_with_dataset()
+    mock_client = MagicMock()
+    mock_client.messages.stream.side_effect = [
+        _Stream([], _response("tool_use", [
+            _tool_use_block("t1", "query_db", {"sql": "SELECT 1"})
+        ])),
+        _Stream([], _response("max_tokens", [
+            _tool_use_block("t2", "query_db", {"sql": "SELECT 2"})
+        ])),
+    ]
+
+    agent = NeuroDbAgent(mock_client, engine)
+    messages = []
+    events = list(agent.chat_stream("test", messages))
+
+    assert events[-1]["type"] == "error"
+    assert "token" in events[-1]["text"].lower()
+    assert "maximum tool iterations" not in events[-1]["text"]
+    assert messages == []
+
+
+def test_chat_yields_token_limit_error_when_max_tokens_fires():
+    engine = _engine_with_dataset()
+    mock_client = MagicMock()
+    mock_client.messages.create.side_effect = [
+        _response("tool_use", [_tool_use_block("t1", "query_db", {"sql": "SELECT 1"})]),
+        _response("max_tokens", [_tool_use_block("t2", "query_db", {"sql": "SELECT 2"})]),
+    ]
+
+    agent = NeuroDbAgent(mock_client, engine)
+    messages = []
+    chunks = list(agent.chat("test", messages))
+
+    assert any("token" in c.lower() for c in chunks)
+    assert not any("maximum tool iterations" in c for c in chunks)
+    assert messages == []
+
+
+def test_agent_uses_max_tokens_constructor_param_in_stream_calls():
+    engine = _engine_with_dataset()
+    mock_client = MagicMock()
+    final_message = _response("end_turn", [_text_block("ok")])
+    mock_client.messages.stream.return_value = _Stream([], final_message)
+
+    agent = NeuroDbAgent(mock_client, engine, max_tokens=4096)
+    list(agent.chat_stream("test", []))
+
+    assert mock_client.messages.stream.call_args[1]["max_tokens"] == 4096
+
+
+def test_agent_uses_max_tokens_constructor_param_in_non_stream_calls():
+    engine = _engine_with_dataset()
+    mock_client = MagicMock()
+    mock_client.messages.create.return_value = _response("end_turn", [_text_block("ok")])
+
+    agent = NeuroDbAgent(mock_client, engine, max_tokens=4096)
+    list(agent.chat("test", []))
+
+    assert mock_client.messages.create.call_args[1]["max_tokens"] == 4096

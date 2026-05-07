@@ -91,8 +91,16 @@ class NeuroTutorAgent(BaseAgent):
         prior_context: str = "",
         knowledge_store: KnowledgeLibraryStore | None = None,
         literature_client=None,
+        max_tool_iterations: int = 10,
     ) -> None:
-        super().__init__(client, engine, vector_store, model, prior_context)
+        super().__init__(
+            client,
+            engine,
+            vector_store,
+            model,
+            prior_context,
+            max_tool_iterations=max_tool_iterations,
+        )
         self._knowledge_store = knowledge_store
         self._literature_client = literature_client
 

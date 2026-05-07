@@ -8,7 +8,7 @@
 
 **Scope decision:** Proceed in Streamlit. Do not work LOG-001, unrelated UI issues, UI Shell rearchitecture, model selection, connector framework architecture, or Semantic Scholar API-key architecture docs during LT-3 unless the user explicitly redirects scope in-session.
 
-**Current test count:** 307 after LT-3 implementation.
+**Current test count:** 319 after LT-3 sign-off.
 
 ---
 
@@ -84,15 +84,26 @@
 - [x] List draft hypotheses with status filters.
 - [x] Add structural tests for Research tab and page module.
 
-### Task 7 — Regression + Manual Readiness ✅ COMPLETE THROUGH AUTOMATED REGRESSION
+### Task 7 — Regression + Manual Readiness ✅ COMPLETE
 
 - [x] Run focused unit tests after each task.
 - [x] Run full `uv run pytest tests/ -q --tb=no`.
 - [x] Update `docs/projectStatus.md` with final automated test count.
 - [x] Start Streamlit for LT-3 manual testing.
-- [ ] Execute `docs/testsPlans/manualTestPlan_agent_lt3.md`.
-- [ ] Move LOG-015 and LOG-021 to Resolved only if manual/automated evidence supports resolution.
+- [x] Execute `docs/testsPlans/manualTestPlan_agent_lt3.md`.
+- [x] Move LOG-015 and LOG-021 to Resolved after LT-3 T1/T2 pass evidence.
 - [x] Keep LOG-001 open/deferred.
+
+### Task 8 — T6/T7/T8 Max-Turn Remediation ✅ COMPLETE
+
+- [x] Roll over-budget turns back out of API message history.
+- [x] Give `NeuroResearchAgent` a larger default tool budget than DB/Tutor.
+- [x] Add `.env` override through `NEURODB_RESEARCH_MAX_TOOL_ITERATIONS`.
+- [x] Save compact partial research progress to valid API history when Research mode reaches its tool budget.
+- [x] Surface tool step and budget in visible agent activity.
+- [x] Record stuck detection, evidence compaction, and long-running `ResearchRun` orchestration as deferred UI/research-runtime enhancements.
+- [x] Run full `uv run pytest tests/ -q --tb=no`.
+- [x] Re-run LT-3 T6/T7/T8 manual tests.
 
 ---
 

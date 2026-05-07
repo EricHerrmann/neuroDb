@@ -267,7 +267,12 @@ def _render_chat(agent, transcript_height: int = 420) -> None:
                             continue
 
                         if event["type"] == "tool_start":
-                            activity_log.append(_format_tool_start(event["tool_name"], event["tool_input"]))
+                            activity_log.append(_format_tool_start(
+                                event["tool_name"],
+                                event["tool_input"],
+                                event.get("iteration"),
+                                event.get("limit"),
+                            ))
                             activity_placeholder.markdown(_render_activity_log(activity_log))
                             continue
 
@@ -332,8 +337,14 @@ def _to_api_history(history: list[dict]) -> list[dict]:
     return api
 
 
-def _format_tool_start(tool_name: str, tool_input: dict) -> str:
-    return f"Running `{tool_name}` with `{json.dumps(tool_input, sort_keys=True)}`"
+def _format_tool_start(
+    tool_name: str,
+    tool_input: dict,
+    iteration: int | None = None,
+    limit: int | None = None,
+) -> str:
+    prefix = f"Step {iteration}/{limit}: " if iteration and limit else ""
+    return f"{prefix}Running `{tool_name}` with `{json.dumps(tool_input, sort_keys=True)}`"
 
 
 def _format_tool_result(tool_name: str, result: str) -> str:

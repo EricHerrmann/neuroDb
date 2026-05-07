@@ -20,6 +20,32 @@ def _block(name: str, inputs: dict):
     return SimpleNamespace(name=name, input=inputs)
 
 
+def _tool_use_block(id_: str, name: str, inputs: dict):
+    return SimpleNamespace(type="tool_use", id=id_, name=name, input=inputs)
+
+
+def _response(stop_reason: str, content: list):
+    return SimpleNamespace(stop_reason=stop_reason, content=content)
+
+
+class _Stream:
+    def __init__(self, events, final_message):
+        self._events = events
+        self._final_message = final_message
+
+    def __enter__(self):
+        return self
+
+    def __exit__(self, exc_type, exc, tb):
+        return False
+
+    def __iter__(self):
+        return iter(self._events)
+
+    def get_final_message(self):
+        return self._final_message
+
+
 def _agent(engine=None, **kwargs):
     return NeuroResearchAgent(
         client=MagicMock(),
@@ -57,6 +83,115 @@ def test_research_prompt_includes_current_date_and_prior_context():
     assert "Current date: 2026-05-06" in prompt
     assert "Prior sessions relevant" in prompt
     assert "confounds and limitations" in prompt
+
+
+def test_research_agent_has_larger_default_tool_budget():
+    agent = _agent()
+    assert agent._max_tool_iterations > 10
+
+
+def test_research_agent_saves_partial_progress_on_budget_exhaustion():
+    engine = _engine()
+    client = MagicMock()
+    client.messages.create.return_value = SimpleNamespace(
+        stop_reason="tool_use",
+        content=[
+            SimpleNamespace(type="text", text="I found candidate evidence."),
+            SimpleNamespace(
+                type="tool_use",
+                id="tool-1",
+                name="query_db",
+                input={"sql": "SELECT count(*) AS count FROM research_questions"},
+            ),
+        ],
+    )
+    agent = NeuroResearchAgent(client, engine, max_tool_iterations=1)
+    messages = []
+
+    chunks = list(agent.chat("Draft a hypothesis", messages))
+
+    assert "Partial research progress was saved" in chunks[0]
+    assert len(messages) == 2
+    assert messages[0] == {"role": "user", "content": "Draft a hypothesis"}
+    saved_text = messages[1]["content"][0]["text"]
+    assert "Partial research progress saved" in saved_text
+    assert "I found candidate evidence" in saved_text
+    assert "query_db" in saved_text
+    assert not any(
+        getattr(block, "type", None) == "tool_use"
+        for message in messages
+        for block in (
+            message["content"]
+            if isinstance(message.get("content"), list)
+            else []
+        )
+    )
+
+
+def test_research_agent_finishes_after_successful_draft_hypothesis_tool():
+    engine = _engine()
+    client = MagicMock()
+    draft_input = {
+        "title": "LTP learning hypothesis",
+        "mechanism": "Hippocampal plasticity may affect learning-related measures.",
+        "evidence": [{"source": "knowledge_library", "title": "LTP review"}],
+        "predictions": ["Learning measures vary with LTP-related markers."],
+        "datasets": [{"source": "openneuro", "source_id": "ds001"}],
+        "confounds": ["task design"],
+        "limitations": "Draft only; requires local testing.",
+    }
+    client.messages.create.return_value = _response("tool_use", [
+        _tool_use_block("tool-1", "draft_hypothesis", draft_input)
+    ])
+    agent = NeuroResearchAgent(client, engine, max_tool_iterations=40)
+    messages = []
+
+    chunks = list(agent.chat("Draft a hypothesis", messages))
+
+    assert client.messages.create.call_count == 1
+    assert "Draft hypothesis saved" in chunks[0]
+    assert "Confounds:" in chunks[0]
+    assert "Limitations:" in chunks[0]
+    assert len(messages) == 4
+    assert messages[1]["content"][0].type == "tool_use"
+    assert messages[2]["content"][0]["type"] == "tool_result"
+    assert messages[3]["role"] == "assistant"
+    assert messages[3]["content"][0]["type"] == "text"
+    with Session(engine) as session:
+        assert session.query(ResearchHypothesis).count() == 1
+
+
+def test_research_agent_stream_finishes_after_successful_draft_hypothesis_tool():
+    engine = _engine()
+    client = MagicMock()
+    draft_input = {
+        "title": "LTP learning hypothesis",
+        "mechanism": "Hippocampal plasticity may affect learning-related measures.",
+        "evidence": [{"source": "knowledge_library", "title": "LTP review"}],
+        "predictions": ["Learning measures vary with LTP-related markers."],
+        "datasets": [{"source": "openneuro", "source_id": "ds001"}],
+        "confounds": ["task design"],
+        "limitations": "Draft only; requires local testing.",
+    }
+    client.messages.stream.return_value = _Stream(
+        [],
+        _response("tool_use", [_tool_use_block("tool-1", "draft_hypothesis", draft_input)]),
+    )
+    agent = NeuroResearchAgent(client, engine, max_tool_iterations=40)
+    messages = []
+
+    events = list(agent.chat_stream("Draft a hypothesis", messages))
+
+    assert client.messages.stream.call_count == 1
+    assert events[0]["type"] == "tool_start"
+    assert events[0]["iteration"] == 1
+    assert events[0]["limit"] == 40
+    assert events[-1]["type"] == "done"
+    assert events[-1]["stop_reason"] == "terminal_tool_result"
+    assert "Draft hypothesis saved" in events[-1]["text"]
+    assert len(messages) == 4
+    assert messages[2]["content"][0]["type"] == "tool_result"
+    assert messages[3]["role"] == "assistant"
 
 
 def test_search_knowledge_library_dispatch_uses_store():
@@ -136,3 +271,18 @@ def test_research_agent_query_db_uses_read_only_db_tool():
     )))
 
     assert result == [{"count": 0}]
+
+
+def test_research_agent_uses_4096_max_tokens_by_default():
+    engine = _engine()
+    client = MagicMock()
+    final_message = SimpleNamespace(
+        stop_reason="end_turn",
+        content=[SimpleNamespace(type="text", text="ok")],
+    )
+    client.messages.stream.return_value = _Stream([], final_message)
+
+    agent = NeuroResearchAgent(client, engine)
+    list(agent.chat_stream("test", []))
+
+    assert client.messages.stream.call_args[1]["max_tokens"] == 4096

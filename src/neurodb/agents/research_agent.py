@@ -5,7 +5,7 @@ from datetime import date
 
 from sqlalchemy import Engine
 
-from neurodb.agents.base import BaseAgent, _DEFAULT_MODEL
+from neurodb.agents.base import BaseAgent
 from neurodb.agents.db_agent import TOOLS as _DB_TOOLS, execute_tool
 from neurodb.knowledge_store import KnowledgeLibraryStore
 from neurodb.research_tools import (
@@ -15,7 +15,7 @@ from neurodb.research_tools import (
     record_research_question,
 )
 
-_MODEL = os.environ.get("NEURODB_MODEL", _DEFAULT_MODEL)
+_MODEL = os.environ.get("NEURODB_RESEARCH_MODEL", "claude-sonnet-4-6")
 _RESEARCH_MAX_TOOL_ITERATIONS = int(
     os.environ.get("NEURODB_RESEARCH_MAX_TOOL_ITERATIONS", "25")
 )

@@ -286,3 +286,24 @@ def test_research_agent_uses_4096_max_tokens_by_default():
     list(agent.chat_stream("test", []))
 
     assert client.messages.stream.call_args[1]["max_tokens"] == 4096
+
+
+# ---------------------------------------------------------------------------
+# Per-agent model env vars (Phase 1.1)
+# ---------------------------------------------------------------------------
+
+def test_neuroresearch_agent_default_model_is_sonnet():
+    import importlib
+    import neurodb.agents.research_agent as mod
+    assert mod._MODEL == "claude-sonnet-4-6"
+
+
+def test_neuroresearch_agent_reads_neurodb_research_model_env_var():
+    import importlib
+    import os
+    import unittest.mock
+    with unittest.mock.patch.dict(os.environ, {"NEURODB_RESEARCH_MODEL": "claude-haiku-4-5"}, clear=False):
+        import neurodb.agents.research_agent as mod
+        reloaded = importlib.reload(mod)
+        assert reloaded._MODEL == "claude-haiku-4-5"
+    importlib.reload(mod)

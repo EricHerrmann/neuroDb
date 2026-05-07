@@ -445,3 +445,42 @@ def test_agent_uses_max_tokens_constructor_param_in_non_stream_calls():
     list(agent.chat("test", []))
 
     assert mock_client.messages.create.call_args[1]["max_tokens"] == 4096
+
+
+# ---------------------------------------------------------------------------
+# Per-agent model env vars (Phase 1.1)
+# ---------------------------------------------------------------------------
+
+def test_neurodb_agent_default_model_is_sonnet():
+    import importlib
+    import neurodb.agents.db_agent as mod
+    assert mod._MODEL == "claude-sonnet-4-6"
+
+
+def test_neurodb_agent_reads_neurodb_agent_model_env_var():
+    import importlib
+    import os
+    import unittest.mock
+    with unittest.mock.patch.dict(os.environ, {"NEURODB_AGENT_MODEL": "claude-haiku-4-5"}, clear=False):
+        import neurodb.agents.db_agent as mod
+        reloaded = importlib.reload(mod)
+        assert reloaded._MODEL == "claude-haiku-4-5"
+    # Reload back to normal state so other tests are not affected
+    importlib.reload(mod)
+
+
+def test_neurotutoragent_default_model_is_sonnet():
+    import importlib
+    import neurodb.agents.tutor_agent as mod
+    assert mod._MODEL == "claude-sonnet-4-6"
+
+
+def test_neurotutoragent_reads_neurodb_agent_model_env_var():
+    import importlib
+    import os
+    import unittest.mock
+    with unittest.mock.patch.dict(os.environ, {"NEURODB_AGENT_MODEL": "claude-haiku-4-5"}, clear=False):
+        import neurodb.agents.tutor_agent as mod
+        reloaded = importlib.reload(mod)
+        assert reloaded._MODEL == "claude-haiku-4-5"
+    importlib.reload(mod)

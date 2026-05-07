@@ -4,12 +4,12 @@ import os
 
 from sqlalchemy import Engine, text
 
-from neurodb.agents.base import BaseAgent, _DEFAULT_MODEL
+from neurodb.agents.base import BaseAgent
 from neurodb.db import get_session
 from neurodb.study import list_tags, tag_dataset as _tag_dataset
 from neurodb.vector_store import VectorStore
 
-_MODEL = os.environ.get("NEURODB_MODEL", _DEFAULT_MODEL)
+_MODEL = os.environ.get("NEURODB_AGENT_MODEL", "claude-sonnet-4-6")
 
 TOOLS = [
     {

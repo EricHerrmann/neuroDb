@@ -7,13 +7,13 @@ from datetime import datetime, timezone
 
 from sqlalchemy import Engine
 
-from neurodb.agents.base import BaseAgent, _DEFAULT_MODEL
+from neurodb.agents.base import BaseAgent
 from neurodb.agents.db_agent import TOOLS as _DB_TOOLS, execute_tool
 from neurodb.db import get_session
 from neurodb.knowledge_store import KnowledgeLibraryStore
 from neurodb.schema import KnowledgeSource
 
-_MODEL = os.environ.get("NEURODB_MODEL", _DEFAULT_MODEL)
+_MODEL = os.environ.get("NEURODB_AGENT_MODEL", "claude-sonnet-4-6")
 
 _TUTOR_SYSTEM_PROMPT = (
     "You are a neuroscience learning partner with access to a curated Knowledge Library, "

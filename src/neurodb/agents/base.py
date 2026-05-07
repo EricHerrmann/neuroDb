@@ -1,6 +1,9 @@
 """Abstract base class for NeuroDb agents."""
 from abc import ABC, abstractmethod
 from collections.abc import Generator, Iterable
+from time import perf_counter
+
+from neurodb.model_telemetry import record_model_call
 
 _DEFAULT_MODEL = "claude-sonnet-4-6"
 _MAX_TURNS = 10
@@ -19,6 +22,8 @@ class BaseAgent(ABC):
         max_tool_iterations: int = _MAX_TURNS,
         save_partial_progress_on_budget: bool = False,
         max_tokens: int = 2048,
+        telemetry_mode: str | None = None,
+        telemetry_task_type: str | None = None,
     ) -> None:
         self._client = client
         self._engine = engine
@@ -28,6 +33,11 @@ class BaseAgent(ABC):
         self._max_tool_iterations = max_tool_iterations
         self._save_partial_progress_on_budget = save_partial_progress_on_budget
         self._max_tokens = max_tokens
+        self._telemetry_mode = telemetry_mode
+        self._telemetry_task_type = (
+            telemetry_task_type
+            or f"agent.loop.{telemetry_mode or 'unknown'}"
+        )
 
     @abstractmethod
     def _get_active_tools(self) -> list[dict]:
@@ -63,7 +73,8 @@ class BaseAgent(ABC):
         progress_notes: list[str] = []
         tool_trace: list[dict] = []
 
-        for _ in range(self._max_tool_iterations):
+        for iteration in range(self._max_tool_iterations):
+            started = perf_counter()
             response = self._client.messages.create(
                 model=self._model,
                 max_tokens=self._max_tokens,
@@ -71,6 +82,8 @@ class BaseAgent(ABC):
                 tools=active_tools,
                 messages=messages,
             )
+            elapsed_ms = int((perf_counter() - started) * 1000)
+            self._record_model_call(response, iteration + 1, elapsed_ms)
             messages.append({"role": "assistant", "content": response.content})
 
             if response.stop_reason == "end_turn":
@@ -149,6 +162,7 @@ class BaseAgent(ABC):
         tool_trace: list[dict] = []
 
         for iteration in range(self._max_tool_iterations):
+            started = perf_counter()
             with self._client.messages.stream(
                 model=self._model,
                 max_tokens=self._max_tokens,
@@ -165,6 +179,8 @@ class BaseAgent(ABC):
                         yield {"type": "text_delta", "text": event.delta.text}
 
                 final_message = stream.get_final_message()
+            elapsed_ms = int((perf_counter() - started) * 1000)
+            self._record_model_call(final_message, iteration + 1, elapsed_ms)
 
             messages.append({"role": "assistant", "content": final_message.content})
 
@@ -285,6 +301,21 @@ class BaseAgent(ABC):
             "You can ask me to continue, narrow the question, or draft from the saved "
             "evidence gathered so far.]"
         )
+
+    def _record_model_call(self, response, iteration: int, elapsed_ms: int) -> None:
+        try:
+            record_model_call(
+                self._engine,
+                task_type=self._telemetry_task_type,
+                provider="anthropic",
+                model=self._model,
+                mode=self._telemetry_mode,
+                response=response,
+                iteration=iteration,
+                elapsed_ms=elapsed_ms,
+            )
+        except Exception:
+            return
 
     def _build_partial_progress_note(
         self,

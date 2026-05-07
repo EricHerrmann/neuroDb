@@ -100,6 +100,7 @@ class NeuroTutorAgent(BaseAgent):
             model,
             prior_context,
             max_tool_iterations=max_tool_iterations,
+            telemetry_mode="neuro_tutor",
         )
         self._knowledge_store = knowledge_store
         self._literature_client = literature_client

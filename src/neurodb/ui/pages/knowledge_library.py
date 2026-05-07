@@ -1,11 +1,13 @@
 """Knowledge Library page for Neuro-Tutor curated sources."""
 import os
 from datetime import datetime, timezone
+from time import perf_counter
 
 import streamlit as st
 from sqlalchemy import Engine
 
 from neurodb.db import get_session
+from neurodb.model_telemetry import add_model_call_log
 from neurodb.schema import KnowledgeSource
 
 
@@ -88,10 +90,15 @@ def _list_sources(engine: Engine, status: str) -> list[KnowledgeSource]:
 def _approve_source(engine: Engine, source_id: int) -> None:
     with get_session(engine) as session:
         row = session.query(KnowledgeSource).filter_by(id=source_id).one()
-        summary = _generate_summary(row)
+        summary, telemetry = _generate_summary(row)
         row.summary = summary
         row.status = "approved"
         row.reviewed_at = datetime.now(timezone.utc).isoformat()
+        if telemetry is not None:
+            try:
+                add_model_call_log(session, **telemetry)
+            except Exception:
+                pass
 
         knowledge_store = st.session_state.get("knowledge_store")
         if knowledge_store is not None:
@@ -137,17 +144,22 @@ def _dedup_threshold() -> float:
         return 0.15
 
 
-def _generate_summary(row: KnowledgeSource) -> str:
+def _generate_summary(row: KnowledgeSource) -> tuple[str, dict | None]:
     api_key = os.environ.get("ANTHROPIC_API_KEY")
     if not api_key:
-        return _fallback_summary(row)
+        return _fallback_summary(row), None
 
     try:
         import anthropic
 
         client = anthropic.Anthropic(api_key=api_key)
+        model = os.environ.get(
+            "NEURODB_KNOWLEDGE_SUMMARY_MODEL",
+            "claude-haiku-4-5-20251001",
+        )
+        started = perf_counter()
         response = client.messages.create(
-            model=os.environ.get("NEURODB_KNOWLEDGE_SUMMARY_MODEL", "claude-haiku-4-5-20251001"),
+            model=model,
             max_tokens=700,
             messages=[{
                 "role": "user",
@@ -162,13 +174,23 @@ def _generate_summary(row: KnowledgeSource) -> str:
                 ),
             }],
         )
+        elapsed_ms = int((perf_counter() - started) * 1000)
+        telemetry = {
+            "task_type": "summary.knowledge_source",
+            "provider": "anthropic",
+            "model": model,
+            "mode": "summary",
+            "response": response,
+            "iteration": 1,
+            "elapsed_ms": elapsed_ms,
+        }
         for block in response.content:
             if block.type == "text":
-                return block.text.strip()
+                return block.text.strip(), telemetry
     except Exception as exc:
-        return f"{_fallback_summary(row)}\n\nSummary generation note: {exc}"
+        return f"{_fallback_summary(row)}\n\nSummary generation note: {exc}", None
 
-    return _fallback_summary(row)
+    return _fallback_summary(row), None
 
 
 def _fallback_summary(row: KnowledgeSource) -> str:

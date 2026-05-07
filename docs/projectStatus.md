@@ -1,8 +1,8 @@
 # NeuroDb — Project Status
 
 **Last updated:** 2026-05-07
-**Active focus:** Config Control Phase 1 complete — signed off 2026-05-07
-**Next:** Config Control Phase 2 (BaseAgent instrumentation) — see `docs/superpowers/plans/2026-05-07-model-routing-impl.md`
+**Active focus:** Config Control Phase 2 implementation complete — 344 automated tests passed; manual verification pending
+**Next:** Run `docs/testsPlans/manualTestPlan_config_phase2.md` before Phase 2 sign-off
 **Goal alignment:** Two co-equal goals in a feedback loop — accumulate neuroscience understanding grounded in real data (Goal 1), and conduct structured neuroscience investigations using existing public datasets and good scientific method (Goal 2). See `NeuroDbGoals.md`.
 
 ---
@@ -16,7 +16,7 @@
 | Tutor | MVP complete (LT-1/2/3) | Open backlog: LOG-001, LOG-006, LOG-014, LOG-030 |
 | Research | Scaffolded (LT-3) | Hypothesis review, research run management, research question actions (LOG-037) |
 | UI | Streamlit MVP; migration designed | UI-0 architecture decision, FastAPI + React vertical slice |
-| Config Control | Phase 1 complete — 332 tests; signed off 2026-05-07 | Phase 2: BaseAgent instrumentation |
+| Config Control | Phase 2 implemented — 344 automated tests passed; manual eval pending | Run Config Phase 2 manual telemetry evals |
 
 ---
 
@@ -69,6 +69,7 @@ See `docs/testLog.md`. Current open items: LOG-001 (textbook dropdown ambiguity 
 | `docs/claudeTaskAnalysis.md` | Task taxonomy, model tier assignments, multi-provider architecture design, and phased implementation plan |
 | `docs/superpowers/plans/claudeTaskArch.md` | Design plan — capability tiers, per-agent env vars, synthesis split, provider abstraction, phased implementation |
 | `docs/superpowers/plans/2026-05-07-model-routing-impl.md` | Phased implementation plan — task checklists for Phase 1–4, file map, eval gates, stop criteria |
+| `docs/superpowers/plans/2026-05-07-config-phase2-cost-telemetry.md` | Config Phase 2 detailed design — ModelCallLog schema, telemetry helper, instrumentation boundaries, tests |
 | `docs/testLog.md` | Running issue log — open and resolved items across all phases |
 | `docs/superpowers/specs/2026-05-05-neuro-tutor-epoch-design.md` | LT-1 design spec |
 | `docs/superpowers/plans/2026-05-05-lt1-neuro-tutor-foundation.md` | LT-1 implementation plan |
@@ -83,6 +84,7 @@ See `docs/testLog.md`. Current open items: LOG-001 (textbook dropdown ambiguity 
 | `docs/testsPlans/manualTestPlan_agent_lt2.md` | LT-2 manual test plan |
 | `docs/testsPlans/manualTestPlan_agent_lt3.md` | LT-3 manual test plan — Neuro-Research mode, metrics, hypotheses |
 | `docs/testsPlans/manualTestPlan_config_phase1.md` | Config Phase 1 signed-off manual test plan — per-agent model env var evals |
+| `docs/testsPlans/manualTestPlan_config_phase2.md` | Config Phase 2 manual test plan — model-call telemetry evals |
 | `docs/superpowers/plans/2026-05-04-tech-debt-td1.md` | TD-1 plan |
 | `docs/superpowers/plans/2026-05-04-tech-debt-td2.md` | TD-2 plan |
 | `docs/superpowers/plans/2026-05-04-tech-debt-td3.md` | TD-3 plan |

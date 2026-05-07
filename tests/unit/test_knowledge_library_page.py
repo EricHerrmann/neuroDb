@@ -3,6 +3,11 @@ import pathlib
 from types import SimpleNamespace
 from unittest.mock import MagicMock, patch
 
+from sqlalchemy import create_engine
+from sqlalchemy.orm import Session
+
+from neurodb.schema import Base, KnowledgeSource, ModelCallLog
+
 
 def _source() -> str:
     return pathlib.Path("src/neurodb/ui/pages/knowledge_library.py").read_text()
@@ -120,3 +125,60 @@ def test_generate_summary_reads_neurodb_knowledge_summary_model_env():
             knowledge_library._generate_summary(_make_knowledge_source())
 
     assert captured_model.get("model") == "claude-sentinel-model"
+
+
+def test_approve_source_logs_knowledge_summary_telemetry():
+    from neurodb.ui.pages import knowledge_library
+
+    engine = create_engine("sqlite:///:memory:")
+    Base.metadata.create_all(engine)
+    with Session(engine) as session:
+        source = KnowledgeSource(
+            title="Hippocampal Place Cells",
+            normalized_title="hippocampal place cells",
+            doi="10.1000/xyz",
+            url="https://example.com",
+            source_type="paper",
+            topic_context="spatial navigation",
+            status="pending",
+            queued_at="2026-05-07T00:00:00",
+        )
+        session.add(source)
+        session.commit()
+        source_id = source.id
+
+    def fake_create(**kwargs):
+        block = SimpleNamespace(type="text", text="summary text")
+        usage = SimpleNamespace(input_tokens=25, output_tokens=9)
+        return SimpleNamespace(stop_reason="end_turn", content=[block], usage=usage)
+
+    mock_client = MagicMock()
+    mock_client.messages.create.side_effect = fake_create
+
+    with patch.dict("os.environ", {
+        "ANTHROPIC_API_KEY": "test-key",
+        "NEURODB_KNOWLEDGE_SUMMARY_MODEL": "claude-test-summary",
+    }):
+        with patch("anthropic.Anthropic", return_value=mock_client):
+            with patch.object(knowledge_library.st, "session_state", {}):
+                knowledge_library._approve_source(engine, source_id)
+
+    with Session(engine) as session:
+        source = session.query(KnowledgeSource).filter_by(id=source_id).one()
+        row = session.query(ModelCallLog).one()
+        assert source.status == "approved"
+        assert source.summary == "summary text"
+        assert row.task_type == "summary.knowledge_source"
+        assert row.model == "claude-test-summary"
+        assert row.input_tokens == 25
+        assert row.output_tokens == 9
+
+
+def test_generate_summary_without_api_key_returns_no_telemetry():
+    from neurodb.ui.pages import knowledge_library
+
+    with patch.dict("os.environ", {}, clear=True):
+        summary, telemetry = knowledge_library._generate_summary(_make_knowledge_source())
+
+    assert "Key concepts" in summary
+    assert telemetry is None

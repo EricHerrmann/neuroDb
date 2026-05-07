@@ -138,7 +138,11 @@ if "session_manager" not in st.session_state:
     context_store = AgentContextStore(path=chroma_path)
     api_key = os.environ.get("ANTHROPIC_API_KEY")
     client = anthropic.Anthropic(api_key=api_key) if api_key else None
-    st.session_state["session_manager"] = SessionManager(context_store, client=client)
+    st.session_state["session_manager"] = SessionManager(
+        context_store,
+        client=client,
+        engine=engine,
+    )
 
 if "active_prior_context" not in st.session_state:
     manager = st.session_state.get("session_manager")

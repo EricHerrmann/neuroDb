@@ -38,8 +38,47 @@ def _migration_001_study_note_unique(conn) -> None:
         pass  # constraint already exists on this DB
 
 
+def _migration_002_model_call_log(conn) -> None:
+    """Create model_call_log for existing DB files."""
+    conn.execute(text("""
+        CREATE TABLE IF NOT EXISTS model_call_log (
+            id INTEGER PRIMARY KEY,
+            recorded_at VARCHAR(32) NOT NULL,
+            task_type VARCHAR(128) NOT NULL,
+            provider VARCHAR(64) NOT NULL,
+            model VARCHAR(128) NOT NULL,
+            mode VARCHAR(64),
+            tool_name VARCHAR(128),
+            tool_names_json TEXT,
+            iteration INTEGER,
+            input_tokens INTEGER,
+            output_tokens INTEGER,
+            stop_reason VARCHAR(64),
+            elapsed_ms INTEGER,
+            estimated_cost_usd FLOAT
+        )
+    """))
+    conn.execute(text(
+        "CREATE INDEX IF NOT EXISTS ix_model_call_log_recorded_at "
+        "ON model_call_log (recorded_at)"
+    ))
+    conn.execute(text(
+        "CREATE INDEX IF NOT EXISTS ix_model_call_log_task_type "
+        "ON model_call_log (task_type)"
+    ))
+    conn.execute(text(
+        "CREATE INDEX IF NOT EXISTS ix_model_call_log_model "
+        "ON model_call_log (model)"
+    ))
+    conn.execute(text(
+        "CREATE INDEX IF NOT EXISTS ix_model_call_log_task_type_model "
+        "ON model_call_log (task_type, model)"
+    ))
+
+
 _MIGRATIONS: dict[int, callable] = {
     1: _migration_001_study_note_unique,
+    2: _migration_002_model_call_log,
 }
 
 

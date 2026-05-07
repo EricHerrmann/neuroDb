@@ -162,6 +162,7 @@ class NeuroResearchAgent(BaseAgent):
             max_tool_iterations=max_tool_iterations,
             save_partial_progress_on_budget=True,
             max_tokens=max_tokens,
+            telemetry_mode="neuro_research",
         )
         self._knowledge_store = knowledge_store
         self._literature_client = literature_client

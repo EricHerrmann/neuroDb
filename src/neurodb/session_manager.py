@@ -8,6 +8,9 @@ Migration target: src/neurodb/agents/session_manager.py
 """
 import os
 import uuid
+from time import perf_counter
+
+from neurodb.model_telemetry import record_model_call
 
 _COLLECTION_NAME = "agent_context"
 _SUMMARY_MODEL = os.environ.get("NEURODB_SUMMARY_MODEL", "claude-haiku-4-5-20251001")
@@ -100,10 +103,17 @@ def format_context(summaries: list[str]) -> str:
 class SessionManager:
     """Manages session lifecycle: prior context retrieval and summary generation."""
 
-    def __init__(self, context_store: AgentContextStore, client=None, date_provider=None) -> None:
+    def __init__(
+        self,
+        context_store: AgentContextStore,
+        client=None,
+        date_provider=None,
+        engine=None,
+    ) -> None:
         self._store = context_store
         self._client = client  # Anthropic client
         self._date_provider = date_provider
+        self._engine = engine
 
     def start_session(
         self,
@@ -207,11 +217,26 @@ class SessionManager:
             conversation=convo_text,
             current_date=current_date,
         )
+        started = perf_counter()
         response = self._client.messages.create(
             model=_SUMMARY_MODEL,
             max_tokens=512,
             messages=[{"role": "user", "content": prompt}],
         )
+        elapsed_ms = int((perf_counter() - started) * 1000)
+        try:
+            record_model_call(
+                self._engine,
+                task_type="summary.session",
+                provider="anthropic",
+                model=_SUMMARY_MODEL,
+                mode="summary",
+                response=response,
+                iteration=1,
+                elapsed_ms=elapsed_ms,
+            )
+        except Exception:
+            pass
         for block in response.content:
             if block.type == "text":
                 return block.text.strip()

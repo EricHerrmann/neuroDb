@@ -158,7 +158,7 @@ With:
 | Tutor | MVP complete (LT-1/2/3) | Open backlog: LOG-001, LOG-006, LOG-014, LOG-030 |
 | Research | Scaffolded (LT-3) | Hypothesis review, research run management, research question actions (LOG-037) |
 | UI | Streamlit MVP; migration designed | UI-0 architecture decision, FastAPI + React vertical slice |
-| Config Control | Phase 1 complete — 332 tests; signed off 2026-05-07 | Phase 2: BaseAgent instrumentation |
+| Config Control | Phase 2 implemented — 344 automated tests passed; manual eval pending | Run Config Phase 2 manual telemetry evals |
 ```
 
 - [ ] **Step 2: Update the "Next" header line**
@@ -172,7 +172,7 @@ Change:
 To:
 
 ```markdown
-**Next:** Config Control Phase 2 (BaseAgent instrumentation) — see `docs/superpowers/plans/2026-05-07-model-routing-impl.md`
+**Next:** Run `docs/testsPlans/manualTestPlan_config_phase2.md` before Phase 2 sign-off
 ```
 
 - [ ] **Step 3: Update Last updated date**

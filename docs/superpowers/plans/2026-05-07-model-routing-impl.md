@@ -1,7 +1,7 @@
 # Model Routing — Phased Implementation Plan
 
 **Design source:** `docs/superpowers/plans/claudeTaskArch.md`
-**Status:** Phase 1 passed — signed off 2026-05-07; Phase 2 not started
+**Status:** Phase 1 passed — signed off 2026-05-07; Phase 2 implemented, manual verification pending
 **Scope decision:** Implement in four gated phases. Each phase requires its eval criteria to pass before the next phase begins. Do not work provider abstraction, config table, or TaskRouter during Phase 1–3.
 
 ---
@@ -21,6 +21,7 @@
 | 1 | Modify | `tests/unit/test_research_agent.py` | Test: research agent reads `NEURODB_RESEARCH_MODEL` |
 | 1 | Modify | `tests/unit/test_chat_ui.py` | Test: chat init passes correct model to each agent mode |
 | 2 | Modify | `src/neurodb/schema.py` | Add `ModelCallLog` ORM table |
+| 2 | Create | `src/neurodb/model_telemetry.py` | Helper for safe telemetry extraction, cost estimation, and non-blocking DB writes |
 | 2 | Modify | `src/neurodb/agents/base.py` | Instrument `_chat_inner` and `_chat_stream_inner` to write log rows |
 | 2 | Modify | `src/neurodb/session_manager.py` | Instrument `_generate_summary()` to write log row |
 | 2 | Modify | `src/neurodb/ui/pages/knowledge_library.py` | Instrument `_generate_summary()` to write log row |
@@ -106,43 +107,63 @@ Run against the live Streamlit app with new env vars active. Record pass/fail fo
 ### Phase 2 — Cost Telemetry
 
 **Goal:** Measure actual iteration and token distribution. Gate on data before making stronger tier claims.
+**Detailed design:** `docs/superpowers/plans/2026-05-07-config-phase2-cost-telemetry.md`
 
 #### Task 2.0 — Manual test plan
 
-- [ ] Create `docs/testsPlans/manualTestPlan_config_phase2.md` with evals covering: telemetry rows written per agent call, telemetry rows written per summary call, all fields present and correctly typed
-- [ ] Add plan to `docs/projectStatus.md` reference table
+- [x] Create `docs/testsPlans/manualTestPlan_config_phase2.md` with evals covering: telemetry rows written per agent call, telemetry rows written per summary call, all fields present and correctly typed
+- [x] Add plan to `docs/projectStatus.md` reference table
 
 #### Task 2.1 — Schema
 
-- [ ] Add `ModelCallLog` ORM table to `src/neurodb/schema.py` with columns: `id`, `recorded_at`, `task_type`, `provider`, `model`, `mode`, `tool_name`, `iteration`, `input_tokens`, `output_tokens`, `stop_reason`, `elapsed_ms`, `estimated_cost_usd`
-- [ ] Write failing schema test: `ModelCallLog` table created by `init_db`
-- [ ] Run test — confirm red; implement; confirm green
-- [ ] Run full `uv run pytest tests/ -q --tb=no`
+- [x] Add `ModelCallLog` ORM table to `src/neurodb/schema.py` with columns: `id`, `recorded_at`, `task_type`, `provider`, `model`, `mode`, `tool_name`, `tool_names_json`, `iteration`, `input_tokens`, `output_tokens`, `stop_reason`, `elapsed_ms`, `estimated_cost_usd`
+- [x] Add indexes for `task_type`, `model`, `recorded_at`, and compound `task_type/model`
+- [x] Add migration 002 to create `model_call_log` for existing DB files
+- [x] Write failing schema test: `ModelCallLog` table created by `init_db`
+- [x] Run test — confirm red; implement; confirm green
+- [x] Run full `uv run pytest tests/ -q --tb=no`
 
-#### Task 2.2 — Agent loop instrumentation
+#### Task 2.2 — Telemetry helper
 
-- [ ] In `base.py` `_chat_inner`: after each `messages.create()` response, write one `ModelCallLog` row
-- [ ] In `base.py` `_chat_stream_inner`: after each `stream.get_final_message()`, write one `ModelCallLog` row
-- [ ] Pass `engine` into the log write; do not raise if log write fails (telemetry must not break the agent loop)
-- [ ] Log `task_type` as `"agent.loop.<mode>"` where mode comes from the agent's context
-- [ ] Write failing test: `_chat_inner` writes one log row per iteration
-- [ ] Write failing test: `_chat_stream_inner` writes one log row per iteration
-- [ ] Run tests — confirm red; implement; confirm green
-- [ ] Run full `uv run pytest tests/ -q --tb=no`
+- [x] Create `src/neurodb/model_telemetry.py`
+- [x] Implement defensive usage extraction from Anthropic responses
+- [x] Implement tool-name extraction, including multi-tool responses into `tool_names_json`
+- [x] Implement nullable cost estimation from exact model ID and token counts
+- [x] Implement `record_model_call(engine, ...)` for standalone writes
+- [x] Implement `add_model_call_log(session, ...)` for existing transactions
+- [x] Ensure telemetry write failures are swallowed
+- [x] Write tests for usage extraction, missing usage, multi-tool extraction, row write, and write-failure safety
+- [x] Run full `uv run pytest tests/ -q --tb=no`
 
-#### Task 2.3 — Summary instrumentation
+#### Task 2.3 — Agent loop instrumentation
 
-- [ ] In `session_manager.py` `_generate_summary()`: write one `ModelCallLog` row with `task_type = "summary.session"`
-- [ ] In `knowledge_library.py` `_generate_summary()`: write one `ModelCallLog` row with `task_type = "summary.knowledge_source"`
-- [ ] Write failing tests for both
-- [ ] Run tests — confirm red; implement; confirm green
-- [ ] Run full `uv run pytest tests/ -q --tb=no`
+- [x] In `base.py` `_chat_inner`: after each `messages.create()` response, write one `ModelCallLog` row
+- [x] In `base.py` `_chat_stream_inner`: after each `stream.get_final_message()`, write one `ModelCallLog` row
+- [x] Add explicit telemetry mode/task type metadata to `BaseAgent` construction
+- [x] Pass `local_db` / `external_db` from `NeuroDbAgent`, `neuro_tutor` from `NeuroTutorAgent`, and `neuro_research` from `NeuroResearchAgent`
+- [x] Pass `engine` into the log write through `record_model_call`; do not raise if log write fails
+- [x] Log `task_type` as `"agent.loop.<mode>"`
+- [x] Write failing test: `_chat_inner` writes one log row per iteration
+- [x] Write failing test: `_chat_stream_inner` writes one log row per iteration
+- [x] Write failing test: telemetry write failure does not break chat response
+- [x] Run tests — confirm red; implement; confirm green
+- [x] Run full `uv run pytest tests/ -q --tb=no`
 
-#### Task 2.4 — Verify telemetry
+#### Task 2.4 — Summary instrumentation
 
-- [ ] Start Streamlit, run a Local DB query, run a research hypothesis prompt, clear session
-- [ ] Query `model_call_log` directly: confirm rows present with correct `task_type`, `model`, `input_tokens`, `output_tokens`, `stop_reason`
-- [ ] Update `docs/projectStatus.md` with new test count
+- [x] Add optional `engine=None` to `SessionManager` so session-summary telemetry can write rows when available
+- [x] In `session_manager.py` `_generate_summary()`: write one `ModelCallLog` row with `task_type = "summary.session"` and `mode = "summary"`
+- [x] In `knowledge_library.py`: attach one `ModelCallLog` row with `task_type = "summary.knowledge_source"` using the existing approval DB session
+- [x] Write failing tests for both
+- [x] Write failing test: Knowledge Library fallback without API key writes no telemetry row
+- [x] Run tests — confirm red; implement; confirm green
+- [x] Run full `uv run pytest tests/ -q --tb=no`
+
+#### Task 2.5 — Verify telemetry
+
+- [ ] Start Streamlit, run a Local DB query, run a Tutor prompt, run a research prompt, clear session, approve one Knowledge Library source
+- [ ] Query `model_call_log` directly: confirm rows present with correct `task_type`, `mode`, `model`, `input_tokens`, `output_tokens`, `stop_reason`, `elapsed_ms`
+- [x] Update `docs/projectStatus.md` with new test count
 
 ---
 

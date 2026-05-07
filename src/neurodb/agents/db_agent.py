@@ -248,6 +248,7 @@ class NeuroDbAgent(BaseAgent):
             prior_context,
             max_tool_iterations=max_tool_iterations,
             max_tokens=max_tokens,
+            telemetry_mode=mode,
         )
         self.mode = mode
         self.chapter_context = chapter_context

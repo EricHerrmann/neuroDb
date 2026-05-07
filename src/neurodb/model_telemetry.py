@@ -1,0 +1,104 @@
+"""Config Control epoch — local model-call telemetry helpers."""
+from __future__ import annotations
+
+import json
+from datetime import datetime, timezone
+
+from neurodb.db import get_session
+from neurodb.schema import ModelCallLog
+
+
+_PRICE_PER_MILLION_TOKENS_USD: dict[str, tuple[float, float]] = {}
+
+
+def build_model_call_log(
+    *,
+    task_type: str,
+    provider: str,
+    model: str,
+    mode: str | None = None,
+    response=None,
+    iteration: int | None = None,
+    elapsed_ms: int | None = None,
+) -> ModelCallLog:
+    """Build a ModelCallLog row from a provider response."""
+    input_tokens, output_tokens = _extract_usage(response)
+    tool_names = _extract_tool_names(response)
+    return ModelCallLog(
+        recorded_at=datetime.now(timezone.utc).isoformat(),
+        task_type=task_type,
+        provider=provider,
+        model=model,
+        mode=mode,
+        tool_name=tool_names[0] if tool_names else None,
+        tool_names_json=json.dumps(tool_names) if tool_names else None,
+        iteration=iteration,
+        input_tokens=input_tokens,
+        output_tokens=output_tokens,
+        stop_reason=_get_value(response, "stop_reason"),
+        elapsed_ms=elapsed_ms,
+        estimated_cost_usd=_estimate_cost_usd(model, input_tokens, output_tokens),
+    )
+
+
+def record_model_call(engine, **kwargs) -> None:
+    """Write one telemetry row using a short independent session."""
+    if engine is None:
+        return
+    try:
+        row = build_model_call_log(**kwargs)
+        with get_session(engine) as session:
+            session.add(row)
+    except Exception:
+        return
+
+
+def add_model_call_log(session, **kwargs) -> None:
+    """Attach one telemetry row to an existing transaction."""
+    if session is None:
+        return
+    try:
+        session.add(build_model_call_log(**kwargs))
+    except Exception:
+        return
+
+
+def _extract_usage(response) -> tuple[int | None, int | None]:
+    usage = _get_value(response, "usage")
+    if usage is None:
+        return None, None
+    return _get_value(usage, "input_tokens"), _get_value(usage, "output_tokens")
+
+
+def _extract_tool_names(response) -> list[str]:
+    content = _get_value(response, "content") or []
+    names: list[str] = []
+    for block in content:
+        if _get_value(block, "type") != "tool_use":
+            continue
+        name = _get_value(block, "name")
+        if name:
+            names.append(str(name))
+    return names
+
+
+def _estimate_cost_usd(
+    model: str,
+    input_tokens: int | None,
+    output_tokens: int | None,
+) -> float | None:
+    pricing = _PRICE_PER_MILLION_TOKENS_USD.get(model)
+    if pricing is None or input_tokens is None or output_tokens is None:
+        return None
+    input_price, output_price = pricing
+    return (input_tokens / 1_000_000 * input_price) + (
+        output_tokens / 1_000_000 * output_price
+    )
+
+
+def _get_value(obj, name: str):
+    if obj is None:
+        return None
+    if isinstance(obj, dict):
+        return obj.get(name)
+    return getattr(obj, name, None)

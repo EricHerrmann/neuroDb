@@ -277,6 +277,29 @@ class KnowledgeGrowthSnapshot(Base):
     metrics_json: Mapped[str] = mapped_column(Text, nullable=False)
 
 
+class ModelCallLog(Base):
+    """Structured telemetry for paid model calls."""
+    __tablename__ = "model_call_log"
+    __table_args__ = (
+        Index("ix_model_call_log_task_type_model", "task_type", "model"),
+    )
+
+    id: Mapped[int] = mapped_column(Integer, Sequence("model_call_log_id_seq"), primary_key=True)
+    recorded_at: Mapped[str] = mapped_column(String(32), nullable=False, index=True)
+    task_type: Mapped[str] = mapped_column(String(128), nullable=False, index=True)
+    provider: Mapped[str] = mapped_column(String(64), nullable=False)
+    model: Mapped[str] = mapped_column(String(128), nullable=False, index=True)
+    mode: Mapped[str | None] = mapped_column(String(64), nullable=True)
+    tool_name: Mapped[str | None] = mapped_column(String(128), nullable=True)
+    tool_names_json: Mapped[str | None] = mapped_column(Text, nullable=True)
+    iteration: Mapped[int | None] = mapped_column(Integer, nullable=True)
+    input_tokens: Mapped[int | None] = mapped_column(Integer, nullable=True)
+    output_tokens: Mapped[int | None] = mapped_column(Integer, nullable=True)
+    stop_reason: Mapped[str | None] = mapped_column(String(64), nullable=True)
+    elapsed_ms: Mapped[int | None] = mapped_column(Integer, nullable=True)
+    estimated_cost_usd: Mapped[float | None] = mapped_column(Float, nullable=True)
+
+
 class AppPreference(Base):
     """Narrow persisted app preferences."""
     __tablename__ = "app_preferences"

@@ -1,5 +1,7 @@
 """Unit tests for NeuroDb agent — mocks Anthropic client, no real API calls."""
+import importlib
 import json
+import os
 from types import SimpleNamespace
 from unittest.mock import MagicMock, patch
 
@@ -452,16 +454,16 @@ def test_agent_uses_max_tokens_constructor_param_in_non_stream_calls():
 # ---------------------------------------------------------------------------
 
 def test_neurodb_agent_default_model_is_sonnet():
-    import importlib
-    import neurodb.agents.db_agent as mod
-    assert mod._MODEL == "claude-sonnet-4-6"
+    env = {k: v for k, v in os.environ.items() if k != "NEURODB_AGENT_MODEL"}
+    with patch.dict(os.environ, env, clear=True):
+        import neurodb.agents.db_agent as mod
+        importlib.reload(mod)
+        assert mod._MODEL == "claude-sonnet-4-6"
+    importlib.reload(mod)
 
 
 def test_neurodb_agent_reads_neurodb_agent_model_env_var():
-    import importlib
-    import os
-    import unittest.mock
-    with unittest.mock.patch.dict(os.environ, {"NEURODB_AGENT_MODEL": "claude-haiku-4-5"}, clear=False):
+    with patch.dict(os.environ, {"NEURODB_AGENT_MODEL": "claude-haiku-4-5"}, clear=False):
         import neurodb.agents.db_agent as mod
         reloaded = importlib.reload(mod)
         assert reloaded._MODEL == "claude-haiku-4-5"
@@ -470,16 +472,16 @@ def test_neurodb_agent_reads_neurodb_agent_model_env_var():
 
 
 def test_neurotutoragent_default_model_is_sonnet():
-    import importlib
-    import neurodb.agents.tutor_agent as mod
-    assert mod._MODEL == "claude-sonnet-4-6"
+    env = {k: v for k, v in os.environ.items() if k != "NEURODB_AGENT_MODEL"}
+    with patch.dict(os.environ, env, clear=True):
+        import neurodb.agents.tutor_agent as mod
+        importlib.reload(mod)
+        assert mod._MODEL == "claude-sonnet-4-6"
+    importlib.reload(mod)
 
 
 def test_neurotutoragent_reads_neurodb_agent_model_env_var():
-    import importlib
-    import os
-    import unittest.mock
-    with unittest.mock.patch.dict(os.environ, {"NEURODB_AGENT_MODEL": "claude-haiku-4-5"}, clear=False):
+    with patch.dict(os.environ, {"NEURODB_AGENT_MODEL": "claude-haiku-4-5"}, clear=False):
         import neurodb.agents.tutor_agent as mod
         reloaded = importlib.reload(mod)
         assert reloaded._MODEL == "claude-haiku-4-5"

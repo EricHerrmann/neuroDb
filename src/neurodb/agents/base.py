@@ -2,7 +2,7 @@
 from abc import ABC, abstractmethod
 from collections.abc import Generator, Iterable
 
-_DEFAULT_MODEL = "claude-opus-4-7"
+_DEFAULT_MODEL = "claude-sonnet-4-6"
 _MAX_TURNS = 10
 
 

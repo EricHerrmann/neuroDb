@@ -206,7 +206,6 @@ def test_no_start_or_end_session_buttons_in_chat():
 def test_neurodb_agent_model_env_var_wires_to_module_model(monkeypatch):
     """NEURODB_AGENT_MODEL is read at import time into db_agent._MODEL."""
     import importlib
-    import os
 
     import neurodb.agents.db_agent as db_agent_mod
 

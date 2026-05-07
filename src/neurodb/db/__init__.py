@@ -22,7 +22,6 @@ directly outside a helper in this package.
 
 # Re-export db.py functions for backward compatibility during migration.
 # Once all imports have migrated to db.connection, these can be removed.
-import sys
 from pathlib import Path
 
 # Import from the legacy db.py module (not from this package)

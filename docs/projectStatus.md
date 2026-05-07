@@ -2,28 +2,21 @@
 
 **Last updated:** 2026-05-07
 **Active focus:** LT-3 complete — signed off 2026-05-06
-**Next:** UI Shell architecture and deferred polish triage
+**Next:** Config Control Phase 1 (per-agent model env vars) — see `docs/superpowers/plans/2026-05-07-model-routing-impl.md`
 **Goal alignment:** Two co-equal goals in a feedback loop — accumulate neuroscience understanding grounded in real data (Goal 1), and conduct structured neuroscience investigations using existing public datasets and good scientific method (Goal 2). See `NeuroDbGoals.md`.
 
 ---
 
-## Active Work — Learning Epoch
+## Epoch Status
 
-| Phase | Focus | Status |
-|-------|-------|--------|
-| LT-1 | BaseAgent architecture, NeuroDbAgent rename, mode rename, auto-session, NeuroTutorAgent core, knowledge library storage + UI | Complete — 255 tests — signed off 2026-05-05 |
-| Pre-LT-2 | Sidebar migration complete; fixed-pane Streamlit layout failed manual test and is deferred to UI shell architecture | Closed/deferred — 262 tests |
-| LT-2 | LiteratureSearchClient (PubMed + Semantic Scholar), Previous Topics panel, sidebar config extensions, semantic dedup, Knowledge Library polish, connector visibility | Complete — 278 tests — signed off 2026-05-06 |
-| LT-3 | Research agent scaffolding, knowledge growth metrics, hypothesis tools | Complete — 319 tests — signed off 2026-05-06 |
-| UI Shell | UI tech-stack architecture for fixed workbench behavior after LT-2/LT-3 MVP capability maturity | Deferred post-LT-3 |
-| CF-1 | Connector framework architecture — plugin system for adding connectors without rework | Planned post-LT-2 |
-
-**Epoch plan:** `docs/ClaudeLearnEpochPlan.md`
-**LT-1 spec:** `docs/superpowers/specs/2026-05-05-neuro-tutor-epoch-design.md`
-**Pre-LT-2 spec:** `docs/superpowers/specs/2026-05-05-pre-lt2-chat-layout-hardening.md`
-**LT-2 spec:** `docs/superpowers/specs/2026-05-05-lt2-literature-search-previous-topics.md`
-**LT-3 spec:** `docs/superpowers/specs/2026-05-06-lt3-research-agent-scaffolding.md`
-**LT-3 plan:** `docs/superpowers/plans/2026-05-06-lt3-research-agent-scaffolding.md`
+| Epoch | Maturity | Next |
+|---|---|---|
+| DB | MVP complete (phases 0–6) | Entity resolution (7), research storage schema (8) |
+| Agent Core | Stable | Config Control Phase 4 — ModelClient interface refactor |
+| Tutor | MVP complete (LT-1/2/3) | Open backlog: LOG-001, LOG-006, LOG-014, LOG-030 |
+| Research | Scaffolded (LT-3) | Hypothesis review, research run management, research question actions (LOG-037) |
+| UI | Streamlit MVP; migration designed | UI-0 architecture decision, FastAPI + React vertical slice |
+| Config Control | Designed — not started | Phase 1: per-agent env vars (see model routing plan) |
 
 ---
 

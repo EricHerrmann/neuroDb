@@ -1,5 +1,7 @@
 # LT-3: Research Agent Scaffolding — Manual Test Plan
 
+**Epoch scope:** Tutor + Research — this plan spans two epochs. Tutor: knowledge growth metrics. Research: NeuroResearchAgent, research questions, hypothesis drafting. Future test plans should be scoped to a single epoch.
+
 **Feature:** Neuro-Research mode, research artifacts, knowledge growth metrics, hypothesis drafts
 **Status:** Passed — signed off 2026-05-06
 **Spec:** `docs/superpowers/specs/2026-05-06-lt3-research-agent-scaffolding.md`

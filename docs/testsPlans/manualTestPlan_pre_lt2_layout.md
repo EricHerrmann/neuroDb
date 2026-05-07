@@ -1,5 +1,7 @@
 # Pre-LT-2: Chat Layout Hardening — Manual Test Plan
 
+**Epoch scope:** UI — tests sidebar migration and layout behavior.
+
 **Feature:** Fixed-pane layout attempt and sidebar migration
 **Status:** Failed/deferred — sidebar migration retained, fixed-pane layout deferred post-LT-3
 **Spec:** `docs/superpowers/specs/2026-05-05-pre-lt2-chat-layout-hardening.md`

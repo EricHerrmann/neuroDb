@@ -1,5 +1,7 @@
 # Agent LT-1 Manual Test Plan — Neuro-Tutor Foundation
 
+**Epoch scope:** Tutor — tests NeuroTutorAgent, knowledge library storage, auto-session, and Agent Core BaseAgent architecture.
+
 **Status:** Signed off — LT-1 complete
 **Tester:** Eric Herrmann
 **Scope:** BaseAgent migration, Local DB / External DB / Neuro-Tutor mode wiring, auto-session behavior, Knowledge Library queue and approval flow, compatibility-shim cleanup gate

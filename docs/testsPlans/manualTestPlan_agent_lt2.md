@@ -1,5 +1,7 @@
 # LT-2: Literature Search + Previous Topics — Manual Test Plan
 
+**Epoch scope:** Tutor — tests live literature search (PubMed/Semantic Scholar), Previous Topics panel, knowledge library polish, and session memory.
+
 **Feature:** Live literature search, Previous Topics, sidebar Connections, Knowledge Library polish, connector request visibility
 **Status:** Signed off — 2026-05-06
 **Spec:** `docs/superpowers/specs/2026-05-05-lt2-literature-search-previous-topics.md`

@@ -3,7 +3,7 @@
 **Last updated:** 2026-05-07
 **Active focus:** LT-3 complete — signed off 2026-05-06
 **Next:** UI Shell architecture and deferred polish triage
-**Goal alignment:** Give the user a capable neuroscience learning partner — one that remembers what has been explored and builds on it, so learning compounds over time.
+**Goal alignment:** Two co-equal goals in a feedback loop — accumulate neuroscience understanding grounded in real data (Goal 1), and conduct structured neuroscience investigations using existing public datasets and good scientific method (Goal 2). See `NeuroDbGoals.md`.
 
 ---
 
@@ -71,7 +71,6 @@ See `docs/testLog.md`. Current open items: LOG-001 (textbook dropdown ambiguity 
 | `docs/uiEpoch.md` | UI epoch plan — Streamlit constraints, FastAPI/React workbench migration path |
 | `docs/codexTaskAnalysis.md` | Codex task-based cost analysis, model-routing recommendations, and provider-agnostic architecture notes |
 | `docs/claudeTaskAnalysis.md` | Task taxonomy, model tier assignments, multi-provider architecture design, and phased implementation plan |
-| `docs/codexTaskArch.md` | Codex design plan — architecture comparison, task-based routing, telemetry, premium review, and provider abstraction |
 | `docs/superpowers/plans/claudeTaskArch.md` | Design plan — capability tiers, per-agent env vars, synthesis split, provider abstraction, phased implementation |
 | `docs/superpowers/plans/2026-05-07-model-routing-impl.md` | Phased implementation plan — task checklists for Phase 1–4, file map, eval gates, stop criteria |
 | `docs/testLog.md` | Running issue log — open and resolved items across all phases |

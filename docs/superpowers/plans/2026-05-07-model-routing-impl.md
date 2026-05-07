@@ -16,7 +16,7 @@
 | 1 | Modify | `src/neurodb/session_manager.py` | Read `NEURODB_SUMMARY_MODEL`; default `claude-haiku-4-5-20251001` |
 | 1 | Modify | `src/neurodb/ui/pages/knowledge_library.py` | Read `NEURODB_KNOWLEDGE_SUMMARY_MODEL`; default `claude-haiku-4-5-20251001` |
 | 1 | Modify | `.env` | Add five new env vars with current values |
-| 1 | Modify | `.env.example` | Document all five vars with tier labels |
+| 1 | **Create** | `.env.example` | Template for all required env vars with placeholder values and tier labels; does not exist yet |
 | 1 | Modify | `tests/unit/test_agent.py` | Tests: each agent reads its own env var; Sonnet default |
 | 1 | Modify | `tests/unit/test_research_agent.py` | Test: research agent reads `NEURODB_RESEARCH_MODEL` |
 | 1 | Modify | `tests/unit/test_chat_ui.py` | Test: chat init passes correct model to each agent mode |
@@ -74,8 +74,10 @@
 
 #### Task 1.3 — Env file and chat wiring
 
+**`.env` vs `.env.example`:** `.env` holds real API keys and is gitignored (line 130 of `.gitignore`). `.env.example` is a committed template showing every required env var with placeholder values — its purpose is to tell contributors what keys they need without exposing real credentials. `.env.example` does not currently exist and must be created.
+
 - [ ] Add all five new vars to `.env` with current values and tier comments
-- [ ] Add all five new vars to `.env.example` with placeholder values and tier labels
+- [ ] **Create** `.env.example` with placeholder values for all env vars (model keys, tool keys, and the five new model-routing vars); include tier labels as comments
 - [ ] Verify `chat.py` agent construction passes the model read from the agent's own env var (should follow automatically from Task 1.1)
 - [ ] Run full `uv run pytest tests/ -q --tb=no`
 - [ ] Update `docs/projectStatus.md` with new test count

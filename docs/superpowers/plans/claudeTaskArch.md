@@ -145,6 +145,7 @@ Agent session
 ## Components
 
 ### 1. Capability Tier Env Vars (Phase 1)
+**Epoch:** Config Control
 
 Replace the single `NEURODB_MODEL` with per-purpose variables. Each maps to a tier; tier maps to a concrete model.
 
@@ -171,6 +172,7 @@ Each agent reads its own var at construction. `BaseAgent` itself does not change
 ---
 
 ### 2. Telemetry (Phase 2)
+**Epoch:** Config Control (feature + feedback loop), Agent Core (instrumentation in BaseAgent), DB (ModelCallLog table)
 
 Lightweight structured logging on every model call. No external service required in Phase 2 — append to a local log or DuckDB table.
 
@@ -210,6 +212,7 @@ Without this loop, tier assignments remain fixed assumptions. With it, they beco
 ---
 
 ### 3. Research Synthesis Split (Phase 3)
+**Epoch:** Research (capability story), Config Control (routing mechanism), DB (HypothesisReview table)
 
 **The synthesis boundary problem:**
 
@@ -247,6 +250,7 @@ Alternative designs (lower priority):
 ---
 
 ### 4. ModelClient Abstraction (Phase 4)
+**Epoch:** Config Control (interface + provider adapters), Agent Core (BaseAgent accepts ModelClient at construction)
 
 A provider-neutral interface that `BaseAgent` calls instead of the Anthropic SDK directly.
 
@@ -300,6 +304,7 @@ Provider implementations handle the translation between the provider's SDK forma
 ---
 
 ### 5. Config-Driven Model Table (Phase 4)
+**Epoch:** Config Control
 
 Model IDs live in `neurodb_models.toml`, not in source or env vars. The config maps tier → provider → current model ID with metadata.
 
@@ -381,6 +386,7 @@ max_tokens = 4096
 ---
 
 ### 6. TaskRouter (Phase 4)
+**Epoch:** Config Control
 
 Maps task type string → `ModelClient` instance backed by the config table.
 
@@ -422,6 +428,7 @@ No model tier change ships without passing task evals. These are the minimum eva
 ## Phased Implementation
 
 ### Phase 1 — Per-agent env vars (Anthropic MVP)
+**Epoch owner:** Config Control — changes touch Agent Core (BaseAgent construction), Tutor (NeuroTutorAgent, knowledge_library.py), and Research (NeuroResearchAgent) through their construction interfaces only.
 
 **Goal:** Stop using Opus as the universal default.
 
@@ -439,6 +446,7 @@ No model tier change ships without passing task evals. These are the minimum eva
 ---
 
 ### Phase 2 — Cost telemetry
+**Epoch owner:** Config Control (feature), Agent Core (BaseAgent instrumentation), DB (ModelCallLog schema and storage).
 
 **Goal:** Measure actual cost and iteration distribution before claiming savings.
 
@@ -454,6 +462,7 @@ No model tier change ships without passing task evals. These are the minimum eva
 ---
 
 ### Phase 3 — Research synthesis split
+**Epoch owner:** Research (hypothesis review capability — the feature story), Config Control (premium model routing — the mechanism), DB (HypothesisReview schema).
 
 **Goal:** Reserve a bounded Opus call for hypothesis review; loop runs on Sonnet.
 
@@ -469,6 +478,7 @@ No model tier change ships without passing task evals. These are the minimum eva
 ---
 
 ### Phase 4 — Provider abstraction + config-driven model table
+**Epoch owner:** Config Control (ModelClient, TaskRouter, neurodb_models.toml, provider adapters), Agent Core (BaseAgent refactor to accept ModelClient at construction).
 
 **Goal:** Decouple model selection from Anthropic SDK specifics; make model generation updates a config change.
 

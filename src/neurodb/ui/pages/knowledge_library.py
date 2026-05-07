@@ -147,7 +147,7 @@ def _generate_summary(row: KnowledgeSource) -> str:
 
         client = anthropic.Anthropic(api_key=api_key)
         response = client.messages.create(
-            model=os.environ.get("NEURODB_MODEL", "claude-opus-4-7"),
+            model=os.environ.get("NEURODB_KNOWLEDGE_SUMMARY_MODEL", "claude-haiku-4-5-20251001"),
             max_tokens=700,
             messages=[{
                 "role": "user",

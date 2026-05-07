@@ -1,7 +1,9 @@
 """Unit tests for session_manager — uses ephemeral ChromaDB and mocked Anthropic client."""
+import importlib
+import os
 import uuid
 from types import SimpleNamespace
-from unittest.mock import MagicMock
+from unittest.mock import MagicMock, patch
 
 import chromadb
 import pytest
@@ -367,3 +369,31 @@ def test_agent_no_prior_context_omits_block():
 
     system_arg = mock_client.messages.create.call_args[1]["system"]
     assert "Prior sessions" not in system_arg
+
+
+# ---------------------------------------------------------------------------
+# _SUMMARY_MODEL env-var config (Task 1.2)
+# ---------------------------------------------------------------------------
+
+def test_summary_model_default_is_haiku():
+    """_SUMMARY_MODEL defaults to Haiku when NEURODB_SUMMARY_MODEL is not set."""
+    import neurodb.session_manager as sm_module
+    with patch.dict("os.environ", {}, clear=False):
+        # Remove the key if present so we test the true default
+        env_backup = os.environ.pop("NEURODB_SUMMARY_MODEL", None)
+        try:
+            reloaded = importlib.reload(sm_module)
+            assert reloaded._SUMMARY_MODEL == "claude-haiku-4-5-20251001"
+        finally:
+            if env_backup is not None:
+                os.environ["NEURODB_SUMMARY_MODEL"] = env_backup
+            importlib.reload(sm_module)
+
+
+def test_summary_model_reads_from_neurodb_summary_model_env():
+    """_SUMMARY_MODEL is overridden by NEURODB_SUMMARY_MODEL env var."""
+    import neurodb.session_manager as sm_module
+    with patch.dict("os.environ", {"NEURODB_SUMMARY_MODEL": "claude-test-model-sentinel"}):
+        reloaded = importlib.reload(sm_module)
+        assert reloaded._SUMMARY_MODEL == "claude-test-model-sentinel"
+    importlib.reload(sm_module)  # restore module state

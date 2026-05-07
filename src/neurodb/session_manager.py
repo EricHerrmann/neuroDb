@@ -10,7 +10,7 @@ import os
 import uuid
 
 _COLLECTION_NAME = "agent_context"
-_SUMMARY_MODEL = os.environ.get("NEURODB_MODEL", "claude-opus-4-7")
+_SUMMARY_MODEL = os.environ.get("NEURODB_SUMMARY_MODEL", "claude-haiku-4-5-20251001")
 _RELEVANCE_THRESHOLD = 0.7  # cosine distance; summaries above this are not injected
 
 _SUMMARY_PROMPT = """You are summarizing a neuroscience research session for future reference.

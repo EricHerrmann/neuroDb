@@ -16,7 +16,7 @@
 | Tutor | MVP complete (LT-1/2/3) | Open backlog: LOG-001, LOG-006, LOG-014, LOG-030 |
 | Research | Scaffolded (LT-3) | Hypothesis review, research run management, research question actions (LOG-037) |
 | UI | Streamlit MVP; migration designed | UI-0 architecture decision, FastAPI + React vertical slice |
-| Config Control | Designed — not started | Phase 1: per-agent env vars (see model routing plan) |
+| Config Control | Phase 1 in progress (Tasks 1.1–1.3 complete) | Phase 2: BaseAgent instrumentation |
 
 ---
 

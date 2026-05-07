@@ -196,3 +196,50 @@ def test_no_start_or_end_session_buttons_in_chat():
     source = pathlib.Path("src/neurodb/ui/pages/chat.py").read_text()
     assert "Start Session" not in source
     assert "End Session" not in source
+
+
+# ---------------------------------------------------------------------------
+# Config Control Phase 1 — per-agent model env var wiring
+# ---------------------------------------------------------------------------
+
+
+def test_neurodb_agent_model_env_var_wires_to_module_model(monkeypatch):
+    """NEURODB_AGENT_MODEL is read at import time into db_agent._MODEL."""
+    import importlib
+    import os
+
+    import neurodb.agents.db_agent as db_agent_mod
+
+    monkeypatch.setenv("NEURODB_AGENT_MODEL", "claude-test-db-model")
+    reloaded = importlib.reload(db_agent_mod)
+    assert reloaded._MODEL == "claude-test-db-model"
+    # Restore module state before monkeypatch tears down the env var so that
+    # subsequent tests that inspect _MODEL without reloading see the default.
+    monkeypatch.delenv("NEURODB_AGENT_MODEL", raising=False)
+    importlib.reload(db_agent_mod)
+
+
+def test_tutor_agent_model_env_var_wires_to_module_model(monkeypatch):
+    """NEURODB_AGENT_MODEL is read at import time into tutor_agent._MODEL."""
+    import importlib
+
+    import neurodb.agents.tutor_agent as tutor_agent_mod
+
+    monkeypatch.setenv("NEURODB_AGENT_MODEL", "claude-test-tutor-model")
+    reloaded = importlib.reload(tutor_agent_mod)
+    assert reloaded._MODEL == "claude-test-tutor-model"
+    monkeypatch.delenv("NEURODB_AGENT_MODEL", raising=False)
+    importlib.reload(tutor_agent_mod)
+
+
+def test_research_agent_model_env_var_wires_to_module_model(monkeypatch):
+    """NEURODB_RESEARCH_MODEL is read at import time into research_agent._MODEL."""
+    import importlib
+
+    import neurodb.agents.research_agent as research_agent_mod
+
+    monkeypatch.setenv("NEURODB_RESEARCH_MODEL", "claude-test-research-model")
+    reloaded = importlib.reload(research_agent_mod)
+    assert reloaded._MODEL == "claude-test-research-model"
+    monkeypatch.delenv("NEURODB_RESEARCH_MODEL", raising=False)
+    importlib.reload(research_agent_mod)

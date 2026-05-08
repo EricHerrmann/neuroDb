@@ -1,7 +1,7 @@
 # Model Routing — Phased Implementation Plan
 
 **Design source:** `docs/superpowers/plans/claudeTaskArch.md`
-**Status:** Phase 1 passed — signed off 2026-05-07; Phase 2 passed — signed off 2026-05-08; Phase 3 not started
+**Status:** Phase 1 passed — signed off 2026-05-07; Phase 2 passed — signed off 2026-05-08; Phase 3 passed — signed off 2026-05-08 with LOG-044 follow-up
 **Scope decision:** Implement in four gated phases. Each phase requires its eval criteria to pass before the next phase begins. Do not work provider abstraction, config table, or TaskRouter during Phase 1–3.
 
 ---
@@ -179,39 +179,39 @@ Run against the live Streamlit app with new env vars active. Record pass/fail fo
 
 #### Task 3.1 — HypothesisReview schema
 
-- [ ] Add `HypothesisReview` ORM table to `src/neurodb/schema.py` with columns: `id`, `hypothesis_id` (FK to `ResearchHypothesis`), `created_at`, `model`, `critique_text`, `unsupported_claims` (JSON array), `missing_confounds` (JSON array), `suggested_revisions` (text), `status` (e.g. `"pending"`, `"accepted"`, `"dismissed"`)
-- [ ] Write failing schema test
-- [ ] Run test — confirm red; implement; confirm green
-- [ ] Run full `uv run pytest tests/ -q --tb=no`
+- [x] Add `HypothesisReview` ORM table to `src/neurodb/schema.py` with columns: `id`, `hypothesis_id` (FK to `ResearchHypothesis`), `created_at`, `model`, `critique_text`, `unsupported_claims` (JSON array), `missing_confounds` (JSON array), `suggested_revisions` (text), `status` (e.g. `"pending"`, `"accepted"`, `"dismissed"`)
+- [x] Write failing schema test
+- [x] Run test — confirm red; implement; confirm green
+- [x] Run full `uv run pytest tests/ -q --tb=no`
 
 #### Task 3.2 — Premium env var and review helper
 
-- [ ] Add `NEURODB_PREMIUM_MODEL = os.environ.get("NEURODB_PREMIUM_MODEL", "claude-opus-4-7")` to `hypothesis_review.py`
-- [ ] Add `NEURODB_PREMIUM_MODEL` to `.env` and `.env.example`
-- [ ] Add `create_hypothesis_review(engine, hypothesis_id, client, model)` to `src/neurodb/research_tools.py`: fetches hypothesis row, builds compact evidence bundle, calls Opus, parses structured critique, persists `HypothesisReview` row
-- [ ] Write failing tests: review persisted; hypothesis row unchanged; no second `ResearchHypothesis` row created
-- [ ] Run tests — confirm red; implement; confirm green
-- [ ] Run full `uv run pytest tests/ -q --tb=no`
+- [x] Add `NEURODB_PREMIUM_MODEL = os.environ.get("NEURODB_PREMIUM_MODEL", "claude-opus-4-7")` to `hypothesis_review.py`
+- [x] Add `NEURODB_PREMIUM_MODEL` to `.env` and `.env.example`
+- [x] Add review persistence helper to `src/neurodb/research_tools.py`; provider call and structured parsing live in `hypothesis_review.py`
+- [x] Write failing tests: review persisted; hypothesis row unchanged; no second `ResearchHypothesis` row created
+- [x] Run tests — confirm red; implement; confirm green
+- [x] Run full `uv run pytest tests/ -q --tb=no`
 
 #### Task 3.3 — Hypothesis review logic
 
-- [ ] Create `src/neurodb/hypothesis_review.py`
-- [ ] Implement `run_hypothesis_review(hypothesis_id, engine, client, model)`: builds a compact prompt from hypothesis fields + evidence, calls `client.messages.create()` with `NEURODB_PREMIUM_MODEL`, parses response into critique fields, calls `create_hypothesis_review()`
-- [ ] System prompt must clearly mark the output as a critique of a draft, not a confirmed finding
-- [ ] Write failing tests: output contains `unsupported_claims`, `missing_confounds`, `suggested_revisions`; model used is `NEURODB_PREMIUM_MODEL` not the loop model
-- [ ] Run tests — confirm red; implement; confirm green
-- [ ] Run full `uv run pytest tests/ -q --tb=no`
+- [x] Create `src/neurodb/hypothesis_review.py`
+- [x] Implement `run_hypothesis_review(hypothesis_id, engine, client, model)`: builds a compact prompt from hypothesis fields + evidence, calls `client.messages.create()` with `NEURODB_PREMIUM_MODEL`, parses response into critique fields, calls `create_hypothesis_review()`
+- [x] System prompt must clearly mark the output as a critique of a draft, not a confirmed finding
+- [x] Write failing tests: output contains `unsupported_claims`, `missing_confounds`, `suggested_revisions`; model used is `NEURODB_PREMIUM_MODEL` not the loop model
+- [x] Run tests — confirm red; implement; confirm green
+- [x] Run full `uv run pytest tests/ -q --tb=no`
 
 #### Task 3.4 — Research workspace UI
 
-- [ ] In `src/neurodb/ui/pages/research.py`: add "Review Hypothesis" button next to each draft hypothesis in the hypotheses list
-- [ ] On click: call `run_hypothesis_review()`, refresh the hypothesis detail panel to show critique
-- [ ] Render critique sections: unsupported claims, missing confounds, suggested revisions
-- [ ] Add "Accept revisions" and "Dismiss review" actions that update the `HypothesisReview.status` field
-- [ ] Write failing structural test: Research tab renders review action when hypotheses exist
-- [ ] Run tests — confirm red; implement; confirm green
-- [ ] Run full `uv run pytest tests/ -q --tb=no`
-- [ ] Update `docs/projectStatus.md` with new test count
+- [x] In `src/neurodb/ui/pages/research.py`: add "Review Hypothesis" button next to each draft hypothesis in the hypotheses list
+- [x] On click: call `run_hypothesis_review()`, refresh the hypothesis detail panel to show critique
+- [x] Render critique sections: unsupported claims, missing confounds, suggested revisions
+- [x] Add "Accept revisions" and "Dismiss review" actions that update the `HypothesisReview.status` field
+- [x] Write failing structural test: Research tab renders review action when hypotheses exist
+- [x] Run tests — confirm red; implement; confirm green
+- [x] Run full `uv run pytest tests/ -q --tb=no`
+- [x] Update `docs/projectStatus.md` with new test count
 
 #### Task 3.5 — Phase 3 evals (manual)
 
@@ -222,7 +222,9 @@ Run against the live Streamlit app with new env vars active. Record pass/fail fo
 | No double persistence | Both | `ResearchHypothesis` row count unchanged after review; only `HypothesisReview` row added |
 | Telemetry | Both | Log rows for loop (Sonnet) and review call (Opus) both present with correct `model` field |
 
-- [ ] All Phase 3 evals pass before proceeding to Phase 4
+- [x] All Phase 3 evals pass before proceeding to Phase 4
+
+**Phase 3 sign-off note:** T2 and T3 passed with a follow-up issue: the premium review response was not structured JSON and required manual revision. LOG-044 tracks hardening the review prompt/parser so future review output is directly evaluable as structured JSON.
 
 ---
 

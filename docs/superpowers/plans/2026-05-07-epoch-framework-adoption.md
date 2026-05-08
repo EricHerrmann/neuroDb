@@ -156,9 +156,9 @@ With:
 | DB | MVP complete (phases 0–6) | Entity resolution (7), research storage schema (8) |
 | Agent Core | Stable | Config Control Phase 4 — ModelClient interface refactor |
 | Tutor | MVP complete (LT-1/2/3) | Open backlog: LOG-001, LOG-006, LOG-014, LOG-030 |
-| Research | Scaffolded (LT-3) | Hypothesis review, research run management, research question actions (LOG-037) |
+| Research | Scaffolded (LT-3); hypothesis review implemented | Review-output structured JSON hardening (LOG-044), research run management, research question actions (LOG-037) |
 | UI | Streamlit MVP; migration designed | UI-0 architecture decision, FastAPI + React vertical slice |
-| Config Control | Phase 2 complete — 344 automated tests plus 7 manual evals; signed off 2026-05-08 | Phase 3: Research Synthesis Split |
+| Config Control | Phase 3 complete — 350 automated tests plus 4 manual evals passed; signed off 2026-05-08 | Phase 4: ModelClient interface refactor |
 ```
 
 - [ ] **Step 2: Update the "Next" header line**
@@ -172,7 +172,7 @@ Change:
 To:
 
 ```markdown
-**Next:** Config Control Phase 3 (Research Synthesis Split) — see `docs/superpowers/plans/2026-05-07-model-routing-impl.md`
+**Next:** Config Control Phase 4 (ModelClient interface refactor) — see `docs/superpowers/plans/2026-05-07-model-routing-impl.md`
 ```
 
 - [ ] **Step 3: Update Last updated date**

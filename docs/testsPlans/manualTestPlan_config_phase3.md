@@ -2,9 +2,11 @@
 
 **Epoch scope:** Config Control — validates the Research Synthesis Split: standard-tier research drafting, premium-tier hypothesis critique, no duplicate hypothesis persistence, and telemetry for both paid model paths.
 
-**Status:** Ready for manual eval
+**Status:** Signed off
 **Created:** 2026-05-08
+**Signed off:** 2026-05-08
 **Manual eval count:** 4
+**Automated gate:** `uv run pytest tests/ -q --tb=no`
 
 ---
 
@@ -17,6 +19,26 @@
    - `NEURODB_PREMIUM_MODEL=claude-opus-4-7` or another premium-tier model
 3. The local database has been initialized with Phase 3 schema migrations.
 4. Streamlit is not running when CLI SQL checks are executed against `neurodb.duckdb`; DuckDB allows only one writer process.
+
+---
+
+## Automated Gate — Regression Suite Passes
+
+**Purpose:** Confirm Phase 3 did not regress existing DB, agent, UI, telemetry, or research workflows before paid manual evals are run.
+
+**Steps:**
+
+1. From the repository root, run:
+
+```bash
+uv run pytest tests/ -q --tb=no
+```
+
+**Pass criteria:**
+
+- The full test suite passes.
+- Expected count for this implementation checkpoint is `350 passed`.
+- Warnings are acceptable only if they match the existing deprecation/SQLAlchemy warnings and no tests fail.
 
 ---
 
@@ -126,4 +148,18 @@ uv run python -c "import json; from sqlalchemy import text; from neurodb.db impo
 
 ## Sign-Off Criteria
 
-All 4 evals must pass before proceeding to Config Control Phase 4.
+The automated gate and all 4 manual evals must pass before proceeding to Config Control Phase 4.
+
+---
+
+## Results
+
+| Check | Result | Notes |
+|-------|--------|-------|
+| Automated gate | Pass | `350 passed` |
+| T1 — Research loop drafts hypothesis with standard model | Pass | Draft hypothesis saved for later review |
+| T2 — Review Hypothesis uses premium model | Pass with follow-up | Review persisted and rendered; response was not structured JSON and required manual revision |
+| T3 — Review does not double persist hypothesis | Pass with follow-up | Hypothesis count stayed stable; same structured-JSON issue observed as T2 |
+| T4 — Telemetry captures standard and premium calls | Pass | Standard research-loop and premium review telemetry rows verified |
+
+**Follow-up:** LOG-044 tracks hardening the premium review response format so the review output is structured JSON without manual revision.

@@ -8,7 +8,7 @@ try:
 except ImportError:
     import tomli as tomllib  # type: ignore[no-redef]
 
-_CONFIG_PATH = Path(__file__).parent.parent.parent / "neurodb_models.toml"
+_CONFIG_PATH = Path(__file__).parent.parent.parent.parent / "neurodb_models.toml"
 _cache: dict | None = None
 
 

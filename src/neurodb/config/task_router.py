@@ -1,8 +1,8 @@
 """TaskRouter — maps task_type to (ModelClient, model_id, max_tokens)."""
 from __future__ import annotations
 
-from neurodb.model_client import ModelClient
-from neurodb.model_config import get_model_for_task
+from neurodb.config.model_client import ModelClient
+from neurodb.config.model_config import get_model_for_task
 
 
 class TaskRouter:

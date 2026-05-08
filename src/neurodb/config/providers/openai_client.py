@@ -4,7 +4,7 @@ from __future__ import annotations
 import json
 from contextlib import contextmanager
 
-from neurodb.model_client import ContentBlock, ModelClient, ModelResponse
+from neurodb.config.model_client import ContentBlock, ModelClient, ModelResponse
 
 
 class OpenAIModelClient(ModelClient):

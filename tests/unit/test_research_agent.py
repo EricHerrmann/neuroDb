@@ -7,7 +7,7 @@ from sqlalchemy.orm import Session
 
 from neurodb.agents.base import BaseAgent
 from neurodb.agents.research_agent import NeuroResearchAgent
-from neurodb.model_client import ContentBlock
+from neurodb.config.model_client import ContentBlock
 from neurodb.schema import Base, ResearchHypothesis, ResearchQuestion
 
 

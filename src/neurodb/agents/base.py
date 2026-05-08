@@ -3,7 +3,7 @@ from abc import ABC, abstractmethod
 from collections.abc import Generator, Iterable
 from time import perf_counter
 
-from neurodb.model_client import ContentBlock, ModelClient
+from neurodb.config.model_client import ContentBlock, ModelClient
 from neurodb.model_telemetry import record_model_call
 
 _DEFAULT_MODEL = "claude-sonnet-4-6"
@@ -43,7 +43,7 @@ class BaseAgent(ABC):
         if model_client is not None:
             self._model_client = model_client
         elif client is not None:
-            from neurodb.providers.anthropic_client import AnthropicModelClient
+            from neurodb.config.providers.anthropic_client import AnthropicModelClient
             self._model_client = AnthropicModelClient(client)
         else:
             raise ValueError("Either client or model_client must be provided")

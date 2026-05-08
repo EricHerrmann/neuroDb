@@ -6,9 +6,9 @@ from unittest.mock import MagicMock, Mock
 from sqlalchemy import create_engine
 from sqlalchemy.orm import Session
 
-import neurodb.hypothesis_review as hypothesis_review
-from neurodb.hypothesis_review import run_hypothesis_review
-from neurodb.model_client import ContentBlock, ModelResponse
+import neurodb.research.hypothesis_review as hypothesis_review
+from neurodb.research.hypothesis_review import run_hypothesis_review
+from neurodb.config.model_client import ContentBlock, ModelResponse
 from neurodb.research_tools import draft_hypothesis
 from neurodb.schema import Base, HypothesisReview, ModelCallLog, ResearchHypothesis
 

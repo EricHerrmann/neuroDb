@@ -3,8 +3,8 @@ from unittest.mock import MagicMock
 
 import pytest
 
-from neurodb.model_client import ModelClient
-from neurodb.task_router import TaskRouter
+from neurodb.config.model_client import ModelClient
+from neurodb.config.task_router import TaskRouter
 
 
 def _mock_client() -> ModelClient:

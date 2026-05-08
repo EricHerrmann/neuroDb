@@ -70,7 +70,7 @@ def run_hypothesis_review(
 
     Accepts either a raw Anthropic SDK client (legacy) or a ModelClient instance.
     """
-    from neurodb.providers.anthropic_client import AnthropicModelClient
+    from neurodb.config.providers.anthropic_client import AnthropicModelClient
 
     selected_model = model or NEURODB_PREMIUM_MODEL
     bundle = _load_hypothesis_bundle(engine, hypothesis_id)
@@ -149,7 +149,7 @@ def _build_review_prompt(bundle: dict[str, Any]) -> str:
 
 def _extract_critique_from_response(response) -> dict:
     """Extract structured critique from a ModelResponse tool-use call."""
-    from neurodb.model_client import ModelResponse
+    from neurodb.config.model_client import ModelResponse
 
     if isinstance(response, ModelResponse):
         for block in response.content:

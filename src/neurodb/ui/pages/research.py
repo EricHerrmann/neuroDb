@@ -6,7 +6,7 @@ import streamlit as st
 from sqlalchemy import Engine
 
 from neurodb.db import get_session
-from neurodb.hypothesis_review import run_hypothesis_review
+from neurodb.research.hypothesis_review import run_hypothesis_review
 from neurodb.research_tools import (
     get_knowledge_growth_metrics,
     update_hypothesis_review_status,

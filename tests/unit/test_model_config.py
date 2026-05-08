@@ -1,7 +1,7 @@
 """Tests for config-driven model table — load_model_config and get_model_for_task."""
 import pytest
 
-from neurodb.model_config import get_model_for_task, load_model_config
+from neurodb.config.model_config import get_model_for_task, load_model_config
 
 
 def test_load_model_config_returns_dict():

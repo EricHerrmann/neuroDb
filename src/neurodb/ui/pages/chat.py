@@ -43,8 +43,8 @@ def _init_agent(engine: Engine) -> None:
         return
 
     import anthropic
-    from neurodb.providers.anthropic_client import AnthropicModelClient
-    from neurodb.task_router import TaskRouter
+    from neurodb.config.providers.anthropic_client import AnthropicModelClient
+    from neurodb.config.task_router import TaskRouter
 
     sdk_client = anthropic.Anthropic(api_key=api_key)
     model_client = AnthropicModelClient(sdk_client)

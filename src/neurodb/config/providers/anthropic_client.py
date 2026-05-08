@@ -3,7 +3,7 @@ from __future__ import annotations
 
 from contextlib import contextmanager
 
-from neurodb.model_client import ContentBlock, ModelClient, ModelResponse, ModelStream
+from neurodb.config.model_client import ContentBlock, ModelClient, ModelResponse, ModelStream
 
 
 class AnthropicModelClient(ModelClient):

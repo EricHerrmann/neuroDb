@@ -5,7 +5,7 @@ from unittest.mock import MagicMock, patch
 
 import pytest
 
-from neurodb.model_client import ContentBlock, ModelClient, ModelResponse
+from neurodb.config.model_client import ContentBlock, ModelClient, ModelResponse
 
 
 # --- ContentBlock ---
@@ -74,7 +74,7 @@ def test_model_client_concrete_requires_all_abstract_methods():
 # --- AnthropicModelClient ---
 
 def test_anthropic_create_message_returns_model_response():
-    from neurodb.providers.anthropic_client import AnthropicModelClient
+    from neurodb.config.providers.anthropic_client import AnthropicModelClient
 
     sdk_response = SimpleNamespace(
         stop_reason="end_turn",
@@ -101,7 +101,7 @@ def test_anthropic_create_message_returns_model_response():
 
 
 def test_anthropic_create_message_maps_tool_use_block():
-    from neurodb.providers.anthropic_client import AnthropicModelClient
+    from neurodb.config.providers.anthropic_client import AnthropicModelClient
 
     sdk_response = SimpleNamespace(
         stop_reason="tool_use",
@@ -125,7 +125,7 @@ def test_anthropic_create_message_maps_tool_use_block():
 
 
 def test_anthropic_create_message_carries_token_counts():
-    from neurodb.providers.anthropic_client import AnthropicModelClient
+    from neurodb.config.providers.anthropic_client import AnthropicModelClient
 
     sdk_response = SimpleNamespace(
         stop_reason="end_turn",
@@ -143,7 +143,7 @@ def test_anthropic_create_message_carries_token_counts():
 
 
 def test_anthropic_format_tool_passes_through_unchanged():
-    from neurodb.providers.anthropic_client import AnthropicModelClient
+    from neurodb.config.providers.anthropic_client import AnthropicModelClient
 
     tool_def = {
         "name": "query_db",
@@ -155,7 +155,7 @@ def test_anthropic_format_tool_passes_through_unchanged():
 
 
 def test_anthropic_format_tool_result_structure():
-    from neurodb.providers.anthropic_client import AnthropicModelClient
+    from neurodb.config.providers.anthropic_client import AnthropicModelClient
 
     client = AnthropicModelClient(MagicMock())
     result = client.format_tool_result("tu_abc", "result text")
@@ -168,7 +168,7 @@ def test_anthropic_format_tool_result_structure():
 # --- OpenAIModelClient ---
 
 def test_openai_format_tool_translates_input_schema():
-    from neurodb.providers.openai_client import OpenAIModelClient
+    from neurodb.config.providers.openai_client import OpenAIModelClient
 
     tool_def = {
         "name": "query_db",
@@ -189,7 +189,7 @@ def test_openai_format_tool_translates_input_schema():
 
 
 def test_openai_format_tool_result_structure():
-    from neurodb.providers.openai_client import OpenAIModelClient
+    from neurodb.config.providers.openai_client import OpenAIModelClient
 
     client = OpenAIModelClient(MagicMock())
     result = client.format_tool_result("call_abc", "result text")
@@ -200,7 +200,7 @@ def test_openai_format_tool_result_structure():
 
 
 def test_openai_stop_reason_normalized_to_end_turn():
-    from neurodb.providers.openai_client import OpenAIModelClient
+    from neurodb.config.providers.openai_client import OpenAIModelClient
 
     choice = SimpleNamespace(
         finish_reason="stop",
@@ -224,7 +224,7 @@ def test_openai_stop_reason_normalized_to_end_turn():
 
 
 def test_openai_stop_reason_normalized_to_tool_use():
-    from neurodb.providers.openai_client import OpenAIModelClient
+    from neurodb.config.providers.openai_client import OpenAIModelClient
 
     tool_call = SimpleNamespace(
         id="call_1",

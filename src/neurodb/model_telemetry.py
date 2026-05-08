@@ -64,6 +64,12 @@ def add_model_call_log(session, **kwargs) -> None:
 
 
 def _extract_usage(response) -> tuple[int | None, int | None]:
+    # Check for direct token fields on ModelResponse
+    input_direct = _get_value(response, "input_tokens")
+    output_direct = _get_value(response, "output_tokens")
+    if input_direct is not None or output_direct is not None:
+        return input_direct, output_direct
+    # Fall back to nested usage object from Anthropic SDK response
     usage = _get_value(response, "usage")
     if usage is None:
         return None, None
@@ -76,7 +82,8 @@ def _extract_tool_names(response) -> list[str]:
     for block in content:
         if _get_value(block, "type") != "tool_use":
             continue
-        name = _get_value(block, "name")
+        # Support both SDK blocks (.name) and normalized ContentBlock (.tool_name)
+        name = _get_value(block, "name") or _get_value(block, "tool_name")
         if name:
             names.append(str(name))
     return names

@@ -141,8 +141,8 @@ class NeuroResearchAgent(BaseAgent):
 
     def __init__(
         self,
-        client,
-        engine: Engine,
+        client=None,
+        engine: Engine = None,
         vector_store=None,
         model: str = _MODEL,
         prior_context: str = "",
@@ -152,6 +152,7 @@ class NeuroResearchAgent(BaseAgent):
         current_date: str | None = None,
         max_tool_iterations: int = _RESEARCH_MAX_TOOL_ITERATIONS,
         max_tokens: int = _RESEARCH_MAX_TOKENS,
+        model_client=None,
     ) -> None:
         super().__init__(
             client,
@@ -163,6 +164,7 @@ class NeuroResearchAgent(BaseAgent):
             save_partial_progress_on_budget=True,
             max_tokens=max_tokens,
             telemetry_mode="neuro_research",
+            model_client=model_client,
         )
         self._knowledge_store = knowledge_store
         self._literature_client = literature_client
@@ -180,48 +182,48 @@ class NeuroResearchAgent(BaseAgent):
         return system
 
     def _execute_tool_block(self, block) -> str:
-        if block.name == "search_knowledge_library":
-            return self._execute_search_knowledge_library(block.input)
-        if block.name == "search_literature":
-            return self._execute_search_literature(block.input)
-        if block.name == "cross_reference_datasets":
+        if block.tool_name == "search_knowledge_library":
+            return self._execute_search_knowledge_library(block.tool_input)
+        if block.tool_name == "search_literature":
+            return self._execute_search_literature(block.tool_input)
+        if block.tool_name == "cross_reference_datasets":
             return json.dumps(cross_reference_datasets(
                 self._engine,
-                block.input["query"],
+                block.tool_input["query"],
                 vector_store=self._vector_store,
-                concept_tags=block.input.get("concept_tags"),
-                sources=block.input.get("sources"),
-                n_results=block.input.get("n_results", 5),
+                concept_tags=block.tool_input.get("concept_tags"),
+                sources=block.tool_input.get("sources"),
+                n_results=block.tool_input.get("n_results", 5),
             ))
-        if block.name == "get_knowledge_growth_metrics":
+        if block.tool_name == "get_knowledge_growth_metrics":
             return json.dumps(get_knowledge_growth_metrics(
                 self._engine,
                 vector_store=self._vector_store,
                 knowledge_store=self._knowledge_store,
                 context_store=self._context_store,
-                persist=block.input.get("persist", False),
+                persist=block.tool_input.get("persist", False),
             ))
-        if block.name == "record_research_question":
+        if block.tool_name == "record_research_question":
             return json.dumps(record_research_question(
                 self._engine,
-                block.input["question"],
-                block.input["topic_context"],
-                status=block.input.get("status", "open"),
+                block.tool_input["question"],
+                block.tool_input["topic_context"],
+                status=block.tool_input.get("status", "open"),
             ))
-        if block.name == "draft_hypothesis":
+        if block.tool_name == "draft_hypothesis":
             return json.dumps(draft_hypothesis(
                 self._engine,
-                title=block.input["title"],
-                mechanism=block.input["mechanism"],
-                evidence=block.input.get("evidence", []),
-                predictions=block.input.get("predictions", []),
-                datasets=block.input.get("datasets", []),
-                confounds=block.input.get("confounds", []),
-                limitations=block.input["limitations"],
-                question_id=block.input.get("question_id"),
-                status=block.input.get("status", "draft"),
+                title=block.tool_input["title"],
+                mechanism=block.tool_input["mechanism"],
+                evidence=block.tool_input.get("evidence", []),
+                predictions=block.tool_input.get("predictions", []),
+                datasets=block.tool_input.get("datasets", []),
+                confounds=block.tool_input.get("confounds", []),
+                limitations=block.tool_input["limitations"],
+                question_id=block.tool_input.get("question_id"),
+                status=block.tool_input.get("status", "draft"),
             ))
-        return execute_tool(block.name, block.input, self._engine, self._vector_store)
+        return execute_tool(block.tool_name, block.tool_input, self._engine, self._vector_store)
 
     def _execute_search_knowledge_library(self, inputs: dict) -> str:
         if self._knowledge_store is None:

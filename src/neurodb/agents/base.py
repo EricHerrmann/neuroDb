@@ -3,6 +3,7 @@ from abc import ABC, abstractmethod
 from collections.abc import Generator, Iterable
 from time import perf_counter
 
+from neurodb.model_client import ContentBlock, ModelClient
 from neurodb.model_telemetry import record_model_call
 
 _DEFAULT_MODEL = "claude-sonnet-4-6"
@@ -10,12 +11,12 @@ _MAX_TURNS = 10
 
 
 class BaseAgent(ABC):
-    """Shared Anthropic tool-use loop for all NeuroDb agents."""
+    """Shared tool-use loop for all NeuroDb agents (provider-neutral via ModelClient)."""
 
     def __init__(
         self,
-        client,
-        engine,
+        client=None,
+        engine=None,
         vector_store=None,
         model: str = _DEFAULT_MODEL,
         prior_context: str = "",
@@ -24,6 +25,7 @@ class BaseAgent(ABC):
         max_tokens: int = 2048,
         telemetry_mode: str | None = None,
         telemetry_task_type: str | None = None,
+        model_client: ModelClient | None = None,
     ) -> None:
         self._client = client
         self._engine = engine
@@ -38,6 +40,13 @@ class BaseAgent(ABC):
             telemetry_task_type
             or f"agent.loop.{telemetry_mode or 'unknown'}"
         )
+        if model_client is not None:
+            self._model_client = model_client
+        elif client is not None:
+            from neurodb.providers.anthropic_client import AnthropicModelClient
+            self._model_client = AnthropicModelClient(client)
+        else:
+            raise ValueError("Either client or model_client must be provided")
 
     @abstractmethod
     def _get_active_tools(self) -> list[dict]:
@@ -48,8 +57,8 @@ class BaseAgent(ABC):
         """Return the system prompt for the current agent state."""
 
     @abstractmethod
-    def _execute_tool_block(self, block) -> str:
-        """Execute a Claude tool-use block and return text for tool_result."""
+    def _execute_tool_block(self, block: ContentBlock) -> str:
+        """Execute a tool call and return text for tool_result."""
 
     def _build_terminal_tool_response(self, tool_trace: list[dict]) -> str | None:
         """Return a final assistant response when a tool result completes the turn."""
@@ -75,7 +84,7 @@ class BaseAgent(ABC):
 
         for iteration in range(self._max_tool_iterations):
             started = perf_counter()
-            response = self._client.messages.create(
+            response = self._model_client.create_message(
                 model=self._model,
                 max_tokens=self._max_tokens,
                 system=system,
@@ -84,7 +93,7 @@ class BaseAgent(ABC):
             )
             elapsed_ms = int((perf_counter() - started) * 1000)
             self._record_model_call(response, iteration + 1, elapsed_ms)
-            messages.append({"role": "assistant", "content": response.content})
+            messages.append({"role": "assistant", "content": _blocks_to_dicts(response.content)})
 
             if response.stop_reason == "end_turn":
                 for block in response.content:
@@ -96,22 +105,20 @@ class BaseAgent(ABC):
                 progress_notes.extend(
                     block.text.strip()
                     for block in response.content
-                    if block.type == "text" and block.text.strip()
+                    if block.type == "text" and block.text and block.text.strip()
                 )
                 tool_results = []
                 for block in response.content:
                     if block.type == "tool_use":
                         result_text = self._execute_tool_block(block)
                         tool_trace.append({
-                            "tool": block.name,
-                            "input": block.input,
+                            "tool": block.tool_name,
+                            "input": block.tool_input,
                             "result": result_text,
                         })
-                        tool_results.append({
-                            "type": "tool_result",
-                            "tool_use_id": block.id,
-                            "content": [{"type": "text", "text": result_text}],
-                        })
+                        tool_results.append(
+                            self._model_client.format_tool_result(block.tool_use_id, result_text)
+                        )
                 messages.append({"role": "user", "content": tool_results})
                 terminal_response = self._build_terminal_tool_response(tool_trace)
                 if terminal_response:
@@ -163,70 +170,65 @@ class BaseAgent(ABC):
 
         for iteration in range(self._max_tool_iterations):
             started = perf_counter()
-            with self._client.messages.stream(
+            with self._model_client.stream_message(
                 model=self._model,
                 max_tokens=self._max_tokens,
                 system=system,
                 tools=active_tools,
                 messages=messages,
             ) as stream:
-                for event in stream:
-                    if (
-                        event.type == "content_block_delta"
-                        and event.delta.type == "text_delta"
-                    ):
-                        text_fragments.append(event.delta.text)
-                        yield {"type": "text_delta", "text": event.delta.text}
+                for delta in stream:
+                    if delta.get("type") == "text_delta":
+                        text_fragments.append(delta["text"])
+                        yield delta
 
-                final_message = stream.get_final_message()
+                response = stream.get_final_message()
             elapsed_ms = int((perf_counter() - started) * 1000)
-            self._record_model_call(final_message, iteration + 1, elapsed_ms)
+            self._record_model_call(response, iteration + 1, elapsed_ms)
 
-            messages.append({"role": "assistant", "content": final_message.content})
+            messages.append({"role": "assistant", "content": _blocks_to_dicts(response.content)})
 
-            if final_message.stop_reason == "end_turn":
+            if response.stop_reason == "end_turn":
                 text_blocks = [
                     block.text
-                    for block in final_message.content
+                    for block in response.content
                     if block.type == "text"
                 ]
                 yield {
                     "type": "done",
-                    "text": "".join(text_blocks),
-                    "stop_reason": final_message.stop_reason,
+                    "text": "".join(t for t in text_blocks if t),
+                    "stop_reason": response.stop_reason,
                 }
                 return
 
-            if final_message.stop_reason == "tool_use":
+            if response.stop_reason == "tool_use":
                 progress_text = "".join(text_fragments).strip()
                 if progress_text:
                     progress_notes.append(progress_text)
                 text_fragments.clear()
                 tool_results = []
-                for block in final_message.content:
+                for block in response.content:
                     if block.type != "tool_use":
                         continue
                     yield {
                         "type": "tool_start",
-                        "tool_name": block.name,
-                        "tool_input": block.input,
+                        "tool_name": block.tool_name,
+                        "tool_input": block.tool_input,
                         "iteration": iteration + 1,
                         "limit": self._max_tool_iterations,
                     }
                     result_text = self._execute_tool_block(block)
                     tool_trace.append({
-                        "tool": block.name,
-                        "input": block.input,
+                        "tool": block.tool_name,
+                        "input": block.tool_input,
                         "result": result_text,
                     })
-                    tool_results.append({
-                        "type": "tool_result",
-                        "tool_use_id": block.id,
-                        "content": [{"type": "text", "text": result_text}],
-                    })
+                    tool_results.append(
+                        self._model_client.format_tool_result(block.tool_use_id, result_text)
+                    )
                     yield {
                         "type": "tool_result",
-                        "tool_name": block.name,
+                        "tool_name": block.tool_name,
                         "result": result_text,
                     }
                 messages.append({"role": "user", "content": tool_results})
@@ -244,7 +246,7 @@ class BaseAgent(ABC):
                     return
                 continue
 
-            if final_message.stop_reason == "max_tokens":
+            if response.stop_reason == "max_tokens":
                 del messages[checkpoint:]
                 yield {
                     "type": "error",
@@ -344,6 +346,22 @@ class BaseAgent(ABC):
             "or draft a hypothesis using only the evidence gathered so far."
         )
         return "\n".join(lines)
+
+
+def _blocks_to_dicts(blocks: list) -> list[dict]:
+    """Convert ContentBlock list to Anthropic-format content dicts for message history."""
+    result = []
+    for block in blocks:
+        if block.type == "text":
+            result.append({"type": "text", "text": block.text or ""})
+        elif block.type == "tool_use":
+            result.append({
+                "type": "tool_use",
+                "id": block.tool_use_id,
+                "name": block.tool_name,
+                "input": block.tool_input or {},
+            })
+    return result
 
 
 def _preview(value: str, limit: int) -> str:

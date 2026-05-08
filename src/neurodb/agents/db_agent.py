@@ -230,8 +230,8 @@ class NeuroDbAgent(BaseAgent):
 
     def __init__(
         self,
-        client,
-        engine: Engine,
+        client=None,
+        engine: Engine = None,
         vector_store: VectorStore | None = None,
         model: str = _MODEL,
         prior_context: str = "",
@@ -239,6 +239,7 @@ class NeuroDbAgent(BaseAgent):
         chapter_context: str = "",
         max_tool_iterations: int = 10,
         max_tokens: int = 2048,
+        model_client=None,
     ) -> None:
         super().__init__(
             client,
@@ -249,6 +250,7 @@ class NeuroDbAgent(BaseAgent):
             max_tool_iterations=max_tool_iterations,
             max_tokens=max_tokens,
             telemetry_mode=mode,
+            model_client=model_client,
         )
         self.mode = mode
         self.chapter_context = chapter_context
@@ -270,13 +272,13 @@ class NeuroDbAgent(BaseAgent):
         return system
 
     def _execute_tool_block(self, block) -> str:
-        if block.name in {
+        if block.tool_name in {
             "search_external",
             "suggest_import",
             "suggest_learning_source",
             "suggest_new_source",
         }:
-            return _execute_discovery_tool(block.name, block.input, self._engine)
+            return _execute_discovery_tool(block.tool_name, block.tool_input, self._engine)
         return execute_tool(
-            block.name, block.input, self._engine, self._vector_store
+            block.tool_name, block.tool_input, self._engine, self._vector_store
         )

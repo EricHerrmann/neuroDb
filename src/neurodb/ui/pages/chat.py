@@ -43,16 +43,23 @@ def _init_agent(engine: Engine) -> None:
         return
 
     import anthropic
+    from neurodb.providers.anthropic_client import AnthropicModelClient
+    from neurodb.task_router import TaskRouter
 
-    client = anthropic.Anthropic(api_key=api_key)
+    sdk_client = anthropic.Anthropic(api_key=api_key)
+    model_client = AnthropicModelClient(sdk_client)
+    router = TaskRouter({"anthropic": model_client})
+
     vector_store = st.session_state.get("vector_store")
     mode = st.session_state.get("agent_mode", "local_db")
 
     if mode == "neuro_tutor":
         from neurodb.agents.tutor_agent import NeuroTutorAgent
 
+        mc, model_id, max_tok = router.route("agent.loop.neuro_tutor")
         st.session_state["neuro_agent"] = NeuroTutorAgent(
-            client=client,
+            model_client=mc,
+            model=model_id,
             engine=engine,
             vector_store=vector_store,
             knowledge_store=st.session_state.get("knowledge_store"),
@@ -64,8 +71,11 @@ def _init_agent(engine: Engine) -> None:
         from neurodb.agents.research_agent import NeuroResearchAgent
 
         manager = st.session_state.get("session_manager")
+        mc, model_id, max_tok = router.route("agent.loop.neuro_research")
         st.session_state["neuro_agent"] = NeuroResearchAgent(
-            client=client,
+            model_client=mc,
+            model=model_id,
+            max_tokens=max_tok,
             engine=engine,
             vector_store=vector_store,
             knowledge_store=st.session_state.get("knowledge_store"),
@@ -77,8 +87,12 @@ def _init_agent(engine: Engine) -> None:
 
     from neurodb.agents.db_agent import NeuroDbAgent
 
+    task_type = f"agent.loop.{mode}" if mode in {"local_db", "external_db"} else "agent.loop.local_db"
+    mc, model_id, max_tok = router.route(task_type)
     st.session_state["neuro_agent"] = NeuroDbAgent(
-        client=client,
+        model_client=mc,
+        model=model_id,
+        max_tokens=max_tok,
         engine=engine,
         vector_store=vector_store,
         mode=mode,

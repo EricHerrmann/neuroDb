@@ -84,14 +84,15 @@ class NeuroTutorAgent(BaseAgent):
 
     def __init__(
         self,
-        client,
-        engine: Engine,
+        client=None,
+        engine: Engine = None,
         vector_store=None,
         model: str = _MODEL,
         prior_context: str = "",
         knowledge_store: KnowledgeLibraryStore | None = None,
         literature_client=None,
         max_tool_iterations: int = 10,
+        model_client=None,
     ) -> None:
         super().__init__(
             client,
@@ -101,6 +102,7 @@ class NeuroTutorAgent(BaseAgent):
             prior_context,
             max_tool_iterations=max_tool_iterations,
             telemetry_mode="neuro_tutor",
+            model_client=model_client,
         )
         self._knowledge_store = knowledge_store
         self._literature_client = literature_client
@@ -115,13 +117,13 @@ class NeuroTutorAgent(BaseAgent):
         return system
 
     def _execute_tool_block(self, block) -> str:
-        if block.name == "queue_source":
-            return self._execute_queue_source(block.input)
-        if block.name == "search_knowledge_library":
-            return self._execute_search_knowledge_library(block.input)
-        if block.name == "search_literature":
-            return self._execute_search_literature(block.input)
-        return execute_tool(block.name, block.input, self._engine, self._vector_store)
+        if block.tool_name == "queue_source":
+            return self._execute_queue_source(block.tool_input)
+        if block.tool_name == "search_knowledge_library":
+            return self._execute_search_knowledge_library(block.tool_input)
+        if block.tool_name == "search_literature":
+            return self._execute_search_literature(block.tool_input)
+        return execute_tool(block.tool_name, block.tool_input, self._engine, self._vector_store)
 
     def _execute_queue_source(self, inputs: dict) -> str:
         title = inputs["title"].strip()

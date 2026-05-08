@@ -7,6 +7,7 @@ from sqlalchemy.orm import Session
 
 from neurodb.agents.base import BaseAgent
 from neurodb.agents.research_agent import NeuroResearchAgent
+from neurodb.model_client import ContentBlock
 from neurodb.schema import Base, ResearchHypothesis, ResearchQuestion
 
 
@@ -16,11 +17,12 @@ def _engine():
     return engine
 
 
-def _block(name: str, inputs: dict):
-    return SimpleNamespace(name=name, input=inputs)
+def _block(name: str, inputs: dict) -> ContentBlock:
+    return ContentBlock(type="tool_use", tool_name=name, tool_use_id="test-id", tool_input=inputs)
 
 
 def _tool_use_block(id_: str, name: str, inputs: dict):
+    # Fake Anthropic SDK response block (mapped by AnthropicModelClient._map_response)
     return SimpleNamespace(type="tool_use", id=id_, name=name, input=inputs)
 
 
@@ -153,7 +155,7 @@ def test_research_agent_finishes_after_successful_draft_hypothesis_tool():
     assert "Confounds:" in chunks[0]
     assert "Limitations:" in chunks[0]
     assert len(messages) == 4
-    assert messages[1]["content"][0].type == "tool_use"
+    assert messages[1]["content"][0]["type"] == "tool_use"
     assert messages[2]["content"][0]["type"] == "tool_result"
     assert messages[3]["role"] == "assistant"
     assert messages[3]["content"][0]["type"] == "text"

@@ -234,69 +234,69 @@ Run against the live Streamlit app with new env vars active. Record pass/fail fo
 
 #### Task 4.0 — Manual test plan
 
-- [ ] Create `docs/testsPlans/manualTestPlan_config_phase4.md` with evals covering: agent loop against OpenAI model, research loop against OpenAI model, Phase 1 evals re-run against OpenAI provider for parity
-- [ ] Add plan to `docs/projectStatus.md` reference table
+- [x] Create `docs/testsPlans/manualTestPlan_config_phase4.md` with evals covering: agent loop against OpenAI model, research loop against OpenAI model, Phase 1 evals re-run against OpenAI provider for parity
+- [x] Add plan to `docs/projectStatus.md` reference table
 
 #### Task 4.1 — ModelClient interface and normalized types
 
-- [ ] Create `src/neurodb/model_client.py`
-- [ ] Define `ContentBlock` dataclass: `type`, `text`, `tool_name`, `tool_use_id`, `tool_input`
-- [ ] Define `ModelResponse` dataclass: `stop_reason`, `content: list[ContentBlock]`
-- [ ] Define `ModelStream` protocol: iterable of text-delta dicts + `get_final_message() -> ModelResponse`
-- [ ] Define `ModelClient` ABC: `create_message(...)`, `stream_message(...)`, `format_tool(...)`, `format_tool_result(...)`
-- [ ] Write failing tests: `ModelResponse` and `ContentBlock` construct correctly; ABC cannot be instantiated
-- [ ] Run tests — confirm red; implement; confirm green
+- [x] Create `src/neurodb/model_client.py`
+- [x] Define `ContentBlock` dataclass: `type`, `text`, `tool_name`, `tool_use_id`, `tool_input`
+- [x] Define `ModelResponse` dataclass: `stop_reason`, `content: list[ContentBlock]`, `input_tokens`, `output_tokens`
+- [x] Define `ModelStream` protocol: iterable of text-delta dicts + `get_final_message() -> ModelResponse`
+- [x] Define `ModelClient` ABC: `create_message(...)`, `stream_message(...)`, `format_tool(...)`, `format_tool_result(...)`
+- [x] Write failing tests: `ModelResponse` and `ContentBlock` construct correctly; ABC cannot be instantiated
+- [x] Run tests — confirm red; implement; confirm green
 
 #### Task 4.2 — AnthropicModelClient
 
-- [ ] Create `src/neurodb/providers/anthropic_client.py`
-- [ ] Implement `AnthropicModelClient(ModelClient)`: wraps `anthropic.Anthropic` SDK
-- [ ] `create_message()`: calls `client.messages.create()`, maps response to `ModelResponse`
-- [ ] `stream_message()`: calls `client.messages.stream()`, wraps in `ModelStream`
-- [ ] `format_tool()`: returns tool dict unchanged (Anthropic already uses `input_schema`)
-- [ ] `format_tool_result()`: returns Anthropic `tool_result` message dict
-- [ ] Write failing tests: `create_message` returns `ModelResponse`; `stop_reason` values map correctly; tool schema passes through unchanged
-- [ ] Run tests — confirm red; implement; confirm green
-- [ ] Run full `uv run pytest tests/ -q --tb=no`
+- [x] Create `src/neurodb/providers/anthropic_client.py`
+- [x] Implement `AnthropicModelClient(ModelClient)`: wraps `anthropic.Anthropic` SDK
+- [x] `create_message()`: calls `client.messages.create()`, maps response to `ModelResponse`
+- [x] `stream_message()`: calls `client.messages.stream()`, wraps in `_AnthropicStream` (ModelStream)
+- [x] `format_tool()`: returns tool dict unchanged (Anthropic already uses `input_schema`)
+- [x] `format_tool_result()`: returns Anthropic `tool_result` message dict
+- [x] Write failing tests: `create_message` returns `ModelResponse`; `stop_reason` values map correctly; tool schema passes through unchanged
+- [x] Run tests — confirm red; implement; confirm green
+- [x] Run full `uv run pytest tests/ -q --tb=no`
 
 #### Task 4.3 — BaseAgent refactor
 
-- [ ] Refactor `_chat_inner` in `base.py`: replace `self._client.messages.create()` with `self._model_client.create_message()`; replace `block.type`, `block.name`, `block.input`, `block.id` with normalized `ContentBlock` attributes
-- [ ] Refactor `_chat_stream_inner`: replace `self._client.messages.stream()` with `self._model_client.stream_message()`
-- [ ] `BaseAgent.__init__` accepts `model_client: ModelClient` instead of (or alongside) `client`
-- [ ] All existing tests must pass using `AnthropicModelClient` as the adapter
-- [ ] Run full `uv run pytest tests/ -q --tb=no` — must stay green; no new failures
+- [x] Refactor `_chat_inner` in `base.py`: replace `self._client.messages.create()` with `self._model_client.create_message()`; replace `block.type`, `block.name`, `block.input`, `block.id` with normalized `ContentBlock` attributes
+- [x] Refactor `_chat_stream_inner`: replace `self._client.messages.stream()` with `self._model_client.stream_message()`
+- [x] `BaseAgent.__init__` accepts `model_client: ModelClient` instead of (or alongside) `client`
+- [x] All existing tests pass using `AnthropicModelClient` as the adapter
+- [x] Run full `uv run pytest tests/ -q --tb=no` — no new failures (379→382 after new tests added)
 
 #### Task 4.4 — Config-driven model table
 
-- [ ] Create `neurodb_models.toml` at repo root with tier/provider/model/eval_status/max_tokens entries from the design
-- [ ] Create `src/neurodb/model_config.py`: `load_model_config()` reads the TOML; `get_model_for_task(task_type)` returns `(provider, model_id, max_tokens)`
-- [ ] Write failing tests: config loads without error; `get_model_for_task("summary.session")` returns economy-tier Haiku entry; unknown task type raises a clear error
-- [ ] Run tests — confirm red; implement; confirm green
-- [ ] Run full `uv run pytest tests/ -q --tb=no`
+- [x] Create `neurodb_models.toml` at repo root with tier/provider/model/eval_status/max_tokens entries from the design
+- [x] Create `src/neurodb/model_config.py`: `load_model_config()` reads the TOML; `get_model_for_task(task_type)` returns `(provider, model_id, max_tokens)`
+- [x] Write failing tests: config loads without error; `get_model_for_task("summary.session")` returns economy-tier Haiku entry; unknown task type raises a clear error
+- [x] Run tests — confirm red; implement; confirm green
+- [x] Run full `uv run pytest tests/ -q --tb=no`
 
 #### Task 4.5 — TaskRouter
 
-- [ ] Create `src/neurodb/task_router.py`
-- [ ] Implement `TaskRouter`: holds a map of provider name → `ModelClient` instance; `route(task_type)` calls `get_model_for_task()` then returns the matching client, model ID, and max_tokens
-- [ ] Wire `TaskRouter` into agent construction in `chat.py` — agents receive a routed client for their task type
-- [ ] Write failing tests: `route("agent.loop.research")` returns standard-tier client; `route("research.hypothesis_review")` returns premium-tier client
-- [ ] Run tests — confirm red; implement; confirm green
-- [ ] Run full `uv run pytest tests/ -q --tb=no`
+- [x] Create `src/neurodb/task_router.py`
+- [x] Implement `TaskRouter`: holds a map of provider name → `ModelClient` instance; `route(task_type)` calls `get_model_for_task()` then returns the matching client, model ID, and max_tokens
+- [x] Wire `TaskRouter` into agent construction in `chat.py` — agents receive a routed client for their task type
+- [x] Write failing tests: `route("agent.loop.research")` returns standard-tier client; `route("research.hypothesis_review")` returns premium-tier client
+- [x] Run tests — confirm red; implement; confirm green
+- [x] Run full `uv run pytest tests/ -q --tb=no`
 
 #### Task 4.6 — OpenAIModelClient
 
-- [ ] Create `src/neurodb/providers/openai_client.py`
-- [ ] Implement `OpenAIModelClient(ModelClient)`: wraps `openai.OpenAI` SDK
-- [ ] `format_tool()`: translate `input_schema` → OpenAI `parameters` format
-- [ ] `format_tool_result()`: return OpenAI `tool` role message dict
-- [ ] `create_message()`: call `client.chat.completions.create()` with `tools=`; map choice to `ModelResponse`
-- [ ] `stream_message()`: call with `stream=True`; wrap in `ModelStream`
-- [ ] Note: Groq uses the same OpenAI-compatible API — `OpenAIModelClient` with `base_url` override covers both
-- [ ] Write failing tests: tool schema translates correctly from Anthropic format; `stop_reason` values normalized to `"end_turn"` / `"tool_use"` / `"max_tokens"`
-- [ ] Run Phase 1 evals against OpenAI models to validate provider parity
-- [ ] Run full `uv run pytest tests/ -q --tb=no`
-- [ ] Update `docs/projectStatus.md` with final test count
+- [x] Create `src/neurodb/providers/openai_client.py`
+- [x] Implement `OpenAIModelClient(ModelClient)`: wraps `openai.OpenAI` SDK
+- [x] `format_tool()`: translate `input_schema` → OpenAI `parameters` format
+- [x] `format_tool_result()`: return OpenAI `tool` role message dict
+- [x] `create_message()`: call `client.chat.completions.create()` with `tools=`; map choice to `ModelResponse`
+- [x] `stream_message()`: call with `stream=True`; wrap in `_OpenAIStream`
+- [x] Note: Groq uses the same OpenAI-compatible API — `OpenAIModelClient` with `base_url` override covers both
+- [x] Write failing tests: tool schema translates correctly from Anthropic format; `stop_reason` values normalized to `"end_turn"` / `"tool_use"` / `"max_tokens"`
+- [ ] Run Phase 1 evals against OpenAI models to validate provider parity (manual eval — pending T5/T6)
+- [x] Run full `uv run pytest tests/ -q --tb=no`
+- [x] Update `docs/projectStatus.md` with final test count (382)
 
 ---
 

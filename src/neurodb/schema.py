@@ -261,6 +261,28 @@ class ResearchHypothesis(Base):
     updated_at: Mapped[str] = mapped_column(String(32), nullable=False)
 
 
+class HypothesisReview(Base):
+    """Premium-model critique linked to a draft research hypothesis."""
+    __tablename__ = "hypothesis_reviews"
+    __table_args__ = (
+        Index("ix_hypothesis_reviews_hypothesis_status", "hypothesis_id", "status"),
+    )
+
+    id: Mapped[int] = mapped_column(Integer, Sequence("hypothesis_reviews_id_seq"), primary_key=True)
+    hypothesis_id: Mapped[int] = mapped_column(
+        ForeignKey("research_hypotheses.id"),
+        nullable=False,
+        index=True,
+    )
+    created_at: Mapped[str] = mapped_column(String(32), nullable=False)
+    model: Mapped[str] = mapped_column(String(128), nullable=False, index=True)
+    critique_text: Mapped[str] = mapped_column(Text, nullable=False)
+    unsupported_claims_json: Mapped[str] = mapped_column(Text, nullable=False)
+    missing_confounds_json: Mapped[str] = mapped_column(Text, nullable=False)
+    suggested_revisions: Mapped[str] = mapped_column(Text, nullable=False)
+    status: Mapped[str] = mapped_column(String(32), nullable=False, default="pending", index=True)
+
+
 class KnowledgeGrowthSnapshot(Base):
     """Append-only snapshot of learning and research-growth metrics."""
     __tablename__ = "knowledge_growth_snapshots"

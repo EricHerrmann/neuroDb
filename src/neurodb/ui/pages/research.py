@@ -1,12 +1,17 @@
 """Research workspace for Neuro-Research artifacts and metrics."""
 import json
+import os
 
 import streamlit as st
 from sqlalchemy import Engine
 
 from neurodb.db import get_session
-from neurodb.research_tools import get_knowledge_growth_metrics
-from neurodb.schema import ResearchHypothesis, ResearchQuestion
+from neurodb.hypothesis_review import run_hypothesis_review
+from neurodb.research_tools import (
+    get_knowledge_growth_metrics,
+    update_hypothesis_review_status,
+)
+from neurodb.schema import HypothesisReview, ResearchHypothesis, ResearchQuestion
 
 
 def render(engine: Engine) -> None:
@@ -76,7 +81,10 @@ def _render_hypotheses(engine: Engine) -> None:
         st.caption("No draft hypotheses yet.")
         return
     for row in rows:
-        st.markdown(f"**{row.title}**")
+        title_col, action_col = st.columns([4, 1])
+        title_col.markdown(f"**{row.title}**")
+        if action_col.button("Review Hypothesis", key=f"review_hypothesis_{row.id}"):
+            _run_review_action(engine, row.id)
         st.caption(f"{row.status} | created {row.created_at[:10]}")
         st.markdown(row.mechanism)
         with st.expander("Evidence, predictions, datasets, confounds"):
@@ -87,6 +95,50 @@ def _render_hypotheses(engine: Engine) -> None:
                 "confounds": _load_json(row.confounds_json),
                 "limitations": row.limitations,
             })
+        _render_hypothesis_reviews(engine, row.id)
+
+
+def _run_review_action(engine: Engine, hypothesis_id: int) -> None:
+    api_key = os.environ.get("ANTHROPIC_API_KEY")
+    if not api_key:
+        st.error("ANTHROPIC_API_KEY is required to review a hypothesis.")
+        return
+    try:
+        import anthropic
+
+        client = anthropic.Anthropic(api_key=api_key)
+        result = run_hypothesis_review(hypothesis_id, engine, client)
+    except Exception as exc:
+        st.error(f"Hypothesis review failed: {exc}")
+        return
+    if "error" in result:
+        st.error(result["error"])
+        return
+    st.success("Hypothesis review saved.")
+    st.rerun()
+
+
+def _render_hypothesis_reviews(engine: Engine, hypothesis_id: int) -> None:
+    reviews = _list_hypothesis_reviews(engine, hypothesis_id)
+    if not reviews:
+        return
+    st.markdown("**Hypothesis Reviews**")
+    for review in reviews:
+        st.caption(f"{review.status} | {review.model} | created {review.created_at[:10]}")
+        st.markdown(review.critique_text)
+        review_payload = {
+            "unsupported_claims": _load_json(review.unsupported_claims_json),
+            "missing_confounds": _load_json(review.missing_confounds_json),
+            "suggested_revisions": review.suggested_revisions,
+        }
+        st.json(review_payload)
+        accept_col, dismiss_col = st.columns(2)
+        if accept_col.button("Accept revisions", key=f"accept_review_{review.id}"):
+            update_hypothesis_review_status(engine, review.id, "accepted")
+            st.rerun()
+        if dismiss_col.button("Dismiss review", key=f"dismiss_review_{review.id}"):
+            update_hypothesis_review_status(engine, review.id, "dismissed")
+            st.rerun()
 
 
 def _list_questions(engine: Engine, status: str):
@@ -103,6 +155,16 @@ def _list_hypotheses(engine: Engine, status: str):
         if status != "all":
             query = query.filter_by(status=status)
         return query.order_by(ResearchHypothesis.created_at.desc()).all()
+
+
+def _list_hypothesis_reviews(engine: Engine, hypothesis_id: int):
+    with get_session(engine) as session:
+        return (
+            session.query(HypothesisReview)
+            .filter_by(hypothesis_id=hypothesis_id)
+            .order_by(HypothesisReview.created_at.desc())
+            .all()
+        )
 
 
 def _load_json(value: str):

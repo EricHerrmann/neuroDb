@@ -158,7 +158,7 @@ With:
 | Tutor | MVP complete (LT-1/2/3) | Open backlog: LOG-001, LOG-006, LOG-014, LOG-030 |
 | Research | Scaffolded (LT-3) | Hypothesis review, research run management, research question actions (LOG-037) |
 | UI | Streamlit MVP; migration designed | UI-0 architecture decision, FastAPI + React vertical slice |
-| Config Control | Phase 2 implemented — 344 automated tests passed; manual eval pending | Run Config Phase 2 manual telemetry evals |
+| Config Control | Phase 2 complete — 344 automated tests plus 7 manual evals; signed off 2026-05-08 | Phase 3: Research Synthesis Split |
 ```
 
 - [ ] **Step 2: Update the "Next" header line**
@@ -172,13 +172,13 @@ Change:
 To:
 
 ```markdown
-**Next:** Run `docs/testsPlans/manualTestPlan_config_phase2.md` before Phase 2 sign-off
+**Next:** Config Control Phase 3 (Research Synthesis Split) — see `docs/superpowers/plans/2026-05-07-model-routing-impl.md`
 ```
 
 - [ ] **Step 3: Update Last updated date**
 
 ```markdown
-**Last updated:** 2026-05-07
+**Last updated:** 2026-05-08
 ```
 
 - [ ] **Step 4: Commit**

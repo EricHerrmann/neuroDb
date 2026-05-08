@@ -76,9 +76,43 @@ def _migration_002_model_call_log(conn) -> None:
     ))
 
 
+def _migration_003_hypothesis_reviews(conn) -> None:
+    """Create hypothesis_reviews for existing DB files."""
+    conn.execute(text("""
+        CREATE TABLE IF NOT EXISTS hypothesis_reviews (
+            id INTEGER PRIMARY KEY,
+            hypothesis_id INTEGER NOT NULL,
+            created_at VARCHAR(32) NOT NULL,
+            model VARCHAR(128) NOT NULL,
+            critique_text TEXT NOT NULL,
+            unsupported_claims_json TEXT NOT NULL,
+            missing_confounds_json TEXT NOT NULL,
+            suggested_revisions TEXT NOT NULL,
+            status VARCHAR(32) NOT NULL
+        )
+    """))
+    conn.execute(text(
+        "CREATE INDEX IF NOT EXISTS ix_hypothesis_reviews_hypothesis_id "
+        "ON hypothesis_reviews (hypothesis_id)"
+    ))
+    conn.execute(text(
+        "CREATE INDEX IF NOT EXISTS ix_hypothesis_reviews_model "
+        "ON hypothesis_reviews (model)"
+    ))
+    conn.execute(text(
+        "CREATE INDEX IF NOT EXISTS ix_hypothesis_reviews_status "
+        "ON hypothesis_reviews (status)"
+    ))
+    conn.execute(text(
+        "CREATE INDEX IF NOT EXISTS ix_hypothesis_reviews_hypothesis_status "
+        "ON hypothesis_reviews (hypothesis_id, status)"
+    ))
+
+
 _MIGRATIONS: dict[int, callable] = {
     1: _migration_001_study_note_unique,
     2: _migration_002_model_call_log,
+    3: _migration_003_hypothesis_reviews,
 }
 
 

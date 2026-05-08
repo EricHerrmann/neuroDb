@@ -6,6 +6,7 @@ from sqlalchemy.orm import Session
 from neurodb.schema import (
     AppPreference,
     Base,
+    HypothesisReview,
     KnowledgeGrowthSnapshot,
     ResearchHypothesis,
     ResearchQuestion,
@@ -22,6 +23,7 @@ def test_research_tables_created():
     inspector = inspect(_engine())
     assert "research_questions" in inspector.get_table_names()
     assert "research_hypotheses" in inspector.get_table_names()
+    assert "hypothesis_reviews" in inspector.get_table_names()
     assert "knowledge_growth_snapshots" in inspector.get_table_names()
     assert "app_preferences" in inspector.get_table_names()
 
@@ -45,6 +47,20 @@ def test_research_hypothesis_required_columns():
         "status",
         "created_at",
         "updated_at",
+    } <= cols
+
+
+def test_hypothesis_review_required_columns():
+    cols = {c.key for c in HypothesisReview.__table__.columns}
+    assert {
+        "hypothesis_id",
+        "created_at",
+        "model",
+        "critique_text",
+        "unsupported_claims_json",
+        "missing_confounds_json",
+        "suggested_revisions",
+        "status",
     } <= cols
 
 
@@ -101,3 +117,37 @@ def test_research_hypothesis_json_fields_store_valid_json():
     with Session(engine) as session:
         row = session.query(ResearchHypothesis).one()
         assert json.loads(row.confounds_json) == ["task differences"]
+
+
+def test_hypothesis_review_json_fields_store_valid_json():
+    engine = _engine()
+    with Session(engine) as session:
+        hypothesis = ResearchHypothesis(
+            title="LTP hypothesis",
+            mechanism="Synaptic plasticity changes learning measures.",
+            evidence_json=json.dumps([{"source": "knowledge_library"}]),
+            predictions_json=json.dumps(["learning signal changes"]),
+            datasets_json=json.dumps([]),
+            confounds_json=json.dumps(["task differences"]),
+            limitations="Untested draft.",
+            status="draft",
+            created_at="2026-05-06T00:00:00+00:00",
+            updated_at="2026-05-06T00:00:00+00:00",
+        )
+        session.add(hypothesis)
+        session.flush()
+        session.add(HypothesisReview(
+            hypothesis_id=hypothesis.id,
+            created_at="2026-05-08T00:00:00+00:00",
+            model="claude-opus-4-7",
+            critique_text="The draft overstates causal support.",
+            unsupported_claims_json=json.dumps(["causal learning claim"]),
+            missing_confounds_json=json.dumps(["task design"]),
+            suggested_revisions="Frame as an association until tested.",
+            status="pending",
+        ))
+        session.commit()
+
+    with Session(engine) as session:
+        row = session.query(HypothesisReview).one()
+        assert json.loads(row.unsupported_claims_json) == ["causal learning claim"]

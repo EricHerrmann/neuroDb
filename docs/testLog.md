@@ -14,7 +14,6 @@ Use `Log ID` for cross-references across Open, Resolved, triage, sprint planning
 | LOG-001 | P6-selector | Tutor | Textbook dropdown appears pre-selected without explicit user action — agent context state is ambiguous | Deferred post-LT-3 |
 | LOG-006 | LT1-model-visibility | Config | User cannot tell which agent/LLM/model is active; no model selection or persistent preference rules | Deferred post-LT-3 |
 | LOG-013 | UI-shell-rearchitecture | UI | Streamlit cannot support fixed-pane app-shell behavior; reassess UI stack after LT-3 | Deferred post-LT-3 |
-| LOG-014 | semscholar-no-apikey | Tutor | Semantic Scholar does not issue API keys to non-academic accounts; connector setup docs and architecture must reflect source-dependent key requirements | Next arch update |
 | LOG-030 | lt3-t2-pass-header-size | UI | LT-3 T2 passed, but titles/headers render too large | UI polish |
 | LOG-037 | lt3-t6-research-question-actions | Research | Research pane shows several research questions, but there is no way to delete or use them | Post-LT-3 polish |
 | LOG-040 | config-phase1-t3-localdb-no-results-hang | Config | Config control Phase 1 passed; during T3 the agent appeared to hang on a local DB no-results response; monitor for possible model-tier fit issue | Monitor |
@@ -29,7 +28,6 @@ Use `Log ID` for cross-references across Open, Resolved, triage, sprint planning
 | LOG-001 | 2026-05-04 | P6-selector | Tutor | Textbook dropdown appears pre-selected without explicit user action — actual agent context is ambiguous | P6 manual test |
 | LOG-006 | 2026-05-05 | LT1-model-visibility | Config | User cannot tell which agent/LLM/model is active; later work should add model selection and persistent model/user-preference prompt rules | LT-1 manual/ad hoc review |
 | LOG-013 | 2026-05-05 | UI-shell-rearchitecture | UI | Pre-LT-2 fixed-pane layout failed in Streamlit even with a custom-component bridge; evaluate a UI tech-stack rearchitecture after LT-2/LT-3 once core learning capabilities mature to MVP | Pre-LT-2 manual test |
-| LOG-014 | 2026-05-06 | semscholar-no-apikey | Tutor | Semantic Scholar does not issue API keys to non-academic (gmail.com) accounts; unauthenticated rate limit appears sufficient for current use, but connector design and architecture docs must reflect that API keys are source-dependent and not universally required | Ad hoc discovery |
 | LOG-030 | 2026-05-06 | lt3-t2-pass-header-size | UI | LT-3 T2 passed, agent has correct date and knows context; minor UI fix: reduce titles/headers font, it is too big | LT-3 manual testing |
 | LOG-037 | 2026-05-06 | lt3-t6-research-question-actions | Research | T6: Research pane shows several research questions, but there is no way to delete or use them | LT-3 manual testing |
 | LOG-040 | 2026-05-07 | config-phase1-t3-localdb-no-results-hang | Config | Config control Phase 1 T1-T5 passed; during T3 the agent eventually produced good results but appeared to hang querying the local DB after a no-results response. Monitor because it may indicate an issue with the level of model used. | Config control Phase 1 manual testing |
@@ -51,6 +49,7 @@ Use `Log ID` for cross-references across Open, Resolved, triage, sprint planning
 | LOG-010 | 2026-05-04 | H1-clear | Clear button triggered by Enter key (form default submit) | Moved Clear outside `st.form`; now requires explicit mouse click |
 | LOG-011 | 2026-05-04 | ON-search | OpenNeuro connector sent invalid GraphQL `search` argument — HTTP 400 | Switched to `advancedSearch(query: DatasetSearchInput!)` |
 | LOG-012 | 2026-05-05 | T4-clear | Chat history clears transiently after import action reported to agent; second query recovers without restart | Resolved during LT-1 manual testing; user approved tests 1-7 and marked issue resolved |
+| LOG-014 | 2026-05-06 | semscholar-no-apikey | Semantic Scholar does not issue API keys to non-academic (gmail.com) accounts; unauthenticated rate limit appears sufficient for current use | Resolved: not an issue; no action required |
 | LOG-016 | 2026-05-06 | prev-session-context-invisible | No visible indicator when a previous session is loaded as context | Fixed in LT-2: blue prior-context badge added to chat panel; ▸ prefix and "Active:" caption added to sidebar |
 | LOG-017 | 2026-05-06 | knowledge-library-indent-error | Streamlit crashed on Knowledge Library tab with IndentationError at knowledge_library.py:111 in `_reject_source` | Fixed: removed extra indent on `row.reviewed_at` line |
 | LOG-018 | 2026-05-06 | t3-prior-context-not-loaded | T3 fails: prior context not applied when session selected | Fixed in LT-2: draft ChatSession row written on first message; context fallback from inferred_topic added; T3 re-run passed |
@@ -74,3 +73,5 @@ Use `Log ID` for cross-references across Open, Resolved, triage, sprint planning
 | LOG-033 | 2026-05-06 | lt3-t5-pass | LT-3 T5 pass record | Test pass — not an issue |
 | LOG-038 | 2026-05-06 | lt3-t6-pass | LT-3 T6 pass record | Test pass — not an issue |
 | LOG-039 | 2026-05-06 | lt3-t7-pass | LT-3 T7 pass record | Test pass — not an issue |
+| LOG-042 | 2026-05-07 | config-phase2-streamlit-lock-test-order | Config Phase 2 manual plan started Streamlit before CLI schema/telemetry checks, causing DuckDB write-lock failures | Resolved: `manualTestPlan_config_phase2.md` now runs T1 before Streamlit and instructs testers to stop Streamlit before each CLI SQL check |
+| LOG-043 | 2026-05-07 | config-p2-t1-pass | Config Phase 2 T1 schema check passed | Test pass — not an issue |

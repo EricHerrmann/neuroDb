@@ -14,6 +14,7 @@ from neurodb.schema import (
     AppPreference,
     ChatSession,
     DatasetIndex,
+    HypothesisReview,
     KnowledgeGrowthSnapshot,
     KnowledgeSource,
     LiteratureSearch,
@@ -128,6 +129,75 @@ def draft_hypothesis(
             "artifact_status": row.status,
             "created_at": row.created_at,
         }
+
+
+def create_hypothesis_review(
+    engine: Engine,
+    hypothesis_id: int,
+    *,
+    model: str,
+    critique_text: str,
+    unsupported_claims: list[str] | list[dict],
+    missing_confounds: list[str] | list[dict],
+    suggested_revisions: str,
+    status: str = "pending",
+    now: str | None = None,
+) -> dict:
+    """Persist a premium-model critique for an existing draft hypothesis."""
+    if not model.strip():
+        return {"error": "model is required"}
+    if not critique_text.strip():
+        return {"error": "critique_text is required"}
+    if not suggested_revisions.strip():
+        return {"error": "suggested_revisions is required"}
+    if status not in {"pending", "accepted", "dismissed"}:
+        return {"error": "status must be pending, accepted, or dismissed"}
+
+    timestamp = now or _now_iso()
+    with get_session(engine) as session:
+        hypothesis = session.get(ResearchHypothesis, hypothesis_id)
+        if hypothesis is None:
+            return {"error": f"hypothesis {hypothesis_id} not found"}
+        row = HypothesisReview(
+            hypothesis_id=hypothesis.id,
+            created_at=timestamp,
+            model=model.strip(),
+            critique_text=critique_text.strip(),
+            unsupported_claims_json=json.dumps(unsupported_claims or []),
+            missing_confounds_json=json.dumps(missing_confounds or []),
+            suggested_revisions=suggested_revisions.strip(),
+            status=status,
+        )
+        session.add(row)
+        session.flush()
+        return {
+            "status": "reviewed",
+            "id": row.id,
+            "hypothesis_id": row.hypothesis_id,
+            "model": row.model,
+            "critique_text": row.critique_text,
+            "unsupported_claims": unsupported_claims or [],
+            "missing_confounds": missing_confounds or [],
+            "suggested_revisions": row.suggested_revisions,
+            "artifact_status": row.status,
+            "created_at": row.created_at,
+        }
+
+
+def update_hypothesis_review_status(
+    engine: Engine,
+    review_id: int,
+    status: str,
+) -> dict:
+    """Update a hypothesis review decision status."""
+    if status not in {"pending", "accepted", "dismissed"}:
+        return {"error": "status must be pending, accepted, or dismissed"}
+    with get_session(engine) as session:
+        row = session.get(HypothesisReview, review_id)
+        if row is None:
+            return {"error": f"review {review_id} not found"}
+        row.status = status
+        return {"status": "updated", "id": row.id, "artifact_status": row.status}
 
 
 def get_knowledge_growth_metrics(

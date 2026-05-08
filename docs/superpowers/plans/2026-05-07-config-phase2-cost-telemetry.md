@@ -1,7 +1,7 @@
 # Config Control Phase 2 — Cost Telemetry Design
 
 **Date:** 2026-05-07
-**Status:** Implementation complete — manual verification pending
+**Status:** Passed — signed off 2026-05-08
 **Epoch:** Config Control
 **Depends on:** Config Control Phase 1 signed off 2026-05-07
 **Parent plan:** `docs/superpowers/plans/2026-05-07-model-routing-impl.md`
@@ -274,15 +274,15 @@ This avoids hardcoding a fragile external dependency into telemetry while still 
 
 ### Task 2.5 — Manual Verification
 
-- [ ] Run automated tests.
-- [ ] Start Streamlit.
-- [ ] Run one Local DB query.
-- [ ] Run one Neuro-Tutor prompt.
-- [ ] Run one Neuro-Research prompt that uses tools.
-- [ ] Clear after three turns to trigger session summary.
-- [ ] Approve one Knowledge Library source to trigger source summary.
-- [ ] Query `model_call_log` and verify rows by `task_type`, `model`, tokens, stop reason, and elapsed time.
-- [ ] Update `docs/projectStatus.md` with final test count and sign-off when passed.
+- [x] Run automated tests.
+- [x] Start Streamlit.
+- [x] Run one Local DB query.
+- [x] Run one Neuro-Tutor prompt.
+- [x] Run one Neuro-Research prompt that uses tools.
+- [x] Clear after three turns to trigger session summary.
+- [x] Approve one Knowledge Library source to trigger source summary.
+- [x] Query `model_call_log` and verify rows by `task_type`, `model`, tokens, stop reason, and elapsed time.
+- [x] Update `docs/projectStatus.md` with final test count and sign-off when passed.
 
 ---
 

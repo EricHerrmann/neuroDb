@@ -4,6 +4,7 @@ from sqlalchemy import create_engine
 from sqlalchemy.orm import Session
 
 from neurodb.research_tools import (
+    create_hypothesis_review,
     cross_reference_datasets,
     draft_hypothesis,
     get_knowledge_growth_metrics,
@@ -15,6 +16,7 @@ from neurodb.schema import (
     Base,
     ChatSession,
     DatasetIndex,
+    HypothesisReview,
     IngestRun,
     KnowledgeGrowthSnapshot,
     KnowledgeSource,
@@ -128,6 +130,41 @@ def test_draft_hypothesis_persists_json_fields():
         assert json.loads(row.predictions_json) == [
             "Learning measures covary with LTP-related signals."
         ]
+
+
+def test_create_hypothesis_review_persists_without_duplicating_hypothesis():
+    engine = _engine()
+    result = draft_hypothesis(
+        engine,
+        title="LTP learning hypothesis",
+        mechanism="Hippocampal LTP changes measurable learning.",
+        evidence=[{"source": "knowledge_library", "title": "LTP Review"}],
+        predictions=["Learning measures covary with LTP-related signals."],
+        datasets=[{"source": "openneuro", "source_id": "ds001"}],
+        confounds=["task differences"],
+        limitations="Draft only.",
+        now="2026-05-06T00:00:00+00:00",
+    )
+
+    review = create_hypothesis_review(
+        engine,
+        result["id"],
+        model="claude-opus-4-7",
+        critique_text="The causal language is not yet supported.",
+        unsupported_claims=["LTP causes learning improvement"],
+        missing_confounds=["task design"],
+        suggested_revisions="Frame as a testable association.",
+        now="2026-05-08T00:00:00+00:00",
+    )
+
+    assert review["status"] == "reviewed"
+    with Session(engine) as session:
+        assert session.query(ResearchHypothesis).count() == 1
+        row = session.query(HypothesisReview).one()
+        assert row.hypothesis_id == result["id"]
+        assert row.model == "claude-opus-4-7"
+        assert row.status == "pending"
+        assert json.loads(row.missing_confounds_json) == ["task design"]
 
 
 def test_knowledge_growth_metrics_computes_counts_and_persists_on_demand():

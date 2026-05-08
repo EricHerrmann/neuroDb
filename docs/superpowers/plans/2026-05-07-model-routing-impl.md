@@ -1,7 +1,7 @@
 # Model Routing — Phased Implementation Plan
 
 **Design source:** `docs/superpowers/plans/claudeTaskArch.md`
-**Status:** Phase 1 passed — signed off 2026-05-07; Phase 2 implemented, manual verification pending
+**Status:** Phase 1 passed — signed off 2026-05-07; Phase 2 passed — signed off 2026-05-08; Phase 3 not started
 **Scope decision:** Implement in four gated phases. Each phase requires its eval criteria to pass before the next phase begins. Do not work provider abstraction, config table, or TaskRouter during Phase 1–3.
 
 ---
@@ -161,9 +161,10 @@ Run against the live Streamlit app with new env vars active. Record pass/fail fo
 
 #### Task 2.5 — Verify telemetry
 
-- [ ] Start Streamlit, run a Local DB query, run a Tutor prompt, run a research prompt, clear session, approve one Knowledge Library source
-- [ ] Query `model_call_log` directly: confirm rows present with correct `task_type`, `mode`, `model`, `input_tokens`, `output_tokens`, `stop_reason`, `elapsed_ms`
+- [x] Start Streamlit, run a Local DB query, run a Tutor prompt, run a research prompt, clear session, approve one Knowledge Library source
+- [x] Query `model_call_log` directly: confirm rows present with correct `task_type`, `mode`, `model`, `input_tokens`, `output_tokens`, `stop_reason`, `elapsed_ms`
 - [x] Update `docs/projectStatus.md` with new test count
+- [x] All Phase 2 evals pass before proceeding to Phase 3
 
 ---
 
@@ -173,8 +174,8 @@ Run against the live Streamlit app with new env vars active. Record pass/fail fo
 
 #### Task 3.0 — Manual test plan
 
-- [ ] Create `docs/testsPlans/manualTestPlan_config_phase3.md` with evals covering: hypothesis draft on Sonnet, hypothesis review on Opus, no double persistence, telemetry rows for both calls
-- [ ] Add plan to `docs/projectStatus.md` reference table
+- [x] Create `docs/testsPlans/manualTestPlan_config_phase3.md` with evals covering: hypothesis draft on Sonnet, hypothesis review on Opus, no double persistence, telemetry rows for both calls
+- [x] Add plan to `docs/projectStatus.md` reference table
 
 #### Task 3.1 — HypothesisReview schema
 

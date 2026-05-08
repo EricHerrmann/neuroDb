@@ -31,6 +31,15 @@ def test_research_page_lists_questions_and_hypotheses_with_status_filters():
     assert "Hypothesis status" in source
 
 
+def test_research_page_renders_hypothesis_review_actions():
+    source = _source()
+    assert "Review Hypothesis" in source
+    assert "run_hypothesis_review" in source
+    assert "Hypothesis Reviews" in source
+    assert "Accept revisions" in source
+    assert "Dismiss review" in source
+
+
 def test_app_defines_research_tab():
     source = pathlib.Path("src/neurodb/ui/app.py").read_text()
     assert '"Research"' in source

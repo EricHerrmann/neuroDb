@@ -4,6 +4,10 @@ from __future__ import annotations
 from fastapi import Request
 from sqlalchemy import Engine
 
+VALID_AGENT_MODES: frozenset[str] = frozenset(
+    {"local_db", "external_db", "neuro_tutor", "neuro_research"}
+)
+
 
 def get_engine(request: Request) -> Engine:
     return request.app.state.engine

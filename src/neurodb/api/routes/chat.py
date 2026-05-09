@@ -4,19 +4,20 @@ from __future__ import annotations
 import json
 from collections.abc import Generator
 
-from fastapi import APIRouter, Request
+from fastapi import APIRouter, Depends, Request
 from fastapi.responses import JSONResponse, StreamingResponse
+
+from sqlalchemy import Engine
 
 from neurodb.agents.db_agent import NeuroDbAgent
 from neurodb.agents.research_agent import NeuroResearchAgent
 from neurodb.agents.tutor_agent import NeuroTutorAgent
+from neurodb.api.deps import VALID_AGENT_MODES, get_engine, get_research_stores
 from neurodb.api.schemas.chat import ChatTurnRequest
 from neurodb.config.provider_factory import build_provider_clients
 from neurodb.config.task_router import TaskRouter
 
 router = APIRouter()
-
-_VALID_MODES = {"local_db", "external_db", "neuro_tutor", "neuro_research"}
 
 
 def _sse(data: dict) -> str:
@@ -67,29 +68,27 @@ def _stream_chat(agent, message: str, history: list[dict]) -> Generator[str, Non
 
 
 @router.post("/chat/turn")
-def chat_turn(body: ChatTurnRequest, request: Request):
-    # Validate agent_mode before touching any streaming machinery.
-    if body.agent_mode not in _VALID_MODES:
+def chat_turn(
+    body: ChatTurnRequest,
+    request: Request,
+    engine: Engine = Depends(get_engine),
+):
+    if body.agent_mode not in VALID_AGENT_MODES:
         return JSONResponse(
             status_code=400,
-            content={"detail": f"Unknown agent_mode '{body.agent_mode}'. Valid modes: {sorted(_VALID_MODES)}"},
+            content={"detail": f"Unknown agent_mode '{body.agent_mode}'. Valid modes: {sorted(VALID_AGENT_MODES)}"},
         )
 
-    # Validate providers are available.
     providers = build_provider_clients()
     if not providers:
         return JSONResponse(
             status_code=503,
-            content={"detail": "No AI provider API keys configured. Set at least one of ANTHROPIC_API_KEY, OPENAI_API_KEY, GROQ_API_KEY, or GOOGLE_API_KEY."},
+            content={"detail": "No AI provider API keys configured."},
         )
 
-    engine = request.app.state.engine
-    vector_store = request.app.state.vector_store
-    knowledge_store = request.app.state.knowledge_store
-
+    stores = get_research_stores(request)
     history = [{"role": m.role, "content": m.content} for m in body.history]
-
-    agent = _build_agent(body.agent_mode, engine, vector_store, knowledge_store, providers)
+    agent = _build_agent(body.agent_mode, engine, stores["vector_store"], stores["knowledge_store"], providers)
 
     return StreamingResponse(
         _stream_chat(agent, body.message, history),

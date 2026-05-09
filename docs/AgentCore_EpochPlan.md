@@ -20,9 +20,9 @@ Provide the shared conversation loop, tool dispatch, rollback, streaming, sessio
 | Phase | Focus | Status | Tests | Sign-off | Test plan |
 |-------|-------|--------|-------|----------|-----------|
 | LT-1 | BaseAgent abstract class, NeuroDbAgent migration, auto-session, streaming | Complete | — | 2026-05-05 | — |
-| Config P4 | ModelClient abstraction — BaseAgent decoupled from Anthropic SDK; provider-neutral via `ModelClient` interface | Complete — manual evals pending | 389 (suite-wide) | — | `docs/testsPlans/manualTestPlan_config_phase4.md` |
+| Config P4 | ModelClient abstraction — BaseAgent decoupled from Anthropic SDK; provider-neutral via `ModelClient` interface | Complete | 389 + 7 manual | 2026-05-09 | `docs/testsPlans/manualTestPlan_config_phase4.md` |
 
-Active test plan: `docs/testsPlans/manualTestPlan_config_phase4.md` (T1–T7 pending sign-off)
+Active test plan: none
 
 ---
 

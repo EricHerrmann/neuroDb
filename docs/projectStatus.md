@@ -1,8 +1,8 @@
 # NeuroDb — Project Status
 
 **Last updated:** 2026-05-09
-**Active focus:** Config Control Phase 5B complete — 398 automated tests; TOML routing refactor (single [routing] section replaces env-var overrides); Phase 4 manual evals ready (T1–T7)
-**Next:** Manual evals for Phase 4 (T1–T7 in manualTestPlan_config_phase4.md)
+**Active focus:** Config Control Phase 4 signed off (T1–T7 manual evals passed 2026-05-09) — 398 automated tests + 7 manual evals; Phase 6 is next
+**Next:** Config Control Phase 6: constructor fallback chain, SystemWarning table, CLI telemetry surface
 **Goal alignment:** Two co-equal goals in a feedback loop — accumulate neuroscience understanding grounded in real data (Goal 1), and conduct structured neuroscience investigations using existing public datasets and good scientific method (Goal 2). See `NeuroDbGoals.md`.
 
 ---
@@ -12,11 +12,11 @@
 | Epoch | Source | Maturity | Next |
 |---|---|---|---|
 | DB | `src/neurodb/db/`, `src/neurodb/connectors/` | MVP complete (phases 0–6) | Entity resolution (7), research storage schema (8) |
-| Agent Core | `src/neurodb/agents/` | Stable | Config Control Phases 1–4 implemented; manual evals pending for Phase 4 OpenAI parity |
+| Agent Core | `src/neurodb/agents/` | Stable | Config Control Phases 1–4 signed off; Phase 6 may add fallback chain logic |
 | Tutor | `src/neurodb/tutor/` | MVP complete (LT-1/2/3) | Open backlog: LOG-001, LOG-006, LOG-030 |
 | Research | `src/neurodb/research/` | Scaffolded (LT-3); hypothesis review with structured tool-use output | Research run management, research question actions (LOG-037) |
 | UI | `src/neurodb/ui/` | Streamlit MVP; UI-0 ADR complete | UI-1: FastAPI backend shell — plan ready, not started |
-| Config Control | `src/neurodb/config/` | Phase 5B complete — 398 automated tests; TOML routing refactor ([routing] section, no env-var overrides); Phase 4 manual evals pending (T1–T7) | Phase 6 planned: constructor fallback chain, SystemWarning table, CLI surface (after Phase 4 sign-off) |
+| Config Control | `src/neurodb/config/` | Phase 5B complete — 398 automated tests; Phase 4 signed off 2026-05-09 | Phase 6: constructor fallback chain, SystemWarning table, CLI surface |
 
 ---
 
@@ -61,7 +61,7 @@ See `docs/testLog.md`. Current open items: LOG-001 (textbook dropdown ambiguity 
 | Config Control Phase 1 | Per-agent model env vars and summary model routing — 332 tests plus 5 manual evals passed | 2026-05-07 |
 | Config Control Phase 2 | Model-call telemetry for agent loops and summary calls — 344 tests plus 7 manual evals passed | 2026-05-08 |
 | Config Control Phase 3 | Research Synthesis Split: Sonnet draft loop plus premium hypothesis review — 350 tests plus 4 manual evals passed | 2026-05-08 |
-| Config Control Phase 4 | ModelClient abstraction, AnthropicModelClient, OpenAIModelClient, TaskRouter, config-driven provider selection, BaseAgent refactor, LOG-044 fix — 389 automated tests | 2026-05-08 |
+| Config Control Phase 4 | ModelClient abstraction, AnthropicModelClient, OpenAIModelClient, TaskRouter, config-driven provider selection, BaseAgent refactor, LOG-044 fix — 389 automated tests + 7 manual evals passed | 2026-05-09 |
 | Config Control Phase 5A | TOML corrected, all 4 providers × 3 tiers quality-aligned (OpenAI: gpt-5.4-mini/gpt-5.4/gpt-5.5), Groq+Gemini entries added, Gemini wired, tool schemas fixed for OpenAI strict validation — 397 automated tests | 2026-05-08 |
 | Config Control Phase 5B | TOML routing refactor — single [routing] section replaces env-var tier overrides; _cache patch pattern for provider tests; provider selection UI deferred to UI epoch — 398 automated tests | 2026-05-08 |
 | Pre-LT-2 | Sidebar migration | 2026-05-05 |
@@ -70,7 +70,7 @@ See `docs/testLog.md`. Current open items: LOG-001 (textbook dropdown ambiguity 
 | P6 | Learning Agent Features: embedding dedup, agent streaming, split-workspace UI | 2026-05-04 |
 | DB Epochs 0–6 | Data platform: ingest, normalize, DuckDB, NeuroVault/DANDI connectors | 2026-04-13 |
 
-**Deferred:** DB Epochs 7 (entity resolution) and 8 (hypothesis layer) — decision pending. See `docs/ClaudeDbEpochPlan.md`.
+**Deferred:** DB Epochs 7 (entity resolution) and 8 (hypothesis layer) — decision pending. See `docs/DB_EpochPlan.md`.
 
 ---
 

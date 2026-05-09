@@ -23,10 +23,7 @@ def _sse(data: dict) -> str:
     return f"data: {json.dumps(data)}\n\n"
 
 
-def _build_agent(agent_mode: str, engine, vector_store, knowledge_store):
-    providers = build_provider_clients()
-    if not providers:
-        raise RuntimeError("No provider API keys configured")
+def _build_agent(agent_mode: str, engine, vector_store, knowledge_store, providers: dict):
     router_obj = TaskRouter(providers)
     route = router_obj.route(f"agent.loop.{agent_mode}")
     if agent_mode == "neuro_research":
@@ -92,7 +89,7 @@ def chat_turn(body: ChatTurnRequest, request: Request):
 
     history = [{"role": m.role, "content": m.content} for m in body.history]
 
-    agent = _build_agent(body.agent_mode, engine, vector_store, knowledge_store)
+    agent = _build_agent(body.agent_mode, engine, vector_store, knowledge_store, providers)
 
     return StreamingResponse(
         _stream_chat(agent, body.message, history),

@@ -9,6 +9,7 @@ dependencies = [
     "dandi>=0.62,<1.0",
     "duckdb>=1.2,<2.0",
     "duckdb-engine>=0.14,<1.0",
+    "fastapi>=0.115,<1.0",
     "h5py>=3.10,<4.0",
     "httpx>=0.28.1,<1.0",
     "pandas>=3.0.2,<4.0",
@@ -18,6 +19,8 @@ dependencies = [
     "anthropic>=0.50.0,<1.0",
     "python-dotenv>=1.0.0,<2.0",
     "streamlit>=1.56.0,<2.0",
+    "openai>=2.0,<3.0",
+    "uvicorn>=0.34,<1.0",
 ]
 
 [dependency-groups]

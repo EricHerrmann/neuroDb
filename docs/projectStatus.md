@@ -55,7 +55,6 @@ See `docs/testLog.md`. Current open items: LOG-001 (textbook dropdown ambiguity 
 | `docs/ConfigControl_EpochPlan.md` | Config Control epoch plan — routing phases, provider adapters, telemetry, Phase 6 next |
 | `docs/DB_EpochPlan.md` | DB epoch plan and architecture decisions |
 | `docs/UI_EpochPlan.md` | UI epoch plan — Streamlit constraints, FastAPI/React workbench migration path |
-| `docs/superpowers/plans/claudeTaskArch.md` | Design plan — capability tiers, per-agent env vars, synthesis split, provider abstraction, phased implementation |
 | `docs/superpowers/plans/2026-05-08-ui1-backend-api-shell.md` | UI-1 implementation plan — FastAPI app factory, 8 routes, SSE chat PoC, file map, TDD task list |
 | `docs/superpowers/plans/2026-05-08-config-phase5-provider-model-table.md` | Config Phase 5 design — verified 4-provider model table, Gemini wiring, model freshness CLI |
 | `docs/testsPlans/manualTestPlan_ui1_api_shell.md` | UI-1 active manual test plan — 8 curl-based evals for all API routes and Streamlit parity |

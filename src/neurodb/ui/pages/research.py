@@ -1,6 +1,5 @@
 """Research workspace for Neuro-Research artifacts and metrics."""
 import json
-import os
 
 import streamlit as st
 from sqlalchemy import Engine
@@ -9,9 +8,11 @@ from neurodb.db import get_session
 from neurodb.research.hypothesis_review import run_hypothesis_review
 from neurodb.research_tools import (
     get_knowledge_growth_metrics,
+    list_hypotheses,
+    list_research_questions,
     update_hypothesis_review_status,
 )
-from neurodb.schema import HypothesisReview, ResearchHypothesis, ResearchQuestion
+from neurodb.schema import HypothesisReview
 
 
 def render(engine: Engine) -> None:
@@ -99,15 +100,23 @@ def _render_hypotheses(engine: Engine) -> None:
 
 
 def _run_review_action(engine: Engine, hypothesis_id: int) -> None:
-    api_key = os.environ.get("ANTHROPIC_API_KEY")
-    if not api_key:
-        st.error("ANTHROPIC_API_KEY is required to review a hypothesis.")
+    from neurodb.config.provider_factory import build_provider_clients
+    from neurodb.config.task_router import TaskRouter
+
+    providers = build_provider_clients()
+    if not providers:
+        st.error("A configured model provider API key is required to review a hypothesis.")
         return
     try:
-        import anthropic
-
-        client = anthropic.Anthropic(api_key=api_key)
-        result = run_hypothesis_review(hypothesis_id, engine, client)
+        route = TaskRouter(providers).route("research.hypothesis_review")
+        result = run_hypothesis_review(
+            hypothesis_id,
+            engine,
+            model=route.model_id,
+            model_client=route.model_client,
+            model_provider=route.provider,
+            max_tokens=route.max_tokens,
+        )
     except Exception as exc:
         st.error(f"Hypothesis review failed: {exc}")
         return
@@ -142,19 +151,11 @@ def _render_hypothesis_reviews(engine: Engine, hypothesis_id: int) -> None:
 
 
 def _list_questions(engine: Engine, status: str):
-    with get_session(engine) as session:
-        query = session.query(ResearchQuestion)
-        if status != "all":
-            query = query.filter_by(status=status)
-        return query.order_by(ResearchQuestion.created_at.desc()).all()
+    return list_research_questions(engine, status=status)
 
 
 def _list_hypotheses(engine: Engine, status: str):
-    with get_session(engine) as session:
-        query = session.query(ResearchHypothesis)
-        if status != "all":
-            query = query.filter_by(status=status)
-        return query.order_by(ResearchHypothesis.created_at.desc()).all()
+    return list_hypotheses(engine, status=status)
 
 
 def _list_hypothesis_reviews(engine: Engine, hypothesis_id: int):
@@ -162,6 +163,7 @@ def _list_hypothesis_reviews(engine: Engine, hypothesis_id: int):
         return (
             session.query(HypothesisReview)
             .filter_by(hypothesis_id=hypothesis_id)
+            .filter(HypothesisReview.status != "dismissed")
             .order_by(HypothesisReview.created_at.desc())
             .all()
         )

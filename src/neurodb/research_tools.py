@@ -5,7 +5,17 @@ Migration target: src/neurodb/research/tools.py
 """
 import json
 from datetime import datetime, timezone
-from typing import Any
+from typing import Any, TypedDict
+
+
+class EvidenceItem(TypedDict):
+    source: str
+    summary: str
+
+
+class DatasetItem(TypedDict):
+    dataset_id: str
+    relevance: str
 
 from sqlalchemy import Engine, func, text
 
@@ -86,9 +96,9 @@ def draft_hypothesis(
     engine: Engine,
     title: str,
     mechanism: str,
-    evidence: list[dict],
-    predictions: list[str] | list[dict],
-    datasets: list[dict],
+    evidence: list[EvidenceItem],
+    predictions: list[str],
+    datasets: list[DatasetItem],
     confounds: list[str] | list[dict],
     limitations: str,
     question_id: int | None = None,
@@ -341,6 +351,24 @@ def cross_reference_datasets(
     if not candidates:
         limitations.append("no local datasets matched the query")
     return {"query": cleaned_query, "candidates": candidates[:n_results], "limitations": limitations}
+
+
+def list_research_questions(engine: Engine, status: str = "all") -> list:
+    """Return persisted research questions, optionally filtered by status."""
+    with get_session(engine) as session:
+        query = session.query(ResearchQuestion)
+        if status != "all":
+            query = query.filter_by(status=status)
+        return query.order_by(ResearchQuestion.created_at.desc()).all()
+
+
+def list_hypotheses(engine: Engine, status: str = "all") -> list:
+    """Return persisted draft hypotheses, optionally filtered by status."""
+    with get_session(engine) as session:
+        query = session.query(ResearchHypothesis)
+        if status != "all":
+            query = query.filter_by(status=status)
+        return query.order_by(ResearchHypothesis.created_at.desc()).all()
 
 
 def _collection_count(owner, attr: str) -> int | None:

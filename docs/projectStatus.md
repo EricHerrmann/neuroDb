@@ -65,7 +65,3 @@ See `docs/testLog.md`. Current open items: LOG-001 (textbook dropdown ambiguity 
 | `docs/testsPlans/manualTestPlan_ui1_api_shell.md` | UI-1 active manual test plan — 8 curl-based evals for all API routes and Streamlit parity |
 | `docs/superpowers/plans/2026-05-07-config-phase2-cost-telemetry.md` | Config Phase 2 signed-off design — ModelCallLog schema, telemetry helper, instrumentation boundaries, tests |
 | `docs/testLog.md` | Running issue log — open and resolved items across all phases |
-| `docs/testsPlans/manualTestPlan_config_phase1.md` | Config Phase 1 signed-off manual test plan — per-agent model env var evals |
-| `docs/testsPlans/manualTestPlan_config_phase2.md` | Config Phase 2 signed-off manual test plan — model-call telemetry evals |
-| `docs/testsPlans/manualTestPlan_config_phase3.md` | Config Phase 3 signed-off manual test plan — research synthesis split and premium hypothesis review evals |
-| `docs/testsPlans/manualTestPlan_config_phase4.md` | Config Phase 4 active manual test plan — ModelClient parity, TaskRouter wiring, hypothesis review tool-use, OpenAI provider evals |

@@ -48,7 +48,6 @@ See `docs/testLog.md`. Current open items: LOG-001 (textbook dropdown ambiguity 
 | `docs/archive/completedPhases.md` | Completed phases and tech debt sprints — full history |
 | `NeuroDbGoals.md` | Top-level project goals and feedback loop |
 | `docs/superpowers/specs/2026-05-07-epoch-architecture-design.md` | Epoch architecture spec — six epochs, interface contracts, coupling rules, goal-to-epoch mapping |
-| `docs/superpowers/plans/2026-05-07-epoch-framework-adoption.md` | Epoch framework adoption plan — doc updates, directory stubs, module docstrings |
 | `CLAUDE.md` | Engineering rules, process, environment |
 | `docs/AgentCore_EpochPlan.md` | Agent Core epoch plan — BaseAgent architecture, three-method contract, configuration injection |
 | `docs/Tutor_EpochPlan.md` | Tutor epoch plan — NeuroTutorAgent, Knowledge Library, session management, open backlog |

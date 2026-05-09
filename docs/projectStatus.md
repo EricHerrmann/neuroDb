@@ -59,7 +59,6 @@ See `docs/testLog.md`. Current open items: LOG-001 (textbook dropdown ambiguity 
 | `docs/codexTaskAnalysis.md` | Codex task-based cost analysis, model-routing recommendations, and provider-agnostic architecture notes |
 | `docs/claudeTaskAnalysis.md` | Task taxonomy, model tier assignments, multi-provider architecture design, and phased implementation plan |
 | `docs/superpowers/plans/claudeTaskArch.md` | Design plan — capability tiers, per-agent env vars, synthesis split, provider abstraction, phased implementation |
-| `docs/superpowers/plans/2026-05-07-model-routing-impl.md` | Phased implementation plan — task checklists for Phase 1–4, file map, eval gates, stop criteria |
 | `docs/superpowers/plans/2026-05-08-ui1-backend-api-shell.md` | UI-1 implementation plan — FastAPI app factory, 8 routes, SSE chat PoC, file map, TDD task list |
 | `docs/superpowers/plans/2026-05-08-config-phase5-provider-model-table.md` | Config Phase 5 design — verified 4-provider model table, Gemini wiring, model freshness CLI |
 | `docs/testsPlans/manualTestPlan_ui1_api_shell.md` | UI-1 active manual test plan — 8 curl-based evals for all API routes and Streamlit parity |

@@ -1,8 +1,8 @@
 # Model Routing — Phased Implementation Plan
 
 **Design source:** `docs/superpowers/plans/claudeTaskArch.md`
-**Status:** Phase 1 passed — signed off 2026-05-07; Phase 2 passed — signed off 2026-05-08; Phase 3 passed — signed off 2026-05-08 with LOG-044 follow-up
-**Scope decision:** Implement in four gated phases. Each phase requires its eval criteria to pass before the next phase begins. Do not work provider abstraction, config table, or TaskRouter during Phase 1–3.
+**Status:** Phase 1 passed — signed off 2026-05-07; Phase 2 passed — signed off 2026-05-08; Phase 3 passed — signed off 2026-05-08 with LOG-044 follow-up; Phase 4 manual evals pending (T1–T7); Phase 5A/5B complete — 398 tests; Phase 6 planned — constructor fallback chain, system warnings table, CLI surface, TOML tuning section (iteration limits + relevance threshold), model API error logging
+**Scope decision:** Implement in gated phases. Each phase requires its eval criteria to pass before the next phase begins. Do not work provider abstraction, config table, or TaskRouter during Phase 1–3.
 
 ---
 
@@ -41,6 +41,23 @@
 | 4 | Create | `tests/unit/test_model_client.py` | Tests: normalized response contract; tool schema translation |
 | 4 | Create | `tests/unit/test_task_router.py` | Tests: config loading; task → tier → client routing |
 | All | Modify | `docs/projectStatus.md` | Sync phase status and test count after each phase |
+| 6 | Modify | `src/neurodb/agents/base.py` | Add `_resolve_model()` with 4-step fallback chain; emit `logging.warning()` on steps 3–4; read iteration limit from TOML tuning section |
+| 6 | Modify | `src/neurodb/agents/db_agent.py` | Remove module-level `_MODEL = os.environ.get(...)`; read `max_tool_iterations` from TOML |
+| 6 | Modify | `src/neurodb/agents/tutor_agent.py` | Remove module-level `_MODEL = os.environ.get(...)`; read `max_tool_iterations` from TOML |
+| 6 | Modify | `src/neurodb/agents/research_agent.py` | Remove module-level `_MODEL = os.environ.get(...)`; remove `NEURODB_RESEARCH_MAX_TOOL_ITERATIONS` env var; read from TOML |
+| 6 | Modify | `src/neurodb/session_manager.py` | Remove module-level `_SUMMARY_MODEL`; read `session_relevance_threshold` from TOML tuning section |
+| 6 | Modify | `src/neurodb/research/hypothesis_review.py` | Remove module-level `NEURODB_PREMIUM_MODEL = os.environ.get(...)` |
+| 6 | Modify | `src/neurodb/ui/pages/knowledge_library.py` | Remove legacy env var read; rely on constructor-level resolution |
+| 6 | Modify | `neurodb_models.toml` | Add `[tuning]` section: `max_tool_iterations` per agent type, `session_relevance_threshold` |
+| 6 | Modify | `src/neurodb/config/model_config.py` | Add `get_tuning_value(key)` helper to read `[tuning]` section |
+| 6 | Modify | `src/neurodb/schema.py` | Add `SystemWarning` ORM table |
+| 6 | Modify | `src/neurodb/model_telemetry.py` | Add `record_system_warning()` helper |
+| 6 | Create | `src/neurodb/cli/warnings.py` | CLI query: print recent system warnings from DB |
+| 6 | Modify | `.env.example` | Comment out legacy model vars and `NEURODB_RESEARCH_MAX_TOOL_ITERATIONS`; add transition note |
+| 6 | Modify | `src/neurodb/agents/base.py` | Catch API exceptions in `chat()` / `chat_stream()`; emit `logging.error()` + write `system_warnings` row before re-raising |
+| 6 | Create | `tests/unit/test_system_warnings.py` | Tests: warning row written on fallback; API error row written on exception; fields correct |
+| 6 | Create | `tests/unit/test_tuning_config.py` | Tests: `get_tuning_value` returns correct defaults; missing key raises clearly |
+| 6 | Create | `docs/testsPlans/manualTestPlan_config_phase6.md` | Manual evals: nominal path, fallback logging, API error logging, CLI output, iteration limits respected |
 
 ---
 
@@ -297,6 +314,233 @@ Run against the live Streamlit app with new env vars active. Record pass/fail fo
 - [ ] Run Phase 1 evals against OpenAI models to validate provider parity (manual eval — pending T5/T6)
 - [x] Run full `uv run pytest tests/ -q --tb=no`
 - [x] Update `docs/projectStatus.md` with final test count (382)
+
+#### Task 4.7 — Provider selection wiring fix
+
+**Status:** Implemented — 389 automated tests passing. Manual OpenAI parity evals T5/T6 remain pending.
+
+**Original problem:** Phase 4 had provider adapters and a `TaskRouter`, but provider selection was not actually runnable from the app. `chat.py` registered only Anthropic with `TaskRouter`, `neurodb_models.toml` contained only Anthropic provider entries, `NEURODB_AGENT_MODEL_PROVIDER=openai` was not read anywhere, and agent telemetry still wrote `provider="anthropic"` directly. This blocked manual evals T5/T6.
+
+**Design goal:** Make provider selection config-driven, with a small env override for manual evals, while keeping Anthropic as the default MVP provider.
+
+**Selection precedence:**
+
+1. Tier-specific environment override for manual tests:
+   - `NEURODB_ECONOMY_PROVIDER`
+   - `NEURODB_STANDARD_PROVIDER`
+   - `NEURODB_PREMIUM_PROVIDER`
+2. `default_provider` from `neurodb_models.toml`
+
+Do not add per-agent provider env vars such as `NEURODB_AGENT_MODEL_PROVIDER`; provider selection should follow task type → tier → provider so it remains compatible with task-based routing.
+
+**Config change:**
+
+Add provider entries for OpenAI to each tier in `neurodb_models.toml`, while leaving Anthropic as the default provider:
+
+```toml
+[tiers.standard.providers.openai]
+model = "gpt-5-mini"
+eval_status = "candidate"
+last_verified_at = ""
+```
+
+The exact OpenAI model IDs should be treated as config values, not source-code constants. If an OpenAI model is not verified for a tier, keep `eval_status = "candidate"` until manual evals pass.
+
+**Routing shape:**
+
+Replace the current `(ModelClient, model_id, max_tokens)` route tuple with a named route object:
+
+```python
+@dataclass(frozen=True)
+class ModelRoute:
+    task_type: str
+    tier: str
+    provider: str
+    model_client: ModelClient
+    model_id: str
+    max_tokens: int
+```
+
+`TaskRouter.route(task_type)` should return `ModelRoute`. This keeps provider identity attached to the selected model and avoids inferring provider from the adapter class.
+
+**Provider factory:**
+
+Add a small provider factory in `src/neurodb/config/provider_factory.py`:
+
+- If `ANTHROPIC_API_KEY` exists, construct `AnthropicModelClient`.
+- If `OPENAI_API_KEY` exists, construct `OpenAIModelClient`.
+- If `GROQ_API_KEY` exists, construct `OpenAIModelClient` with Groq `base_url`.
+- Return `dict[str, ModelClient]`.
+
+The app should then build `TaskRouter(build_provider_clients())` instead of manually constructing only Anthropic in `chat.py`.
+
+**Telemetry change:**
+
+`BaseAgent.__init__` should accept `model_provider: str`. `chat.py` should pass `route.provider` when constructing each agent. `_record_model_call()` should write `provider=self._model_provider` instead of `provider="anthropic"`.
+
+This is deliberately route-owned rather than client-owned because `OpenAIModelClient` may represent either OpenAI or Groq depending on SDK configuration.
+
+**Call-site changes:**
+
+- In `chat.py`, call `route = router.route(task_type)`.
+- Pass:
+  - `model_client=route.model_client`
+  - `model=route.model_id`
+  - `max_tokens=route.max_tokens`
+  - `model_provider=route.provider`
+- For hypothesis review, route `research.hypothesis_review` and pass both `model_client=route.model_client` and `model=route.model_id`; `run_hypothesis_review()` should record `provider=route.provider`.
+
+**Manual eval path after implementation:**
+
+To run T5 without editing source code:
+
+```bash
+NEURODB_STANDARD_PROVIDER=openai uv run streamlit run src/neurodb/ui/app.py -- --db neurodb.duckdb
+```
+
+Then run the existing T5 telemetry query and confirm the newest `agent.loop.local_db` row has `provider=openai`.
+
+**Implemented test coverage:**
+
+- [x] `get_model_for_task()` honors `NEURODB_STANDARD_PROVIDER=openai` when the standard tier has an OpenAI provider entry.
+- [x] Unknown provider override raises a clear `KeyError` naming the missing provider and tier.
+- [x] `TaskRouter.route()` returns a route object containing `provider`, `model_client`, `model_id`, and `max_tokens`.
+- [x] `build_provider_clients()` registers only providers with available API keys.
+- [x] `BaseAgent` telemetry writes the routed provider instead of hardcoded Anthropic.
+- [x] UI agent construction passes the route provider into agents.
+- [x] Session and Knowledge Library summaries can route through the economy tier for OpenAI parity evals.
+- [x] Full suite passed: `uv run pytest tests/ -q --tb=no` — 389 passed, 5 warnings.
+
+**Not in scope for this fix:**
+
+- Automatic provider failover.
+- Model quality auto-promotion based on telemetry.
+- UI controls for provider selection.
+- Pricing/cost dashboard.
+- Gemini support.
+
+---
+
+---
+
+### Phase 6 — Constructor Fallback Chain + System Warnings
+
+**Goal:** Remove Phase 1's silent import-time env var defaults; make the fallback chain explicit and observable; persist operational anomalies to a queryable table for periodic tech debt review.
+
+**Prerequisites:** Phase 4 manual evals (T1–T7) signed off.
+
+**Design decisions recorded:**
+- Module-level `_MODEL = os.environ.get(...)` in agent files was a Phase 1 artifact that survived Phase 4. It resolves at import time before routing is attempted, making it a silent default rather than an intentional fallback. Tests built against it test an accidental path.
+- The correct shape: resolution happens at construction time with an ordered fallback chain so the nominal path (TOML routing) always runs first.
+- Env vars are kept but demoted to step 3 of the chain — intentionally a fallback, clearly labeled as such in `.env.example`.
+- Silent fallbacks are undetectable; a `system_warnings` table gives the project a queryable record of operational anomalies. CLI surface first; UI panel deferred to UI-3.
+- Iteration limits (`_MAX_TURNS = 10`, per-agent `max_tool_iterations` defaults, `NEURODB_RESEARCH_MAX_TOOL_ITERATIONS`) are MVP-era tuning values hardcoded in source or hidden in env vars. They belong in a `[tuning]` section in `neurodb_models.toml` alongside `max_tokens` for the same reason: they are per-task behavioral limits, not structural code.
+- `_RELEVANCE_THRESHOLD = 0.7` in `session_manager.py` is a production tuning parameter (cosine distance cutoff for prior context injection) with no config path. It belongs in `[tuning]` for the same reason as iteration limits.
+- Model API errors (rate limits, auth failures, network timeouts, malformed responses) currently propagate silently to the Streamlit UI with no persistent record. `chat()` and `chat_stream()` re-raise exceptions after rolling back message history, so the error is visible in the UI but not logged or stored. API errors belong in `system_warnings` with `warning_type = "model_api_error"` — same infrastructure as the fallback chain warnings, no additional table needed. `logging.error()` fires for real-time visibility; the DB write is the durable record.
+
+**Fallback chain (in `BaseAgent._resolve_model()`):**
+1. Explicit `model=` passed by caller → use it (nominal path, caller did routing via TaskRouter)
+2. `get_model_for_task(task_type)` from TOML → use it (nominal path, self-resolving)
+3. `os.environ.get(FALLBACK_ENV_VAR)` → use it; emit `logging.warning()` + write `SystemWarning` row
+4. Hardcoded last-resort default → use it; emit `logging.warning()` + write `SystemWarning` row
+
+#### Task 6.0 — Manual test plan
+
+- [ ] Create `docs/testsPlans/manualTestPlan_config_phase6.md` covering: nominal TOML path, fallback fires and logs warning, warning row written to DB, CLI query returns it
+- [ ] Add plan to `docs/projectStatus.md` reference table
+
+#### Task 6.1 — TOML `[tuning]` section and config helper
+
+- [ ] Add `[tuning]` section to `neurodb_models.toml` with:
+  - `max_tool_iterations_standard = 10` — default for db and tutor agents
+  - `max_tool_iterations_research = 25` — research agent loop
+  - `session_relevance_threshold = 0.7` — cosine distance cutoff for prior context injection in `session_manager.py`
+- [ ] Add `get_tuning_value(key, default=None)` to `src/neurodb/config/model_config.py`; reads from the TOML `[tuning]` section; returns `default` if key is absent (allows safe reads without breaking on older TOML files)
+- [ ] Write failing tests: `get_tuning_value("max_tool_iterations_standard")` returns 10; missing key with default does not raise; missing key without default raises `KeyError`
+- [ ] Run tests — confirm red; implement; confirm green
+- [ ] Run full `uv run pytest tests/ -q --tb=no`
+
+#### Task 6.1b — Wire iteration limits and relevance threshold from TOML
+
+- [ ] In `db_agent.py` and `tutor_agent.py`: replace hardcoded `max_tool_iterations=10` default with `get_tuning_value("max_tool_iterations_standard", 10)`
+- [ ] In `research_agent.py`: replace `NEURODB_RESEARCH_MAX_TOOL_ITERATIONS` env var read with `get_tuning_value("max_tool_iterations_research", 25)`; remove env var read
+- [ ] In `session_manager.py`: replace `_RELEVANCE_THRESHOLD = 0.7` with `get_tuning_value("session_relevance_threshold", 0.7)`
+- [ ] Comment out `NEURODB_RESEARCH_MAX_TOOL_ITERATIONS` in `.env.example`; add note that it is now owned by `neurodb_models.toml [tuning]`
+- [ ] Write failing tests: agents pick up iteration limit from TOML; `session_manager` picks up threshold from TOML; both fall back to coded default if key absent
+- [ ] Run tests — confirm red; implement; confirm green
+- [ ] Run full `uv run pytest tests/ -q --tb=no`
+
+#### Task 6.2 — `SystemWarning` schema
+
+- [ ] Add `SystemWarning` ORM table to `src/neurodb/schema.py` with columns: `id`, `logged_at`, `warning_type`, `task_type`, `reason`, `fallback_step`, `resolved_value`
+- [ ] Add migration to create `system_warnings` for existing DB files
+- [ ] Write failing schema test: table created by `init_db`
+- [ ] Run test — confirm red; implement; confirm green
+- [ ] Run full `uv run pytest tests/ -q --tb=no`
+
+#### Task 6.3 — Warning telemetry helper
+
+- [ ] Add `record_system_warning(engine, warning_type, task_type, reason, fallback_step, resolved_value)` to `src/neurodb/model_telemetry.py`; write failure must be swallowed (same pattern as `record_model_call`)
+- [ ] Write failing tests: row written with correct fields; write failure does not propagate
+- [ ] Run tests — confirm red; implement; confirm green
+- [ ] Run full `uv run pytest tests/ -q --tb=no`
+
+#### Task 6.4 — Constructor fallback chain
+
+- [ ] Add `_resolve_model(task_type, fallback_env_var, hardcoded_default, engine)` to `BaseAgent`
+- [ ] Steps 3 and 4 call `logging.warning()` with task type, reason, fallback step, and resolved value
+- [ ] Steps 3 and 4 call `record_system_warning()` non-blockingly
+- [ ] `model=` parameter on `BaseAgent.__init__` defaults to `None`; constructor calls `_resolve_model()` when `None`
+- [ ] Write failing tests: explicit `model=` bypasses resolution; TOML path resolves correctly; step-3 warning fires when TOML raises; step-4 warning fires when env var is also unset
+- [ ] Run tests — confirm red; implement; confirm green
+- [ ] Run full `uv run pytest tests/ -q --tb=no`
+
+#### Task 6.5 — Remove module-level env var reads
+
+- [ ] Remove `_MODEL = os.environ.get(...)` from `db_agent.py`, `tutor_agent.py`, `research_agent.py`
+- [ ] Remove `_SUMMARY_MODEL = os.environ.get(...)` from `session_manager.py`
+- [ ] Remove `NEURODB_PREMIUM_MODEL = os.environ.get(...)` from `hypothesis_review.py`
+- [ ] Remove legacy env var read from `knowledge_library.py`; rely on constructor resolution
+- [ ] Each agent passes its `task_type` (e.g. `"agent.loop.local_db"`) and `fallback_env_var` (e.g. `"NEURODB_AGENT_MODEL"`) to `BaseAgent.__init__`
+- [ ] Update all affected tests: replace env var patches with either explicit `model=` or TOML-path assertions
+- [ ] Run full `uv run pytest tests/ -q --tb=no`
+
+#### Task 6.6 — `.env.example` transition note
+
+- [ ] Comment out all five legacy model vars in `.env.example`
+- [ ] Add block comment explaining these fire only when TOML routing is unavailable (e.g. missing file, unknown task type) and that normal operation uses `neurodb_models.toml` via TaskRouter
+
+#### Task 6.7 — CLI warnings surface
+
+- [ ] Create `src/neurodb/cli/warnings.py`
+- [ ] Implement: query `system_warnings` ordered by `logged_at DESC`; accept optional `--limit` (default 20) and `--since` (ISO date) flags; print tabular output to stdout
+- [ ] Write failing test: CLI returns rows present in DB; empty table prints a clear "no warnings" message
+- [ ] Run tests — confirm red; implement; confirm green
+- [ ] Run full `uv run pytest tests/ -q --tb=no`
+- [ ] Update `docs/projectStatus.md` with final test count
+
+#### Task 6.8 — Model API error logging
+
+- [ ] In `BaseAgent.chat()`: wrap `yield from self._chat_inner(...)` so that on exception, before re-raising, emit `logging.error()` with provider, model, task type, and exception message; call `record_system_warning()` with `warning_type="model_api_error"`
+- [ ] In `BaseAgent.chat_stream()`: same pattern
+- [ ] Warning fields: `task_type=self._telemetry_task_type`, `reason=str(exc)`, `fallback_step="api_call"`, `resolved_value=f"{self._model_provider}/{self._model}"`
+- [ ] Write failing tests: API exception triggers `logging.error()` and writes `system_warnings` row; exception still propagates to caller
+- [ ] Run tests — confirm red; implement; confirm green
+- [ ] Run full `uv run pytest tests/ -q --tb=no`
+
+#### Task 6.9 — Phase 6 evals (manual)
+
+| Eval | Pass criteria |
+|------|---------------|
+| Nominal TOML path | Agent constructs normally; no warning logged; no `system_warnings` row written |
+| TOML unavailable (task type removed) | `logging.warning()` fires at step 3 or 4; `system_warnings` row written with correct fields |
+| CLI query | `uv run python -m neurodb.cli.warnings` returns the warning row from the previous eval |
+| Iteration limit from TOML | Change `max_tool_iterations_standard` in TOML; confirm agent loop respects updated value without code change |
+| Relevance threshold from TOML | Change `session_relevance_threshold` in TOML; confirm prior-context injection behavior shifts accordingly |
+| Model API error captured | Trigger an API error (e.g. invalid model ID); confirm `logging.error()` fires, `system_warnings` row written, exception still surfaces in UI |
+| All existing Phase 4 evals re-run | No regression in agent behavior |
+
+- [ ] All Phase 6 evals pass before closing the phase
 
 ---
 

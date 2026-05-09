@@ -45,16 +45,21 @@ See `docs/testLog.md`. Current open items: LOG-001 (textbook dropdown ambiguity 
 
 | Document | Purpose |
 |----------|---------|
-| `docs/archive/completedPhases.md` | Completed phases and tech debt sprints — full history |
+| **Goals / Process** | |
 | `NeuroDbGoals.md` | Top-level project goals and feedback loop |
-| `docs/superpowers/specs/2026-05-07-epoch-architecture-design.md` | Epoch architecture spec — six epochs, interface contracts, coupling rules, goal-to-epoch mapping |
 | `CLAUDE.md` | Engineering rules, process, environment |
+| **Active Issues** | |
+| `docs/testLog.md` | Running issue log — open and resolved items across all phases |
+| **Epoch Architecture + Status** | |
+| `docs/superpowers/specs/2026-05-07-epoch-architecture-design.md` | Epoch architecture spec — six epochs, interface contracts, coupling rules, goal-to-epoch mapping |
 | `docs/AgentCore_EpochPlan.md` | Agent Core epoch plan — BaseAgent architecture, three-method contract, configuration injection |
 | `docs/Tutor_EpochPlan.md` | Tutor epoch plan — NeuroTutorAgent, Knowledge Library, session management, open backlog |
 | `docs/Research_EpochPlan.md` | Research epoch plan — NeuroResearchAgent, hypothesis tools, hypothesis review, open backlog |
 | `docs/ConfigControl_EpochPlan.md` | Config Control epoch plan — routing phases, provider adapters, telemetry, Phase 6 next |
-| `docs/DB_EpochPlan.md` | DB epoch plan and architecture decisions |
-| `docs/UI_EpochPlan.md` | UI epoch plan — Streamlit constraints, FastAPI/React workbench migration path |
-| `docs/superpowers/plans/2026-05-08-ui1-backend-api-shell.md` | UI-1 implementation plan — FastAPI app factory, 8 routes, SSE chat PoC, file map, TDD task list |
-| `docs/testsPlans/manualTestPlan_ui1_api_shell.md` | UI-1 active manual test plan — 8 curl-based evals for all API routes and Streamlit parity |
-| `docs/testLog.md` | Running issue log — open and resolved items across all phases |
+| `docs/DB_EpochPlan.md` | DB epoch plan — connectors, schema ownership, phases 0–8 |
+| `docs/UI_EpochPlan.md` | UI epoch plan — Streamlit MVP, FastAPI/React migration path, phases UI-0–4 |
+| **Active Plans / Specs** | |
+| `docs/superpowers/plans/2026-05-08-ui1-backend-api-shell.md` | UI-1 implementation plan — FastAPI app factory, 8 routes, SSE chat PoC |
+| `docs/testsPlans/manualTestPlan_ui1_api_shell.md` | UI-1 manual test plan — 8 curl-based evals for API routes (pending UI-1 implementation) |
+| **History** | |
+| `docs/archive/completedPhases.md` | Completed phases and tech debt sprints — full history |

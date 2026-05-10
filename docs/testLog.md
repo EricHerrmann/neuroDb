@@ -9,15 +9,31 @@ Use `Log ID` for cross-references across Open, Resolved, triage, sprint planning
 
 ## Open Issues Summary
 
-| Log ID | Issue ID | Epoch | Description | Priority |
-|--------|----------|-------|-------------|----------|
-| LOG-001 | P6-selector | Tutor | Textbook dropdown appears pre-selected without explicit user action — agent context state is ambiguous | Deferred post-LT-3 |
-| LOG-006 | LT1-model-visibility | Config | User cannot tell which agent/LLM/model is active; no model selection or persistent preference rules | Deferred post-LT-3 |
-| LOG-013 | UI-shell-rearchitecture | UI | Streamlit cannot support fixed-pane app-shell behavior; reassess UI stack after LT-3 | Deferred post-LT-3 |
-| LOG-030 | lt3-t2-pass-header-size | UI | LT-3 T2 passed, but titles/headers render too large | UI polish |
-| LOG-037 | lt3-t6-research-question-actions | Research | Research pane shows several research questions, but there is no way to delete or use them | Post-LT-3 polish |
-| LOG-040 | config-phase1-t3-localdb-no-results-hang | Config | Config control Phase 1 passed; during T3 the agent appeared to hang on a local DB no-results response; monitor for possible model-tier fit issue | Monitor |
-| LOG-041 | config-session-summary-visibility | Config | Config control T4 requires date/topic/key-concepts checks, but there is no UI path to view the generated session summary | Feature review |
+### Tutor
+| Log ID | Issue ID | Description | Priority |
+|--------|----------|-------------|----------|
+| LOG-001 | P6-selector | Textbook dropdown appears pre-selected without explicit user action — agent context state is ambiguous | Deferred post-LT-3 |
+
+### Config
+| Log ID | Issue ID | Description | Priority |
+|--------|----------|-------------|----------|
+| LOG-006 | LT1-model-visibility | User cannot tell which agent/LLM/model is active; no model selection or persistent preference rules | Deferred post-LT-3 |
+| LOG-041 | config-session-summary-visibility | No UI path to view the generated session summary; needed for T4 date/topic/key-concepts verification | Feature review |
+| LOG-047 | telemetry-timestamp-format | Telemetry log timestamps should display as HH:MM:SS DD/MM/YY; current format is raw ISO 8601 | Phase 6 |
+| LOG-050 | gemini-premium-testing-deferred | Further manual testing against premium Gemini models deferred | Deferred |
+
+### UI
+| Log ID | Issue ID | Description | Priority |
+|--------|----------|-------------|----------|
+| LOG-013 | UI-shell-rearchitecture | Streamlit cannot support fixed-pane app-shell behavior; reassess UI stack after LT-3 | Deferred post-LT-3 |
+| LOG-030 | lt3-t2-pass-header-size | LT-3 T2 passed, but titles/headers render too large | UI polish |
+
+### Research
+| Log ID | Issue ID | Description | Priority |
+|--------|----------|-------------|----------|
+| LOG-037 | lt3-t6-research-question-actions | Research pane shows several research questions but there is no way to delete or use them | Post-LT-3 polish |
+| LOG-045 | research-agent-no-knowledge-queue | Research agent cannot nominate papers for import to the knowledge library; no bridge to Tutor curation queue | Feature — Research epoch |
+| LOG-048 | dismiss-draft-hypothesis | No way to dismiss a draft hypothesis from the UI; dismiss exists for reviews but not the hypothesis itself | Research UI polish |
 
 ---
 
@@ -30,8 +46,11 @@ Use `Log ID` for cross-references across Open, Resolved, triage, sprint planning
 | LOG-013 | 2026-05-05 | UI-shell-rearchitecture | UI | Pre-LT-2 fixed-pane layout failed in Streamlit even with a custom-component bridge; evaluate a UI tech-stack rearchitecture after LT-2/LT-3 once core learning capabilities mature to MVP | Pre-LT-2 manual test |
 | LOG-030 | 2026-05-06 | lt3-t2-pass-header-size | UI | LT-3 T2 passed, agent has correct date and knows context; minor UI fix: reduce titles/headers font, it is too big | LT-3 manual testing |
 | LOG-037 | 2026-05-06 | lt3-t6-research-question-actions | Research | T6: Research pane shows several research questions, but there is no way to delete or use them | LT-3 manual testing |
-| LOG-040 | 2026-05-07 | config-phase1-t3-localdb-no-results-hang | Config | Config control Phase 1 T1-T5 passed; during T3 the agent eventually produced good results but appeared to hang querying the local DB after a no-results response. Monitor because it may indicate an issue with the level of model used. | Config control Phase 1 manual testing |
 | LOG-041 | 2026-05-07 | config-session-summary-visibility | Config | T4 has explicit checks for date, topic, and key concepts, so there needs to be a way to view the generated session summary in the app. | Config control Phase 1 manual testing |
+| LOG-045 | 2026-05-08 | research-agent-no-knowledge-queue | Research | Research agent cannot queue studies it finds for import to the knowledge library — it can only read from it. The Tutor epoch owns the write path (curation, approval, embedding), but no bridge exists for the Research epoch to nominate papers as candidates for Tutor review. Feature request: add a `queue_for_knowledge_library` tool to the research agent that writes a lightweight nomination row to the DB, surfaced in the Tutor/Knowledge Library UI for user approval before full ingest. | Config Phase 4 manual testing — T3 ad hoc observation |
+| LOG-047 | 2026-05-09 | telemetry-timestamp-format | Config | Telemetry log timestamps display as raw ISO 8601; should display as HH:MM:SS DD/MM/YY for user readability. Likely addressed in Phase 6 alongside the system_warnings CLI surface. | Config Phase 4 manual testing |
+| LOG-048 | 2026-05-09 | dismiss-draft-hypothesis | Research | No way to dismiss a draft hypothesis from the UI. Dismiss exists for hypothesis reviews but not for the hypothesis itself. Hypothesis status options include "archived" but there is no button to set it. | Config Phase 4 manual testing |
+| LOG-050 | 2026-05-09 | gemini-premium-testing-deferred | Config | Gemini/Google account is billing-enabled for premium tier; all wiring issues surfaced this session (GOOGLE_API_KEY rename, null streaming tokens) were fixed. Further testing against premium Gemini models deferred. | Config Phase 4 manual testing |
 
 ---
 
@@ -76,3 +95,6 @@ Use `Log ID` for cross-references across Open, Resolved, triage, sprint planning
 | LOG-042 | 2026-05-07 | config-phase2-streamlit-lock-test-order | Config Phase 2 manual plan started Streamlit before CLI schema/telemetry checks, causing DuckDB write-lock failures | Resolved: `manualTestPlan_config_phase2.md` now runs T1 before Streamlit and instructs testers to stop Streamlit before each CLI SQL check |
 | LOG-043 | 2026-05-07 | config-p2-t1-pass | Config Phase 2 T1 schema check passed | Test pass — not an issue |
 | LOG-044 | 2026-05-08 | config-p3-review-json-structure | Config Phase 3 premium review returned prose instead of structured JSON | Resolved in Config Phase 4: `hypothesis_review.py` migrated to `ModelClient` with `submit_critique` tool-use, forcing structured output. 382 automated tests passing. |
+| LOG-046 | 2026-05-09 | dismiss-review-no-action | Dismiss review button appeared to have no visible effect | Resolved: `_list_hypothesis_reviews` was not filtering out dismissed reviews — dismissed rows remained visible on rerender. Fixed by adding `filter(HypothesisReview.status != "dismissed")` to the query. |
+| LOG-040 | 2026-05-07 | config-phase1-t3-localdb-no-results-hang | Config Phase 1 T3 apparent hang on local DB no-results response; possible model-tier fit issue | Not reproduced in subsequent testing through Config Phases 2–4; resolved as no-recurrence 2026-05-10 |
+| LOG-049 | 2026-05-09 | gemini-routing-failure | Gemini provider routing failed; OpenAI worked. | Resolved 2026-05-09: Two root causes fixed — (1) `provider_factory.py` read `GEMINI_API_KEY` but key is stored as `GOOGLE_API_KEY`; renamed throughout. (2) `OpenAIModelClient.stream_message` lacked `stream_options={"include_usage": True}`, causing null token counts for all OpenAI-compat providers in streaming mode; fixed. |

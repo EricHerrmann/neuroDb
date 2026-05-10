@@ -37,7 +37,7 @@ Source of truth for model IDs: `neurodb_models.toml`.
 
 ## Open Issues
 
-See `docs/testLog.md`. Current open items: LOG-001 (textbook dropdown ambiguity — deferred post-LT-3), LOG-006 (model visibility — deferred post-LT-3), LOG-013 (UI shell rearchitecture — deferred post-LT-3), LOG-030 (LT-3 header/title sizing), LOG-037 (research-question actions), LOG-040 (Config Phase 1 local DB no-results wait behavior), LOG-041 (session summary visibility). LOG-044 resolved in Phase 4 via submit_critique tool-use.
+See `docs/testLog.md`. Current open items: LOG-001 (textbook dropdown ambiguity), LOG-006 (model visibility), LOG-013 (UI shell rearchitecture), LOG-030 (header/title sizing), LOG-037 (research-question actions), LOG-041 (session summary visibility), LOG-045 (research-to-knowledge-library bridge), LOG-047 (telemetry timestamp format), LOG-048 (dismiss draft hypothesis), LOG-050 (Gemini premium testing deferred).
 
 ---
 

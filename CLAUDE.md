@@ -130,8 +130,6 @@ Apply the same clarity, consistency, and scope discipline to documentation as to
 - Use one term for the same concept throughout. Inconsistent language is a doc smell the same way inconsistent naming is a code smell.
 - A status doc that requires reading past three screens to find current state is too long.
 
-## Manual Test Completion
-
 ## Manual Test Planning
 
 Manual test plans are phase-gate artifacts, not post-hoc documentation.
@@ -140,6 +138,7 @@ Manual test plans are phase-gate artifacts, not post-hoc documentation.
 - If a suitable plan already exists, update it before implementation begins so it reflects the intended behavior of the incoming change.
 - Add the new manual test plan to `docs/projectStatus.md` in the same step when the plan document is first created, following the normal source-document and active-test-plan sync rules.
 - If implementation materially changes the intended workflow after the plan is written, update the plan in the same change that shifts the workflow.
+- **Automated tests are a prerequisite for manual evals.** Before executing any manual test plan, run the full automated test suite (`uv run pytest tests/ -q`) and confirm all tests pass. New failures (beyond any already tracked in `docs/testLog.md`) must be resolved before manual evals begin.
 
 When a test plan or test run document is updated to a passing or signed-off terminal state, update `docs/projectStatus.md` in the same step — phase row, active focus, and archived test plan table. This fires on the document update itself, not on a separate user request.
 

@@ -1,11 +1,12 @@
 """Tests for GET /api/study-log route."""
 from fastapi import FastAPI
 from fastapi.testclient import TestClient
-from sqlalchemy import create_engine
+from sqlalchemy import create_engine, select
 from sqlalchemy.pool import StaticPool
 
-from neurodb.schema import Base
+from neurodb.schema import Base, IngestRun, DatasetIndex, StudyNote
 from neurodb.api.routes.study_log import router
+from neurodb.db import get_session
 
 
 def _make_app(engine):
@@ -26,9 +27,6 @@ def _make_client():
 
 
 def _insert_note(engine, concept_tag: str):
-    from sqlalchemy import select
-    from neurodb.schema import IngestRun, DatasetIndex, StudyNote
-    from neurodb.db import get_session
     with get_session(engine) as session:
         idx = session.execute(
             select(DatasetIndex).where(

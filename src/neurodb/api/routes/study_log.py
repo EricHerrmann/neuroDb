@@ -12,7 +12,7 @@ from neurodb.study import list_tags
 router = APIRouter()
 
 
-@router.get("/study-log")
+@router.get("/study-log", response_model=list[StudyNoteItem])
 def get_study_log(engine: Engine = Depends(get_engine)) -> list[StudyNoteItem]:
     with get_session(engine) as session:
         return [StudyNoteItem(**row) for row in list_tags(session)]

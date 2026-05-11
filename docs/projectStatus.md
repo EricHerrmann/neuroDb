@@ -24,13 +24,14 @@
 
 Quality-aligned provider model assignments. Update this table and `neurodb_models.toml` together when provider models change. `last_verified_at` dates are in the TOML.
 
-| Tier | Anthropic | OpenAI | Gemini | Groq |
-|---|---|---|---|---|
-| **economy** | claude-haiku-4-5-20251001 | gpt-5.4-mini | gemini-2.5-flash-lite | llama-3.1-8b-instant |
-| **standard** | claude-sonnet-4-6 | gpt-5.4 | gemini-2.5-flash | llama-3.3-70b-versatile |
-| **premium** | claude-opus-4-7 | gpt-5.5 | gemini-2.5-pro | openai/gpt-oss-120b |
+| Tier | Anthropic | OpenAI | Gemini | Groq | DeepSeek |
+|---|---|---|---|---|---|
+| **economy** | claude-haiku-4-5-20251001 | gpt-5.4-mini | gemini-2.5-flash-lite | llama-3.1-8b-instant | deepseek-chat |
+| **standard** | claude-sonnet-4-6 | gpt-5.4 | gemini-2.5-flash | llama-3.3-70b-versatile | deepseek-chat |
+| **premium** | claude-opus-4-7 | gpt-5.5 | gemini-2.5-pro | openai/gpt-oss-120b | deepseek-reasoner |
 
-Default provider for all tiers is **anthropic**. Override per tier via `NEURODB_{ECONOMY|STANDARD|PREMIUM}_PROVIDER` env var.
+Default provider for all tiers is **anthropic**. Override per tier via `[routing]` section in `neurodb_models.toml`.
+DeepSeek is wired (economy: `deepseek-chat`, standard: `deepseek-chat`, premium: `deepseek-reasoner`); `eval_status = "unverified"` — not yet validated.
 Source of truth for model IDs: `neurodb_models.toml`.
 
 ---

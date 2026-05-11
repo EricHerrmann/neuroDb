@@ -9,6 +9,7 @@ from neurodb.config.providers.openai_client import OpenAIModelClient
 
 _GROQ_BASE_URL = "https://api.groq.com/openai/v1"
 _GEMINI_BASE_URL = "https://generativelanguage.googleapis.com/v1beta/openai/"
+_DEEPSEEK_BASE_URL = "https://api.deepseek.com/v1"
 
 
 def build_provider_clients() -> dict[str, ModelClient]:
@@ -27,7 +28,8 @@ def build_provider_clients() -> dict[str, ModelClient]:
     groq_key = os.environ.get("GROQ_API_KEY")
     # Google is the provider for Gemini models; the API key is issued by Google AI Studio.
     gemini_key = os.environ.get("GOOGLE_API_KEY")
-    if openai_key or groq_key or gemini_key:
+    deepseek_key = os.environ.get("DEEPSEEK_API_KEY")
+    if openai_key or groq_key or gemini_key or deepseek_key:
         try:
             import openai
         except ModuleNotFoundError:
@@ -44,6 +46,10 @@ def build_provider_clients() -> dict[str, ModelClient]:
         if gemini_key:
             providers["gemini"] = OpenAIModelClient(
                 openai.OpenAI(api_key=gemini_key, base_url=_GEMINI_BASE_URL)
+            )
+        if deepseek_key:
+            providers["deepseek"] = OpenAIModelClient(
+                openai.OpenAI(api_key=deepseek_key, base_url=_DEEPSEEK_BASE_URL)
             )
 
     return providers

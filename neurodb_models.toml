@@ -30,6 +30,11 @@ model = "llama-3.1-8b-instant"
 eval_status = "baseline"
 last_verified_at = "2026-05-08"
 
+[tiers.economy.providers.deepseek]
+model = "deepseek-chat"
+eval_status = "unverified"
+last_verified_at = ""
+
 [tiers.standard]
 
 [tiers.standard.providers.anthropic]
@@ -52,6 +57,11 @@ model = "llama-3.3-70b-versatile"
 eval_status = "baseline"
 last_verified_at = "2026-05-08"
 
+[tiers.standard.providers.deepseek]
+model = "deepseek-chat"
+eval_status = "unverified"
+last_verified_at = ""
+
 [tiers.premium]
 
 [tiers.premium.providers.anthropic]
@@ -73,6 +83,11 @@ last_verified_at = "2026-05-08"
 model = "openai/gpt-oss-120b"
 eval_status = "baseline"
 last_verified_at = "2026-05-08"
+
+[tiers.premium.providers.deepseek]
+model = "deepseek-reasoner"
+eval_status = "unverified"
+last_verified_at = ""
 
 # Task types → tier + max_tokens
 # task_type keys must match the telemetry_task_type values used in agents

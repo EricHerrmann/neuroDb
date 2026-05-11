@@ -36,6 +36,7 @@ Active test plan: none
 | Log ID | Issue |
 |--------|-------|
 | LOG-050 | Gemini premium model testing deferred — API account set up; further Gemini premium testing deferred |
+| — | DeepSeek wired as future-feature provider — `eval_status = "unverified"` for all tiers; routing and manual eval deferred |
 
 ---
 
@@ -47,6 +48,7 @@ Active test plan: none
 | 2026-05-08 | `ModelClient` abstract interface wraps all providers | BaseAgent becomes provider-neutral; adding a provider means implementing `ModelClient`, not modifying BaseAgent |
 | 2026-05-08 | `GOOGLE_API_KEY` is the env var for Gemini | Google issues a single API key for Gemini; `GEMINI_API_KEY` was an internal naming error |
 | 2026-05-09 | `stream_options={"include_usage": True}` required for OpenAI/Gemini streaming token counts | Without it the OpenAI streaming API does not emit a usage chunk; token counts are null in telemetry |
+| 2026-05-11 | DeepSeek added as OpenAI-compatible provider via `DEEPSEEK_API_KEY` + `https://api.deepseek.com/v1` | DeepSeek exposes an OpenAI-compatible API; `OpenAIModelClient` handles it with a `base_url` override, same pattern as Groq and Gemini. Models: economy/standard = `deepseek-chat`, premium = `deepseek-reasoner`. |
 
 ---
 

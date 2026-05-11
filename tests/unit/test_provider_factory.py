@@ -73,11 +73,48 @@ def test_build_provider_clients_gemini_uses_correct_base_url(monkeypatch):
     assert "generativelanguage.googleapis.com" in sdk.base_url
 
 
+def test_build_provider_clients_registers_deepseek_when_key_present(monkeypatch):
+    monkeypatch.setenv("DEEPSEEK_API_KEY", "deepseek-key")
+    monkeypatch.delenv("ANTHROPIC_API_KEY", raising=False)
+    monkeypatch.delenv("OPENAI_API_KEY", raising=False)
+    monkeypatch.delenv("GROQ_API_KEY", raising=False)
+    monkeypatch.delenv("GOOGLE_API_KEY", raising=False)
+    monkeypatch.setitem(
+        sys.modules,
+        "openai",
+        SimpleNamespace(OpenAI=_OpenAISDK),
+    )
+
+    providers = build_provider_clients()
+
+    assert "deepseek" in providers
+    assert isinstance(providers["deepseek"], OpenAIModelClient)
+
+
+def test_build_provider_clients_deepseek_uses_correct_base_url(monkeypatch):
+    monkeypatch.setenv("DEEPSEEK_API_KEY", "deepseek-key")
+    monkeypatch.delenv("ANTHROPIC_API_KEY", raising=False)
+    monkeypatch.delenv("OPENAI_API_KEY", raising=False)
+    monkeypatch.delenv("GROQ_API_KEY", raising=False)
+    monkeypatch.delenv("GOOGLE_API_KEY", raising=False)
+    monkeypatch.setitem(
+        sys.modules,
+        "openai",
+        SimpleNamespace(OpenAI=_OpenAISDK),
+    )
+
+    providers = build_provider_clients()
+
+    sdk = providers["deepseek"]._client
+    assert "api.deepseek.com" in sdk.base_url
+
+
 def test_build_provider_clients_skips_missing_keys(monkeypatch):
     monkeypatch.delenv("ANTHROPIC_API_KEY", raising=False)
     monkeypatch.delenv("OPENAI_API_KEY", raising=False)
     monkeypatch.delenv("GROQ_API_KEY", raising=False)
     monkeypatch.delenv("GOOGLE_API_KEY", raising=False)
+    monkeypatch.delenv("DEEPSEEK_API_KEY", raising=False)
 
     providers = build_provider_clients()
 

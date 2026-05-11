@@ -43,4 +43,15 @@ describe('ActivityRail', () => {
     fireEvent.click(screen.getByTitle('Suggestions'))
     expect(ref.current.expand).toHaveBeenCalledOnce()
   })
+
+  it('clicking an icon while panel is already expanded does not call expand', () => {
+    const ref = makePanelRef(false) // not collapsed
+    render(
+      <MemoryRouter>
+        <ActivityRail panelRef={ref} />
+      </MemoryRouter>,
+    )
+    fireEvent.click(screen.getByTitle('Suggestions'))
+    expect(ref.current.expand).not.toHaveBeenCalled()
+  })
 })

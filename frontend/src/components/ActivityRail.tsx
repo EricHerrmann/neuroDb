@@ -30,17 +30,19 @@ const PANELS = [
 
 export default function ActivityRail({ panelRef }: ActivityRailProps) {
   return (
-    <div style={{
-      width: 40,
-      flexShrink: 0,
-      background: '#1e293b',
-      borderRight: '1px solid #334155',
-      display: 'flex',
-      flexDirection: 'column',
-      alignItems: 'center',
-      paddingTop: 10,
-      gap: 6,
-    }}>
+    <nav
+      aria-label="Panel navigation"
+      style={{
+        width: 40,
+        flexShrink: 0,
+        background: '#1e293b',
+        borderRight: '1px solid #334155',
+        display: 'flex',
+        flexDirection: 'column',
+        alignItems: 'center',
+        paddingTop: 10,
+        gap: 6,
+      }}>
       {PANELS.map(({ path, label, Icon }) => (
         <NavLink
           key={path}
@@ -63,9 +65,9 @@ export default function ActivityRail({ panelRef }: ActivityRailProps) {
             textDecoration: 'none',
           })}
         >
-          <Icon size={14} />
+          <Icon size={14} aria-hidden={true} />
         </NavLink>
       ))}
-    </div>
+    </nav>
   )
 }

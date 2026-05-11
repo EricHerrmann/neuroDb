@@ -183,5 +183,10 @@ neurodb_chroma/
 *_chroma/
 neurodb_prefs.json
 
+# Frontend generated artifacts
+frontend/node_modules/
+frontend/dist/
+frontend/*.tsbuildinfo
+
 # Git worktrees
 .worktrees/

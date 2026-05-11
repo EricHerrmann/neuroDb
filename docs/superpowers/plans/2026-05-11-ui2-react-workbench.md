@@ -94,7 +94,7 @@
 | Task 16: RegistryPanel | ✅ Complete | `7b34c15` |
 | Task 17: KnowledgeLibraryPanel | ✅ Complete | `7b34c15` |
 | Task 18: ResearchPanel and SqlPanel | ✅ Complete | `7b34c15` |
-| Task 19: Integration check and manual test plan sign-off | ✅ Complete | — |
+| Task 19: Integration check and manual test plan sign-off | ✅ Complete | `6f53258` |
 
 **Status:** UI-2 complete and signed off 2026-05-11.
 

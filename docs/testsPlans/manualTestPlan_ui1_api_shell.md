@@ -4,7 +4,7 @@
 
 **Phase:** UI-1
 **Design source:** `docs/superpowers/plans/2026-05-08-ui1-backend-api-shell.md`
-**Status:** Not started
+**Status:** In progress — 2026-05-11
 
 ---
 

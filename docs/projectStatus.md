@@ -1,7 +1,7 @@
 # NeuroDb — Project Status
 
 **Last updated:** 2026-05-09
-**Active focus:** UI-1 FastAPI backend shell — 408 automated tests; app factory + 8 routes implemented, manual evals T1–T8 pending
+**Active focus:** UI-1 manual evals in progress — 408 automated tests; T1–T8 running 2026-05-11
 **Next:** UI-1 manual evals (T1–T8 curl-based), then UI-2 or Config Control Phase 6
 **Goal alignment:** Two co-equal goals in a feedback loop — accumulate neuroscience understanding grounded in real data (Goal 1), and conduct structured neuroscience investigations using existing public datasets and good scientific method (Goal 2). See `NeuroDbGoals.md`.
 

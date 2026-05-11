@@ -23,6 +23,7 @@ Archived from `docs/projectStatus.md`. Add new rows here when a phase reaches co
 | Config Control Phase 5A | TOML corrected, all 4 providers × 3 tiers quality-aligned (OpenAI: gpt-5.4-mini/gpt-5.4/gpt-5.5), Groq+Gemini entries added, Gemini wired, tool schemas fixed for OpenAI strict validation — 397 automated tests | 2026-05-08 |
 | Config Control Phase 5B | TOML routing refactor — single [routing] section replaces env-var tier overrides; _cache patch pattern for provider tests; provider selection UI deferred to UI epoch — 398 automated tests | 2026-05-08 |
 | UI-1 | FastAPI backend shell — app factory, 8 API routes (status, preferences, research, chat/SSE), zero-arg uvicorn factory; 408 automated tests + 9 manual evals passed | 2026-05-11 |
+| UI-2 | React workbench prototype — Vite + React shell, typed API client, all 7 panels functional, FastAPI panel routes; 443 Python tests + 7 frontend tests + 11 manual evals passed | 2026-05-11 |
 
 **Deferred:** DB Epochs 7 (entity resolution) and 8 (hypothesis layer) — decision pending. See `docs/DB_EpochPlan.md`.
 

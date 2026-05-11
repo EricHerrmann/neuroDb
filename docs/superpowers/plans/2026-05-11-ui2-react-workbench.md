@@ -94,9 +94,9 @@
 | Task 16: RegistryPanel | ✅ Complete | `7b34c15` |
 | Task 17: KnowledgeLibraryPanel | ✅ Complete | `7b34c15` |
 | Task 18: ResearchPanel and SqlPanel | ✅ Complete | `7b34c15` |
-| Task 19: Integration check and manual test plan sign-off | In progress | — |
+| Task 19: Integration check and manual test plan sign-off | ✅ Complete | — |
 
-**Next task:** Browser-interactive UI-2 manual sign-off using `docs/testsPlans/manualTestPlan_ui2_react_workbench.md`
+**Status:** UI-2 complete and signed off 2026-05-11.
 
 ---
 
@@ -2954,7 +2954,7 @@ git commit -m "feat: ResearchPanel and SqlPanel"
 ## Task 19: Full integration check and manual test plan sign-off
 
 **Files:**
-- Modify: `docs/testsPlans/manualTestPlan_ui2_react_workbench.md`
+- Modify: `docs/testsPlans/completedAndPassedTestPlans/manualTestPlan_ui2_react_workbench.md`
 - Modify: `docs/projectStatus.md` if sign-off changes phase status or active focus
 
 - [ ] **Step 1: Run full Python test suite**
@@ -2980,7 +2980,7 @@ Expected: no errors
 
 - [ ] **Step 4: Execute and update the UI-2 manual test plan**
 
-Use `docs/testsPlans/manualTestPlan_ui2_react_workbench.md`. Update the sign-off table with pass/fail results and notes from the completed backend and React workbench checks.
+Use `docs/testsPlans/completedAndPassedTestPlans/manualTestPlan_ui2_react_workbench.md`. Update the sign-off table with pass/fail results and notes from the completed backend and React workbench checks.
 
 - [ ] **Step 5: Update `docs/projectStatus.md`**
 
@@ -2989,6 +2989,6 @@ If all UI-2 evals pass, update the UI epoch row, active focus, next phase, and a
 - [ ] **Step 6: Commit**
 
 ```bash
-git add docs/testsPlans/manualTestPlan_ui2_react_workbench.md docs/projectStatus.md
+git add docs/testsPlans/completedAndPassedTestPlans/manualTestPlan_ui2_react_workbench.md docs/projectStatus.md
 git commit -m "docs: sign off UI-2 manual test plan"
 ```

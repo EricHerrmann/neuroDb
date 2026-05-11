@@ -4,7 +4,7 @@
 **Phase:** UI-2
 **Design source:** `docs/superpowers/specs/2026-05-11-ui2-react-workbench-design.md`
 **Implementation plan:** `docs/superpowers/plans/2026-05-11-ui2-react-workbench.md`
-**Status:** Implementation smoke passed - browser-interactive sign-off pending
+**Status:** Signed off - 2026-05-11
 **Date:** 2026-05-11
 
 All commands run from the repo root (`/home/oldha/projects/neuroDb`) unless noted.
@@ -149,11 +149,11 @@ select 1 as ok
 | T3 - Suggestions API | Pass | HTTP smoke returned 200 with `import_queue` and `source_suggestions`; route tests passed |
 | T4 - Suggestions dismiss API | Pass | Covered by `tests/unit/test_api_suggestions.py` |
 | T5 - Remaining backend APIs | Pass | `GET /api/datasets` and `POST /api/sql/execute` HTTP smoke returned 200; route tests passed |
-| T6 - React layout | Pending | Browser-interactive visual check still required; Vite served app shell with HTTP 200 |
-| T7 - Panel navigation | Pending | Browser-interactive tab navigation still required; TypeScript and build passed |
-| T8 - Chat streaming | Pending | Browser-interactive chat check still required; `useChat` SSE unit tests passed |
-| T9 - Suggestions dismiss UI | Pending | Browser-interactive mutation check still required; SuggestionsPanel tests passed |
-| T10 - Knowledge Library actions | Pending | Browser-interactive mutation check still required; KnowledgeLibraryPanel tests passed |
-| T11 - SQL panel | Pending | Browser-interactive SQL panel check still required; production build and SQL API smoke passed |
+| T6 - React layout | Pass | Browser check passed; Vite served app shell with HTTP 200 |
+| T7 - Panel navigation | Pass | All seven panels navigated and loaded without blocking errors |
+| T8 - Chat streaming | Pass | Chat responded as expected; no separate tool/action stream is expected in UI-2 |
+| T9 - Suggestions dismiss UI | Pass | Browser mutation check passed; SuggestionsPanel tests also passed |
+| T10 - Knowledge Library actions | Pass | Browser review-action check passed; KnowledgeLibraryPanel tests also passed |
+| T11 - SQL panel | Pass | Browser SQL panel check passed; production build and SQL API smoke passed |
 
-**Signed off:** Pending
+**Signed off:** 2026-05-11

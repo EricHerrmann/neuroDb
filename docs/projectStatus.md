@@ -1,8 +1,8 @@
 # NeuroDb — Project Status
 
 **Last updated:** 2026-05-11
-**Active focus:** UI-2 — React workbench implementation complete; browser-interactive manual sign-off pending
-**Next:** Complete UI-2 manual browser sign-off, then choose next UI hardening or epoch task
+**Active focus:** UI-2 signed off; next focus pending selection
+**Next:** Choose next UI hardening task, UI-2B layout work, UI-3 parity migration, or another epoch priority
 **Goal alignment:** Two co-equal goals in a feedback loop — accumulate neuroscience understanding grounded in real data (Goal 1), and conduct structured neuroscience investigations using existing public datasets and good scientific method (Goal 2). See `NeuroDbGoals.md`.
 
 ---
@@ -15,7 +15,7 @@
 | Agent Core | `src/neurodb/agents/` | Stable | Config Control Phases 1–4 signed off; Phase 6 may add fallback chain logic |
 | Tutor | `src/neurodb/tutor/` | MVP complete (LT-1/2/3) | Open backlog: LOG-001, LOG-006, LOG-030 |
 | Research | `src/neurodb/research/` | Scaffolded (LT-3); hypothesis review with structured tool-use output | Research run management, research question actions (LOG-037) |
-| UI | `src/neurodb/ui/`, `src/neurodb/api/`, `frontend/` | UI-2 implementation complete — 443 Python tests and 7 frontend tests pass; browser-interactive manual sign-off pending | Complete `docs/testsPlans/manualTestPlan_ui2_react_workbench.md` T6–T11 in browser |
+| UI | `src/neurodb/ui/`, `src/neurodb/api/`, `frontend/` | UI-2 signed off 2026-05-11 — React workbench prototype complete; 443 Python tests, 7 frontend tests, and 11 manual evals passed | Choose UI-2B layout work, UI-3 parity migration, or next epoch priority |
 | Config Control | `src/neurodb/config/` | Phase 5B complete — 398 automated tests; Phase 4 signed off 2026-05-09 | Phase 6: constructor fallback chain, SystemWarning table, CLI surface |
 
 ---
@@ -60,7 +60,7 @@ See `docs/testLog.md`. Current open items: LOG-001 (textbook dropdown ambiguity)
 | `docs/UI_EpochPlan.md` | UI epoch plan — Streamlit MVP, FastAPI/React migration path, phases UI-0–4 |
 | **Active Plans / Specs** | |
 | `docs/superpowers/specs/2026-05-11-ui2-react-workbench-design.md` | UI-2 design spec — Vite + React + React Router v7 + TanStack Query v5; two-column layout; 7 panels; data flow; testing strategy |
-| `docs/superpowers/plans/2026-05-11-ui2-react-workbench.md` | UI-2 implementation plan — 19 tasks; Tasks 1–18 complete, Task 19 browser sign-off pending |
-| `docs/testsPlans/manualTestPlan_ui2_react_workbench.md` | UI-2 manual test plan — backend checks passed; browser-interactive React workbench sign-off pending |
+| `docs/superpowers/plans/2026-05-11-ui2-react-workbench.md` | UI-2 implementation plan — 19 tasks complete; signed off 2026-05-11 |
+| `docs/testsPlans/completedAndPassedTestPlans/manualTestPlan_ui2_react_workbench.md` | UI-2 manual test plan — 11 evals passed; signed off 2026-05-11 |
 | **History** | |
 | `docs/archive/completedPhases.md` | Completed phases and tech debt sprints — full history |

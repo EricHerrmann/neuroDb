@@ -1,6 +1,6 @@
 # NeuroDb — UI Epoch Plan
 
-**Status:** UI-1 complete — FastAPI backend shell signed off 2026-05-11; UI-2 is next
+**Status:** UI-2 complete — React workbench prototype signed off 2026-05-11
 **Last updated:** 2026-05-11
 **Epoch directory:** `src/neurodb/ui/`
 **Architecture reference:** `docs/superpowers/specs/2026-05-07-epoch-architecture-design.md`
@@ -11,7 +11,7 @@
 
 Own the UI shell, routing, pane layout, streaming rendering, and workbench state. Current implementation is Streamlit. Target is a FastAPI + React workbench shell — migration is incremental with Streamlit retained until parity.
 
-**Active work:** None — UI-1 signed off. UI-2 (React workbench prototype) is next.
+**Active work:** None — UI-2 signed off. Next UI work is UI-2B layout redesign or UI-3 parity migration.
 
 ---
 
@@ -22,7 +22,7 @@ Own the UI shell, routing, pane layout, streaming rendering, and workbench state
 | Streamlit MVP | Streamlit shell — chat, research, knowledge library, sidebar | Complete | — | 2026-05-06 | — |
 | UI-0 | Architecture decision record — FastAPI + React target confirmed; Streamlit retained during migration | Complete (ADR) | — | 2026-05-08 | — |
 | UI-1 | FastAPI backend shell — app factory, 8 API routes, SSE chat PoC | Complete | 408 automated + 9 manual | 2026-05-11 | `docs/testsPlans/completedAndPassedTestPlans/manualTestPlan_ui1_api_shell.md` |
-| UI-2 | React workbench prototype — Vite + React + React Router + TanStack Query; same two-column layout as Streamlit; all 7 panels functional; infrastructure migration only | Planned | — | — | — |
+| UI-2 | React workbench prototype — Vite + React + React Router + TanStack Query; same two-column layout as Streamlit; all 7 panels functional; infrastructure migration only | Complete | 443 automated Python + 7 frontend + 11 manual | 2026-05-11 | `docs/testsPlans/completedAndPassedTestPlans/manualTestPlan_ui2_react_workbench.md` |
 | UI-2B | Layout redesign — activity rail, resizable panes; deferred from UI-2 | Planned | — | — | — |
 | UI-3 | Parity migration — Streamlit surfaces moved to React one at a time | Planned | — | — | — |
 | UI-4 | Streamlit retirement decision | Planned | — | — | — |

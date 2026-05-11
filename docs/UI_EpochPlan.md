@@ -1,6 +1,6 @@
 # NeuroDb — UI Epoch Plan
 
-**Status:** UI-3 in progress — parity migration
+**Status:** UI-3 implementation complete — manual verification pending
 **Last updated:** 2026-05-11
 **Epoch directory:** `src/neurodb/ui/`
 **Architecture reference:** `docs/superpowers/specs/2026-05-07-epoch-architecture-design.md`
@@ -11,7 +11,7 @@
 
 Own the UI shell, routing, pane layout, streaming rendering, and workbench state. Current implementation is Streamlit. Target is a FastAPI + React workbench shell — migration is incremental with Streamlit retained until parity.
 
-**Active work:** UI-3 parity migration — 7 write operations wired to React, Streamlit banner added.
+**Active work:** UI-3 manual verification — 7 write operations wired to React; Streamlit banner added.
 
 ---
 
@@ -24,7 +24,7 @@ Own the UI shell, routing, pane layout, streaming rendering, and workbench state
 | UI-1 | FastAPI backend shell — app factory, 8 API routes, SSE chat PoC | Complete | 408 automated + 9 manual | 2026-05-11 | `docs/testsPlans/completedAndPassedTestPlans/manualTestPlan_ui1_api_shell.md` |
 | UI-2 | React workbench prototype — Vite + React + React Router + TanStack Query; same two-column layout as Streamlit; all 7 panels functional; infrastructure migration only | Complete | 443 automated Python + 7 frontend + 11 manual | 2026-05-11 | `docs/testsPlans/completedAndPassedTestPlans/manualTestPlan_ui2_react_workbench.md` |
 | UI-2B | Layout redesign — activity rail (replaces sidebar + PanelNav), resizable + collapsible right panel, agent mode in chat header, chat history in Study Log | Complete | 19 frontend + 9 manual | 2026-05-11 | `docs/testsPlans/completedAndPassedTestPlans/manualTestPlan_ui2b_layout_redesign.md` |
-| UI-3 | Parity migration — Streamlit surfaces moved to React one at a time | In progress | — | — | `docs/testsPlans/manualTestPlan_ui3_parity_migration.md` |
+| UI-3 | Parity migration — Streamlit surfaces moved to React one at a time | Implementation complete; manual verification pending | 466 Python + 42 frontend + build | — | `docs/testsPlans/manualTestPlan_ui3_parity_migration.md` |
 | UI-4 | Streamlit retirement decision | Planned | — | — | — |
 
 Active test plan: `docs/testsPlans/manualTestPlan_ui3_parity_migration.md`

@@ -1,7 +1,7 @@
 import React from 'react'
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
-import { render, screen, fireEvent } from '@testing-library/react'
-import { describe, it, expect } from 'vitest'
+import { render, screen, fireEvent, waitFor } from '@testing-library/react'
+import { afterEach, describe, it, expect, vi } from 'vitest'
 
 import StudyLogPanel from './StudyLogPanel'
 
@@ -16,6 +16,10 @@ function makeWrapper(studyLog: unknown = [], sessions: unknown = []) {
 }
 
 describe('StudyLogPanel', () => {
+  afterEach(() => {
+    vi.restoreAllMocks()
+  })
+
   it('renders view dropdown with Study Tags selected by default', () => {
     render(<StudyLogPanel />, { wrapper: makeWrapper() })
     const select = screen.getByRole('combobox')
@@ -63,5 +67,57 @@ describe('StudyLogPanel', () => {
     render(<StudyLogPanel />, { wrapper: makeWrapper([], []) })
     fireEvent.change(screen.getByRole('combobox'), { target: { value: 'chat-history' } })
     expect(screen.getByText(/No chat sessions yet/)).toBeTruthy()
+  })
+
+  it('shows Add Tag button in Study Tags view', () => {
+    render(<StudyLogPanel />, { wrapper: makeWrapper([]) })
+    expect(screen.getByText('Add Tag')).toBeTruthy()
+  })
+
+  it('shows inline error when submitting with empty concept_tag', () => {
+    render(<StudyLogPanel />, { wrapper: makeWrapper([]) })
+    fireEvent.click(screen.getByText('Add Tag'))
+    fireEvent.change(screen.getByPlaceholderText('source_id'), { target: { value: 'ds001' } })
+    fireEvent.click(screen.getByText('Save'))
+    expect(screen.getByText('Concept tag is required')).toBeTruthy()
+  })
+
+  it('add-tag form submits POST /api/study-log', async () => {
+    const fetchMock = vi.fn().mockImplementation((path: string, init?: RequestInit) => {
+      if (path === '/api/study-log' && init?.method === 'POST') {
+        return Promise.resolve({
+          ok: true,
+          status: 200,
+          json: async () => ({
+            id: 1,
+            source: 'openneuro',
+            source_id: 'ds001',
+            concept_tag: 'LTP',
+            section_ref: null,
+            note_text: null,
+            tagged_at: '2026-01-01T00:00:00',
+          }),
+        })
+      }
+      return Promise.resolve({
+        ok: true,
+        status: 200,
+        json: async () => [],
+      })
+    })
+    vi.stubGlobal('fetch', fetchMock)
+
+    render(<StudyLogPanel />, { wrapper: makeWrapper([]) })
+    fireEvent.click(screen.getByText('Add Tag'))
+    fireEvent.change(screen.getByPlaceholderText('source_id'), { target: { value: 'ds001' } })
+    fireEvent.change(screen.getByPlaceholderText('concept_tag'), { target: { value: 'LTP' } })
+    fireEvent.click(screen.getByText('Save'))
+
+    await waitFor(() => {
+      expect(fetchMock).toHaveBeenCalledWith(
+        '/api/study-log',
+        expect.objectContaining({ method: 'POST' }),
+      )
+    })
   })
 })

@@ -1,46 +1,147 @@
-import { useState } from 'react'
-import { useQuery } from '@tanstack/react-query'
+import { useState, type FormEvent } from 'react'
+import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 
 import { api } from '../api/client'
-import type { ChatSession, StudyNote } from '../api/types'
+import type { ChatSession, CreateStudyNoteRequest, StudyNote } from '../api/types'
 
 type View = 'study-tags' | 'chat-history'
 
 function StudyTagsView() {
+  const queryClient = useQueryClient()
   const { data = [], isLoading, isError, error } = useQuery<StudyNote[]>({
     queryKey: ['study-log'],
     queryFn: api.getStudyLog,
   })
+  const [showForm, setShowForm] = useState(false)
+  const [form, setForm] = useState({
+    source: 'openneuro',
+    source_id: '',
+    concept_tag: '',
+    section_ref: '',
+    note_text: '',
+  })
+  const [formError, setFormError] = useState<string | null>(null)
+
+  const create = useMutation({
+    mutationFn: (body: CreateStudyNoteRequest) => api.createStudyNote(body),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['study-log'] })
+      setShowForm(false)
+      setForm({ source: 'openneuro', source_id: '', concept_tag: '', section_ref: '', note_text: '' })
+      setFormError(null)
+    },
+  })
+
+  const handleSubmit = (event: FormEvent) => {
+    event.preventDefault()
+    if (!form.concept_tag.trim()) {
+      setFormError('Concept tag is required')
+      return
+    }
+    setFormError(null)
+    create.mutate({
+      source: form.source,
+      source_id: form.source_id,
+      concept_tag: form.concept_tag,
+      section_ref: form.section_ref || undefined,
+      note_text: form.note_text || undefined,
+    })
+  }
 
   if (isLoading) return <div style={{ padding: 12 }}>Loading...</div>
   if (isError) {
     return <div style={{ padding: 12, color: '#dc2626' }}>Error: {(error as Error).message}</div>
   }
-  if (data.length === 0) {
-    return <p style={{ color: '#94a3b8', fontSize: 13 }}>No study tags yet.</p>
-  }
 
   return (
-    <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: 12 }}>
-      <thead>
-        <tr style={{ borderBottom: '2px solid #e2e8f0', textAlign: 'left' }}>
-          <th style={{ padding: '4px 8px' }}>Source</th>
-          <th style={{ padding: '4px 8px' }}>Concept</th>
-          <th style={{ padding: '4px 8px' }}>Section</th>
-          <th style={{ padding: '4px 8px' }}>Tagged</th>
-        </tr>
-      </thead>
-      <tbody>
-        {data.map(row => (
-          <tr key={row.id} style={{ borderBottom: '1px solid #f1f5f9' }}>
-            <td style={{ padding: '4px 8px', color: '#475569' }}>{row.source}:{row.source_id}</td>
-            <td style={{ padding: '4px 8px' }}>{row.concept_tag}</td>
-            <td style={{ padding: '4px 8px', color: '#94a3b8' }}>{row.section_ref ?? '-'}</td>
-            <td style={{ padding: '4px 8px', color: '#94a3b8' }}>{row.tagged_at.slice(0, 10)}</td>
-          </tr>
-        ))}
-      </tbody>
-    </table>
+    <div>
+      {data.length === 0 ? (
+        <p style={{ color: '#94a3b8', fontSize: 13 }}>No study tags yet.</p>
+      ) : (
+        <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: 12 }}>
+          <thead>
+            <tr style={{ borderBottom: '2px solid #e2e8f0', textAlign: 'left' }}>
+              <th style={{ padding: '4px 8px' }}>Source</th>
+              <th style={{ padding: '4px 8px' }}>Concept</th>
+              <th style={{ padding: '4px 8px' }}>Section</th>
+              <th style={{ padding: '4px 8px' }}>Tagged</th>
+            </tr>
+          </thead>
+          <tbody>
+            {data.map(row => (
+              <tr key={row.id} style={{ borderBottom: '1px solid #f1f5f9' }}>
+                <td style={{ padding: '4px 8px', color: '#475569' }}>{row.source}:{row.source_id}</td>
+                <td style={{ padding: '4px 8px' }}>{row.concept_tag}</td>
+                <td style={{ padding: '4px 8px', color: '#94a3b8' }}>{row.section_ref ?? '-'}</td>
+                <td style={{ padding: '4px 8px', color: '#94a3b8' }}>{row.tagged_at.slice(0, 10)}</td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      )}
+      <button
+        onClick={() => setShowForm(value => !value)}
+        style={{ fontSize: 12, marginTop: 8, padding: '3px 10px', cursor: 'pointer' }}
+      >
+        {showForm ? 'Cancel' : 'Add Tag'}
+      </button>
+      {showForm && (
+        <form
+          onSubmit={handleSubmit}
+          style={{ marginTop: 8, display: 'flex', flexDirection: 'column', gap: 6 }}
+        >
+          <select
+            value={form.source}
+            onChange={event => setForm(current => ({ ...current, source: event.target.value }))}
+            style={{ fontSize: 12, padding: '3px 6px' }}
+          >
+            <option value="openneuro">openneuro</option>
+            <option value="pubmed">pubmed</option>
+            <option value="arxiv">arxiv</option>
+          </select>
+          <input
+            value={form.source_id}
+            onChange={event => setForm(current => ({ ...current, source_id: event.target.value }))}
+            placeholder="source_id"
+            required
+            style={{ fontSize: 12, padding: '3px 6px' }}
+          />
+          <input
+            value={form.concept_tag}
+            onChange={event => setForm(current => ({ ...current, concept_tag: event.target.value }))}
+            placeholder="concept_tag"
+            style={{ fontSize: 12, padding: '3px 6px' }}
+          />
+          {formError && (
+            <span style={{ fontSize: 11, color: '#dc2626' }}>{formError}</span>
+          )}
+          <input
+            value={form.section_ref}
+            onChange={event => setForm(current => ({ ...current, section_ref: event.target.value }))}
+            placeholder="section_ref (optional)"
+            style={{ fontSize: 12, padding: '3px 6px' }}
+          />
+          <textarea
+            value={form.note_text}
+            onChange={event => setForm(current => ({ ...current, note_text: event.target.value }))}
+            placeholder="note (optional)"
+            style={{ fontSize: 12, padding: '3px 6px' }}
+          />
+          {create.error && (
+            <span style={{ fontSize: 11, color: '#dc2626' }}>
+              {(create.error as Error).message}
+            </span>
+          )}
+          <button
+            type="submit"
+            disabled={create.isPending}
+            style={{ fontSize: 12, padding: '3px 10px', cursor: 'pointer' }}
+          >
+            Save
+          </button>
+        </form>
+      )}
+    </div>
   )
 }
 

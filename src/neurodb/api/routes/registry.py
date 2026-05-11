@@ -1,8 +1,12 @@
-"""GET /api/registry route."""
+"""GET, POST, and DELETE /api/registry routes."""
 from __future__ import annotations
 
-from fastapi import APIRouter, Depends
+from datetime import UTC, datetime
+
+from fastapi import APIRouter, Depends, HTTPException
+from pydantic import BaseModel
 from sqlalchemy import Engine
+from sqlalchemy.exc import IntegrityError
 
 from neurodb.api.deps import get_engine
 from neurodb.api.schemas.registry import LearningSourceItem
@@ -21,3 +25,40 @@ def get_registry(engine: Engine = Depends(get_engine)) -> list[LearningSourceIte
             .all()
         )
         return [LearningSourceItem.model_validate(row) for row in rows]
+
+
+@router.delete("/{item_id}", status_code=204)
+def delete_registry_entry(item_id: int, engine: Engine = Depends(get_engine)) -> None:
+    with get_session(engine) as session:
+        row = session.get(LearningSource, item_id)
+        if row is None:
+            raise HTTPException(status_code=404, detail=f"LearningSource {item_id} not found")
+        session.delete(row)
+
+
+class CreateRegistryRequest(BaseModel):
+    source_type: str
+    source_key: str
+    display_name: str
+    added_by: str
+
+
+@router.post("", response_model=LearningSourceItem)
+def create_registry_entry(
+    body: CreateRegistryRequest,
+    engine: Engine = Depends(get_engine),
+) -> LearningSourceItem:
+    with get_session(engine) as session:
+        source = LearningSource(
+            source_type=body.source_type,
+            source_key=body.source_key,
+            display_name=body.display_name,
+            added_by=body.added_by,
+            added_at=datetime.now(UTC).isoformat(),
+        )
+        session.add(source)
+        try:
+            session.flush()
+        except IntegrityError as exc:
+            raise HTTPException(status_code=409, detail="source_key already exists") from exc
+        return LearningSourceItem.model_validate(source)

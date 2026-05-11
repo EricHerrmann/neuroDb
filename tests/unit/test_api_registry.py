@@ -68,3 +68,49 @@ def test_get_registry_ordered_by_type_then_name():
     assert resp.status_code == 200
     assert data[0]["source_type"] == "book"
     assert data[0]["display_name"] == "A Book"
+
+
+def test_delete_registry_removes_row_and_returns_204():
+    client, engine = _make_client()
+    _insert_source(engine, "paper", "LTP Paper")
+    item_id = client.get("/api/registry").json()[0]["id"]
+
+    resp = client.delete(f"/api/registry/{item_id}")
+
+    assert resp.status_code == 204
+    assert client.get("/api/registry").json() == []
+
+
+def test_delete_registry_404_for_unknown():
+    client, _ = _make_client()
+    resp = client.delete("/api/registry/9999")
+    assert resp.status_code == 404
+
+
+def test_post_registry_creates_source_and_returns_item():
+    client, _ = _make_client()
+
+    resp = client.post("/api/registry", json={
+        "source_type": "paper",
+        "source_key": "doi:10.1234/test",
+        "display_name": "LTP Review",
+        "added_by": "user",
+    })
+
+    assert resp.status_code == 200
+    data = resp.json()
+    assert data["source_key"] == "doi:10.1234/test"
+    assert data["display_name"] == "LTP Review"
+    assert data["added_by"] == "user"
+    assert "id" in data
+
+
+def test_post_registry_422_on_missing_field():
+    client, _ = _make_client()
+
+    resp = client.post("/api/registry", json={
+        "source_type": "paper",
+        "source_key": "doi:test",
+    })
+
+    assert resp.status_code == 422

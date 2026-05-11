@@ -17,6 +17,7 @@ from neurodb.embedder import Embedder
 from neurodb.vector_store import VectorStore
 
 st.set_page_config(page_title="NeuroDb Explorer", layout="wide")
+st.info("The React workbench at http://localhost:5173 is now the primary UI. This Streamlit app will be retired in UI-4.")
 
 
 def _inject_ui_styles() -> None:

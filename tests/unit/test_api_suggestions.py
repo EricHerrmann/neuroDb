@@ -6,7 +6,7 @@ from sqlalchemy.pool import StaticPool
 
 from neurodb.api.routes.suggestions import router
 from neurodb.db import get_session
-from neurodb.schema import Base, ImportQueue, SourceSuggestion
+from neurodb.schema import Base, ImportQueue, LearningSource, SourceSuggestion
 
 
 def _make_app(engine):
@@ -114,4 +114,46 @@ def test_dismiss_import_item_sets_dismissed():
 def test_dismiss_import_item_404_for_unknown():
     client, _ = _make_client()
     resp = client.post("/api/suggestions/import-queue/9999/dismiss")
+    assert resp.status_code == 404
+
+
+def test_dismiss_source_suggestion_returns_204():
+    client, engine = _make_client()
+    _insert_source_suggestion(engine, "LTP Paper")
+    item_id = client.get("/api/suggestions").json()["source_suggestions"][0]["id"]
+
+    resp = client.post(f"/api/suggestions/source-suggestions/{item_id}/dismiss")
+
+    assert resp.status_code == 204
+    assert client.get("/api/suggestions").json()["source_suggestions"] == []
+
+
+def test_dismiss_source_suggestion_404_for_unknown():
+    client, _ = _make_client()
+    resp = client.post("/api/suggestions/source-suggestions/9999/dismiss")
+    assert resp.status_code == 404
+
+
+def test_promote_source_suggestion_creates_registry_entry_and_returns_item():
+    client, engine = _make_client()
+    _insert_source_suggestion(engine, "LTP Review")
+    item_id = client.get("/api/suggestions").json()["source_suggestions"][0]["id"]
+
+    resp = client.post(f"/api/suggestions/source-suggestions/{item_id}/promote")
+
+    assert resp.status_code == 200
+    data = resp.json()
+    assert data["display_name"] == "LTP Review"
+    assert data["added_by"] == "suggestion"
+    assert "id" in data
+    assert client.get("/api/suggestions").json()["source_suggestions"] == []
+    with get_session(engine) as session:
+        source = session.get(LearningSource, data["id"])
+        assert source is not None
+        assert source.source_key == "10.1234/example"
+
+
+def test_promote_source_suggestion_404_for_unknown():
+    client, _ = _make_client()
+    resp = client.post("/api/suggestions/source-suggestions/9999/promote")
     assert resp.status_code == 404

@@ -70,3 +70,56 @@ def test_get_study_log_multiple_notes():
     resp = client.get("/api/study-log")
     assert resp.status_code == 200
     assert len(resp.json()) == 2
+
+
+def _insert_dataset(engine, source: str, source_id: str):
+    with get_session(engine) as session:
+        run = IngestRun(source="test", run_at="2026-01-01T00:00:00", version="0.1", notes=None)
+        session.add(run)
+        session.flush()
+        session.add(DatasetIndex(source=source, source_id=source_id, run_id=run.id))
+
+
+def test_post_study_log_creates_tag():
+    client, engine = _make_client()
+    _insert_dataset(engine, "openneuro", "ds001")
+
+    resp = client.post("/api/study-log", json={
+        "source": "openneuro",
+        "source_id": "ds001",
+        "concept_tag": "LTP",
+        "section_ref": "Ch3",
+        "note_text": "Relevant to plasticity",
+    })
+
+    assert resp.status_code == 200
+    data = resp.json()
+    assert data["concept_tag"] == "LTP"
+    assert data["source"] == "openneuro"
+    assert data["source_id"] == "ds001"
+    assert data["section_ref"] == "Ch3"
+    assert "id" in data
+
+
+def test_post_study_log_422_on_missing_concept_tag():
+    client, engine = _make_client()
+    _insert_dataset(engine, "openneuro", "ds001")
+
+    resp = client.post("/api/study-log", json={
+        "source": "openneuro",
+        "source_id": "ds001",
+    })
+
+    assert resp.status_code == 422
+
+
+def test_post_study_log_404_when_dataset_not_in_index():
+    client, _ = _make_client()
+
+    resp = client.post("/api/study-log", json={
+        "source": "openneuro",
+        "source_id": "nonexistent",
+        "concept_tag": "LTP",
+    })
+
+    assert resp.status_code == 404

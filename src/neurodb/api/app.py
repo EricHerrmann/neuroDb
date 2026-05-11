@@ -23,6 +23,7 @@ def create_app(
     app.state.knowledge_store = knowledge_store
     app.state.context_store = context_store
     app.state.session_manager = session_manager
+    app.state.tasks = {}
 
     from neurodb.api.routes import (
         chat,
@@ -36,9 +37,11 @@ def create_app(
         status,
         study_log,
         suggestions,
+        tasks,
     )
 
     app.include_router(status.router, prefix="/api")
+    app.include_router(tasks.router, prefix="/api")
     app.include_router(preferences.router, prefix="/api")
     app.include_router(research.router, prefix="/api/research")
     app.include_router(chat.router, prefix="/api")

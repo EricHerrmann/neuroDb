@@ -107,3 +107,22 @@ export interface Preferences {
   agent_mode: 'local_db' | 'external_db' | 'neuro_tutor' | 'neuro_research'
   relevance_threshold: number
 }
+
+export interface TaskResponse {
+  task_id: string
+}
+
+export interface CreateStudyNoteRequest {
+  source: string
+  source_id: string
+  concept_tag: string
+  section_ref?: string
+  note_text?: string
+}
+
+export interface CreateLearningSourceRequest {
+  source_type: string
+  source_key: string
+  display_name: string
+  added_by: string
+}

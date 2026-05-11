@@ -1,6 +1,54 @@
+import { useState } from 'react'
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 
 import { api } from '../api/client'
+import TaskStatus from '../components/TaskStatus'
+import { useTask } from '../hooks/useTask'
+import type { Hypothesis } from '../api/types'
+
+function HypothesisCard({ hypothesis }: { hypothesis: Hypothesis }) {
+  const queryClient = useQueryClient()
+  const [taskId, setTaskId] = useState<string | null>(null)
+
+  const reviewMutation = useMutation({
+    mutationFn: () => api.runHypothesisReview(hypothesis.id),
+    onSuccess: data => setTaskId(data.task_id),
+  })
+
+  const taskState = useTask(taskId, 180000, () => {
+    queryClient.invalidateQueries({ queryKey: ['research-hypotheses'] })
+  })
+
+  return (
+    <div style={{ padding: '6px 0', borderBottom: '1px solid #f1f5f9' }}>
+      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', gap: 8 }}>
+        <div>
+          <div style={{ fontSize: 13, fontWeight: 500 }}>{hypothesis.title}</div>
+          <div style={{ fontSize: 11, color: '#94a3b8' }}>
+            {hypothesis.status} · {hypothesis.created_at?.slice(0, 10)}
+          </div>
+        </div>
+        <button
+          onClick={() => reviewMutation.mutate()}
+          disabled={reviewMutation.isPending || taskState.status === 'running'}
+          style={{ fontSize: 11, padding: '2px 8px', cursor: 'pointer' }}
+        >
+          Run Review
+        </button>
+      </div>
+      <TaskStatus
+        status={taskState.status}
+        error={taskState.error}
+        successMessage="Review complete"
+      />
+      {reviewMutation.error && (
+        <div style={{ fontSize: 11, color: '#dc2626', marginTop: 4 }}>
+          {(reviewMutation.error as Error).message}
+        </div>
+      )}
+    </div>
+  )
+}
 
 export default function ResearchPanel() {
   const queryClient = useQueryClient()
@@ -86,12 +134,7 @@ export default function ResearchPanel() {
         ) : hypotheses.length === 0 ? (
           <p style={{ color: '#94a3b8', fontSize: 12 }}>No hypotheses yet.</p>
         ) : hypotheses.map(hypothesis => (
-          <div key={hypothesis.id} style={{ padding: '6px 0', borderBottom: '1px solid #f1f5f9' }}>
-            <div style={{ fontSize: 13, fontWeight: 500 }}>{hypothesis.title}</div>
-            <div style={{ fontSize: 11, color: '#94a3b8' }}>
-              {hypothesis.status} · {hypothesis.created_at?.slice(0, 10)}
-            </div>
-          </div>
+          <HypothesisCard key={hypothesis.id} hypothesis={hypothesis} />
         ))}
       </div>
     </div>

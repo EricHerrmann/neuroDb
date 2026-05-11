@@ -19,3 +19,7 @@ def get_research_stores(request: Request) -> dict:
         "knowledge_store": request.app.state.knowledge_store,
         "context_store": request.app.state.context_store,
     }
+
+
+def get_task_store(request: Request) -> dict:
+    return request.app.state.tasks

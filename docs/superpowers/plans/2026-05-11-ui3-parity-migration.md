@@ -8,6 +8,30 @@
 
 **Tech Stack:** FastAPI, SQLAlchemy, Python threading, React, TanStack Query v5, Vitest, Testing Library
 
+**Status:** Implementation complete 2026-05-11; manual verification pending.
+
+## Progress
+
+| Task | Status |
+|---|---|
+| Task 1: Background task infrastructure | Complete |
+| Task 2: POST /api/study-log | Complete |
+| Task 3: Source suggestion dismiss + promote routes | Complete |
+| Task 4: Registry DELETE + POST routes | Complete |
+| Task 5: Dataset import background route | Complete |
+| Task 6: Hypothesis review background route | Complete |
+| Task 7: useTask hook | Complete |
+| Task 8: TaskStatus component | Complete |
+| Task 9: API client and types updates | Complete |
+| Task 10: StudyLogPanel add-tag form | Complete |
+| Task 11: SuggestionsPanel source suggestion actions + import | Complete |
+| Task 12: RegistryPanel remove + add form | Complete |
+| Task 13: ResearchPanel hypothesis review | Complete |
+| Task 14: Streamlit deprecation banner | Complete |
+| Task 15: Manual test plan and docs update | Complete |
+
+**Verification:** `uv run pytest tests/ -q` → 466 passed, 5 warnings. `npm test` → 42 passed. `npm run build` → passed.
+
 ---
 
 ## File Map

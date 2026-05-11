@@ -63,6 +63,8 @@ See `docs/testLog.md`. Current open items: LOG-001 (textbook dropdown ambiguity)
 | `docs/superpowers/specs/2026-05-11-ui2-react-workbench-design.md` | UI-2 design spec — Vite + React + React Router v7 + TanStack Query v5; two-column layout; 7 panels; data flow; testing strategy |
 | `docs/superpowers/specs/2026-05-11-ui2b-layout-redesign.md` | UI-2B design spec — activity rail, react-resizable-panels, collapsible right panel, agent mode in chat header |
 | `docs/superpowers/plans/2026-05-11-ui2-react-workbench.md` | UI-2 implementation plan — 19 tasks complete; signed off 2026-05-11 |
+| `docs/superpowers/plans/2026-05-11-ui2b-layout-redesign.md` | UI-2B implementation plan — 6 tasks complete; signed off 2026-05-11 |
 | `docs/testsPlans/completedAndPassedTestPlans/manualTestPlan_ui2_react_workbench.md` | UI-2 manual test plan — 11 evals passed; signed off 2026-05-11 |
+| `docs/testsPlans/completedAndPassedTestPlans/manualTestPlan_ui2b_layout_redesign.md` | UI-2B manual test plan — 9 evals passed; signed off 2026-05-11 |
 | **History** | |
 | `docs/archive/completedPhases.md` | Completed phases and tech debt sprints — full history |

@@ -23,7 +23,7 @@ Own the UI shell, routing, pane layout, streaming rendering, and workbench state
 | UI-0 | Architecture decision record — FastAPI + React target confirmed; Streamlit retained during migration | Complete (ADR) | — | 2026-05-08 | — |
 | UI-1 | FastAPI backend shell — app factory, 8 API routes, SSE chat PoC | Complete | 408 automated + 9 manual | 2026-05-11 | `docs/testsPlans/completedAndPassedTestPlans/manualTestPlan_ui1_api_shell.md` |
 | UI-2 | React workbench prototype — Vite + React + React Router + TanStack Query; same two-column layout as Streamlit; all 7 panels functional; infrastructure migration only | Complete | 443 automated Python + 7 frontend + 11 manual | 2026-05-11 | `docs/testsPlans/completedAndPassedTestPlans/manualTestPlan_ui2_react_workbench.md` |
-| UI-2B | Layout redesign — activity rail (replaces sidebar + PanelNav), resizable + collapsible right panel, agent mode in chat header | Complete | 7 new frontend (total 14) | 2026-05-11 | — |
+| UI-2B | Layout redesign — activity rail (replaces sidebar + PanelNav), resizable + collapsible right panel, agent mode in chat header, chat history in Study Log | Complete | 19 frontend + 9 manual | 2026-05-11 | `docs/testsPlans/completedAndPassedTestPlans/manualTestPlan_ui2b_layout_redesign.md` |
 | UI-3 | Parity migration — Streamlit surfaces moved to React one at a time | Planned | — | — | — |
 | UI-4 | Streamlit retirement decision | Planned | — | — | — |
 

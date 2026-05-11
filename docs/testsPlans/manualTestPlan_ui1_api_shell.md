@@ -14,12 +14,11 @@
    ```bash
    uv run pytest tests/ -q
    ```
-   Pass: output ends with a green summary line (e.g. `408 passed, 9 failed`) where every failure is already tracked in `docs/testLog.md`. Do not proceed if there are new failures.
+   Pass: output ends with a summary line where every failure is already tracked in `docs/testLog.md`. Do not proceed if there are new failures.
 
-2. `uv run streamlit run src/neurodb/ui/app.py` starts without error (verify before starting the API server, then stop it)
-3. `uv run uvicorn neurodb.api.app:app_factory --factory --port 8001` starts without error
-4. `.env` present with `ANTHROPIC_API_KEY` set
-5. At least one `ResearchQuestion` and one `ResearchHypothesis` row in the DB (created via the Streamlit research agent or seeded manually)
+2. `.env` present with `ANTHROPIC_API_KEY` set.
+
+3. At least one `ResearchQuestion` and one `ResearchHypothesis` row in the DB (created via the Streamlit research agent or seeded manually).
 
 ---
 
@@ -30,9 +29,9 @@
 **Goal:** Confirm the new `src/neurodb/api/` package does not break the existing Streamlit entry point.
 
 **Steps:**
-1. Stop the FastAPI server if running.
-2. Run `uv run streamlit run src/neurodb/ui/app.py`.
-3. Observe the browser opens and the app loads without import errors.
+1. Run `uv run streamlit run src/neurodb/ui/app.py`.
+2. Observe the browser opens and the app loads without import errors.
+3. Stop Streamlit (`Ctrl+C`).
 
 **Pass:** App page renders; no error banner or import traceback in the terminal.
 
@@ -40,9 +39,20 @@
 
 ---
 
+### Setup for T2–T8 — Start the API server
+
+After T1, start the FastAPI server and leave it running for the remaining evals:
+
+```bash
+uv run uvicorn neurodb.api.app:app_factory --factory --port 8001
+```
+
+Pass: uvicorn prints `Application startup complete.` with no errors. Keep this terminal open.
+
+---
+
 ### T2 — `GET /api/status` returns ok
 
-**Steps:**
 ```bash
 curl -s http://localhost:8001/api/status | python3 -m json.tool
 ```
@@ -55,7 +65,6 @@ curl -s http://localhost:8001/api/status | python3 -m json.tool
 
 ### T3 — `GET /api/preferences` returns agent_mode and threshold
 
-**Steps:**
 ```bash
 curl -s http://localhost:8001/api/preferences | python3 -m json.tool
 ```
@@ -68,7 +77,6 @@ curl -s http://localhost:8001/api/preferences | python3 -m json.tool
 
 ### T4 — `PUT /api/preferences/agent-mode` persists the new mode
 
-**Steps:**
 ```bash
 # Set to neuro_research
 curl -s -X PUT http://localhost:8001/api/preferences/agent-mode \
@@ -96,7 +104,6 @@ curl -s -X PUT http://localhost:8001/api/preferences/agent-mode \
 
 ### T5 — `GET /api/research/metrics` returns count fields
 
-**Steps:**
 ```bash
 curl -s http://localhost:8001/api/research/metrics | python3 -m json.tool
 ```
@@ -109,7 +116,6 @@ curl -s http://localhost:8001/api/research/metrics | python3 -m json.tool
 
 ### T6 — `POST /api/research/metrics/snapshot` persists and returns snapshot_id
 
-**Steps:**
 ```bash
 curl -s -X POST http://localhost:8001/api/research/metrics/snapshot | python3 -m json.tool
 ```
@@ -122,7 +128,6 @@ curl -s -X POST http://localhost:8001/api/research/metrics/snapshot | python3 -m
 
 ### T7 — `GET /api/research/questions` and `GET /api/research/hypotheses` return lists
 
-**Steps:**
 ```bash
 curl -s "http://localhost:8001/api/research/questions" | python3 -m json.tool
 curl -s "http://localhost:8001/api/research/hypotheses" | python3 -m json.tool
@@ -141,7 +146,6 @@ curl -s "http://localhost:8001/api/research/questions?status=open" | python3 -m 
 
 ### T8 — `POST /api/chat/turn` streams SSE events
 
-**Steps:**
 ```bash
 curl -N -s -X POST http://localhost:8001/api/chat/turn \
   -H "Content-Type: application/json" \
@@ -172,6 +176,7 @@ Pass: HTTP 400 response, no stream opened.
 | Eval | Result | Notes |
 |------|--------|-------|
 | T1 — Streamlit still runs | | |
+| Setup — API server starts | | |
 | T2 — GET /api/status | | |
 | T3 — GET /api/preferences | | |
 | T4 — PUT /api/preferences/agent-mode | | |

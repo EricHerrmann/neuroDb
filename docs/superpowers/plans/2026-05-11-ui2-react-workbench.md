@@ -72,7 +72,50 @@
 
 ---
 
+## Progress
+
+| Task | Status | Commit |
+|------|--------|--------|
+| Task 1: Study-log route and schema | ✅ Complete | `eb4bf2a` |
+| Task 2: Sessions route and schema | ✅ Complete | `3a646c0` |
+| Task 3: Suggestions route and schema | Pending | — |
+| Task 4: Datasets route and schema | Pending | — |
+| Task 5: Registry route and schema | Pending | — |
+| Task 6: Knowledge Library route and schema | Pending | — |
+| Task 7: SQL route and schema | Pending | — |
+| Task 8: Wire new routes in app.py + StaticFiles mount | Pending | — |
+| Task 9: Vite + React project scaffold | Pending | — |
+| Task 10: API client layer | Pending | — |
+| Task 11: useChat hook | Pending | — |
+| Task 12: App layout, Sidebar, PanelNav, ChatPanel, MessageBubble | Pending | — |
+| Task 13: SuggestionsPanel | Pending | — |
+| Task 14: StudyLogPanel | Pending | — |
+| Task 15: DatasetsPanel | Pending | — |
+| Task 16: RegistryPanel | Pending | — |
+| Task 17: KnowledgeLibraryPanel | Pending | — |
+| Task 18: ResearchPanel and SqlPanel | Pending | — |
+| Task 19: Integration check and manual test plan | Pending | — |
+
+**Next task:** Task 3 — Suggestions route and schema
+
+---
+
+## Patterns Established (Tasks 1–2)
+
+These conventions were confirmed during code review. All future route tasks must follow them:
+
+1. **`response_model=` on all GET decorators** — always `@router.get("/path", response_model=list[SchemaType])`. The return type annotation alone is not sufficient.
+2. **All imports at module level in test files** — no `import` statements inside function bodies, including `_insert_*` helpers.
+3. **No app.py changes in individual route tasks** — router registration is Task 8 only. Do not touch `src/neurodb/api/app.py` in Tasks 1–7.
+4. **DatasetIndex fixture** — `DatasetIndex` has `UniqueConstraint(source, source_id)`. Test fixtures must use lookup-or-create to avoid constraint violations. See `tests/unit/test_api_study_log.py` for the working pattern.
+5. **Schema `from_attributes`** — use `model_config = {"from_attributes": True}` when serializing ORM instances via `model_validate`. Use plain `BaseModel` (no `from_attributes`) when using `**row` dict unpacking.
+6. **Reference implementations** — `src/neurodb/api/routes/preferences.py` + `tests/unit/test_api_preferences.py`.
+
+---
+
 ## Task 1: Study-log route and schema
+
+**Status: ✅ COMPLETE** (commits `ddedd2e`, `eb4bf2a`)
 
 **Files:**
 - Create: `src/neurodb/api/schemas/study_log.py`
@@ -217,6 +260,8 @@ git commit -m "feat: GET /api/study-log route"
 ---
 
 ## Task 2: Sessions route and schema
+
+**Status: ✅ COMPLETE** (commits `6e48f59`, `3a646c0`)
 
 **Files:**
 - Create: `src/neurodb/api/schemas/sessions.py`

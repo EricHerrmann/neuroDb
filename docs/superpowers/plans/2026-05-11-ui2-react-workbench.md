@@ -78,7 +78,7 @@
 |------|--------|--------|
 | Task 1: Study-log route and schema | ✅ Complete | `eb4bf2a` |
 | Task 2: Sessions route and schema | ✅ Complete | `3a646c0` |
-| Task 3: Suggestions route and schema | Pending | — |
+| Task 3: Suggestions route and schema | In progress | — |
 | Task 4: Datasets route and schema | Pending | — |
 | Task 5: Registry route and schema | Pending | — |
 | Task 6: Knowledge Library route and schema | Pending | — |
@@ -96,7 +96,7 @@
 | Task 18: ResearchPanel and SqlPanel | Pending | — |
 | Task 19: Integration check and manual test plan | Pending | — |
 
-**Next task:** Task 3 — Suggestions route and schema
+**Current task:** Task 3 — Suggestions route and schema
 
 ---
 

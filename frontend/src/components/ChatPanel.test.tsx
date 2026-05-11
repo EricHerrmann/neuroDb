@@ -54,4 +54,26 @@ describe('ChatPanel', () => {
       )
     })
   })
+
+  it('select is disabled while mode change is in flight', async () => {
+    let resolveFetch!: (value: Response) => void
+    const pendingFetch = new Promise<Response>(resolve => {
+      resolveFetch = resolve
+    })
+    vi.stubGlobal('fetch', vi.fn().mockReturnValue(pendingFetch))
+
+    render(<ChatPanel agentMode="neuro_tutor" />, { wrapper: makeWrapper() })
+    const select = screen.getByRole('combobox')
+
+    fireEvent.change(select, { target: { value: 'local_db' } })
+
+    await waitFor(() => {
+      expect((select as HTMLSelectElement).disabled).toBe(true)
+    })
+
+    resolveFetch(new Response(JSON.stringify({ agent_mode: 'local_db' }), {
+      status: 200,
+      headers: { 'Content-Type': 'application/json' },
+    }))
+  })
 })

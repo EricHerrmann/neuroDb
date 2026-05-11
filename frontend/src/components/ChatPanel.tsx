@@ -11,9 +11,11 @@ const MODES = [
   { value: 'external_db', label: 'External DB' },
   { value: 'neuro_tutor', label: 'Neuro Tutor' },
   { value: 'neuro_research', label: 'Neuro Research' },
-]
+] as const
 
-export default function ChatPanel({ agentMode }: { agentMode: string }) {
+type AgentModeValue = typeof MODES[number]['value']
+
+export default function ChatPanel({ agentMode }: { agentMode: AgentModeValue }) {
   const queryClient = useQueryClient()
   const { messages, isStreaming, sendMessage } = useChat(agentMode)
   const [input, setInput] = useState('')
@@ -51,6 +53,7 @@ export default function ChatPanel({ agentMode }: { agentMode: string }) {
         <select
           value={agentMode}
           onChange={event => setMode.mutate(event.target.value)}
+          disabled={setMode.isPending}
           style={{
             padding: '3px 6px',
             fontSize: 11,

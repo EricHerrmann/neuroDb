@@ -1,8 +1,8 @@
 # NeuroDb — Project Status
 
 **Last updated:** 2026-05-11
-**Active focus:** UI-2 signed off; next focus pending selection
-**Next:** Choose next UI hardening task, UI-2B layout work, UI-3 parity migration, or another epoch priority
+**Active focus:** UI-2B signed off; next focus pending selection
+**Next:** Choose next UI hardening task, UI-3 parity migration, or another epoch priority
 **Goal alignment:** Two co-equal goals in a feedback loop — accumulate neuroscience understanding grounded in real data (Goal 1), and conduct structured neuroscience investigations using existing public datasets and good scientific method (Goal 2). See `NeuroDbGoals.md`.
 
 ---
@@ -15,7 +15,7 @@
 | Agent Core | `src/neurodb/agents/` | Stable | Config Control Phases 1–4 signed off; Phase 6 may add fallback chain logic |
 | Tutor | `src/neurodb/tutor/` | MVP complete (LT-1/2/3) | Open backlog: LOG-001, LOG-006, LOG-030 |
 | Research | `src/neurodb/research/` | Scaffolded (LT-3); hypothesis review with structured tool-use output | Research run management, research question actions (LOG-037) |
-| UI | `src/neurodb/ui/`, `src/neurodb/api/`, `frontend/` | UI-2 signed off 2026-05-11; UI-2B design approved 2026-05-11 — activity rail, resizable panes, agent mode in chat header | Implement UI-2B per `docs/superpowers/specs/2026-05-11-ui2b-layout-redesign.md` |
+| UI | `src/neurodb/ui/`, `src/neurodb/api/`, `frontend/` | UI-2B signed off 2026-05-11 — activity rail, resizable panes, agent mode in chat header | UI-3 parity migration (Streamlit surfaces → React) |
 | Config Control | `src/neurodb/config/` | Phase 5B complete — 398 automated tests; Phase 4 signed off 2026-05-09 | Phase 6: constructor fallback chain, SystemWarning table, CLI surface |
 
 ---

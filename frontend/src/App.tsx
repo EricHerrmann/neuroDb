@@ -1,10 +1,11 @@
-import { useQuery } from '@tanstack/react-query'
+import { useState } from 'react'
 import { Navigate, Route, Routes } from 'react-router-dom'
+import { useQuery } from '@tanstack/react-query'
+import { Group, Panel, Separator, usePanelRef } from 'react-resizable-panels'
 
 import { api } from './api/client'
+import ActivityRail from './components/ActivityRail'
 import ChatPanel from './components/ChatPanel'
-import PanelNav from './components/PanelNav'
-import Sidebar from './components/Sidebar'
 import DatasetsPanel from './pages/DatasetsPanel'
 import KnowledgeLibraryPanel from './pages/KnowledgeLibraryPanel'
 import RegistryPanel from './pages/RegistryPanel'
@@ -19,26 +20,34 @@ export default function App() {
     queryFn: api.getPreferences,
   })
   const agentMode = prefs?.agent_mode ?? 'local_db'
+  const rightPanelRef = usePanelRef()
+  const [isRightCollapsed, setIsRightCollapsed] = useState(false)
 
   return (
     <div style={{ display: 'flex', height: '100vh', overflow: 'hidden' }}>
-      <Sidebar agentMode={agentMode} />
-      <div style={{ display: 'flex', flex: 1, overflow: 'hidden' }}>
-        <div style={{
-          flex: '0 0 55%',
-          overflow: 'hidden',
-          borderRight: '1px solid #e2e8f0',
-        }}>
+      <ActivityRail panelRef={rightPanelRef} />
+      <Group orientation="horizontal" style={{ flex: 1, overflow: 'hidden' }}>
+        <Panel defaultSize={55} minSize={30}>
           <ChatPanel agentMode={agentMode} />
-        </div>
-        <div style={{
-          flex: '0 0 45%',
-          display: 'flex',
-          flexDirection: 'column',
-          overflow: 'hidden',
-        }}>
-          <PanelNav />
-          <div style={{ flex: 1, overflowY: 'auto' }}>
+        </Panel>
+        <Separator
+          style={{
+            width: 5,
+            cursor: 'col-resize',
+            background: isRightCollapsed ? '#3b82f6' : '#334155',
+            flexShrink: 0,
+          }}
+        />
+        <Panel
+          panelRef={rightPanelRef}
+          defaultSize={45}
+          minSize={0}
+          collapsible
+          onResize={(size) => {
+            setIsRightCollapsed(size.asPercentage === 0)
+          }}
+        >
+          <div style={{ height: '100%', overflowY: 'auto' }}>
             <Routes>
               <Route path="/suggestions" element={<SuggestionsPanel />} />
               <Route path="/study-log" element={<StudyLogPanel />} />
@@ -50,8 +59,8 @@ export default function App() {
               <Route path="*" element={<Navigate to="/suggestions" replace />} />
             </Routes>
           </div>
-        </div>
-      </div>
+        </Panel>
+      </Group>
     </div>
   )
 }

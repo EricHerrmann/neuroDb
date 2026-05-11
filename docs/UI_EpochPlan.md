@@ -23,7 +23,7 @@ Own the UI shell, routing, pane layout, streaming rendering, and workbench state
 | UI-0 | Architecture decision record — FastAPI + React target confirmed; Streamlit retained during migration | Complete (ADR) | — | 2026-05-08 | — |
 | UI-1 | FastAPI backend shell — app factory, 8 API routes, SSE chat PoC | Complete | 408 automated + 9 manual | 2026-05-11 | `docs/testsPlans/completedAndPassedTestPlans/manualTestPlan_ui1_api_shell.md` |
 | UI-2 | React workbench prototype — Vite + React + React Router + TanStack Query; same two-column layout as Streamlit; all 7 panels functional; infrastructure migration only | Complete | 443 automated Python + 7 frontend + 11 manual | 2026-05-11 | `docs/testsPlans/completedAndPassedTestPlans/manualTestPlan_ui2_react_workbench.md` |
-| UI-2B | Layout redesign — activity rail, resizable panes; deferred from UI-2 | Planned | — | — | — |
+| UI-2B | Layout redesign — activity rail (replaces sidebar + PanelNav), resizable + collapsible right panel, agent mode in chat header | Design approved 2026-05-11 | — | — | — |
 | UI-3 | Parity migration — Streamlit surfaces moved to React one at a time | Planned | — | — | — |
 | UI-4 | Streamlit retirement decision | Planned | — | — | — |
 
@@ -46,6 +46,8 @@ Active test plan: none
 | 2026-05-08 | FastAPI + React as target shell; Streamlit retained until parity | Workbench ergonomics (persistent panes, independent scroll, routing, streaming) require React; rewrite is incremental — Streamlit is not retired until replacement has parity. See `docs/superpowers/plans/2026-05-08-ui1-backend-api-shell.md`. |
 | 2026-05-08 | UI does not own agent or session state | Session messages, tool results, and agent context live in the agent or Agent Core's session store — not in Streamlit session state or React component state |
 | 2026-05-11 | Activity rail and resizable panes deferred from UI-2 to UI-2B | UI-2 is a clean infrastructure migration — same layout as Streamlit, all 7 panels working. Layout redesign is a separate concern and would conflate two orthogonal changes. |
+| 2026-05-11 | Activity rail replaces both Sidebar and PanelNav | Sidebar held only agent mode (→ chat header) and session history (→ Study Log panel already covers this). Consolidating nav into a single 40px rail maximises horizontal space for chat and panel content. |
+| 2026-05-11 | Right panel collapsible to zero via react-resizable-panels | Full-width chat mode useful for long reading sessions; clicking any rail icon re-expands. Constrained-only resize was simpler but the collapse feature is one prop (`collapsible`) with no extra complexity. |
 | (deferred) | Provider selection UI for tier routing | Settings panel with three provider dropdowns (Economy, Standard, Premium) — deferred until FastAPI + React shell exists; current control is editing `neurodb_models.toml` `[routing]` section directly |
 
 Historical options analysis and pros/cons: `docs/archive/UI_EpochPlan_historical.md`

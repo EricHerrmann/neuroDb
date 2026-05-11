@@ -2,6 +2,7 @@
 from __future__ import annotations
 
 import os
+from pathlib import Path
 
 from fastapi import FastAPI
 from sqlalchemy import Engine
@@ -23,12 +24,37 @@ def create_app(
     app.state.context_store = context_store
     app.state.session_manager = session_manager
 
-    from neurodb.api.routes import status, preferences, research, chat
+    from neurodb.api.routes import (
+        chat,
+        datasets,
+        knowledge_library,
+        preferences,
+        registry,
+        research,
+        sessions,
+        sql,
+        status,
+        study_log,
+        suggestions,
+    )
 
     app.include_router(status.router, prefix="/api")
     app.include_router(preferences.router, prefix="/api")
     app.include_router(research.router, prefix="/api/research")
     app.include_router(chat.router, prefix="/api")
+    app.include_router(study_log.router, prefix="/api")
+    app.include_router(sessions.router, prefix="/api")
+    app.include_router(suggestions.router, prefix="/api/suggestions")
+    app.include_router(datasets.router, prefix="/api/datasets")
+    app.include_router(registry.router, prefix="/api/registry")
+    app.include_router(knowledge_library.router, prefix="/api/knowledge-library")
+    app.include_router(sql.router, prefix="/api/sql")
+
+    dist_dir = Path("frontend/dist")
+    if dist_dir.exists():
+        from fastapi.staticfiles import StaticFiles
+
+        app.mount("/", StaticFiles(directory=dist_dir, html=True), name="static")
 
     return app
 
@@ -40,6 +66,7 @@ def app_factory() -> FastAPI:
     DB path read from NEURODB_DB_PATH env var, defaulting to neurodb.duckdb.
     """
     from dotenv import load_dotenv
+
     from neurodb.db import create_views, get_engine, init_db
 
     load_dotenv()

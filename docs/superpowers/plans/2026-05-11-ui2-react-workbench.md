@@ -2951,11 +2951,11 @@ git commit -m "feat: ResearchPanel and SqlPanel"
 
 ---
 
-## Task 19: Full integration check and manual test plan
+## Task 19: Full integration check and manual test plan sign-off
 
 **Files:**
-- Create: `docs/testsPlans/manualTestPlan_ui2_react_workbench.md`
-- Modify: `docs/projectStatus.md` (add active test plan)
+- Modify: `docs/testsPlans/manualTestPlan_ui2_react_workbench.md`
+- Modify: `docs/projectStatus.md` if sign-off changes phase status or active focus
 
 - [ ] **Step 1: Run full Python test suite**
 
@@ -2978,140 +2978,17 @@ cd frontend && npx tsc --noEmit
 ```
 Expected: no errors
 
-- [ ] **Step 4: Create manual test plan**
+- [ ] **Step 4: Execute and update the UI-2 manual test plan**
 
-```markdown
-# Manual Test Plan — UI-2 React Workbench
-
-**Phase:** UI-2
-**Status:** In progress
-**Last updated:** 2026-05-11
-
-## Prerequisites
-
-1. Run automated tests — no new failures:
-   ```bash
-   uv run pytest tests/ -q
-   ```
-   Pass criteria: all existing tests pass; failure count matches `docs/testLog.md` open items only.
-
-2. Run frontend Vitest:
-   ```bash
-   cd frontend && npm test
-   ```
-   Pass criteria: all tests pass.
-
-## Setup for T2–T10
-
-**Terminal 1 — FastAPI:**
-```bash
-uv run uvicorn neurodb.api.app:app_factory --factory --port 8001
-```
-Expected: `Application startup complete.`
-
-**Terminal 2 — Vite:**
-```bash
-cd frontend && npm run dev
-```
-Expected: `Local: http://localhost:5173/`
-
-Keep both running for T2–T10. Open `http://localhost:5173/` in the browser.
-
----
-
-## T1 — Automated test prerequisite
-
-Run `uv run pytest tests/ -q`. Verify no new failures.
-
-**Pass:** test count is ≥ 436 with no new failures.
-
----
-
-## T2 — App loads and proxies to backend
-
-Open `http://localhost:5173/`. The two-column layout should render: narrow sidebar on the left, chat panel centre-left, panel nav + panel area right. The sidebar should show "Agent Mode" dropdown.
-
-Open browser DevTools → Network. Confirm `GET /api/preferences` returns 200 with JSON containing `agent_mode`.
-
-**Pass:** layout renders, `/api/preferences` returns 200.
-
----
-
-## T3 — Chat streams a response
-
-In the chat panel, type "What is LTP?" and press Send. The assistant message should appear and stream text in real time. After streaming ends the cursor disappears.
-
-**Pass:** assistant response streams and completes without error.
-
----
-
-## T4 — Suggestions panel
-
-Click the "Suggestions" tab. The panel should load without error (empty state or items from the DB).
-
-**Pass:** panel renders, no JS console errors.
-
----
-
-## T5 — Study Log panel
-
-Click "Study Log". The panel should show a table of study tags or the empty state message.
-
-**Pass:** panel renders, no JS console errors.
-
----
-
-## T6 — Datasets panel
-
-Click "Datasets". The panel should show the dataset list or empty state. Type a source ID fragment in the search box and click Search.
-
-**Pass:** panel renders, search does not crash.
-
----
-
-## T7 — Registry panel
-
-Click "Registry". Books, Papers & Studies, and Datasets sections should render (each empty or with data).
-
-**Pass:** panel renders, no JS console errors.
-
----
-
-## T8 — Knowledge Library panel
-
-Click "Knowledge Library". Change the status dropdown to "Pending". If pending sources exist, Approve and Reject buttons should appear. Click Approve on one — the list should refresh and the item should move to approved.
-
-**Pass:** panel renders, filter works, approve/reject refreshes list.
-
----
-
-## T9 — Research panel
-
-Click "Research". The four metric tiles should show counts. Click "Snapshot Metrics" — a new snapshot is saved (no error).
-
-**Pass:** metrics render, snapshot fires without error.
-
----
-
-## T10 — SQL panel
-
-Click "SQL". The default query `SELECT * FROM ingest_runs LIMIT 10;` should be pre-filled. Click "Run Query". Results table renders (columns + rows or empty).
-
-Change the SQL to `NOT VALID!!!` and run. An error message should appear in red below the button.
-
-**Pass:** valid query returns result table; invalid query shows error message.
-```
-
-Save to `docs/testsPlans/manualTestPlan_ui2_react_workbench.md`.
+Use `docs/testsPlans/manualTestPlan_ui2_react_workbench.md`. Update the sign-off table with pass/fail results and notes from the completed backend and React workbench checks.
 
 - [ ] **Step 5: Update `docs/projectStatus.md`**
 
-In the UI epoch row, change Next from `UI-2: React workbench prototype` to `UI-2: in progress`.
-Add to Active test plan: `docs/testsPlans/manualTestPlan_ui2_react_workbench.md`.
+If all UI-2 evals pass, update the UI epoch row, active focus, next phase, and any test counts required by the final sign-off.
 
 - [ ] **Step 6: Commit**
 
 ```bash
 git add docs/testsPlans/manualTestPlan_ui2_react_workbench.md docs/projectStatus.md
-git commit -m "docs: UI-2 manual test plan; mark phase in progress"
+git commit -m "docs: sign off UI-2 manual test plan"
 ```

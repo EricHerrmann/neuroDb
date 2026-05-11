@@ -65,6 +65,8 @@ def run_hypothesis_review(
     client=None,
     model: str | None = None,
     model_client=None,
+    model_provider: str = "anthropic",
+    max_tokens: int = 4096,
 ) -> dict:
     """Run a bounded premium-model critique and persist the linked review.
 
@@ -86,19 +88,20 @@ def run_hypothesis_review(
     started = time.monotonic()
     response = model_client.create_message(
         model=selected_model,
-        max_tokens=1200,
+        max_tokens=max_tokens,
         system=_SYSTEM_PROMPT,
         tools=[model_client.format_tool(_SUBMIT_CRITIQUE_TOOL)],
         messages=[{
             "role": "user",
             "content": _build_review_prompt(bundle),
         }],
+        tool_choice="required",
     )
     elapsed_ms = int((time.monotonic() - started) * 1000)
     record_model_call(
         engine,
         task_type="review.hypothesis",
-        provider="anthropic",
+        provider=model_provider,
         model=selected_model,
         mode="neuro_research",
         response=response,

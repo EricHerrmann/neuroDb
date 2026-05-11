@@ -15,6 +15,12 @@ from neurodb.schema import KnowledgeSource
 
 _MODEL = os.environ.get("NEURODB_AGENT_MODEL", "claude-sonnet-4-6")
 
+try:
+    from neurodb.config.model_config import get_model_for_task as _get_task_config
+    _DEFAULT_MAX_TOKENS = _get_task_config("agent.loop.neuro_tutor")[2]
+except Exception:
+    _DEFAULT_MAX_TOKENS = 2048
+
 _TUTOR_SYSTEM_PROMPT = (
     "You are a neuroscience learning partner with access to a curated Knowledge Library, "
     "local study notes, local dataset tools, and your own training knowledge. "
@@ -92,7 +98,9 @@ class NeuroTutorAgent(BaseAgent):
         knowledge_store: KnowledgeLibraryStore | None = None,
         literature_client=None,
         max_tool_iterations: int = 10,
+        max_tokens: int = _DEFAULT_MAX_TOKENS,
         model_client=None,
+        model_provider: str = "anthropic",
     ) -> None:
         super().__init__(
             client,
@@ -101,8 +109,10 @@ class NeuroTutorAgent(BaseAgent):
             model,
             prior_context,
             max_tool_iterations=max_tool_iterations,
+            max_tokens=max_tokens,
             telemetry_mode="neuro_tutor",
             model_client=model_client,
+            model_provider=model_provider,
         )
         self._knowledge_store = knowledge_store
         self._literature_client = literature_client

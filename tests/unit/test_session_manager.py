@@ -10,7 +10,8 @@ import pytest
 from sqlalchemy import create_engine
 from sqlalchemy.orm import Session
 
-from neurodb.schema import Base, ChatSession
+from neurodb.config.model_client import ContentBlock, ModelResponse
+from neurodb.schema import Base, ChatSession, ModelCallLog
 from neurodb.session_manager import AgentContextStore, SessionManager, format_context
 
 
@@ -30,6 +31,12 @@ def _mock_client(summary_text: str = "Topic: hippocampus\nConcepts covered: plac
     client = MagicMock()
     client.messages.create.return_value = response
     return client
+
+
+def _engine():
+    engine = create_engine("sqlite:///:memory:")
+    Base.metadata.create_all(engine)
+    return engine
 
 
 # ---------------------------------------------------------------------------
@@ -312,6 +319,38 @@ def test_summary_fallback_uses_injected_current_date():
     summary = manager._generate_summary([{"role": "user", "content": "Discuss LTP"}])
 
     assert summary == "Topic: unknown\nDate: 2026-05-06"
+
+
+def test_session_summary_uses_model_client_provider_for_telemetry():
+    engine = _engine()
+    model_client = MagicMock()
+    model_client.create_message.return_value = ModelResponse(
+        stop_reason="end_turn",
+        content=[ContentBlock(type="text", text="Topic: LTP\nDate: 2026-05-06")],
+        input_tokens=21,
+        output_tokens=8,
+    )
+    manager = SessionManager(
+        _store(),
+        engine=engine,
+        model_client=model_client,
+        summary_model="gpt-5-nano",
+        summary_provider="openai",
+        summary_max_tokens=512,
+        date_provider=lambda: "2026-05-06",
+    )
+
+    summary = manager._generate_summary([{"role": "user", "content": "Discuss LTP"}])
+
+    assert "LTP" in summary
+    model_client.create_message.assert_called_once()
+    with Session(engine) as session:
+        row = session.query(ModelCallLog).one()
+        assert row.task_type == "summary.session"
+        assert row.provider == "openai"
+        assert row.model == "gpt-5-nano"
+        assert row.input_tokens == 21
+        assert row.output_tokens == 8
 
 
 def test_end_session_api_failure_does_not_raise():

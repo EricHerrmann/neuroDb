@@ -4,7 +4,7 @@ from unittest.mock import MagicMock
 import pytest
 
 from neurodb.config.model_client import ModelClient
-from neurodb.config.task_router import TaskRouter
+from neurodb.config.task_router import ModelRoute, TaskRouter
 
 
 def _mock_client() -> ModelClient:
@@ -15,32 +15,37 @@ def _mock_client() -> ModelClient:
 def test_task_router_route_returns_three_tuple():
     anthropic_client = _mock_client()
     router = TaskRouter({"anthropic": anthropic_client})
-    model_client, model_id, max_tokens = router.route("agent.loop.research")
-    assert model_client is anthropic_client
-    assert isinstance(model_id, str)
-    assert isinstance(max_tokens, int)
+    route = router.route("agent.loop.research")
+    assert isinstance(route, ModelRoute)
+    assert route.model_client is anthropic_client
+    assert route.provider == "anthropic"
+    assert route.tier == "standard"
+    assert isinstance(route.model_id, str)
+    assert isinstance(route.max_tokens, int)
 
 
 def test_task_router_research_loop_is_standard_tier():
     anthropic_client = _mock_client()
     router = TaskRouter({"anthropic": anthropic_client})
-    _, model_id, _ = router.route("agent.loop.research")
-    assert "sonnet" in model_id.lower()
+    route = router.route("agent.loop.research")
+    assert "sonnet" in route.model_id.lower()
 
 
 def test_task_router_hypothesis_review_is_premium_tier():
     anthropic_client = _mock_client()
     router = TaskRouter({"anthropic": anthropic_client})
-    _, model_id, _ = router.route("research.hypothesis_review")
-    assert "opus" in model_id.lower()
+    route = router.route("research.hypothesis_review")
+    assert "opus" in route.model_id.lower()
+    assert route.tier == "premium"
 
 
 def test_task_router_session_summary_is_economy_tier():
     anthropic_client = _mock_client()
     router = TaskRouter({"anthropic": anthropic_client})
-    _, model_id, max_tokens = router.route("summary.session")
-    assert "haiku" in model_id.lower()
-    assert max_tokens == 512
+    route = router.route("summary.session")
+    assert "haiku" in route.model_id.lower()
+    assert route.max_tokens == 512
+    assert route.tier == "economy"
 
 
 def test_task_router_unknown_task_raises():

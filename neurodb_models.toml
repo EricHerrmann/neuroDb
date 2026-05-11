@@ -1,28 +1,76 @@
 # NeuroDb model routing configuration.
 # Maps capability tiers to providers/models and task types to tiers.
 # Update model IDs here when new generations are released.
+# To change active providers, edit [routing] below — no env vars needed.
+
+[routing]
+economy  = "groq"
+standard = "groq"
+premium  = "groq"
 
 [tiers.economy]
-default_provider = "anthropic"
 
 [tiers.economy.providers.anthropic]
 model = "claude-haiku-4-5-20251001"
 eval_status = "baseline"
 last_verified_at = "2026-05-08"
 
+[tiers.economy.providers.openai]
+model = "gpt-5.4-mini"
+eval_status = "baseline"
+last_verified_at = "2026-05-08"
+
+[tiers.economy.providers.gemini]
+model = "gemini-2.5-flash-lite"
+eval_status = "baseline"
+last_verified_at = "2026-05-08"
+
+[tiers.economy.providers.groq]
+model = "llama-3.1-8b-instant"
+eval_status = "baseline"
+last_verified_at = "2026-05-08"
+
 [tiers.standard]
-default_provider = "anthropic"
 
 [tiers.standard.providers.anthropic]
 model = "claude-sonnet-4-6"
 eval_status = "baseline"
 last_verified_at = "2026-05-08"
 
+[tiers.standard.providers.openai]
+model = "gpt-5.4"
+eval_status = "baseline"
+last_verified_at = "2026-05-08"
+
+[tiers.standard.providers.gemini]
+model = "gemini-2.5-flash"
+eval_status = "baseline"
+last_verified_at = "2026-05-08"
+
+[tiers.standard.providers.groq]
+model = "llama-3.3-70b-versatile"
+eval_status = "baseline"
+last_verified_at = "2026-05-08"
+
 [tiers.premium]
-default_provider = "anthropic"
 
 [tiers.premium.providers.anthropic]
 model = "claude-opus-4-7"
+eval_status = "baseline"
+last_verified_at = "2026-05-08"
+
+[tiers.premium.providers.openai]
+model = "gpt-5.5"
+eval_status = "baseline"
+last_verified_at = "2026-05-08"
+
+[tiers.premium.providers.gemini]
+model = "gemini-2.5-pro"
+eval_status = "baseline"
+last_verified_at = "2026-05-08"
+
+[tiers.premium.providers.groq]
+model = "openai/gpt-oss-120b"
 eval_status = "baseline"
 last_verified_at = "2026-05-08"
 
@@ -36,6 +84,10 @@ max_tokens = 512
 [tasks."summary.knowledge"]
 tier = "economy"
 max_tokens = 512
+
+[tasks."summary.knowledge_source"]
+tier = "economy"
+max_tokens = 700
 
 [tasks."agent.loop.local_db"]
 tier = "standard"

@@ -14,7 +14,13 @@ from neurodb.model_telemetry import record_model_call
 
 _COLLECTION_NAME = "agent_context"
 _SUMMARY_MODEL = os.environ.get("NEURODB_SUMMARY_MODEL", "claude-haiku-4-5-20251001")
-_RELEVANCE_THRESHOLD = 0.7  # cosine distance; summaries above this are not injected
+_RELEVANCE_THRESHOLD = 0.7
+
+try:
+    from neurodb.config.model_config import get_model_for_task as _get_task_config
+    _DEFAULT_SUMMARY_MAX_TOKENS = _get_task_config("summary.session")[2]
+except Exception:
+    _DEFAULT_SUMMARY_MAX_TOKENS = 512  # cosine distance; summaries above this are not injected
 
 _SUMMARY_PROMPT = """You are summarizing a neuroscience research session for future reference.
 Current date: {current_date}
@@ -109,11 +115,19 @@ class SessionManager:
         client=None,
         date_provider=None,
         engine=None,
+        model_client=None,
+        summary_model: str = _SUMMARY_MODEL,
+        summary_provider: str = "anthropic",
+        summary_max_tokens: int = _DEFAULT_SUMMARY_MAX_TOKENS,
     ) -> None:
         self._store = context_store
         self._client = client  # Anthropic client
         self._date_provider = date_provider
         self._engine = engine
+        self._model_client = model_client
+        self._summary_model = summary_model
+        self._summary_provider = summary_provider
+        self._summary_max_tokens = summary_max_tokens
 
     def start_session(
         self,
@@ -192,8 +206,8 @@ class SessionManager:
         return f"Most recent study session: {inferred_topic}" if inferred_topic else ""
 
     def end_session(self, session_id: str, conversation: list[dict]) -> str | None:
-        """Generate a session summary via Claude, store it, and return it."""
-        if not conversation or self._client is None:
+        """Generate a session summary, store it, and return it."""
+        if not conversation or (self._client is None and self._model_client is None):
             return None
         try:
             summary = self._generate_summary(conversation)
@@ -218,18 +232,27 @@ class SessionManager:
             current_date=current_date,
         )
         started = perf_counter()
-        response = self._client.messages.create(
-            model=_SUMMARY_MODEL,
-            max_tokens=512,
-            messages=[{"role": "user", "content": prompt}],
-        )
+        if self._model_client is not None:
+            response = self._model_client.create_message(
+                model=self._summary_model,
+                max_tokens=self._summary_max_tokens,
+                system="",
+                tools=[],
+                messages=[{"role": "user", "content": prompt}],
+            )
+        else:
+            response = self._client.messages.create(
+                model=self._summary_model,
+                max_tokens=self._summary_max_tokens,
+                messages=[{"role": "user", "content": prompt}],
+            )
         elapsed_ms = int((perf_counter() - started) * 1000)
         try:
             record_model_call(
                 self._engine,
                 task_type="summary.session",
-                provider="anthropic",
-                model=_SUMMARY_MODEL,
+                provider=self._summary_provider,
+                model=self._summary_model,
                 mode="summary",
                 response=response,
                 iteration=1,

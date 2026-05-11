@@ -164,6 +164,30 @@ def test_agent_non_streaming_logs_model_call():
         assert row.output_tokens == 12
 
 
+def test_agent_telemetry_uses_routed_provider():
+    engine = _engine()
+    client = MagicMock()
+    client.messages.create.return_value = _response(
+        "end_turn",
+        [_text_block("done")],
+        _usage(30, 12),
+    )
+    agent = NeuroDbAgent(
+        client,
+        engine,
+        mode="local_db",
+        model="gpt-5-mini",
+        model_provider="openai",
+    )
+
+    assert "".join(agent.chat("hello", [])) == "done"
+
+    with Session(engine) as session:
+        row = session.query(ModelCallLog).one()
+        assert row.provider == "openai"
+        assert row.model == "gpt-5-mini"
+
+
 def test_agent_streaming_logs_model_call():
     engine = _engine()
     client = MagicMock()

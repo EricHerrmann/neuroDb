@@ -6,6 +6,7 @@ from unittest.mock import MagicMock, patch
 from sqlalchemy import create_engine
 from sqlalchemy.orm import Session
 
+from neurodb.config.model_client import ContentBlock, ModelResponse
 from neurodb.schema import Base, KnowledgeSource, ModelCallLog
 
 
@@ -93,7 +94,10 @@ def test_generate_summary_default_model_is_haiku():
     mock_client = MagicMock()
     mock_client.messages.create.side_effect = fake_create
 
-    env_without_key = {k: v for k, v in os.environ.items() if k != "NEURODB_KNOWLEDGE_SUMMARY_MODEL"}
+    env_without_key = {
+        k: v for k, v in os.environ.items()
+        if k != "NEURODB_KNOWLEDGE_SUMMARY_MODEL"
+    }
 
     with patch.dict("os.environ", env_without_key, clear=True):
         with patch("anthropic.Anthropic", return_value=mock_client):
@@ -172,6 +176,35 @@ def test_approve_source_logs_knowledge_summary_telemetry():
         assert row.model == "claude-test-summary"
         assert row.input_tokens == 25
         assert row.output_tokens == 9
+
+
+def test_generate_summary_can_route_economy_tier_to_openai(monkeypatch):
+    from neurodb.ui.pages import knowledge_library
+    import neurodb.config.model_config as mc
+
+    model_client = MagicMock()
+    model_client.create_message.return_value = ModelResponse(
+        stop_reason="end_turn",
+        content=[ContentBlock(type="text", text="summary text")],
+        input_tokens=20,
+        output_tokens=8,
+    )
+    base = mc.load_model_config()
+    patched_cfg = {**base, "routing": {**base.get("routing", {}), "economy": "openai"}}
+    monkeypatch.setattr(mc, "_cache", patched_cfg)
+    monkeypatch.delenv("ANTHROPIC_API_KEY", raising=False)
+    monkeypatch.delenv("NEURODB_KNOWLEDGE_SUMMARY_MODEL", raising=False)
+
+    with patch(
+        "neurodb.config.provider_factory.build_provider_clients",
+        return_value={"openai": model_client},
+    ):
+        summary, telemetry = knowledge_library._generate_summary(_make_knowledge_source())
+
+    assert summary == "summary text"
+    assert telemetry["provider"] == "openai"
+    assert telemetry["model"] == "gpt-5.4-mini"
+    assert telemetry["task_type"] == "summary.knowledge_source"
 
 
 def test_generate_summary_without_api_key_returns_no_telemetry():

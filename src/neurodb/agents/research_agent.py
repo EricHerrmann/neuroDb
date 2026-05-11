@@ -19,7 +19,11 @@ _MODEL = os.environ.get("NEURODB_RESEARCH_MODEL", "claude-sonnet-4-6")
 _RESEARCH_MAX_TOOL_ITERATIONS = int(
     os.environ.get("NEURODB_RESEARCH_MAX_TOOL_ITERATIONS", "25")
 )
-_RESEARCH_MAX_TOKENS = int(os.environ.get("NEURODB_RESEARCH_MAX_TOKENS", "4096"))
+try:
+    from neurodb.config.model_config import get_model_for_task as _get_task_config
+    _RESEARCH_MAX_TOKENS = _get_task_config("agent.loop.neuro_research")[2]
+except Exception:
+    _RESEARCH_MAX_TOKENS = int(os.environ.get("NEURODB_RESEARCH_MAX_TOKENS", "4096"))
 
 _RESEARCH_SYSTEM_PROMPT = (
     "You are a neuroscience research partner for NeuroDb. Your job is to turn "
@@ -108,10 +112,30 @@ _RESEARCH_TOOLS = [
             "properties": {
                 "title": {"type": "string"},
                 "mechanism": {"type": "string"},
-                "evidence": {"type": "array", "items": {"type": "object"}},
-                "predictions": {"type": "array"},
-                "datasets": {"type": "array", "items": {"type": "object"}},
-                "confounds": {"type": "array"},
+                "evidence": {
+                    "type": "array",
+                    "items": {
+                        "type": "object",
+                        "properties": {
+                            "source": {"type": "string"},
+                            "summary": {"type": "string"},
+                        },
+                        "required": ["source", "summary"],
+                    },
+                },
+                "predictions": {"type": "array", "items": {"type": "string"}},
+                "datasets": {
+                    "type": "array",
+                    "items": {
+                        "type": "object",
+                        "properties": {
+                            "dataset_id": {"type": "string"},
+                            "relevance": {"type": "string"},
+                        },
+                        "required": ["dataset_id", "relevance"],
+                    },
+                },
+                "confounds": {"type": "array", "items": {"type": "string"}},
                 "limitations": {"type": "string"},
                 "question_id": {"type": "integer"},
                 "status": {"type": "string"},
@@ -153,6 +177,7 @@ class NeuroResearchAgent(BaseAgent):
         max_tool_iterations: int = _RESEARCH_MAX_TOOL_ITERATIONS,
         max_tokens: int = _RESEARCH_MAX_TOKENS,
         model_client=None,
+        model_provider: str = "anthropic",
     ) -> None:
         super().__init__(
             client,
@@ -165,6 +190,7 @@ class NeuroResearchAgent(BaseAgent):
             max_tokens=max_tokens,
             telemetry_mode="neuro_research",
             model_client=model_client,
+            model_provider=model_provider,
         )
         self._knowledge_store = knowledge_store
         self._literature_client = literature_client

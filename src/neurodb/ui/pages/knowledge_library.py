@@ -146,38 +146,63 @@ def _dedup_threshold() -> float:
 
 def _generate_summary(row: KnowledgeSource) -> tuple[str, dict | None]:
     api_key = os.environ.get("ANTHROPIC_API_KEY")
-    if not api_key:
+    legacy_model = os.environ.get("NEURODB_KNOWLEDGE_SUMMARY_MODEL")
+    if not api_key and legacy_model:
         return _fallback_summary(row), None
 
     try:
-        import anthropic
+        model_client = None
+        provider = "anthropic"
+        max_tokens = 700
+        if legacy_model:
+            import anthropic
 
-        client = anthropic.Anthropic(api_key=api_key)
-        model = os.environ.get(
-            "NEURODB_KNOWLEDGE_SUMMARY_MODEL",
-            "claude-haiku-4-5-20251001",
-        )
+            client = anthropic.Anthropic(api_key=api_key)
+            model = legacy_model
+        else:
+            from neurodb.config.provider_factory import build_provider_clients
+            from neurodb.config.task_router import TaskRouter
+
+            providers = build_provider_clients()
+            if not providers:
+                return _fallback_summary(row), None
+            route = TaskRouter(providers).route("summary.knowledge_source")
+            model_client = route.model_client
+            provider = route.provider
+            model = route.model_id
+            max_tokens = route.max_tokens
+
         started = perf_counter()
-        response = client.messages.create(
-            model=model,
-            max_tokens=700,
-            messages=[{
-                "role": "user",
-                "content": (
-                    "Create a concise structured neuroscience learning summary for this source.\n"
-                    f"Title: {row.title}\n"
-                    f"Source type: {row.source_type}\n"
-                    f"DOI: {row.doi or 'unknown'}\n"
-                    f"URL: {row.url or 'unknown'}\n"
-                    f"Topic context: {row.topic_context}\n\n"
-                    "Use sections: Key concepts, Relevance to neuroscience, Open questions."
-                ),
-            }],
-        )
+        messages = [{
+            "role": "user",
+            "content": (
+                "Create a concise structured neuroscience learning summary for this source.\n"
+                f"Title: {row.title}\n"
+                f"Source type: {row.source_type}\n"
+                f"DOI: {row.doi or 'unknown'}\n"
+                f"URL: {row.url or 'unknown'}\n"
+                f"Topic context: {row.topic_context}\n\n"
+                "Use sections: Key concepts, Relevance to neuroscience, Open questions."
+            ),
+        }]
+        if model_client is not None:
+            response = model_client.create_message(
+                model=model,
+                max_tokens=max_tokens,
+                system="",
+                tools=[],
+                messages=messages,
+            )
+        else:
+            response = client.messages.create(
+                model=model,
+                max_tokens=max_tokens,
+                messages=messages,
+            )
         elapsed_ms = int((perf_counter() - started) * 1000)
         telemetry = {
             "task_type": "summary.knowledge_source",
-            "provider": "anthropic",
+            "provider": provider,
             "model": model,
             "mode": "summary",
             "response": response,

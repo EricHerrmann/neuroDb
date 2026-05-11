@@ -74,6 +74,22 @@ def test_research_tool_list_contains_expected_tools_and_excludes_tag_dataset():
     assert "tag_dataset" not in names
 
 
+def test_all_array_properties_in_tool_schemas_have_items():
+    # OpenAI rejects array schemas that are missing an 'items' field.
+    def check_schema(schema, path=""):
+        if isinstance(schema, dict):
+            if schema.get("type") == "array":
+                assert "items" in schema, f"Array at {path!r} is missing 'items'"
+            for key, value in schema.items():
+                check_schema(value, f"{path}.{key}")
+        elif isinstance(schema, list):
+            for i, item in enumerate(schema):
+                check_schema(item, f"{path}[{i}]")
+
+    for tool in _agent()._get_active_tools():
+        check_schema(tool.get("input_schema", {}), tool["name"])
+
+
 def test_research_prompt_includes_current_date_and_prior_context():
     agent = _agent(
         current_date="2026-05-06",
@@ -136,9 +152,9 @@ def test_research_agent_finishes_after_successful_draft_hypothesis_tool():
     draft_input = {
         "title": "LTP learning hypothesis",
         "mechanism": "Hippocampal plasticity may affect learning-related measures.",
-        "evidence": [{"source": "knowledge_library", "title": "LTP review"}],
+        "evidence": [{"source": "knowledge_library", "summary": "LTP review supports plasticity hypothesis"}],
         "predictions": ["Learning measures vary with LTP-related markers."],
-        "datasets": [{"source": "openneuro", "source_id": "ds001"}],
+        "datasets": [{"dataset_id": "ds001", "relevance": "contains LTP behavioral data"}],
         "confounds": ["task design"],
         "limitations": "Draft only; requires local testing.",
     }
@@ -169,9 +185,9 @@ def test_research_agent_stream_finishes_after_successful_draft_hypothesis_tool()
     draft_input = {
         "title": "LTP learning hypothesis",
         "mechanism": "Hippocampal plasticity may affect learning-related measures.",
-        "evidence": [{"source": "knowledge_library", "title": "LTP review"}],
+        "evidence": [{"source": "knowledge_library", "summary": "LTP review supports plasticity hypothesis"}],
         "predictions": ["Learning measures vary with LTP-related markers."],
-        "datasets": [{"source": "openneuro", "source_id": "ds001"}],
+        "datasets": [{"dataset_id": "ds001", "relevance": "contains LTP behavioral data"}],
         "confounds": ["task design"],
         "limitations": "Draft only; requires local testing.",
     }

@@ -1,5 +1,4 @@
 import json
-import os
 import uuid
 from datetime import date, datetime, timezone
 
@@ -31,24 +30,30 @@ def render_panel(engine: Engine, *, title: str = "", transcript_height: int = 42
 
     agent = st.session_state.get("neuro_agent")
     if agent is None:
-        st.warning("ANTHROPIC_API_KEY not found in `.env`. Add it to enable chat.")
+        message = st.session_state.get(
+            "agent_init_error",
+            "No model provider API key found in `.env`. Add a supported key to enable chat.",
+        )
+        st.warning(message)
     _render_chat(agent, transcript_height=transcript_height)
 
 
 def _init_agent(engine: Engine) -> None:
     if "neuro_agent" in st.session_state:
         return
-    api_key = os.environ.get("ANTHROPIC_API_KEY")
-    if not api_key:
-        return
 
-    import anthropic
-    from neurodb.config.providers.anthropic_client import AnthropicModelClient
+    from neurodb.config.provider_factory import build_provider_clients
     from neurodb.config.task_router import TaskRouter
 
-    sdk_client = anthropic.Anthropic(api_key=api_key)
-    model_client = AnthropicModelClient(sdk_client)
-    router = TaskRouter({"anthropic": model_client})
+    providers = build_provider_clients()
+    if not providers:
+        st.session_state["agent_init_error"] = (
+            "No configured model provider is available. Add ANTHROPIC_API_KEY, "
+            "OPENAI_API_KEY, or GROQ_API_KEY to `.env`."
+        )
+        return
+
+    router = TaskRouter(providers)
 
     vector_store = st.session_state.get("vector_store")
     mode = st.session_state.get("agent_mode", "local_db")
@@ -56,14 +61,19 @@ def _init_agent(engine: Engine) -> None:
     if mode == "neuro_tutor":
         from neurodb.agents.tutor_agent import NeuroTutorAgent
 
-        mc, model_id, max_tok = router.route("agent.loop.neuro_tutor")
+        try:
+            route = router.route("agent.loop.neuro_tutor")
+        except KeyError as exc:
+            st.session_state["agent_init_error"] = f"Model routing failed: {exc}"
+            return
         st.session_state["neuro_agent"] = NeuroTutorAgent(
-            model_client=mc,
-            model=model_id,
+            model_client=route.model_client,
+            model=route.model_id,
             engine=engine,
             vector_store=vector_store,
             knowledge_store=st.session_state.get("knowledge_store"),
             prior_context=st.session_state.get("active_prior_context", ""),
+            model_provider=route.provider,
         )
         return
 
@@ -71,33 +81,43 @@ def _init_agent(engine: Engine) -> None:
         from neurodb.agents.research_agent import NeuroResearchAgent
 
         manager = st.session_state.get("session_manager")
-        mc, model_id, max_tok = router.route("agent.loop.neuro_research")
+        try:
+            route = router.route("agent.loop.neuro_research")
+        except KeyError as exc:
+            st.session_state["agent_init_error"] = f"Model routing failed: {exc}"
+            return
         st.session_state["neuro_agent"] = NeuroResearchAgent(
-            model_client=mc,
-            model=model_id,
-            max_tokens=max_tok,
+            model_client=route.model_client,
+            model=route.model_id,
+            max_tokens=route.max_tokens,
             engine=engine,
             vector_store=vector_store,
             knowledge_store=st.session_state.get("knowledge_store"),
             prior_context=st.session_state.get("active_prior_context", ""),
             context_store=getattr(manager, "_store", None),
             current_date=date.today().isoformat(),
+            model_provider=route.provider,
         )
         return
 
     from neurodb.agents.db_agent import NeuroDbAgent
 
     task_type = f"agent.loop.{mode}" if mode in {"local_db", "external_db"} else "agent.loop.local_db"
-    mc, model_id, max_tok = router.route(task_type)
+    try:
+        route = router.route(task_type)
+    except KeyError as exc:
+        st.session_state["agent_init_error"] = f"Model routing failed: {exc}"
+        return
     st.session_state["neuro_agent"] = NeuroDbAgent(
-        model_client=mc,
-        model=model_id,
-        max_tokens=max_tok,
+        model_client=route.model_client,
+        model=route.model_id,
+        max_tokens=route.max_tokens,
         engine=engine,
         vector_store=vector_store,
         mode=mode,
         chapter_context=st.session_state.get("chapter_context", ""),
         prior_context=st.session_state.get("active_prior_context", ""),
+        model_provider=route.provider,
     )
 
 

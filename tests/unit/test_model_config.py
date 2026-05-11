@@ -36,6 +36,57 @@ def test_get_model_for_task_standard_tier():
     assert max_tokens == 2048
 
 
+def test_get_model_for_task_routing_section_selects_openai(monkeypatch):
+    """Provider comes from [routing] section in TOML — openai case."""
+    import neurodb.config.model_config as mc
+
+    base = mc.load_model_config()
+    patched = {**base, "routing": {**base.get("routing", {}), "standard": "openai"}}
+    monkeypatch.setattr(mc, "_cache", patched)
+
+    provider, model_id, max_tokens = get_model_for_task("agent.loop.research")
+
+    assert provider == "openai"
+    assert model_id == "gpt-5.4"
+    assert max_tokens == 2048
+
+
+def test_get_model_for_task_routing_section_selects_gemini(monkeypatch):
+    """Provider comes from [routing] section in TOML — gemini case."""
+    import neurodb.config.model_config as mc
+
+    base = mc.load_model_config()
+    patched = {**base, "routing": {**base.get("routing", {}), "standard": "gemini"}}
+    monkeypatch.setattr(mc, "_cache", patched)
+
+    provider, model_id, max_tokens = get_model_for_task("agent.loop.research")
+
+    assert provider == "gemini"
+    assert model_id == "gemini-2.5-flash"
+    assert max_tokens == 2048
+
+
+def test_get_model_for_task_routing_section_unknown_provider_raises(monkeypatch):
+    """KeyError if [routing] names a provider not in the tier's providers table."""
+    import neurodb.config.model_config as mc
+
+    base = mc.load_model_config()
+    patched = {**base, "routing": {**base.get("routing", {}), "standard": "missing"}}
+    monkeypatch.setattr(mc, "_cache", patched)
+
+    with pytest.raises(KeyError, match="missing.*standard"):
+        get_model_for_task("agent.loop.research")
+
+
+def test_get_model_for_task_tier_env_var_has_no_effect(monkeypatch):
+    """NEURODB_STANDARD_PROVIDER env var is ignored — provider comes from [routing] only."""
+    monkeypatch.setenv("NEURODB_STANDARD_PROVIDER", "openai")
+
+    provider, _, _ = get_model_for_task("agent.loop.research")
+
+    assert provider == "anthropic"
+
+
 def test_get_model_for_task_premium_tier():
     provider, model_id, max_tokens = get_model_for_task("research.hypothesis_review")
     assert provider == "anthropic"

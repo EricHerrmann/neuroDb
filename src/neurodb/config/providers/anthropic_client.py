@@ -19,14 +19,12 @@ class AnthropicModelClient(ModelClient):
         system: str,
         tools: list[dict],
         max_tokens: int,
+        tool_choice: str | None = None,
     ) -> ModelResponse:
-        response = self._client.messages.create(
-            model=model,
-            max_tokens=max_tokens,
-            system=system,
-            tools=tools,
-            messages=messages,
-        )
+        kwargs: dict = dict(model=model, max_tokens=max_tokens, system=system, tools=tools, messages=messages)
+        if tool_choice == "required":
+            kwargs["tool_choice"] = {"type": "any"}
+        response = self._client.messages.create(**kwargs)
         return _map_response(response)
 
     @contextmanager

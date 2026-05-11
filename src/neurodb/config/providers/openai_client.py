@@ -20,12 +20,15 @@ class OpenAIModelClient(ModelClient):
         system: str,
         tools: list[dict],
         max_tokens: int,
+        tool_choice: str | None = None,
     ) -> ModelResponse:
         oai_messages = _translate_messages(messages, system)
         oai_tools = [self.format_tool(t) for t in tools] if tools else None
-        kwargs: dict = dict(model=model, messages=oai_messages, max_tokens=max_tokens)
+        kwargs: dict = dict(model=model, messages=oai_messages, max_completion_tokens=max_tokens)
         if oai_tools:
             kwargs["tools"] = [{"type": "function", "function": t} for t in oai_tools]
+        if tool_choice is not None:
+            kwargs["tool_choice"] = tool_choice
 
         response = self._client.chat.completions.create(**kwargs)
         return _map_response(response)
@@ -41,7 +44,7 @@ class OpenAIModelClient(ModelClient):
     ):
         oai_messages = _translate_messages(messages, system)
         oai_tools = [self.format_tool(t) for t in tools] if tools else None
-        kwargs: dict = dict(model=model, messages=oai_messages, max_tokens=max_tokens, stream=True)
+        kwargs: dict = dict(model=model, messages=oai_messages, max_completion_tokens=max_tokens, stream=True, stream_options={"include_usage": True})
         if oai_tools:
             kwargs["tools"] = [{"type": "function", "function": t} for t in oai_tools]
 
@@ -56,10 +59,12 @@ class OpenAIModelClient(ModelClient):
         return result
 
     def format_tool_result(self, tool_use_id: str, content: str) -> dict:
+        # Return Anthropic-format so message history is stored consistently.
+        # _translate_messages unpacks these into role=tool wire messages.
         return {
-            "role": "tool",
-            "tool_call_id": tool_use_id,
-            "content": content,
+            "type": "tool_result",
+            "tool_use_id": tool_use_id,
+            "content": [{"type": "text", "text": content}],
         }
 
 

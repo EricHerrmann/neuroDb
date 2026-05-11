@@ -11,6 +11,12 @@ from neurodb.vector_store import VectorStore
 
 _MODEL = os.environ.get("NEURODB_AGENT_MODEL", "claude-sonnet-4-6")
 
+try:
+    from neurodb.config.model_config import get_model_for_task as _get_task_config
+    _DEFAULT_MAX_TOKENS = _get_task_config("agent.loop.local_db")[2]
+except Exception:
+    _DEFAULT_MAX_TOKENS = 2048
+
 TOOLS = [
     {
         "name": "query_db",
@@ -238,8 +244,9 @@ class NeuroDbAgent(BaseAgent):
         mode: str = "local_db",
         chapter_context: str = "",
         max_tool_iterations: int = 10,
-        max_tokens: int = 2048,
+        max_tokens: int = _DEFAULT_MAX_TOKENS,
         model_client=None,
+        model_provider: str = "anthropic",
     ) -> None:
         super().__init__(
             client,
@@ -251,6 +258,7 @@ class NeuroDbAgent(BaseAgent):
             max_tokens=max_tokens,
             telemetry_mode=mode,
             model_client=model_client,
+            model_provider=model_provider,
         )
         self.mode = mode
         self.chapter_context = chapter_context

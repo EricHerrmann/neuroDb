@@ -131,18 +131,28 @@ if "vector_store" not in st.session_state:
     st.session_state["vector_store"] = VectorStore(path=chroma_path, embedder=Embedder())
 
 if "session_manager" not in st.session_state:
-    import os
-    import anthropic
+    from neurodb.config.provider_factory import build_provider_clients
+    from neurodb.config.task_router import TaskRouter
     from neurodb.session_manager import AgentContextStore, SessionManager
+
     chroma_path = db_path.replace(".duckdb", "_chroma")
     context_store = AgentContextStore(path=chroma_path)
-    api_key = os.environ.get("ANTHROPIC_API_KEY")
-    client = anthropic.Anthropic(api_key=api_key) if api_key else None
-    st.session_state["session_manager"] = SessionManager(
-        context_store,
-        client=client,
-        engine=engine,
-    )
+    route = None
+    providers = build_provider_clients()
+    if providers:
+        try:
+            route = TaskRouter(providers).route("summary.session")
+        except KeyError:
+            route = None
+    session_kwargs = {"engine": engine}
+    if route is not None:
+        session_kwargs.update({
+            "model_client": route.model_client,
+            "summary_model": route.model_id,
+            "summary_provider": route.provider,
+            "summary_max_tokens": route.max_tokens,
+        })
+    st.session_state["session_manager"] = SessionManager(context_store, **session_kwargs)
 
 if "active_prior_context" not in st.session_state:
     manager = st.session_state.get("session_manager")

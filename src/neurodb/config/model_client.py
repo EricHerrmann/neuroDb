@@ -44,8 +44,12 @@ class ModelClient(ABC):
         system: str,
         tools: list[dict],
         max_tokens: int,
+        tool_choice: str | None = None,
     ) -> ModelResponse:
-        """Send a non-streaming message and return a normalized response."""
+        """Send a non-streaming message and return a normalized response.
+
+        tool_choice: pass "required" to force the model to call one of the provided tools.
+        """
 
     @abstractmethod
     def stream_message(

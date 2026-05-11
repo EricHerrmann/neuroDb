@@ -194,9 +194,11 @@ def test_openai_format_tool_result_structure():
     client = OpenAIModelClient(MagicMock())
     result = client.format_tool_result("call_abc", "result text")
 
-    assert result["role"] == "tool"
-    assert result["tool_call_id"] == "call_abc"
-    assert result["content"] == "result text"
+    # Stored in Anthropic format for consistent message history;
+    # _translate_messages converts to role=tool on the wire.
+    assert result["type"] == "tool_result"
+    assert result["tool_use_id"] == "call_abc"
+    assert result["content"][0]["text"] == "result text"
 
 
 def test_openai_stop_reason_normalized_to_end_turn():

@@ -26,6 +26,7 @@ class BaseAgent(ABC):
         telemetry_mode: str | None = None,
         telemetry_task_type: str | None = None,
         model_client: ModelClient | None = None,
+        model_provider: str = "anthropic",
     ) -> None:
         self._client = client
         self._engine = engine
@@ -40,6 +41,7 @@ class BaseAgent(ABC):
             telemetry_task_type
             or f"agent.loop.{telemetry_mode or 'unknown'}"
         )
+        self._model_provider = model_provider
         if model_client is not None:
             self._model_client = model_client
         elif client is not None:
@@ -309,7 +311,7 @@ class BaseAgent(ABC):
             record_model_call(
                 self._engine,
                 task_type=self._telemetry_task_type,
-                provider="anthropic",
+                provider=self._model_provider,
                 model=self._model,
                 mode=self._telemetry_mode,
                 response=response,

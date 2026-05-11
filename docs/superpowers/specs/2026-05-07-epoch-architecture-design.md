@@ -93,7 +93,7 @@ The conversation loop, checkpoint/rollback logic, and streaming protocol are imp
 
 ### UI Epoch
 
-**Owns:** UI shell, routing, pane layout, streaming rendering, workbench state. Streamlit is the current implementation. FastAPI + React is the target architecture; migration path is documented in `docs/uiEpoch.md`.
+**Owns:** UI shell, routing, pane layout, streaming rendering, workbench state. Streamlit is the current implementation. FastAPI + React is the target architecture; migration path is documented in `docs/UI_EpochPlan.md`.
 
 **Responsibility boundary:** The UI epoch does not own agent logic, session logic, or data logic. It calls through defined interfaces — currently direct Python helper calls (acceptable in Streamlit), eventually API routes (required in FastAPI + React).
 
@@ -116,6 +116,23 @@ The conversation loop, checkpoint/rollback logic, and streaming protocol are imp
 **Interface to Agent Core:** Pre-Phase 4 — env vars read at the call site, passed to agent constructors. Post-Phase 4 — `TaskRouter` returns `(ModelClient, model_id, max_tokens)`, passed to the constructor.
 
 **Goal 2 cost model:** Research orchestration runs at standard tier. Only the bounded hypothesis review step uses the premium tier. The feedback loop does not get more expensive as it matures — it gets more capable at the same cost envelope.
+
+**Telemetry task types:**
+
+All model calls write a row to `model_call_log`. The `task_type` column is the primary filter for manual telemetry queries. The routing key passed to `TaskRouter.route()` and the telemetry `task_type` written to `model_call_log` are always the same string except for hypothesis review, which uses a shorter telemetry key.
+
+| `task_type` (in `model_call_log`) | Tier | `max_tokens` | Produced by | Routing key |
+|---|---|---|---|---|
+| `agent.loop.local_db` | standard | 2048 | DB agent — local DB mode | same |
+| `agent.loop.external_db` | standard | 2048 | DB agent — external DB mode | same |
+| `agent.loop.neuro_tutor` | standard | 2048 | Tutor agent | same |
+| `agent.loop.neuro_research` | standard | 4096 | Research agent loop | same |
+| `agent.loop.unknown` | standard | 2048 | Fallback when `telemetry_mode` is None | same |
+| `summary.session` | economy | 512 | `SessionManager.end_session()` | same |
+| `summary.knowledge_source` | economy | 700 | Knowledge Library — source approval | same |
+| `review.hypothesis` | premium | 4096 | `hypothesis_review.py` — hypothesis review action | `research.hypothesis_review` |
+
+Note: `summary.knowledge` and `agent.loop.research` are defined in `neurodb_models.toml` but are not currently wired to any production code path.
 
 ---
 
@@ -253,8 +270,8 @@ These are not part of this spec's implementation — they are triggered when the
 | `docs/testsPlans/` manual test plans | Verify each plan is scoped to one epoch; split any that span two |
 | `docs/projectStatus.md` | Restructure Active Work section by epoch |
 | `docs/superpowers/plans/claudeTaskArch.md` | Add epoch labels to each phase and component |
-| `docs/ClaudeLearnEpochPlan.md` | Refactor or archive — superseded by this framework |
-| `docs/ClaudeDbEpochPlan.md` | Add epoch ownership context to DB phases 7–8 |
+| `docs/AgentCore_EpochPlan.md`, `docs/Tutor_EpochPlan.md`, `docs/Research_EpochPlan.md` | Created from extracted Learn epoch content — done |
+| `docs/DB_EpochPlan.md` | Add epoch ownership context to DB phases 7–8 |
 
 ---
 
@@ -263,9 +280,13 @@ These are not part of this spec's implementation — they are triggered when the
 | Document | Purpose |
 |---|---|
 | `NeuroDbGoals.md` | Restated project goals and feedback loop |
-| `docs/ClaudeLearnEpochPlan.md` | Learning epoch phase history (LT-1 through LT-3) |
-| `docs/ClaudeDbEpochPlan.md` | DB epoch phase history (0–6) and deferred phases (7–8) |
-| `docs/uiEpoch.md` | UI epoch migration architecture |
+| `docs/AgentCore_EpochPlan.md` | Agent Core epoch — BaseAgent architecture, contract, configuration injection |
+| `docs/Tutor_EpochPlan.md` | Tutor epoch — LT-1/2/3 phase history, Knowledge Library decisions, open backlog |
+| `docs/Research_EpochPlan.md` | Research epoch — NeuroResearchAgent, hypothesis tools, open backlog |
+| `docs/ConfigControl_EpochPlan.md` | Config Control epoch — phases 1–6, provider adapters, telemetry decisions |
+| `docs/DB_EpochPlan.md` | DB epoch phase history (0–6) and deferred phases (7–8) |
+| `docs/UI_EpochPlan.md` | UI epoch migration architecture |
+| `docs/archive/LearnEpoch_historical.md` | Original Learning Epoch design doc (superseded; extracted into AgentCore + Tutor + Research plans) |
 | `docs/superpowers/plans/claudeTaskArch.md` | Config Control — model routing design |
 | `docs/superpowers/plans/2026-05-07-model-routing-impl.md` | Config Control — model routing implementation plan |
 | `src/neurodb/agents/base.py` | Agent Core — current BaseAgent implementation |

@@ -10,6 +10,8 @@
 All commands run from the repo root (`/home/oldha/projects/neuroDb`) unless noted.
 Telemetry SQL checks are written as command-line checks using `uv run python -c`.
 
+Full list of `task_type` values, tiers, `max_tokens`, and producing code: see the **Telemetry task types** table in `docs/superpowers/specs/2026-05-07-epoch-architecture-design.md` → Configuration Control Epoch section.
+
 DuckDB allows only one writer process for `neurodb.duckdb`. Do not keep Streamlit running while running CLI SQL checks. Run T1 before starting Streamlit. For T2-T6, start Streamlit only to generate the telemetry event, stop Streamlit with `Ctrl+C`, then run the CLI check.
 
 ---

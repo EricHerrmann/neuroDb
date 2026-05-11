@@ -80,6 +80,7 @@ def test_run_hypothesis_review_uses_premium_model_and_persists_review(monkeypatc
     assert result["suggested_revisions"] == "Limit the claim to a testable association."
     assert mc.create_message.call_args.kwargs["model"] == "claude-test-premium"
     assert "critique" in mc.create_message.call_args.kwargs["system"].lower()
+    assert mc.create_message.call_args.kwargs["tool_choice"] == "required"
 
     with Session(engine) as session:
         assert session.query(ResearchHypothesis).count() == 1

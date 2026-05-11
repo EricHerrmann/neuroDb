@@ -126,6 +126,8 @@ uv run python -c "import json; from sqlalchemy import text; from neurodb.db impo
 
 ## T4 — Telemetry Captures Standard And Premium Calls
 
+Full list of `task_type` values and tiers: see the **Telemetry task types** table in `docs/superpowers/specs/2026-05-07-epoch-architecture-design.md` → Configuration Control Epoch section.
+
 **Purpose:** Confirm Phase 2 telemetry can distinguish the normal research loop model from the premium review model.
 
 **Steps:**

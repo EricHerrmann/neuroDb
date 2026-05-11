@@ -1,6 +1,8 @@
 """FastAPI app factory."""
 from __future__ import annotations
 
+import os
+
 from fastapi import FastAPI
 from sqlalchemy import Engine
 
@@ -29,3 +31,20 @@ def create_app(
     app.include_router(chat.router, prefix="/api")
 
     return app
+
+
+def app_factory() -> FastAPI:
+    """Zero-arg factory for uvicorn --factory.
+
+    Usage: uv run uvicorn neurodb.api.app:app_factory --factory --port 8001
+    DB path read from NEURODB_DB_PATH env var, defaulting to neurodb.duckdb.
+    """
+    from dotenv import load_dotenv
+    from neurodb.db import create_views, get_engine, init_db
+
+    load_dotenv()
+    db_path = os.environ.get("NEURODB_DB_PATH", "neurodb.duckdb")
+    engine = get_engine(f"duckdb:///{db_path}")
+    init_db(engine)
+    create_views(engine)
+    return create_app(engine)

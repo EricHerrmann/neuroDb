@@ -17,7 +17,7 @@
    Pass: output ends with a green summary line (e.g. `408 passed, 9 failed`) where every failure is already tracked in `docs/testLog.md`. Do not proceed if there are new failures.
 
 2. `uv run streamlit run src/neurodb/ui/app.py` starts without error (verify before starting the API server, then stop it)
-3. `uv run uvicorn "neurodb.api.app:create_app" --factory --port 8001` starts without error
+3. `uv run uvicorn neurodb.api.app:app_factory --factory --port 8001` starts without error
 4. `.env` present with `ANTHROPIC_API_KEY` set
 5. At least one `ResearchQuestion` and one `ResearchHypothesis` row in the DB (created via the Streamlit research agent or seeded manually)
 

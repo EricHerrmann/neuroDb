@@ -4,7 +4,7 @@
 **Phase:** UI-2
 **Design source:** `docs/superpowers/specs/2026-05-11-ui2-react-workbench-design.md`
 **Implementation plan:** `docs/superpowers/plans/2026-05-11-ui2-react-workbench.md`
-**Status:** Draft - in progress
+**Status:** Implementation smoke passed - browser-interactive sign-off pending
 **Date:** 2026-05-11
 
 All commands run from the repo root (`/home/oldha/projects/neuroDb`) unless noted.
@@ -144,16 +144,16 @@ select 1 as ok
 
 | Eval | Result | Notes |
 |------|--------|-------|
-| T1 - Study log API | Pending | |
-| T2 - Sessions API | Pending | |
-| T3 - Suggestions API | Pending | |
-| T4 - Suggestions dismiss API | Pending | |
-| T5 - Remaining backend APIs | Pending | |
-| T6 - React layout | Pending | |
-| T7 - Panel navigation | Pending | |
-| T8 - Chat streaming | Pending | |
-| T9 - Suggestions dismiss UI | Pending | |
-| T10 - Knowledge Library actions | Pending | |
-| T11 - SQL panel | Pending | |
+| T1 - Study log API | Pass | Covered by `uv run pytest tests/ -q`; route tests included in 443 passing tests |
+| T2 - Sessions API | Pass | Covered by `uv run pytest tests/ -q`; route tests included in 443 passing tests |
+| T3 - Suggestions API | Pass | HTTP smoke returned 200 with `import_queue` and `source_suggestions`; route tests passed |
+| T4 - Suggestions dismiss API | Pass | Covered by `tests/unit/test_api_suggestions.py` |
+| T5 - Remaining backend APIs | Pass | `GET /api/datasets` and `POST /api/sql/execute` HTTP smoke returned 200; route tests passed |
+| T6 - React layout | Pending | Browser-interactive visual check still required; Vite served app shell with HTTP 200 |
+| T7 - Panel navigation | Pending | Browser-interactive tab navigation still required; TypeScript and build passed |
+| T8 - Chat streaming | Pending | Browser-interactive chat check still required; `useChat` SSE unit tests passed |
+| T9 - Suggestions dismiss UI | Pending | Browser-interactive mutation check still required; SuggestionsPanel tests passed |
+| T10 - Knowledge Library actions | Pending | Browser-interactive mutation check still required; KnowledgeLibraryPanel tests passed |
+| T11 - SQL panel | Pending | Browser-interactive SQL panel check still required; production build and SQL API smoke passed |
 
 **Signed off:** Pending

@@ -79,24 +79,24 @@
 | Task 1: Study-log route and schema | ✅ Complete | `eb4bf2a` |
 | Task 2: Sessions route and schema | ✅ Complete | `3a646c0` |
 | Task 3: Suggestions route and schema | ✅ Complete | `5ede004` |
-| Task 4: Datasets route and schema | Pending | — |
-| Task 5: Registry route and schema | Pending | — |
-| Task 6: Knowledge Library route and schema | Pending | — |
-| Task 7: SQL route and schema | Pending | — |
-| Task 8: Wire new routes in app.py + StaticFiles mount | Pending | — |
-| Task 9: Vite + React project scaffold | Pending | — |
-| Task 10: API client layer | Pending | — |
-| Task 11: useChat hook | Pending | — |
-| Task 12: App layout, Sidebar, PanelNav, ChatPanel, MessageBubble | Pending | — |
-| Task 13: SuggestionsPanel | Pending | — |
-| Task 14: StudyLogPanel | Pending | — |
-| Task 15: DatasetsPanel | Pending | — |
-| Task 16: RegistryPanel | Pending | — |
-| Task 17: KnowledgeLibraryPanel | Pending | — |
-| Task 18: ResearchPanel and SqlPanel | Pending | — |
-| Task 19: Integration check and manual test plan sign-off | Pending | — |
+| Task 4: Datasets route and schema | ✅ Complete | `27287ca` |
+| Task 5: Registry route and schema | ✅ Complete | `27287ca` |
+| Task 6: Knowledge Library route and schema | ✅ Complete | `27287ca` |
+| Task 7: SQL route and schema | ✅ Complete | `27287ca` |
+| Task 8: Wire new routes in app.py + StaticFiles mount | ✅ Complete | `27287ca` |
+| Task 9: Vite + React project scaffold | ✅ Complete | `7b34c15` |
+| Task 10: API client layer | ✅ Complete | `7b34c15` |
+| Task 11: useChat hook | ✅ Complete | `7b34c15` |
+| Task 12: App layout, Sidebar, PanelNav, ChatPanel, MessageBubble | ✅ Complete | `7b34c15` |
+| Task 13: SuggestionsPanel | ✅ Complete | `7b34c15` |
+| Task 14: StudyLogPanel | ✅ Complete | `7b34c15` |
+| Task 15: DatasetsPanel | ✅ Complete | `7b34c15` |
+| Task 16: RegistryPanel | ✅ Complete | `7b34c15` |
+| Task 17: KnowledgeLibraryPanel | ✅ Complete | `7b34c15` |
+| Task 18: ResearchPanel and SqlPanel | ✅ Complete | `7b34c15` |
+| Task 19: Integration check and manual test plan sign-off | In progress | — |
 
-**Next task:** Task 4 — Datasets route and schema
+**Next task:** Browser-interactive UI-2 manual sign-off using `docs/testsPlans/manualTestPlan_ui2_react_workbench.md`
 
 ---
 

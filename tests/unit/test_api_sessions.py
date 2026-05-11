@@ -4,8 +4,9 @@ from fastapi.testclient import TestClient
 from sqlalchemy import create_engine
 from sqlalchemy.pool import StaticPool
 
-from neurodb.schema import Base
+from neurodb.schema import Base, ChatSession
 from neurodb.api.routes.sessions import router
+from neurodb.db import get_session
 
 
 def _make_app(engine):
@@ -26,8 +27,6 @@ def _make_client():
 
 
 def _insert_session(engine, topic: str, mode: str = "local_db"):
-    from neurodb.schema import ChatSession
-    from neurodb.db import get_session
     with get_session(engine) as session:
         session.add(ChatSession(
             session_id=f"sess-{topic}",
@@ -59,8 +58,6 @@ def test_get_sessions_returns_rows():
 
 def test_get_sessions_ordered_most_recent_first():
     client, engine = _make_client()
-    from neurodb.schema import ChatSession
-    from neurodb.db import get_session
     with get_session(engine) as session:
         session.add(ChatSession(session_id="a", inferred_topic="older", agent_mode="local_db",
                                 started_at="2026-01-01T00:00:00", message_count=1))
@@ -69,3 +66,4 @@ def test_get_sessions_ordered_most_recent_first():
     resp = client.get("/api/sessions")
     data = resp.json()
     assert data[0]["inferred_topic"] == "newer"
+    assert data[1]["inferred_topic"] == "older"

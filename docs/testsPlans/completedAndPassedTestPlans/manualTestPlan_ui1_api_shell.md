@@ -4,7 +4,7 @@
 
 **Phase:** UI-1
 **Design source:** `docs/superpowers/plans/2026-05-08-ui1-backend-api-shell.md`
-**Status:** In progress — 2026-05-11
+**Status:** Signed off — 2026-05-11
 
 ---
 
@@ -175,14 +175,14 @@ Pass: HTTP 400 response, no stream opened.
 
 | Eval | Result | Notes |
 |------|--------|-------|
-| T1 — Streamlit still runs | | |
-| Setup — API server starts | | |
-| T2 — GET /api/status | | |
-| T3 — GET /api/preferences | | |
-| T4 — PUT /api/preferences/agent-mode | | |
-| T5 — GET /api/research/metrics | | |
-| T6 — POST /api/research/metrics/snapshot | | |
-| T7 — GET questions and hypotheses | | |
-| T8 — POST /api/chat/turn SSE stream | | |
+| T1 — Streamlit still runs | Pass | |
+| Setup — API server starts | Pass | |
+| T2 — GET /api/status | Pass | |
+| T3 — GET /api/preferences | Pass | |
+| T4 — PUT /api/preferences/agent-mode | Pass | |
+| T5 — GET /api/research/metrics | Pass | |
+| T6 — POST /api/research/metrics/snapshot | Pass | |
+| T7 — GET questions and hypotheses | Pass | |
+| T8 — POST /api/chat/turn SSE stream | Pass | |
 
-**Signed off:** —
+**Signed off:** 2026-05-11

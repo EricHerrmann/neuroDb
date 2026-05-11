@@ -1,7 +1,7 @@
 # NeuroDb — UI Epoch Plan
 
-**Status:** Streamlit MVP; UI-0 ADR complete; UI-1 (FastAPI backend shell) planned, not started
-**Last updated:** 2026-05-09
+**Status:** UI-1 complete — FastAPI backend shell signed off 2026-05-11; UI-2 is next
+**Last updated:** 2026-05-11
 **Epoch directory:** `src/neurodb/ui/`
 **Architecture reference:** `docs/superpowers/specs/2026-05-07-epoch-architecture-design.md`
 
@@ -11,7 +11,7 @@
 
 Own the UI shell, routing, pane layout, streaming rendering, and workbench state. Current implementation is Streamlit. Target is a FastAPI + React workbench shell — migration is incremental with Streamlit retained until parity.
 
-**Active work:** UI-1 implementation plan written and ready; not yet started. Manual test plan (`docs/testsPlans/manualTestPlan_ui1_api_shell.md`) ready for 8 API route evals.
+**Active work:** None — UI-1 signed off. UI-2 (React workbench prototype) is next.
 
 ---
 
@@ -21,12 +21,12 @@ Own the UI shell, routing, pane layout, streaming rendering, and workbench state
 |-------|-------|--------|-------|----------|-----------|
 | Streamlit MVP | Streamlit shell — chat, research, knowledge library, sidebar | Complete | — | 2026-05-06 | — |
 | UI-0 | Architecture decision record — FastAPI + React target confirmed; Streamlit retained during migration | Complete (ADR) | — | 2026-05-08 | — |
-| UI-1 | FastAPI backend shell — app factory, 8 API routes, SSE chat PoC | Not started | — | — | `docs/testsPlans/manualTestPlan_ui1_api_shell.md` |
+| UI-1 | FastAPI backend shell — app factory, 8 API routes, SSE chat PoC | Complete | 408 automated + 9 manual | 2026-05-11 | `docs/testsPlans/completedAndPassedTestPlans/manualTestPlan_ui1_api_shell.md` |
 | UI-2 | React workbench prototype — activity rail, resizable panes, chat streaming, research panel | Planned | — | — | — |
 | UI-3 | Parity migration — Streamlit surfaces moved to React one at a time | Planned | — | — | — |
 | UI-4 | Streamlit retirement decision | Planned | — | — | — |
 
-Active test plan: `docs/testsPlans/manualTestPlan_ui1_api_shell.md` (8 curl-based evals for UI-1 API routes — pending UI-1 implementation)
+Active test plan: none
 
 ---
 

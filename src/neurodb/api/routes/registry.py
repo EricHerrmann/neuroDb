@@ -1,6 +1,7 @@
 """GET, POST, and DELETE /api/registry routes."""
 from __future__ import annotations
 
+import json
 from datetime import UTC, datetime
 
 from fastapi import APIRouter, Depends, HTTPException
@@ -40,7 +41,7 @@ class CreateRegistryRequest(BaseModel):
     source_type: str
     source_key: str
     display_name: str
-    added_by: str
+    topics: list[str] | None = None
 
 
 @router.post("", response_model=LearningSourceItem)
@@ -48,12 +49,14 @@ def create_registry_entry(
     body: CreateRegistryRequest,
     engine: Engine = Depends(get_engine),
 ) -> LearningSourceItem:
+    content_json = json.dumps({"topics": body.topics}) if body.topics else None
     with get_session(engine) as session:
         source = LearningSource(
             source_type=body.source_type,
             source_key=body.source_key,
             display_name=body.display_name,
-            added_by=body.added_by,
+            content_json=content_json,
+            added_by="user",
             added_at=datetime.now(UTC).isoformat(),
         )
         session.add(source)

@@ -1,4 +1,6 @@
 """Tests for GET /api/registry route."""
+import json
+
 from fastapi import FastAPI
 from fastapi.testclient import TestClient
 from sqlalchemy import create_engine
@@ -114,3 +116,53 @@ def test_post_registry_422_on_missing_field():
     })
 
     assert resp.status_code == 422
+
+
+def test_post_registry_with_topics_serializes_content_json():
+    client, engine = _make_client()
+
+    client.post("/api/registry", json={
+        "source_type": "paper",
+        "source_key": "doi:10.9999/verify",
+        "display_name": "Verify Paper",
+        "topics": ["plasticity"],
+    })
+
+    from sqlalchemy import select as sa_select
+    from neurodb.schema import LearningSource as LS
+    with get_session(engine) as s:
+        row = s.execute(sa_select(LS).where(LS.source_key == "doi:10.9999/verify")).scalar_one()
+    parsed = json.loads(row.content_json)
+    assert parsed["topics"] == ["plasticity"]
+    assert row.added_by == "user"
+
+
+def test_post_registry_without_topics_has_null_content_json():
+    client, engine = _make_client()
+
+    client.post("/api/registry", json={
+        "source_type": "paper",
+        "source_key": "doi:10.5555/notopics",
+        "display_name": "No Topics Paper",
+    })
+
+    from sqlalchemy import select as sa_select
+    from neurodb.schema import LearningSource as LS
+    with get_session(engine) as s:
+        row = s.execute(sa_select(LS).where(LS.source_key == "doi:10.5555/notopics")).scalar_one()
+    assert row.content_json is None
+
+
+def test_post_registry_added_by_is_always_user():
+    """Sending added_by in body is ignored — route hardcodes 'user'."""
+    client, _ = _make_client()
+
+    resp = client.post("/api/registry", json={
+        "source_type": "paper",
+        "source_key": "doi:10.1111/provenance",
+        "display_name": "Provenance Test",
+        "added_by": "bot",   # this field is now ignored
+    })
+
+    assert resp.status_code == 200
+    assert resp.json()["added_by"] == "user"

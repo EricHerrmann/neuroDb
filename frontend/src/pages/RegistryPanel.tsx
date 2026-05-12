@@ -62,11 +62,11 @@ export default function RegistryPanel() {
     queryFn: api.getRegistry,
   })
   const [showForm, setShowForm] = useState(false)
-  const [form, setForm] = useState<CreateLearningSourceRequest>({
+  const [form, setForm] = useState({
     source_type: 'paper',
     source_key: '',
     display_name: '',
-    added_by: '',
+    topics_raw: '',
   })
 
   const remove = useMutation({
@@ -79,13 +79,22 @@ export default function RegistryPanel() {
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['registry'] })
       setShowForm(false)
-      setForm({ source_type: 'paper', source_key: '', display_name: '', added_by: '' })
+      setForm({ source_type: 'paper', source_key: '', display_name: '', topics_raw: '' })
     },
   })
 
   const handleSubmit = (event: FormEvent) => {
     event.preventDefault()
-    create.mutate(form)
+    const topics = form.topics_raw
+      .split(',')
+      .map(t => t.trim())
+      .filter(t => t.length > 0)
+    create.mutate({
+      source_type: form.source_type,
+      source_key: form.source_key,
+      display_name: form.display_name,
+      topics: topics.length > 0 ? topics : undefined,
+    })
   }
 
   if (isLoading) return <div style={{ padding: 12 }}>Loading...</div>
@@ -143,11 +152,10 @@ export default function RegistryPanel() {
             required
             style={{ fontSize: 12, padding: '3px 6px' }}
           />
-          <input
-            value={form.added_by}
-            onChange={event => setForm(current => ({ ...current, added_by: event.target.value }))}
-            placeholder="added by"
-            required
+          <textarea
+            value={form.topics_raw}
+            onChange={event => setForm(current => ({ ...current, topics_raw: event.target.value }))}
+            placeholder="topics (comma separated, optional)"
             style={{ fontSize: 12, padding: '3px 6px' }}
           />
           {create.error && (

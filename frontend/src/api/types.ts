@@ -138,5 +138,5 @@ export interface CreateLearningSourceRequest {
   source_type: string
   source_key: string
   display_name: string
-  added_by: string
+  topics?: string[]
 }

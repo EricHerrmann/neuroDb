@@ -43,17 +43,11 @@ describe('RegistryPanel', () => {
     const fetchMock = vi.fn().mockImplementation((path: string, init?: RequestInit) => {
       if (path === '/api/registry/1' && init?.method === 'DELETE') {
         return Promise.resolve({
-          ok: true,
-          status: 204,
-          text: async () => '',
-          json: async () => undefined,
+          ok: true, status: 204,
+          text: async () => '', json: async () => undefined,
         })
       }
-      return Promise.resolve({
-        ok: true,
-        status: 200,
-        json: async () => [],
-      })
+      return Promise.resolve({ ok: true, status: 200, json: async () => [] })
     })
     vi.stubGlobal('fetch', fetchMock)
 
@@ -77,28 +71,23 @@ describe('RegistryPanel', () => {
     expect(screen.getByText('Add Source')).toBeTruthy()
   })
 
-  it('add-source form submits POST /api/registry', async () => {
+  it('add-source form has topics field and no added_by field', () => {
+    render(<RegistryPanel />, { wrapper: makeWrapper([]) })
+    fireEvent.click(screen.getByText('Add Source'))
+    expect(screen.getByPlaceholderText(/topics/i)).toBeTruthy()
+    expect(screen.queryByPlaceholderText('added by')).toBeNull()
+  })
+
+  it('add-source form submits POST /api/registry with topics', async () => {
     const newItem = {
-      id: 99,
-      source_type: 'paper',
-      source_key: 'doi:new',
-      display_name: 'New Paper',
-      added_by: 'user',
-      added_at: '2026-01-01T00:00:00',
+      id: 99, source_type: 'paper', source_key: 'doi:new',
+      display_name: 'New Paper', added_by: 'user', added_at: '2026-01-01T00:00:00',
     }
     const fetchMock = vi.fn().mockImplementation((path: string, init?: RequestInit) => {
       if (path === '/api/registry' && init?.method === 'POST') {
-        return Promise.resolve({
-          ok: true,
-          status: 200,
-          json: async () => newItem,
-        })
+        return Promise.resolve({ ok: true, status: 200, json: async () => newItem })
       }
-      return Promise.resolve({
-        ok: true,
-        status: 200,
-        json: async () => [],
-      })
+      return Promise.resolve({ ok: true, status: 200, json: async () => [] })
     })
     vi.stubGlobal('fetch', fetchMock)
 
@@ -106,7 +95,9 @@ describe('RegistryPanel', () => {
     fireEvent.click(screen.getByText('Add Source'))
     fireEvent.change(screen.getByPlaceholderText('source key'), { target: { value: 'doi:new' } })
     fireEvent.change(screen.getByPlaceholderText('display name'), { target: { value: 'New Paper' } })
-    fireEvent.change(screen.getByPlaceholderText('added by'), { target: { value: 'user' } })
+    fireEvent.change(screen.getByPlaceholderText(/topics/i), {
+      target: { value: 'LTP, plasticity' },
+    })
     fireEvent.click(screen.getByText('Save'))
 
     await waitFor(() => {
@@ -114,6 +105,12 @@ describe('RegistryPanel', () => {
         '/api/registry',
         expect.objectContaining({ method: 'POST' }),
       )
+      const postCall = fetchMock.mock.calls.find(
+        ([p, i]: [string, RequestInit]) => p === '/api/registry' && i?.method === 'POST'
+      )
+      const body = JSON.parse((postCall![1] as RequestInit).body as string)
+      expect(body.topics).toEqual(['LTP', 'plasticity'])
+      expect(body.added_by).toBeUndefined()
     })
   })
 })

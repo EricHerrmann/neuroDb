@@ -8,7 +8,7 @@
 
 **Tech Stack:** FastAPI, SQLAlchemy, Python threading, React, TanStack Query v5, Vitest, Testing Library
 
-**Status:** Implementation complete 2026-05-11; review-results visibility fix added 2026-05-12; manual verification pending.
+**Status:** Implementation complete 2026-05-11; review-results visibility and Chroma store parity fixes added 2026-05-12; manual verification pending.
 
 ## Progress
 
@@ -30,9 +30,16 @@
 | Task 14: Streamlit deprecation banner | Complete |
 | Task 15: Manual test plan and docs update | Complete |
 
-**Verification:** `uv run pytest tests/ -q` → 469 passed, 5 warnings. `npm test` → 43 passed. `npm run build` → passed.
+**Verification:** `uv run pytest tests/ -q` → 474 passed, 5 warnings. `npm test` → 43 passed. `npm run build` → passed. `app_factory` smoke against `/tmp/ui3_fastapi_chroma_parity.duckdb` → Chroma-backed stores wired.
 
 **2026-05-12 follow-up:** React now exposes persisted hypothesis review artifacts via `GET /api/research/hypotheses/{id}/reviews` and renders critique text, unsupported claims, missing confounds, and suggested revisions under each hypothesis card.
+
+**2026-05-12 Chroma parity review:** Streamlit initialized `VectorStore`, `KnowledgeLibraryStore`, `AgentContextStore`, and `SessionManager` against the DB-derived Chroma path, and passed vector/knowledge/context stores into Neuro Research. FastAPI/React initialized only DuckDB. Fixed by importing connector ORM models in `app_factory`, initializing all Chroma-backed stores, wiring `SessionManager`, and passing `context_store` plus `model_provider` through the `/api/chat/turn` Neuro Research build path.
+
+Remaining FastAPI/React parity gaps identified but not included in this immediate Chroma-store fix:
+- React chat does not yet implement Streamlit's full chat-session lifecycle: draft `ChatSession` row, prior-topic context lookup on first user message, and automatic session summary persistence after enough turns.
+- React `POST /api/study-log` creates DB study notes but does not embed those notes into the vector store the way Streamlit's Study Log and Datasets tag forms do.
+- React dataset import runs ingest but does not yet add dataset embeddings to the vector store as a first-class post-import step.
 
 ---
 

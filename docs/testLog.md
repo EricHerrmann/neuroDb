@@ -27,6 +27,8 @@ Use `Log ID` for cross-references across Open, Resolved, triage, sprint planning
 |--------|----------|-------------|----------|
 | LOG-013 | UI-shell-rearchitecture | Streamlit cannot support fixed-pane app-shell behavior; reassess UI stack after LT-3 | Deferred post-LT-3 |
 | LOG-030 | lt3-t2-pass-header-size | LT-3 T2 passed, but titles/headers render too large | UI polish |
+| LOG-051 | ui-icon-pane-association | UI epoch feature: hard to associate activity-rail icons with right pane content; needs stronger tooltips/associations and icon reorder with Research first, then Study Log | UI polish |
+| LOG-052 | chat-markdown-plain-text | Agent returns Markdown, but chat window renders it as plain text, making responses hard to read | UI polish |
 
 ### Research
 | Log ID | Issue ID | Description | Priority |
@@ -34,6 +36,7 @@ Use `Log ID` for cross-references across Open, Resolved, triage, sprint planning
 | LOG-037 | lt3-t6-research-question-actions | Research pane shows several research questions but there is no way to delete or use them | Post-LT-3 polish |
 | LOG-045 | research-agent-no-knowledge-queue | Research agent cannot nominate papers for import to the knowledge library; no bridge to Tutor curation queue | Feature — Research epoch |
 | LOG-048 | dismiss-draft-hypothesis | No way to dismiss a draft hypothesis from the UI; dismiss exists for reviews but not the hypothesis itself | Research UI polish |
+| LOG-053 | research-agent-no-dataimport-suggestions | Research agent did not add suggestions to the data import queue even when specifically asked for suggestions | Research UI/agent polish |
 
 ---
 
@@ -51,6 +54,9 @@ Use `Log ID` for cross-references across Open, Resolved, triage, sprint planning
 | LOG-047 | 2026-05-09 | telemetry-timestamp-format | Config | Telemetry log timestamps display as raw ISO 8601; should display as HH:MM:SS DD/MM/YY for user readability. Likely addressed in Phase 6 alongside the system_warnings CLI surface. | Config Phase 4 manual testing |
 | LOG-048 | 2026-05-09 | dismiss-draft-hypothesis | Research | No way to dismiss a draft hypothesis from the UI. Dismiss exists for hypothesis reviews but not for the hypothesis itself. Hypothesis status options include "archived" but there is no button to set it. | Config Phase 4 manual testing |
 | LOG-050 | 2026-05-09 | gemini-premium-testing-deferred | Config | Gemini/Google account is billing-enabled for premium tier; all wiring issues surfaced this session (GOOGLE_API_KEY rename, null streaming tokens) were fixed. Further testing against premium Gemini models deferred. | Config Phase 4 manual testing |
+| LOG-051 | 2026-05-12 | ui-icon-pane-association | UI | UI epoch feature: hard to associate activity-rail icons with the related right pane and know what is available in each pane; increase tooltips or associations, and reorganize icons with Research at top, then Study Log. | User logged during UI-3 manual/ad hoc review |
+| LOG-052 | 2026-05-12 | chat-markdown-plain-text | UI | Agent returns Markdown, but chat window renders it as plain text, making responses hard to read. | User logged during UI-3 manual/ad hoc review |
+| LOG-053 | 2026-05-12 | research-agent-no-dataimport-suggestions | Research | Research agent did not add suggestions to the data import queue even when specifically asked for suggestions. | User logged during UI-3 manual/ad hoc review |
 
 ---
 

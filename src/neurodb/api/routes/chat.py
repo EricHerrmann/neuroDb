@@ -24,7 +24,14 @@ def _sse(data: dict) -> str:
     return f"data: {json.dumps(data)}\n\n"
 
 
-def _build_agent(agent_mode: str, engine, vector_store, knowledge_store, providers: dict):
+def _build_agent(
+    agent_mode: str,
+    engine,
+    vector_store,
+    knowledge_store,
+    context_store,
+    providers: dict,
+):
     router_obj = TaskRouter(providers)
     route = router_obj.route(f"agent.loop.{agent_mode}")
     if agent_mode == "neuro_research":
@@ -35,6 +42,8 @@ def _build_agent(agent_mode: str, engine, vector_store, knowledge_store, provide
             engine=engine,
             vector_store=vector_store,
             knowledge_store=knowledge_store,
+            context_store=context_store,
+            model_provider=route.provider,
         )
     if agent_mode == "neuro_tutor":
         return NeuroTutorAgent(
@@ -43,6 +52,7 @@ def _build_agent(agent_mode: str, engine, vector_store, knowledge_store, provide
             engine=engine,
             vector_store=vector_store,
             knowledge_store=knowledge_store,
+            model_provider=route.provider,
         )
     return NeuroDbAgent(
         model_client=route.model_client,
@@ -51,6 +61,7 @@ def _build_agent(agent_mode: str, engine, vector_store, knowledge_store, provide
         engine=engine,
         vector_store=vector_store,
         mode=agent_mode,
+        model_provider=route.provider,
     )
 
 
@@ -88,7 +99,14 @@ def chat_turn(
 
     stores = get_research_stores(request)
     history = [{"role": m.role, "content": m.content} for m in body.history]
-    agent = _build_agent(body.agent_mode, engine, stores["vector_store"], stores["knowledge_store"], providers)
+    agent = _build_agent(
+        body.agent_mode,
+        engine,
+        stores["vector_store"],
+        stores["knowledge_store"],
+        stores["context_store"],
+        providers,
+    )
 
     return StreamingResponse(
         _stream_chat(agent, body.message, history),

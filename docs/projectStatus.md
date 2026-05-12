@@ -15,7 +15,7 @@
 | Agent Core | `src/neurodb/agents/` | Stable | Config Control Phases 1–4 signed off; Phase 6 may add fallback chain logic |
 | Tutor | `src/neurodb/tutor/` | MVP complete (LT-1/2/3) | Open backlog: LOG-001, LOG-006, LOG-030 |
 | Research | `src/neurodb/research/` | Scaffolded (LT-3); hypothesis review with structured tool-use output | Research run management, research question actions (LOG-037) |
-| UI | `src/neurodb/ui/`, `src/neurodb/api/`, `frontend/` | UI-3 implementation complete — 469 Python tests, 43 frontend tests, frontend build passed | Manual verification active: `docs/testsPlans/manualTestPlan_ui3_parity_migration.md` |
+| UI | `src/neurodb/ui/`, `src/neurodb/api/`, `frontend/` | UI-3 implementation complete — 474 Python tests, 43 frontend tests, frontend build passed | Manual verification active: `docs/testsPlans/manualTestPlan_ui3_parity_migration.md` |
 | Config Control | `src/neurodb/config/` | Phase 5B complete — 398 automated tests; Phase 4 signed off 2026-05-09 | Phase 6: constructor fallback chain, SystemWarning table, CLI surface |
 
 ---

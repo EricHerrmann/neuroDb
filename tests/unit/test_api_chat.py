@@ -2,6 +2,7 @@
 from __future__ import annotations
 
 import json
+from types import SimpleNamespace
 from unittest.mock import MagicMock, patch
 
 import pytest
@@ -114,3 +115,77 @@ def test_chat_turn_returns_503_when_no_providers():
             json={"message": "hi", "history": [], "agent_mode": "local_db"},
         )
     assert resp.status_code == 503
+
+
+def test_build_agent_passes_chroma_stores_to_research_agent():
+    from neurodb.api.routes.chat import _build_agent
+
+    route = SimpleNamespace(
+        model_client=object(),
+        model_id="research-model",
+        provider="anthropic",
+        max_tokens=2048,
+    )
+
+    with (
+        patch("neurodb.api.routes.chat.TaskRouter") as router_cls,
+        patch("neurodb.api.routes.chat.NeuroResearchAgent") as agent_cls,
+    ):
+        router_cls.return_value.route.return_value = route
+        agent = _build_agent(
+            "neuro_research",
+            engine="engine",
+            vector_store="vector-store",
+            knowledge_store="knowledge-store",
+            context_store="context-store",
+            providers={"anthropic": object()},
+        )
+
+    router_cls.return_value.route.assert_called_once_with("agent.loop.neuro_research")
+    agent_cls.assert_called_once_with(
+        model_client=route.model_client,
+        model="research-model",
+        max_tokens=2048,
+        engine="engine",
+        vector_store="vector-store",
+        knowledge_store="knowledge-store",
+        context_store="context-store",
+        model_provider="anthropic",
+    )
+    assert agent == agent_cls.return_value
+
+
+def test_chat_turn_passes_context_store_to_agent_builder():
+    engine = create_engine(
+        "sqlite:///:memory:",
+        connect_args={"check_same_thread": False},
+        poolclass=StaticPool,
+    )
+    Base.metadata.create_all(engine)
+    app = FastAPI()
+    app.state.engine = engine
+    app.state.vector_store = "vector-store"
+    app.state.knowledge_store = "knowledge-store"
+    app.state.context_store = "context-store"
+    app.include_router(router, prefix="/api")
+    client = TestClient(app)
+
+    mock_agent = MagicMock()
+    mock_agent.chat.return_value = iter(["hello"])
+    providers = {"anthropic": MagicMock()}
+    with patch("neurodb.api.routes.chat._build_agent", return_value=mock_agent) as build_agent:
+        with patch("neurodb.api.routes.chat.build_provider_clients", return_value=providers):
+            resp = client.post(
+                "/api/chat/turn",
+                json={"message": "hi", "history": [], "agent_mode": "neuro_research"},
+            )
+
+    assert resp.status_code == 200
+    build_agent.assert_called_once_with(
+        "neuro_research",
+        engine,
+        "vector-store",
+        "knowledge-store",
+        "context-store",
+        providers,
+    )

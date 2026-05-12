@@ -62,6 +62,52 @@ def create_app(
     return app
 
 
+def _chroma_path_for_db(db_path: str) -> str:
+    if db_path.endswith(".duckdb"):
+        return db_path.replace(".duckdb", "_chroma")
+    return f"{db_path}_chroma"
+
+
+def _build_runtime_stores(db_path: str, engine: Engine) -> dict:
+    """Build the same Chroma-backed runtime stores used by the Streamlit app."""
+    from neurodb.config.provider_factory import build_provider_clients
+    from neurodb.config.task_router import TaskRouter
+    from neurodb.embedder import Embedder
+    from neurodb.knowledge_store import KnowledgeLibraryStore
+    from neurodb.session_manager import AgentContextStore, SessionManager
+    from neurodb.vector_store import VectorStore
+
+    chroma_path = _chroma_path_for_db(db_path)
+    embedder = Embedder()
+    vector_store = VectorStore(path=chroma_path, embedder=embedder)
+    knowledge_store = KnowledgeLibraryStore(path=chroma_path, embedder=embedder)
+    context_store = AgentContextStore(path=chroma_path)
+
+    route = None
+    providers = build_provider_clients()
+    if providers:
+        try:
+            route = TaskRouter(providers).route("summary.session")
+        except KeyError:
+            route = None
+
+    session_kwargs = {"engine": engine}
+    if route is not None:
+        session_kwargs.update({
+            "model_client": route.model_client,
+            "summary_model": route.model_id,
+            "summary_provider": route.provider,
+            "summary_max_tokens": route.max_tokens,
+        })
+
+    return {
+        "vector_store": vector_store,
+        "knowledge_store": knowledge_store,
+        "context_store": context_store,
+        "session_manager": SessionManager(context_store, **session_kwargs),
+    }
+
+
 def app_factory() -> FastAPI:
     """Zero-arg factory for uvicorn --factory.
 
@@ -70,6 +116,7 @@ def app_factory() -> FastAPI:
     """
     from dotenv import load_dotenv
 
+    import neurodb.connectors  # noqa: F401 — registers connector ORM models
     from neurodb.db import create_views, get_engine, init_db
 
     load_dotenv()
@@ -77,4 +124,5 @@ def app_factory() -> FastAPI:
     engine = get_engine(f"duckdb:///{db_path}")
     init_db(engine)
     create_views(engine)
-    return create_app(engine)
+    stores = _build_runtime_stores(db_path, engine)
+    return create_app(engine, **stores)

@@ -71,6 +71,7 @@ export interface KnowledgeSourceItem {
   queued_at: string
   reviewed_at: string | null
   summary: string | null
+  warnings?: string[]
 }
 
 export interface ResearchMetrics {

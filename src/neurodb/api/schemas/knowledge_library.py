@@ -16,3 +16,4 @@ class KnowledgeSourceItem(BaseModel):
     queued_at: str
     reviewed_at: str | None = None
     summary: str | None = None
+    warnings: list[str] = []

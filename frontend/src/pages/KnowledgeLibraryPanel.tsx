@@ -5,6 +5,7 @@ import { api } from '../api/client'
 
 export default function KnowledgeLibraryPanel() {
   const [statusFilter, setStatusFilter] = useState('all')
+  const [approveWarnings, setApproveWarnings] = useState<Record<number, string>>({})
   const queryClient = useQueryClient()
 
   const { data = [], isLoading, isError, error } = useQuery({
@@ -14,7 +15,12 @@ export default function KnowledgeLibraryPanel() {
 
   const approve = useMutation({
     mutationFn: (id: number) => api.approveSource(id),
-    onSuccess: () => queryClient.invalidateQueries({ queryKey: ['knowledge-library'] }),
+    onSuccess: (data, id) => {
+      queryClient.invalidateQueries({ queryKey: ['knowledge-library'] })
+      if (data.warnings?.length) {
+        setApproveWarnings(prev => ({ ...prev, [id]: data.warnings![0] }))
+      }
+    },
   })
   const reject = useMutation({
     mutationFn: (id: number) => api.rejectSource(id),
@@ -65,13 +71,8 @@ export default function KnowledgeLibraryPanel() {
                 onClick={() => approve.mutate(item.id)}
                 disabled={approve.isPending}
                 style={{
-                  fontSize: 12,
-                  padding: '3px 10px',
-                  cursor: 'pointer',
-                  background: '#1e3a8a',
-                  color: '#fff',
-                  border: 'none',
-                  borderRadius: 4,
+                  fontSize: 12, padding: '3px 10px', cursor: 'pointer',
+                  background: '#1e3a8a', color: '#fff', border: 'none', borderRadius: 4,
                 }}
               >
                 Approve
@@ -87,6 +88,14 @@ export default function KnowledgeLibraryPanel() {
           ) : (
             <div style={{ fontSize: 11, color: '#94a3b8', marginTop: 4 }}>
               {item.status} · {item.reviewed_at?.slice(0, 10) ?? ''}
+            </div>
+          )}
+          {approveWarnings[item.id] && (
+            <div style={{
+              color: '#92400e', background: '#fef3c7',
+              padding: '4px 8px', borderRadius: 4, fontSize: 11, marginTop: 4,
+            }}>
+              {approveWarnings[item.id]}
             </div>
           )}
         </div>

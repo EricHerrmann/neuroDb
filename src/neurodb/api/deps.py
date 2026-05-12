@@ -13,6 +13,14 @@ def get_engine(request: Request) -> Engine:
     return request.app.state.engine
 
 
+def get_vector_store(request: Request):
+    return request.app.state.vector_store
+
+
+def get_knowledge_store(request: Request):
+    return request.app.state.knowledge_store
+
+
 def get_research_stores(request: Request) -> dict:
     return {
         "vector_store": request.app.state.vector_store,

@@ -1,6 +1,7 @@
 """GET /api/datasets and dataset import routes."""
 from __future__ import annotations
 
+import logging
 import threading
 import uuid
 from datetime import UTC, datetime, timedelta
@@ -12,7 +13,9 @@ from neurodb.api.deps import get_engine, get_task_store
 from neurodb.api.schemas.datasets import DatasetItem
 from neurodb.api.tasks import TaskRecord
 from neurodb.db import get_session
-from neurodb.schema import DatasetIndex
+from neurodb.schema import DatasetIndex, ImportQueue
+
+logger = logging.getLogger(__name__)
 
 router = APIRouter()
 
@@ -69,6 +72,26 @@ def import_dataset(
         except Exception as exc:
             tasks[task_id].status = "failed"
             tasks[task_id].error = str(exc)[:400]
+            return
+        # Best-effort: mark the import queue row resolved.
+        # Failure here must not override the successful task status.
+        try:
+            resolved_at = datetime.now(UTC).isoformat()
+            with get_session(engine) as session:
+                queue_row = session.execute(
+                    select(ImportQueue).where(
+                        ImportQueue.source == source,
+                        ImportQueue.source_id == source_id,
+                        ImportQueue.status == "pending",
+                    )
+                ).scalars().first()
+                if queue_row is not None:
+                    queue_row.status = "imported"
+                    queue_row.resolved_at = resolved_at
+        except Exception:
+            logger.exception(
+                "Failed to update ImportQueue status for %s:%s", source, source_id
+            )
 
     threading.Thread(target=run, daemon=True).start()
     return {"task_id": task_id}

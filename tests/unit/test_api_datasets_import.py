@@ -62,3 +62,56 @@ def test_import_dataset_404_for_unknown_dataset():
     client, _ = _make_client()
     resp = client.post("/api/datasets/openneuro/unknown-ds/import")
     assert resp.status_code == 404
+
+
+from sqlalchemy import select
+from neurodb.schema import ImportQueue
+
+
+class _SyncThread:
+    """Runs the target callable synchronously — used in tests to avoid timing issues."""
+    def __init__(self, target, daemon=True):
+        self._target = target
+
+    def start(self):
+        self._target()
+
+
+def test_import_success_updates_import_queue_status():
+    client, engine = _make_client()
+    with get_session(engine) as session:
+        session.add(ImportQueue(
+            source="openneuro",
+            source_id="ds001",
+            title="Test Dataset",
+            status="pending",
+            suggested_at="2026-01-01T00:00:00",
+        ))
+
+    with patch("neurodb.api.routes.datasets._ingest_dataset"), \
+         patch("neurodb.api.routes.datasets.threading.Thread", _SyncThread):
+        resp = client.post("/api/datasets/openneuro/ds001/import")
+
+    assert resp.status_code == 200
+    with get_session(engine) as session:
+        queue_row = session.execute(
+            select(ImportQueue).where(
+                ImportQueue.source == "openneuro",
+                ImportQueue.source_id == "ds001",
+            )
+        ).scalars().first()
+    assert queue_row is not None
+    assert queue_row.status == "imported"
+    assert queue_row.resolved_at is not None
+
+
+def test_import_no_queue_row_still_marks_task_done():
+    """No ImportQueue row for this dataset — import succeeds, task is done."""
+    client, engine = _make_client()
+
+    with patch("neurodb.api.routes.datasets._ingest_dataset"), \
+         patch("neurodb.api.routes.datasets.threading.Thread", _SyncThread):
+        resp = client.post("/api/datasets/openneuro/ds001/import")
+
+    task_id = resp.json()["task_id"]
+    assert client.app.state.tasks[task_id].status == "done"

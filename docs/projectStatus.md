@@ -58,11 +58,12 @@ See `docs/testLog.md`. Current open items: LOG-001 (textbook dropdown ambiguity)
 | `docs/Research_EpochPlan.md` | Research epoch plan — NeuroResearchAgent, hypothesis tools, hypothesis review, open backlog |
 | `docs/ConfigControl_EpochPlan.md` | Config Control epoch plan — routing phases, provider adapters, telemetry, Phase 6 next |
 | `docs/DB_EpochPlan.md` | DB epoch plan — connectors, schema ownership, phases 0–8 |
-| `docs/UI_EpochPlan.md` | UI epoch plan — Streamlit MVP, FastAPI/React migration path, phases UI-0–4 |
+| `docs/UI_EpochPlan.md` | UI epoch plan — Streamlit MVP, FastAPI/React migration path, phases UI-0–5 |
 | **Active Plans / Specs** | |
 | `docs/superpowers/specs/2026-05-11-ui2-react-workbench-design.md` | UI-2 design spec — Vite + React + React Router v7 + TanStack Query v5; two-column layout; 7 panels; data flow; testing strategy |
 | `docs/superpowers/specs/2026-05-11-ui2b-layout-redesign.md` | UI-2B design spec — activity rail, react-resizable-panels, collapsible right panel, agent mode in chat header |
 | `docs/superpowers/specs/2026-05-11-ui3-parity-migration-design.md` | UI-3 design spec — 7 write operations, background task system, Streamlit deprecation |
+| `docs/superpowers/specs/2026-05-12-ui5-parity-completion-design.md` | UI-5 draft design — 26 remaining gaps; 6 P1 data-integrity, 10 P2 core workflow, 10 P3/enhancement |
 | `docs/superpowers/plans/2026-05-11-ui2-react-workbench.md` | UI-2 implementation plan — 19 tasks complete; signed off 2026-05-11 |
 | `docs/superpowers/plans/2026-05-11-ui2b-layout-redesign.md` | UI-2B implementation plan — 6 tasks complete; signed off 2026-05-11 |
 | `docs/superpowers/plans/2026-05-11-ui3-parity-migration.md` | UI-3 implementation plan — 15 tasks complete; manual verification pending |

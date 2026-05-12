@@ -22,3 +22,15 @@ class Hypothesis(BaseModel):
     mechanism: str | None = None
     status: str
     created_at: datetime | None = None
+
+
+class HypothesisReviewItem(BaseModel):
+    id: int
+    hypothesis_id: int
+    model: str
+    critique_text: str
+    unsupported_claims: list[object]
+    missing_confounds: list[object]
+    suggested_revisions: str
+    status: str
+    created_at: datetime | None = None

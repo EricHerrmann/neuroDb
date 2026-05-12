@@ -7,6 +7,7 @@ import ResearchPanel from './ResearchPanel'
 
 function makeWrapper(data: {
   hypotheses?: unknown[]
+  reviews?: Record<number, unknown[]>
   metrics?: unknown
   questions?: unknown[]
 } = {}) {
@@ -14,6 +15,9 @@ function makeWrapper(data: {
     defaultOptions: { queries: { retry: false, staleTime: Infinity } },
   })
   qc.setQueryData(['research-hypotheses'], data.hypotheses ?? [])
+  for (const [hypothesisId, reviews] of Object.entries(data.reviews ?? {})) {
+    qc.setQueryData(['hypothesis-reviews', Number(hypothesisId)], reviews)
+  }
   qc.setQueryData(['research-metrics'], data.metrics ?? {
     approved_sources_count: 0,
     chat_sessions_count: 0,
@@ -49,6 +53,38 @@ describe('ResearchPanel', () => {
       }),
     })
     expect(screen.getByText('Run Review')).toBeTruthy()
+  })
+
+  it('renders persisted review results under a hypothesis', () => {
+    render(<ResearchPanel />, {
+      wrapper: makeWrapper({
+        hypotheses: [{
+          id: 1,
+          title: 'LTP Hypothesis',
+          mechanism: null,
+          status: 'draft',
+          created_at: '2026-01-01',
+        }],
+        reviews: {
+          1: [{
+            id: 10,
+            hypothesis_id: 1,
+            model: 'test-model',
+            critique_text: 'Needs stronger evidence.',
+            unsupported_claims: ['Claim A'],
+            missing_confounds: ['Age'],
+            suggested_revisions: 'Narrow the claim.',
+            status: 'pending',
+            created_at: '2026-01-02',
+          }],
+        },
+      }),
+    })
+    expect(screen.getByText('Hypothesis Reviews')).toBeTruthy()
+    expect(screen.getByText('Needs stronger evidence.')).toBeTruthy()
+    expect(screen.getByText('Claim A')).toBeTruthy()
+    expect(screen.getByText('Age')).toBeTruthy()
+    expect(screen.getByText('Narrow the claim.')).toBeTruthy()
   })
 
   it('shows Running status after clicking Run Review', async () => {

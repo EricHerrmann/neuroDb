@@ -1,6 +1,6 @@
 # NeuroDb — Project Status
 
-**Last updated:** 2026-05-11
+**Last updated:** 2026-05-12
 **Active focus:** UI-3 parity migration implementation complete; manual verification pending
 **Next:** Manual verification of UI-3 then sign off; UI-4 Streamlit retirement decision
 **Goal alignment:** Two co-equal goals in a feedback loop — accumulate neuroscience understanding grounded in real data (Goal 1), and conduct structured neuroscience investigations using existing public datasets and good scientific method (Goal 2). See `NeuroDbGoals.md`.
@@ -15,7 +15,7 @@
 | Agent Core | `src/neurodb/agents/` | Stable | Config Control Phases 1–4 signed off; Phase 6 may add fallback chain logic |
 | Tutor | `src/neurodb/tutor/` | MVP complete (LT-1/2/3) | Open backlog: LOG-001, LOG-006, LOG-030 |
 | Research | `src/neurodb/research/` | Scaffolded (LT-3); hypothesis review with structured tool-use output | Research run management, research question actions (LOG-037) |
-| UI | `src/neurodb/ui/`, `src/neurodb/api/`, `frontend/` | UI-3 implementation complete — 466 Python tests, 42 frontend tests, frontend build passed | Manual verification active: `docs/testsPlans/manualTestPlan_ui3_parity_migration.md` |
+| UI | `src/neurodb/ui/`, `src/neurodb/api/`, `frontend/` | UI-3 implementation complete — 469 Python tests, 43 frontend tests, frontend build passed | Manual verification active: `docs/testsPlans/manualTestPlan_ui3_parity_migration.md` |
 | Config Control | `src/neurodb/config/` | Phase 5B complete — 398 automated tests; Phase 4 signed off 2026-05-09 | Phase 6: constructor fallback chain, SystemWarning table, CLI surface |
 
 ---

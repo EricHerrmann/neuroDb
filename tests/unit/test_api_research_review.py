@@ -8,7 +8,7 @@ from sqlalchemy.pool import StaticPool
 
 from neurodb.api.routes.research import router
 from neurodb.db import get_session
-from neurodb.schema import Base, ResearchHypothesis
+from neurodb.schema import Base, HypothesisReview, ResearchHypothesis
 
 
 def _make_app(engine):
@@ -82,4 +82,51 @@ def test_review_hypothesis_task_is_in_store():
 def test_review_hypothesis_404_for_unknown():
     client, _ = _make_client()
     resp = client.post("/api/research/hypotheses/9999/review")
+    assert resp.status_code == 404
+
+
+def _insert_review(engine, hypothesis_id: int, *, status: str = "pending") -> None:
+    with get_session(engine) as session:
+        session.add(HypothesisReview(
+            hypothesis_id=hypothesis_id,
+            created_at="2026-01-02T00:00:00",
+            model="test-model",
+            critique_text="Needs stronger evidence.",
+            unsupported_claims_json='["Claim A"]',
+            missing_confounds_json='["Age"]',
+            suggested_revisions="Narrow the claim.",
+            status=status,
+        ))
+
+
+def test_get_hypothesis_reviews_returns_review_artifacts():
+    client, engine = _make_client()
+    hyp_id = _insert_hypothesis(engine)
+    _insert_review(engine, hyp_id)
+
+    resp = client.get(f"/api/research/hypotheses/{hyp_id}/reviews")
+
+    assert resp.status_code == 200
+    data = resp.json()
+    assert len(data) == 1
+    assert data[0]["critique_text"] == "Needs stronger evidence."
+    assert data[0]["unsupported_claims"] == ["Claim A"]
+    assert data[0]["missing_confounds"] == ["Age"]
+    assert data[0]["suggested_revisions"] == "Narrow the claim."
+
+
+def test_get_hypothesis_reviews_hides_dismissed_reviews():
+    client, engine = _make_client()
+    hyp_id = _insert_hypothesis(engine)
+    _insert_review(engine, hyp_id, status="dismissed")
+
+    resp = client.get(f"/api/research/hypotheses/{hyp_id}/reviews")
+
+    assert resp.status_code == 200
+    assert resp.json() == []
+
+
+def test_get_hypothesis_reviews_404_for_unknown_hypothesis():
+    client, _ = _make_client()
+    resp = client.get("/api/research/hypotheses/9999/reviews")
     assert resp.status_code == 404

@@ -97,6 +97,18 @@ export interface Hypothesis {
   created_at: string | null
 }
 
+export interface HypothesisReviewItem {
+  id: number
+  hypothesis_id: number
+  model: string
+  critique_text: string
+  unsupported_claims: unknown[]
+  missing_confounds: unknown[]
+  suggested_revisions: string
+  status: string
+  created_at: string | null
+}
+
 export interface SqlResult {
   columns: string[]
   rows: unknown[][]

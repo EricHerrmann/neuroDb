@@ -6,6 +6,7 @@
 **Implementation plan:** `docs/superpowers/plans/2026-05-11-ui3-parity-migration.md`
 **Status:** Active
 **Date:** 2026-05-11
+**Last updated:** 2026-05-12
 
 All commands run from the repo root (`/home/oldha/projects/neuroDb`) unless noted.
 
@@ -92,7 +93,7 @@ If the dataset source is not configured, the task may fail. Passing behavior is 
 
 Open Research panel. Locate a hypothesis card. Click "Run Review".
 
-**Pass:** "Running..." appears inline. On completion, "Review complete" appears in green. The hypotheses list re-fetches.
+**Pass:** "Running..." appears inline. On completion, "Review complete" appears in green. The hypothesis card shows a Hypothesis Reviews section with the critique text, unsupported claims, missing confounds, and suggested revisions.
 
 If no API key is configured, the task may fail. Passing behavior is a transition from Running to either Review complete or an error message, with no infinite spinner.
 

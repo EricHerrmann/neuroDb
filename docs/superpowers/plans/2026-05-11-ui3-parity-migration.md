@@ -8,7 +8,7 @@
 
 **Tech Stack:** FastAPI, SQLAlchemy, Python threading, React, TanStack Query v5, Vitest, Testing Library
 
-**Status:** Implementation complete 2026-05-11; manual verification pending.
+**Status:** Implementation complete 2026-05-11; review-results visibility fix added 2026-05-12; manual verification pending.
 
 ## Progress
 
@@ -30,7 +30,9 @@
 | Task 14: Streamlit deprecation banner | Complete |
 | Task 15: Manual test plan and docs update | Complete |
 
-**Verification:** `uv run pytest tests/ -q` → 466 passed, 5 warnings. `npm test` → 42 passed. `npm run build` → passed.
+**Verification:** `uv run pytest tests/ -q` → 469 passed, 5 warnings. `npm test` → 43 passed. `npm run build` → passed.
+
+**2026-05-12 follow-up:** React now exposes persisted hypothesis review artifacts via `GET /api/research/hypotheses/{id}/reviews` and renders critique text, unsupported claims, missing confounds, and suggested revisions under each hypothesis card.
 
 ---
 

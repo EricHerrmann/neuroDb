@@ -4,6 +4,7 @@ import type {
   CreateStudyNoteRequest,
   DatasetItem,
   Hypothesis,
+  HypothesisReviewItem,
   KnowledgeSourceItem,
   LearningSourceItem,
   Preferences,
@@ -95,6 +96,8 @@ export const api = {
     get<ResearchQuestion[]>(`/api/research/questions?status=${status}`),
   getHypotheses: (status = 'all') =>
     get<Hypothesis[]>(`/api/research/hypotheses?status=${status}`),
+  getHypothesisReviews: (id: number) =>
+    get<HypothesisReviewItem[]>(`/api/research/hypotheses/${id}/reviews`),
   snapshotMetrics: () => post<Record<string, unknown>>('/api/research/metrics/snapshot'),
   runHypothesisReview: (id: number) =>
     post<TaskResponse>(`/api/research/hypotheses/${id}/review`),

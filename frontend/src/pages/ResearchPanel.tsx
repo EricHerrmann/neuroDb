@@ -4,11 +4,57 @@ import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { api } from '../api/client'
 import TaskStatus from '../components/TaskStatus'
 import { useTask } from '../hooks/useTask'
-import type { Hypothesis } from '../api/types'
+import type { Hypothesis, HypothesisReviewItem } from '../api/types'
+
+function renderListValue(value: unknown): string {
+  if (typeof value === 'string') return value
+  return JSON.stringify(value)
+}
+
+function ReviewList({ label, values }: { label: string; values: unknown[] }) {
+  if (values.length === 0) return null
+  return (
+    <div style={{ marginTop: 6 }}>
+      <div style={{ fontSize: 11, fontWeight: 600, color: '#475569' }}>{label}</div>
+      <ul style={{ margin: '3px 0 0 16px', padding: 0 }}>
+        {values.map((value, index) => (
+          <li key={`${label}-${index}`} style={{ fontSize: 11, color: '#334155' }}>
+            {renderListValue(value)}
+          </li>
+        ))}
+      </ul>
+    </div>
+  )
+}
+
+function HypothesisReviewCard({ review }: { review: HypothesisReviewItem }) {
+  return (
+    <div style={{ marginTop: 8, padding: 8, background: '#f8fafc', border: '1px solid #e2e8f0', borderRadius: 6 }}>
+      <div style={{ fontSize: 11, color: '#64748b', marginBottom: 4 }}>
+        {review.status} · {review.model} · {review.created_at?.slice(0, 10)}
+      </div>
+      <div style={{ fontSize: 12, color: '#1e293b', whiteSpace: 'pre-wrap' }}>
+        {review.critique_text}
+      </div>
+      <ReviewList label="Unsupported claims" values={review.unsupported_claims} />
+      <ReviewList label="Missing confounds" values={review.missing_confounds} />
+      <div style={{ marginTop: 6 }}>
+        <div style={{ fontSize: 11, fontWeight: 600, color: '#475569' }}>Suggested revisions</div>
+        <div style={{ fontSize: 11, color: '#334155', whiteSpace: 'pre-wrap' }}>
+          {review.suggested_revisions}
+        </div>
+      </div>
+    </div>
+  )
+}
 
 function HypothesisCard({ hypothesis }: { hypothesis: Hypothesis }) {
   const queryClient = useQueryClient()
   const [taskId, setTaskId] = useState<string | null>(null)
+  const { data: reviews = [] } = useQuery({
+    queryKey: ['hypothesis-reviews', hypothesis.id],
+    queryFn: () => api.getHypothesisReviews(hypothesis.id),
+  })
 
   const reviewMutation = useMutation({
     mutationFn: () => api.runHypothesisReview(hypothesis.id),
@@ -17,6 +63,7 @@ function HypothesisCard({ hypothesis }: { hypothesis: Hypothesis }) {
 
   const taskState = useTask(taskId, 180000, () => {
     queryClient.invalidateQueries({ queryKey: ['research-hypotheses'] })
+    queryClient.invalidateQueries({ queryKey: ['hypothesis-reviews', hypothesis.id] })
   })
 
   return (
@@ -44,6 +91,16 @@ function HypothesisCard({ hypothesis }: { hypothesis: Hypothesis }) {
       {reviewMutation.error && (
         <div style={{ fontSize: 11, color: '#dc2626', marginTop: 4 }}>
           {(reviewMutation.error as Error).message}
+        </div>
+      )}
+      {reviews.length > 0 && (
+        <div style={{ marginTop: 8 }}>
+          <div style={{ fontSize: 12, fontWeight: 700, color: '#1e293b' }}>
+            Hypothesis Reviews
+          </div>
+          {reviews.map(review => (
+            <HypothesisReviewCard key={review.id} review={review} />
+          ))}
         </div>
       )}
     </div>

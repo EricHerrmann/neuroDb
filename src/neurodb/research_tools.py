@@ -38,6 +38,14 @@ def _now_iso() -> str:
     return datetime.now(timezone.utc).isoformat()
 
 
+def _json_list(value: str) -> list:
+    try:
+        parsed = json.loads(value)
+    except json.JSONDecodeError:
+        return []
+    return parsed if isinstance(parsed, list) else []
+
+
 def load_app_preference(engine: Engine, key: str, default: str = "") -> str:
     """Return a persisted app preference value, or default when absent."""
     with get_session(engine) as session:
@@ -208,6 +216,34 @@ def update_hypothesis_review_status(
             return {"error": f"review {review_id} not found"}
         row.status = status
         return {"status": "updated", "id": row.id, "artifact_status": row.status}
+
+
+def list_hypothesis_reviews(
+    engine: Engine,
+    hypothesis_id: int,
+    *,
+    include_dismissed: bool = False,
+) -> list[dict]:
+    """Return review artifacts for a hypothesis, newest first."""
+    with get_session(engine) as session:
+        query = session.query(HypothesisReview).filter_by(hypothesis_id=hypothesis_id)
+        if not include_dismissed:
+            query = query.filter(HypothesisReview.status != "dismissed")
+        rows = query.order_by(HypothesisReview.created_at.desc()).all()
+        return [
+            {
+                "id": row.id,
+                "hypothesis_id": row.hypothesis_id,
+                "model": row.model,
+                "critique_text": row.critique_text,
+                "unsupported_claims": _json_list(row.unsupported_claims_json),
+                "missing_confounds": _json_list(row.missing_confounds_json),
+                "suggested_revisions": row.suggested_revisions,
+                "status": row.status,
+                "created_at": row.created_at,
+            }
+            for row in rows
+        ]
 
 
 def get_knowledge_growth_metrics(

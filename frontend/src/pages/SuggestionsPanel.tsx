@@ -93,13 +93,15 @@ function SourceSuggestionRow({ item }: { item: SourceSuggestionItem }) {
         >
           Dismiss
         </button>
-        <button
-          onClick={() => promote.mutate()}
-          disabled={promote.isPending}
-          style={{ fontSize: 12, padding: '3px 10px', cursor: 'pointer' }}
-        >
-          Promote
-        </button>
+        {item.suggestion_type === 'learning_source' && (
+          <button
+            onClick={() => promote.mutate()}
+            disabled={promote.isPending}
+            style={{ fontSize: 12, padding: '3px 10px', cursor: 'pointer' }}
+          >
+            Promote
+          </button>
+        )}
       </div>
       {promote.error && (
         <div style={{ fontSize: 11, color: '#dc2626', marginTop: 4 }}>

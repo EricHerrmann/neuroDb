@@ -144,7 +144,7 @@ def test_promote_source_suggestion_creates_registry_entry_and_returns_item():
     assert resp.status_code == 200
     data = resp.json()
     assert data["display_name"] == "LTP Review"
-    assert data["added_by"] == "suggestion"
+    assert data["added_by"] == "user"
     assert "id" in data
     assert client.get("/api/suggestions").json()["source_suggestions"] == []
     with get_session(engine) as session:
@@ -157,3 +157,22 @@ def test_promote_source_suggestion_404_for_unknown():
     client, _ = _make_client()
     resp = client.post("/api/suggestions/source-suggestions/9999/promote")
     assert resp.status_code == 404
+
+
+def test_promote_sets_added_by_user():
+    client, engine = _make_client()
+    with get_session(engine) as session:
+        session.add(SourceSuggestion(
+            suggestion_type="learning_source",
+            reference="10.9999/test",
+            display_name="LTP Meta-Analysis",
+            reason="Relevant",
+            status="pending",
+            suggested_at="2026-01-01T00:00:00",
+        ))
+    item_id = client.get("/api/suggestions").json()["source_suggestions"][0]["id"]
+
+    resp = client.post(f"/api/suggestions/source-suggestions/{item_id}/promote")
+
+    assert resp.status_code == 200
+    assert resp.json()["added_by"] == "user"

@@ -26,14 +26,9 @@ describe('SuggestionsPanel', () => {
     render(<SuggestionsPanel />, {
       wrapper: makeWrapper({
         import_queue: [{
-          id: 1,
-          source: 'openneuro',
-          source_id: 'ds001',
-          title: 'Test DS',
-          status: 'pending',
-          suggested_at: '2026-01-01',
-          reason: null,
-          chapter_ref: null,
+          id: 1, source: 'openneuro', source_id: 'ds001',
+          title: 'Test DS', status: 'pending', suggested_at: '2026-01-01',
+          reason: null, chapter_ref: null,
         }],
         source_suggestions: [],
       }),
@@ -41,7 +36,26 @@ describe('SuggestionsPanel', () => {
     expect(screen.getByText(/Test DS/)).toBeTruthy()
   })
 
-  it('renders Dismiss and Promote buttons on source suggestions', () => {
+  it('renders Dismiss and Promote for learning_source suggestions', () => {
+    render(<SuggestionsPanel />, {
+      wrapper: makeWrapper({
+        import_queue: [],
+        source_suggestions: [{
+          id: 1,
+          suggestion_type: 'learning_source',
+          reference: '10.1234/test',
+          display_name: 'LTP Study',
+          reason: 'Relevant',
+          status: 'pending',
+          suggested_at: '2026-01-01',
+        }],
+      }),
+    })
+    expect(screen.getByText('Dismiss')).toBeTruthy()
+    expect(screen.getByText('Promote')).toBeTruthy()
+  })
+
+  it('hides Promote for non-learning_source suggestion types', () => {
     render(<SuggestionsPanel />, {
       wrapper: makeWrapper({
         import_queue: [],
@@ -57,21 +71,16 @@ describe('SuggestionsPanel', () => {
       }),
     })
     expect(screen.getByText('Dismiss')).toBeTruthy()
-    expect(screen.getByText('Promote')).toBeTruthy()
+    expect(screen.queryByText('Promote')).toBeNull()
   })
 
   it('renders Import button on import queue items', () => {
     render(<SuggestionsPanel />, {
       wrapper: makeWrapper({
         import_queue: [{
-          id: 1,
-          source: 'openneuro',
-          source_id: 'ds001',
-          title: 'Test DS',
-          status: 'pending',
-          suggested_at: '2026-01-01',
-          reason: null,
-          chapter_ref: null,
+          id: 1, source: 'openneuro', source_id: 'ds001',
+          title: 'Test DS', status: 'pending', suggested_at: '2026-01-01',
+          reason: null, chapter_ref: null,
         }],
         source_suggestions: [],
       }),

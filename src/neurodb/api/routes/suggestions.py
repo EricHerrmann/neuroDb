@@ -76,7 +76,7 @@ def promote_source_suggestion(
             source_type=row.suggestion_type,
             source_key=source_key,
             display_name=row.display_name or source_key,
-            added_by="suggestion",
+            added_by="user",
             added_at=datetime.now(UTC).isoformat(),
         )
         session.add(source)

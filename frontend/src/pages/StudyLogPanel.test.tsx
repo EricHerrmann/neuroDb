@@ -120,4 +120,37 @@ describe('StudyLogPanel', () => {
       )
     })
   })
+
+  it('shows warning banner when create returns a warning', async () => {
+    const fetchMock = vi.fn().mockImplementation((path: string, init?: RequestInit) => {
+      if (path === '/api/study-log' && init?.method === 'POST') {
+        return Promise.resolve({
+          ok: true,
+          status: 200,
+          json: async () => ({
+            id: 1,
+            source: 'openneuro',
+            source_id: 'ds001',
+            concept_tag: 'LTP',
+            section_ref: null,
+            note_text: null,
+            tagged_at: '2026-01-01T00:00:00',
+            warnings: ['Vector embedding failed: chroma down'],
+          }),
+        })
+      }
+      return Promise.resolve({ ok: true, status: 200, json: async () => [] })
+    })
+    vi.stubGlobal('fetch', fetchMock)
+
+    render(<StudyLogPanel />, { wrapper: makeWrapper([]) })
+    fireEvent.click(screen.getByText('Add Tag'))
+    fireEvent.change(screen.getByPlaceholderText('source_id'), { target: { value: 'ds001' } })
+    fireEvent.change(screen.getByPlaceholderText('concept_tag'), { target: { value: 'LTP' } })
+    fireEvent.click(screen.getByText('Save'))
+
+    await waitFor(() => {
+      expect(screen.getByText(/Vector embedding failed/)).toBeTruthy()
+    })
+  })
 })

@@ -6,6 +6,7 @@ export interface StudyNote {
   section_ref: string | null
   note_text: string | null
   tagged_at: string
+  warnings?: string[]
 }
 
 export interface ChatSession {

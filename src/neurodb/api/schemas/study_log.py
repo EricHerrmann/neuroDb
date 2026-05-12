@@ -10,3 +10,4 @@ class StudyNoteItem(BaseModel):
     section_ref: str | None = None
     note_text: str | None = None
     tagged_at: str
+    warnings: list[str] = []

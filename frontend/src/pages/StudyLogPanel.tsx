@@ -21,14 +21,16 @@ function StudyTagsView() {
     note_text: '',
   })
   const [formError, setFormError] = useState<string | null>(null)
+  const [warning, setWarning] = useState<string | null>(null)
 
   const create = useMutation({
     mutationFn: (body: CreateStudyNoteRequest) => api.createStudyNote(body),
-    onSuccess: () => {
+    onSuccess: (data) => {
       queryClient.invalidateQueries({ queryKey: ['study-log'] })
       setShowForm(false)
       setForm({ source: 'openneuro', source_id: '', concept_tag: '', section_ref: '', note_text: '' })
       setFormError(null)
+      setWarning(data.warnings?.length ? data.warnings[0] : null)
     },
   })
 
@@ -140,6 +142,18 @@ function StudyTagsView() {
             Save
           </button>
         </form>
+      )}
+      {warning && (
+        <div style={{
+          color: '#92400e',
+          background: '#fef3c7',
+          padding: '4px 8px',
+          borderRadius: 4,
+          fontSize: 11,
+          marginTop: 4,
+        }}>
+          {warning}
+        </div>
       )}
     </div>
   )

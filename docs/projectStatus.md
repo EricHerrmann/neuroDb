@@ -1,8 +1,8 @@
 # NeuroDb — Project Status
 
 **Last updated:** 2026-05-12
-**Active focus:** UI-3 parity migration implementation complete; manual verification pending
-**Next:** Manual verification of UI-3 then sign off; UI-4 Streamlit retirement decision
+**Active focus:** UI-5 P1 data-integrity fixes complete (485 Python + 47 frontend tests); UI-3 manual verification still pending
+**Next:** Complete UI-3 manual verification then sign off; UI-4 Streamlit retirement decision; UI-5 P2 planning
 **Goal alignment:** Two co-equal goals in a feedback loop — accumulate neuroscience understanding grounded in real data (Goal 1), and conduct structured neuroscience investigations using existing public datasets and good scientific method (Goal 2). See `NeuroDbGoals.md`.
 
 ---
@@ -15,7 +15,7 @@
 | Agent Core | `src/neurodb/agents/` | Stable | Config Control Phases 1–4 signed off; Phase 6 may add fallback chain logic |
 | Tutor | `src/neurodb/tutor/` | MVP complete (LT-1/2/3) | Open backlog: LOG-001, LOG-006, LOG-030 |
 | Research | `src/neurodb/research/` | Scaffolded (LT-3); hypothesis review with structured tool-use output | Research run management, research question actions (LOG-037) |
-| UI | `src/neurodb/ui/`, `src/neurodb/api/`, `frontend/` | UI-3 implementation complete — 474 Python tests, 43 frontend tests, frontend build passed | Manual verification active: `docs/testsPlans/manualTestPlan_ui3_parity_migration.md` |
+| UI | `src/neurodb/ui/`, `src/neurodb/api/`, `frontend/` | UI-5 P1 complete — 485 Python tests, 47 frontend tests, build passed; UI-3 manual verification pending | Manual verification active: `docs/testsPlans/manualTestPlan_ui3_parity_migration.md` |
 | Config Control | `src/neurodb/config/` | Phase 5B complete — 398 automated tests; Phase 4 signed off 2026-05-09 | Phase 6: constructor fallback chain, SystemWarning table, CLI surface |
 
 ---
@@ -64,6 +64,8 @@ See `docs/testLog.md`. Current open items: LOG-001 (textbook dropdown ambiguity)
 | `docs/superpowers/specs/2026-05-11-ui2b-layout-redesign.md` | UI-2B design spec — activity rail, react-resizable-panels, collapsible right panel, agent mode in chat header |
 | `docs/superpowers/specs/2026-05-11-ui3-parity-migration-design.md` | UI-3 design spec — 7 write operations, background task system, Streamlit deprecation |
 | `docs/superpowers/specs/2026-05-12-ui5-parity-completion-design.md` | UI-5 draft design — 26 remaining gaps; 6 P1 data-integrity, 10 P2 core workflow, 10 P3/enhancement |
+| `docs/superpowers/specs/2026-05-12-ui5-p1-data-integrity-design.md` | UI-5 P1 design spec — 6 data-integrity fixes, warning propagation pattern |
+| `docs/superpowers/plans/2026-05-12-ui5-p1-data-integrity.md` | UI-5 P1 implementation plan — 6 tasks complete |
 | `docs/superpowers/plans/2026-05-11-ui2-react-workbench.md` | UI-2 implementation plan — 19 tasks complete; signed off 2026-05-11 |
 | `docs/superpowers/plans/2026-05-11-ui2b-layout-redesign.md` | UI-2B implementation plan — 6 tasks complete; signed off 2026-05-11 |
 | `docs/superpowers/plans/2026-05-11-ui3-parity-migration.md` | UI-3 implementation plan — 15 tasks complete; manual verification pending |

@@ -33,9 +33,10 @@ Own the UI shell, routing, pane layout, streaming rendering, and workbench state
 | UI-2B | Layout redesign — activity rail (replaces sidebar + PanelNav), resizable + collapsible right panel, agent mode in chat header, chat history in Study Log | Complete | 19 frontend + 9 manual | 2026-05-11 | `docs/testsPlans/completedAndPassedTestPlans/manualTestPlan_ui2b_layout_redesign.md` |
 | UI-3 | Parity migration — 7 write operations wired to React; Streamlit deprecation banner | Implementation complete; manual verification pending | 474 Python + 43 frontend + build | — | `docs/testsPlans/manualTestPlan_ui3_parity_migration.md` |
 | UI-4 | Streamlit retirement decision | Planned | — | — | — |
-| UI-5 | Parity completion — close 26 remaining gaps across 8 panels; fix 6 P1 data-integrity divergences before UI-4 can proceed | Draft design complete | — | — | — |
+| UI-5 P1 | Data integrity fixes — 6 gaps: study log embedding, KL ChromaDB indexing, ImportQueue status, promote provenance, suggest type gating, registry topics | Complete | 485 Python + 47 frontend + build | 2026-05-12 | — |
+| UI-5 P2+ | Parity completion — 20 remaining gaps (P2 core workflow + P3 polish) | Planned | — | — | — |
 
-Active test plan: `docs/testsPlans/manualTestPlan_ui3_parity_migration.md`
+Active test plan: `docs/testsPlans/manualTestPlan_ui3_parity_migration.md` (UI-3 manual verification still pending)
 
 ---
 
@@ -133,6 +134,8 @@ Historical options analysis and pros/cons: `docs/archive/UI_EpochPlan_historical
 | `docs/superpowers/specs/2026-05-11-ui2b-layout-redesign.md` | UI-2B design spec |
 | `docs/superpowers/specs/2026-05-11-ui3-parity-migration-design.md` | UI-3 design spec — 7 write operations, background task system |
 | `docs/superpowers/specs/2026-05-12-ui5-parity-completion-design.md` | UI-5 draft design — 26 gaps, P1/P2/P3/Enhancement by capability |
+| `docs/superpowers/specs/2026-05-12-ui5-p1-data-integrity-design.md` | UI-5 P1 design spec — 6 data-integrity fixes, warning propagation pattern |
+| `docs/superpowers/plans/2026-05-12-ui5-p1-data-integrity.md` | UI-5 P1 implementation plan — 6 tasks complete |
 | `docs/superpowers/plans/2026-05-11-ui2-react-workbench.md` | UI-2 implementation plan (complete) |
 | `docs/superpowers/plans/2026-05-11-ui2b-layout-redesign.md` | UI-2B implementation plan (complete) |
 | `docs/superpowers/plans/2026-05-11-ui3-parity-migration.md` | UI-3 implementation plan (15 tasks) |

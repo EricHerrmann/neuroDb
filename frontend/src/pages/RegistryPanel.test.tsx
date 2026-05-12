@@ -106,7 +106,7 @@ describe('RegistryPanel', () => {
         expect.objectContaining({ method: 'POST' }),
       )
       const postCall = fetchMock.mock.calls.find(
-        ([p, i]: [string, RequestInit]) => p === '/api/registry' && i?.method === 'POST'
+        (args) => args[0] === '/api/registry' && (args[1] as RequestInit)?.method === 'POST'
       )
       const body = JSON.parse((postCall![1] as RequestInit).body as string)
       expect(body.topics).toEqual(['LTP', 'plasticity'])

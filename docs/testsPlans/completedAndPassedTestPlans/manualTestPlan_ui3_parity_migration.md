@@ -4,9 +4,9 @@
 **Phase:** UI-3
 **Design source:** `docs/superpowers/specs/2026-05-11-ui3-parity-migration-design.md`
 **Implementation plan:** `docs/superpowers/plans/2026-05-11-ui3-parity-migration.md`
-**Status:** Active
+**Status:** Passed
 **Date:** 2026-05-11
-**Last updated:** 2026-05-12
+**Last updated:** 2026-05-13
 
 All commands run from the repo root (`/home/oldha/projects/neuroDb`) unless noted.
 
@@ -115,14 +115,14 @@ Open http://localhost:8501.
 
 | Eval | Result | Notes |
 |------|--------|-------|
-| T1 - Create study tag | | |
-| T2 - Inline error on missing concept tag | | |
-| T3 - Dismiss source suggestion | | |
-| T4 - Promote source suggestion | | |
-| T5 - Remove registry entry | | |
-| T6 - Add registry entry | | |
-| T7 - Import dataset | | |
-| T8 - Run hypothesis review | | |
-| T9 - Streamlit deprecation banner | | |
+| T1 - Create study tag | Pass | |
+| T2 - Inline error on missing concept tag | Pass | |
+| T3 - Dismiss source suggestion | Pass | |
+| T4 - Promote source suggestion | Pass | |
+| T5 - Remove registry entry | Pass | |
+| T6 - Add registry entry | Pass | |
+| T7 - Import dataset | Pass | |
+| T8 - Run hypothesis review | Pass | |
+| T9 - Streamlit deprecation banner | Pass | |
 
-**Signed off:** pending
+**Signed off:** 2026-05-13

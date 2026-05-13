@@ -1,7 +1,7 @@
 # NeuroDb — UI Epoch Plan
 
-**Status:** UI-3 implementation complete — manual verification pending
-**Last updated:** 2026-05-12
+**Status:** UI-3 signed off 2026-05-13 — UI-5 P2 next
+**Last updated:** 2026-05-13
 **Epoch directory:** `src/neurodb/ui/`
 **Architecture reference:** `docs/superpowers/specs/2026-05-07-epoch-architecture-design.md`
 
@@ -9,8 +9,7 @@
 
 ## Active Work
 
-UI-3 manual verification — 7 write operations wired to React; Streamlit banner added.
-UI-5 draft design complete — 26 gaps identified across 8 panels (6 P1 data-integrity, 10 P2 core workflow, 10 P3 polish + enhancements). See `docs/superpowers/specs/2026-05-12-ui5-parity-completion-design.md`.
+UI-5 P2 planning — 20 remaining parity gaps (P2 core workflow + P3 polish). See `docs/superpowers/specs/2026-05-12-ui5-parity-completion-design.md`.
 
 ---
 
@@ -18,7 +17,7 @@ UI-5 draft design complete — 26 gaps identified across 8 panels (6 P1 data-int
 
 Own the UI shell, routing, pane layout, streaming rendering, and workbench state. Current implementation is Streamlit. Target is a FastAPI + React workbench shell — migration is incremental with Streamlit retained until parity.
 
-**Active work:** UI-3 manual verification — 7 write operations wired to React; Streamlit banner added.
+**Active work:** UI-5 P2 planning — 20 remaining parity gaps.
 
 ---
 
@@ -31,12 +30,12 @@ Own the UI shell, routing, pane layout, streaming rendering, and workbench state
 | UI-1 | FastAPI backend shell — app factory, 8 API routes, SSE chat PoC | Complete | 408 automated + 9 manual | 2026-05-11 | `docs/testsPlans/completedAndPassedTestPlans/manualTestPlan_ui1_api_shell.md` |
 | UI-2 | React workbench prototype — Vite + React + React Router + TanStack Query; same two-column layout as Streamlit; all 7 panels functional; infrastructure migration only | Complete | 443 automated Python + 7 frontend + 11 manual | 2026-05-11 | `docs/testsPlans/completedAndPassedTestPlans/manualTestPlan_ui2_react_workbench.md` |
 | UI-2B | Layout redesign — activity rail (replaces sidebar + PanelNav), resizable + collapsible right panel, agent mode in chat header, chat history in Study Log | Complete | 19 frontend + 9 manual | 2026-05-11 | `docs/testsPlans/completedAndPassedTestPlans/manualTestPlan_ui2b_layout_redesign.md` |
-| UI-3 | Parity migration — 7 write operations wired to React; Streamlit deprecation banner | Implementation complete; manual verification pending | 474 Python + 43 frontend + build | — | `docs/testsPlans/manualTestPlan_ui3_parity_migration.md` |
-| UI-4 | Streamlit retirement decision | Planned | — | — | — |
+| UI-3 | Parity migration — 7 write operations wired to React; Streamlit deprecation banner | Complete | 474 Python + 43 frontend + build | 2026-05-13 | `docs/testsPlans/completedAndPassedTestPlans/manualTestPlan_ui3_parity_migration.md` |
 | UI-5 P1 | Data integrity fixes — 6 gaps: study log embedding, KL ChromaDB indexing, ImportQueue status, promote provenance, suggest type gating, registry topics | Complete | 485 Python + 47 frontend + build | 2026-05-12 | — |
 | UI-5 P2+ | Parity completion — 20 remaining gaps (P2 core workflow + P3 polish) | Planned | — | — | — |
+| UI-4 | Streamlit retirement decision | Planned (after UI-5) | — | — | — |
 
-Active test plan: `docs/testsPlans/manualTestPlan_ui3_parity_migration.md` (UI-3 manual verification still pending)
+No active test plan. UI-3 signed off 2026-05-13.
 
 ---
 
@@ -139,7 +138,7 @@ Historical options analysis and pros/cons: `docs/archive/UI_EpochPlan_historical
 | `docs/superpowers/plans/2026-05-11-ui2-react-workbench.md` | UI-2 implementation plan (complete) |
 | `docs/superpowers/plans/2026-05-11-ui2b-layout-redesign.md` | UI-2B implementation plan (complete) |
 | `docs/superpowers/plans/2026-05-11-ui3-parity-migration.md` | UI-3 implementation plan (15 tasks) |
-| `docs/testsPlans/manualTestPlan_ui3_parity_migration.md` | UI-3 active manual test plan |
+| `docs/testsPlans/completedAndPassedTestPlans/manualTestPlan_ui3_parity_migration.md` | UI-3 manual test plan — 9 evals passed; signed off 2026-05-13 |
 
 ---
 

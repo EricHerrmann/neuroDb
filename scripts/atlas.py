@@ -6,13 +6,14 @@ Usage:
     uv run scripts/atlas.py 9000     # custom port
 """
 import http.server
-import os
 import sys
 import webbrowser
+from pathlib import Path
 
 PORT = int(sys.argv[1]) if len(sys.argv) > 1 else 8080
-REPO_ROOT = os.path.abspath(os.path.join(os.path.dirname(__file__), ".."))
+REPO_ROOT = Path(__file__).resolve().parent.parent
 
+import os
 os.chdir(REPO_ROOT)
 
 handler = http.server.SimpleHTTPRequestHandler

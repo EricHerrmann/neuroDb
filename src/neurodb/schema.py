@@ -375,3 +375,25 @@ class AppPreference(Base):
     key: Mapped[str] = mapped_column(String(128), primary_key=True)
     value: Mapped[str] = mapped_column(Text, nullable=False)
     updated_at: Mapped[str] = mapped_column(String(32), nullable=False)
+
+
+class Topic(Base):
+    __tablename__ = "topics"
+
+    id: Mapped[int] = mapped_column(Integer, Sequence("topics_id_seq"), primary_key=True)
+    name: Mapped[str] = mapped_column(String(256), nullable=False, unique=True, index=True)
+    description: Mapped[str | None] = mapped_column(Text, nullable=True)
+    status: Mapped[str] = mapped_column(String(16), nullable=False, default="active")
+    created_at: Mapped[str] = mapped_column(String(32), nullable=False)
+    updated_at: Mapped[str] = mapped_column(String(32), nullable=False)
+
+
+class Concept(Base):
+    __tablename__ = "concepts"
+
+    id: Mapped[int] = mapped_column(Integer, Sequence("concepts_id_seq"), primary_key=True)
+    name: Mapped[str] = mapped_column(String(256), nullable=False, unique=True, index=True)
+    description: Mapped[str | None] = mapped_column(Text, nullable=True)
+    status: Mapped[str] = mapped_column(String(16), nullable=False, default="active")
+    created_at: Mapped[str] = mapped_column(String(32), nullable=False)
+    updated_at: Mapped[str] = mapped_column(String(32), nullable=False)

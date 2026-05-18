@@ -50,8 +50,10 @@ async function init() {
     initSearch();
     if (state.plates.length > 0) setActivePlate(state.plates[0].id);
   } catch (err) {
-    document.getElementById('viewer-container').innerHTML =
-      `<p class="error-state">Could not load atlas data: ${err.message}</p>`;
+    const p = document.createElement('p');
+    p.className = 'error-state';
+    p.textContent = `Could not load atlas data: ${err.message}`;
+    document.getElementById('viewer-container').replaceChildren(p);
   }
 }
 
@@ -62,7 +64,12 @@ function renderSidebar() {
   for (const plate of state.plates) {
     const li = document.createElement('li');
     li.dataset.plateId = plate.id;
-    li.innerHTML = `<span class="match-dot"></span><span class="plate-name">${plate.displayName}</span>`;
+    const dot = document.createElement('span');
+    dot.className = 'match-dot';
+    const name = document.createElement('span');
+    name.className = 'plate-name';
+    name.textContent = plate.displayName;
+    li.append(dot, name);
     li.addEventListener('click', () => onSidebarClick(plate.id));
     list.appendChild(li);
   }

@@ -59,6 +59,7 @@ Use `Log ID` for cross-references across Open, Resolved, triage, sprint planning
 | LOG-056 | 2026-05-13 | knowledge-lib-duplicates-no-remove | Tutor | Knowledge Library has duplicate entries and no way to remove them. | User logged during UI-5 review |
 | LOG-057 | 2026-05-13 | args-position-dependent | Tech Debt | CLI and Python function arguments should not be brittle or position-dependent; review the codebase for positional CLI globals and multi-argument function calls, then determine options to fix with keyword-only APIs, structured request objects, shared parser helpers, and inheritable patterns. | User logged during CLI/manual-test review |
 | LOG-058 | 2026-05-13 | ui5-common-t1-pass | UI | UI-5 common manual test T1 passed. | User logged during UI-5 common manual verification |
+| LOG-059 | 2026-05-18 | study-inner-join-drops-anchors | Study Log | `list_tags()` and `search_tags()` in study.py use INNER JOIN on DatasetIndex; topic/concept/paper-anchored notes are invisible to the study log API. After Phase 2 Task 4, StudyNote.index_id became nullable but the JOIN silently filters non-dataset notes. Fix deferred to Phase 5 / study log API update. | Code review / technical debt |
 
 ---
 

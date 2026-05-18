@@ -55,6 +55,7 @@ def list_tags(
     """
     rows = session.execute(
         select(StudyNote, DatasetIndex)
+        # Phase 2: only returns dataset-anchored notes; topic/concept/paper-anchored notes are excluded (Phase 5)
         .join(DatasetIndex, DatasetIndex.id == StudyNote.index_id)
         .order_by(StudyNote.tagged_at.desc())
     ).all()
@@ -91,6 +92,7 @@ def search_tags(session: Session, keyword: str) -> list[dict]:
     kw = keyword.lower()
     rows = session.execute(
         select(StudyNote, DatasetIndex)
+        # Phase 2: only returns dataset-anchored notes; topic/concept/paper-anchored notes are excluded (Phase 5)
         .join(DatasetIndex, DatasetIndex.id == StudyNote.index_id)
         .order_by(StudyNote.tagged_at.desc())
     ).all()

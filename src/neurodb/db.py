@@ -109,10 +109,69 @@ def _migration_003_hypothesis_reviews(conn) -> None:
     ))
 
 
+def _migration_004_dataset_research_packets(conn) -> None:
+    """Create dataset_research_packets for existing DB files."""
+    conn.execute(text("""
+        CREATE TABLE IF NOT EXISTS dataset_research_packets (
+            id INTEGER PRIMARY KEY,
+            index_id INTEGER NOT NULL,
+            source VARCHAR(64) NOT NULL,
+            source_id VARCHAR(128) NOT NULL,
+            title TEXT,
+            landing_url TEXT,
+            api_url TEXT,
+            source_summary TEXT,
+            doi VARCHAR(256),
+            paper_url TEXT,
+            publication_title TEXT,
+            abstract TEXT,
+            authors_json TEXT,
+            topics_json TEXT,
+            brain_regions_json TEXT,
+            diseases_json TEXT,
+            modalities_json TEXT,
+            participant_summary TEXT,
+            methods_json TEXT,
+            assets_json TEXT,
+            usefulness_state VARCHAR(32) NOT NULL,
+            supported_workflows_json TEXT NOT NULL,
+            unsupported_workflows_json TEXT NOT NULL,
+            missing_context_json TEXT NOT NULL,
+            provenance_json TEXT NOT NULL,
+            confidence_json TEXT NOT NULL,
+            harvested_at VARCHAR(32) NOT NULL,
+            run_id INTEGER NOT NULL,
+            CONSTRAINT uq_dataset_research_packets_index_id UNIQUE (index_id),
+            CONSTRAINT uq_dataset_research_packets_source_id UNIQUE (source, source_id)
+        )
+    """))
+    conn.execute(text(
+        "CREATE INDEX IF NOT EXISTS ix_dataset_research_packets_source "
+        "ON dataset_research_packets (source)"
+    ))
+    conn.execute(text(
+        "CREATE INDEX IF NOT EXISTS ix_dataset_research_packets_source_id "
+        "ON dataset_research_packets (source_id)"
+    ))
+    conn.execute(text(
+        "CREATE INDEX IF NOT EXISTS ix_dataset_research_packets_doi "
+        "ON dataset_research_packets (doi)"
+    ))
+    conn.execute(text(
+        "CREATE INDEX IF NOT EXISTS ix_dataset_research_packets_usefulness_state "
+        "ON dataset_research_packets (usefulness_state)"
+    ))
+    conn.execute(text(
+        "CREATE INDEX IF NOT EXISTS ix_dataset_research_packets_source_state "
+        "ON dataset_research_packets (source, usefulness_state)"
+    ))
+
+
 _MIGRATIONS: dict[int, callable] = {
     1: _migration_001_study_note_unique,
     2: _migration_002_model_call_log,
     3: _migration_003_hypothesis_reviews,
+    4: _migration_004_dataset_research_packets,
 }
 
 

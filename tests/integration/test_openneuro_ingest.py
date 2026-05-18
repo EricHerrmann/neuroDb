@@ -5,7 +5,7 @@ from sqlalchemy import create_engine
 from neurodb.db import init_db, get_session
 from neurodb.provenance import run_ingest
 from neurodb.connectors.openneuro import OpenNeuroConnector, OpenNeuroDataset
-from neurodb.schema import DatasetIndex, IngestRun
+from neurodb.schema import DatasetIndex, DatasetResearchPacket, IngestRun
 
 FIXTURE_SINGLE = Path("tests/fixtures/openneuro_single.json")
 
@@ -28,6 +28,7 @@ def test_full_ingest_stores_datasets():
     with get_session(engine) as session:
         assert session.query(DatasetIndex).count() == 2
         assert session.query(OpenNeuroDataset).count() == 2
+        assert session.query(DatasetResearchPacket).count() == 2
         assert session.query(IngestRun).count() == 1
         ds = session.query(OpenNeuroDataset).filter_by(source_id="ds000001").one()
         assert ds.title == "Balloon Analog Risk Task"
@@ -38,6 +39,10 @@ def test_full_ingest_stores_datasets():
         assert ds.description == "fMRI study of risk-taking in healthy adults."
         idx = session.query(DatasetIndex).filter_by(source_id="ds000001").one()
         assert idx.source == "openneuro"
+        packet = session.query(DatasetResearchPacket).filter_by(source_id="ds000001").one()
+        assert packet.doi == "10.18112/openneuro.ds000001.v1.0.0"
+        assert packet.source_summary == "fMRI study of risk-taking in healthy adults."
+        assert packet.usefulness_state == "research_context_ready"
 
 
 def _mock_post_single(*args, **kwargs):
@@ -78,6 +83,7 @@ def test_ingest_by_dataset_id_stores_only_that_dataset():
         run_ingest(engine, connector=OpenNeuroConnector(), dataset_ids=["ds003685"])
     with get_session(engine) as session:
         assert session.query(OpenNeuroDataset).count() == 1
+        assert session.query(DatasetResearchPacket).count() == 1
         ds = session.query(OpenNeuroDataset).filter_by(source_id="ds003685").one()
         assert ds.title == "HCP Retinotopy"
         assert ds.modality == "mri"

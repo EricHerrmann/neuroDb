@@ -7,6 +7,7 @@ from sqlalchemy import Engine, select
 from neurodb.db import get_session
 from neurodb.schema import IngestRun, DatasetIndex
 from neurodb.connectors.base import BaseConnector
+from neurodb.dataset_packets import upsert_dataset_research_packet
 
 
 def run_ingest(
@@ -73,5 +74,9 @@ def run_ingest(
                         setattr(existing_src, attr, val)
             else:
                 session.add(source_record)
+
+            # Step 3: Upsert source-aware research packet for this dataset.
+            packet = connector.build_research_packet(raw, index_id=index_id, run_id=run.id)
+            upsert_dataset_research_packet(session, packet)
 
     return run

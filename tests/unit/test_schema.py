@@ -7,6 +7,7 @@ from neurodb.schema import (
     CrossRef,
     DatasetEmbeddingState,
     DatasetIndex,
+    DatasetResearchPacket,
     ImportQueue,
     IngestRun,
     LearningSource,
@@ -26,6 +27,7 @@ def test_schema_creates_core_tables():
     assert "ingest_runs" in table_names
     assert "cross_refs" in table_names
     assert "quality_events" in table_names
+    assert "dataset_research_packets" in table_names
 
 
 def test_dataset_index_and_subject_linkage():
@@ -102,3 +104,12 @@ def test_dataset_embedding_state_has_hash_and_model_columns():
     assert "source_id" in cols
     assert "content_hash" in cols
     assert "embedder_model" in cols
+
+
+def test_dataset_research_packet_schema_has_usefulness_and_provenance_columns():
+    cols = {c.key for c in DatasetResearchPacket.__table__.columns}
+    assert "source_summary" in cols
+    assert "usefulness_state" in cols
+    assert "missing_context_json" in cols
+    assert "provenance_json" in cols
+    assert "assets_json" in cols

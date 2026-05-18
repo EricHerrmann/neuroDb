@@ -1,7 +1,7 @@
 # NeuroDb — DB Epoch Plan
 
-**Status:** MVP complete (Phases 0–6); Phases 7–9 decision pending
-**Last updated:** 2026-05-13
+**Status:** MVP complete (Phases 0–6); Phase 9 dataset research packets in progress
+**Last updated:** 2026-05-18
 **Epoch directory:** `src/neurodb/db/`, `src/neurodb/connectors/`
 **Architecture reference:** `docs/superpowers/specs/2026-05-07-epoch-architecture-design.md`
 
@@ -11,9 +11,9 @@
 
 Build and maintain the local neuroscience data platform — source connectors, DuckDB schema, normalization transforms, merged views, and all structured storage schemas — that all other epochs depend on as their data substrate.
 
-**Active work:** Phases 7 (entity resolution), 8 (research storage schema), and 9
-(research-grade metadata enrichment) are pending scope decisions based on field
-coverage and current research workflow needs.
+**Active work:** Phase 9 first increment implements dataset research packets:
+source-aware context harvested during ingest, usefulness states, missing-context
+labels, packet coverage reporting, and manual verification support.
 
 ---
 
@@ -30,9 +30,9 @@ coverage and current research workflow needs.
 | Phase 6 | NeuroVault + DANDI connectors | Complete | 74 | 2026-04-13 | — |
 | Phase 7 | Entity resolution — dedup across sources | Decision pending | — | — | — |
 | Phase 8 | Research storage schema — hypothesis layer tables | Not started | — | — | — |
-| Phase 9 | Research-grade metadata enrichment — publication, participant, design, acquisition, preprocessing, and modeling fields for interpreting local datasets | Planned | — | — | — |
+| Phase 9 | Research-grade metadata enrichment — dataset research packets, source-aware context, usefulness states, and packet coverage reports | In progress | 33 focused DB tests; full suite 517 passed / 9 config-routing failures | — | `docs/testsPlans/manualTestPlan_db_phase9_dataset_research_packets.md` |
 
-Active test plan: none
+Active test plan: `docs/testsPlans/manualTestPlan_db_phase9_dataset_research_packets.md`
 
 ---
 

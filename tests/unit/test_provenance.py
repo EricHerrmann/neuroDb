@@ -2,7 +2,7 @@ from typing import Iterator
 from sqlalchemy import Integer, String, ForeignKey, Sequence, create_engine, select
 from sqlalchemy.orm import Mapped, mapped_column, Session
 
-from neurodb.schema import Base, DatasetIndex, IngestRun
+from neurodb.schema import Base, DatasetIndex, DatasetResearchPacket, IngestRun
 from neurodb.connectors.base import BaseConnector
 from neurodb.db import init_db
 from neurodb.provenance import run_ingest
@@ -88,8 +88,12 @@ def test_run_ingest_is_idempotent():
         rows = s.execute(
             select(DatasetIndex).where(DatasetIndex.source == "fake")
         ).scalars().all()
+        packets = s.execute(
+            select(DatasetResearchPacket).where(DatasetResearchPacket.source == "fake")
+        ).scalars().all()
 
     assert len(rows) == 1  # no duplicate DatasetIndex row on second run
+    assert len(packets) == 1  # no duplicate research packet row on second run
 
 
 def test_run_ingest_dataset_ids_uses_fetch_by_id_not_fetch_datasets():

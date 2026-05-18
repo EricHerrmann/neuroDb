@@ -121,6 +121,52 @@ class DatasetEmbeddingState(Base):
     embedded_at: Mapped[str] = mapped_column(String(32), nullable=False)
 
 
+class DatasetResearchPacket(Base):
+    """Source-aware research context packet for an ingested dataset.
+
+    One row per dataset. The packet records what source-native context was
+    harvested, how useful the record is for research/learning, and which
+    important fields are still missing.
+    """
+    __tablename__ = "dataset_research_packets"
+    __table_args__ = (
+        UniqueConstraint("index_id", name="uq_dataset_research_packets_index_id"),
+        UniqueConstraint("source", "source_id", name="uq_dataset_research_packets_source_id"),
+        Index("ix_dataset_research_packets_source_state", "source", "usefulness_state"),
+    )
+
+    id: Mapped[int] = mapped_column(
+        Integer, Sequence("dataset_research_packets_id_seq"), primary_key=True
+    )
+    index_id: Mapped[int] = mapped_column(ForeignKey("datasets_index.id"), nullable=False)
+    source: Mapped[str] = mapped_column(String(64), nullable=False, index=True)
+    source_id: Mapped[str] = mapped_column(String(128), nullable=False, index=True)
+    title: Mapped[str | None] = mapped_column(Text, nullable=True)
+    landing_url: Mapped[str | None] = mapped_column(Text, nullable=True)
+    api_url: Mapped[str | None] = mapped_column(Text, nullable=True)
+    source_summary: Mapped[str | None] = mapped_column(Text, nullable=True)
+    doi: Mapped[str | None] = mapped_column(String(256), nullable=True, index=True)
+    paper_url: Mapped[str | None] = mapped_column(Text, nullable=True)
+    publication_title: Mapped[str | None] = mapped_column(Text, nullable=True)
+    abstract: Mapped[str | None] = mapped_column(Text, nullable=True)
+    authors_json: Mapped[str | None] = mapped_column(Text, nullable=True)
+    topics_json: Mapped[str | None] = mapped_column(Text, nullable=True)
+    brain_regions_json: Mapped[str | None] = mapped_column(Text, nullable=True)
+    diseases_json: Mapped[str | None] = mapped_column(Text, nullable=True)
+    modalities_json: Mapped[str | None] = mapped_column(Text, nullable=True)
+    participant_summary: Mapped[str | None] = mapped_column(Text, nullable=True)
+    methods_json: Mapped[str | None] = mapped_column(Text, nullable=True)
+    assets_json: Mapped[str | None] = mapped_column(Text, nullable=True)
+    usefulness_state: Mapped[str] = mapped_column(String(32), nullable=False, index=True)
+    supported_workflows_json: Mapped[str] = mapped_column(Text, nullable=False)
+    unsupported_workflows_json: Mapped[str] = mapped_column(Text, nullable=False)
+    missing_context_json: Mapped[str] = mapped_column(Text, nullable=False)
+    provenance_json: Mapped[str] = mapped_column(Text, nullable=False)
+    confidence_json: Mapped[str] = mapped_column(Text, nullable=False)
+    harvested_at: Mapped[str] = mapped_column(String(32), nullable=False)
+    run_id: Mapped[int] = mapped_column(ForeignKey("ingest_runs.id"), nullable=False)
+
+
 class LearningSource(Base):
     """Registry of textbooks, papers, and datasets used as learning sources.
 

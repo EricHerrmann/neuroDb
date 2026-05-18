@@ -44,6 +44,19 @@ class BaseConnector(ABC):
         index_id references DatasetIndex, not any source-specific table.
         """
 
+    def build_research_packet(self, raw: dict, index_id: int, run_id: int):
+        """Build a source-aware dataset research packet from raw metadata."""
+        from neurodb.dataset_packets import make_dataset_research_packet
+
+        return make_dataset_research_packet(
+            source=self.SOURCE_NAME,
+            source_id=self.get_source_id(raw),
+            raw=raw,
+            index_id=index_id,
+            run_id=run_id,
+            connector_version=self.VERSION,
+        )
+
     def search_by_keyword(self, query: str, limit: int = 10) -> list[dict]:
         """Search the source API by keyword. Returns list of raw dataset dicts.
         Override in connectors that support keyword search. Default raises NotImplementedError.

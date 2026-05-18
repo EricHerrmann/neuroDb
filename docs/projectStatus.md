@@ -1,7 +1,7 @@
 # NeuroDb — Project Status
 
 **Last updated:** 2026-05-18
-**Active focus:** UI-3 signed off 2026-05-13 (9 evals passed); UI-5 P1/P2/P3 implementation complete; common UI-5 manual verification active
+**Active focus:** DB Phase 9 dataset research packets — Learning and Research Memory Refocus Phase 1 implementation
 **Next:** Common UI-5 manual verification; UI-4 Streamlit retirement deferred until after UI-5
 **Goal alignment:** Two co-equal goals in a feedback loop — accumulate neuroscience understanding grounded in real data (Goal 1), and conduct structured neuroscience investigations using existing public datasets and good scientific method (Goal 2). See `NeuroDbGoals.md`.
 
@@ -11,7 +11,7 @@
 
 | Epoch | Source | Maturity | Next |
 |---|---|---|---|
-| DB | `src/neurodb/db/`, `src/neurodb/connectors/` | MVP complete (phases 0–6) | Entity resolution (7), research storage schema (8), research-grade metadata enrichment (9) |
+| DB | `src/neurodb/db/`, `src/neurodb/connectors/` | MVP complete (phases 0–6); Phase 9 dataset research packets in progress — 33 focused DB tests pass; full suite 517 passed / 9 config-routing failures | Entity resolution (7), research storage schema (8), complete Phase 9 source-aware enrichment |
 | Agent Core | `src/neurodb/agents/` | Stable | Config Control Phases 1–4 signed off; Phase 6 may add fallback chain logic |
 | Tutor | `src/neurodb/tutor/` | MVP complete (LT-1/2/3) | Open backlog: LOG-001, LOG-006, LOG-030 |
 | Research | `src/neurodb/research/` | Scaffolded (LT-3); hypothesis review with structured tool-use output | Research run management, research question actions (LOG-037) |
@@ -65,6 +65,8 @@ See `docs/testLog.md`. Current open items: LOG-001 (textbook dropdown ambiguity)
 | `docs/superpowers/specs/2026-05-11-ui2-react-workbench-design.md` | UI-2 design spec — Vite + React + React Router v7 + TanStack Query v5; two-column layout; 7 panels; data flow; testing strategy |
 | `docs/superpowers/specs/2026-05-11-ui2b-layout-redesign.md` | UI-2B design spec — activity rail, react-resizable-panels, collapsible right panel, agent mode in chat header |
 | `docs/superpowers/specs/2026-05-11-ui3-parity-migration-design.md` | UI-3 design spec — 7 write operations, background task system, Streamlit deprecation |
+| `docs/superpowers/specs/2026-05-18-learning-research-memory-refocus-design.md` | Cross-epoch design spec — refocus NeuroDb as a learning/research memory system and fix shallow dataset sourcing through dataset research packets |
+| `docs/testsPlans/manualTestPlan_db_phase9_dataset_research_packets.md` | DB Phase 9 manual test plan — dataset research packet ingest, coverage, sparse-record honesty, and idempotence |
 | `docs/superpowers/specs/2026-05-12-ui5-parity-completion-design.md` | UI-5 draft design — 26 remaining gaps; 6 P1 data-integrity, 10 P2 core workflow, 10 P3/enhancement |
 | `docs/superpowers/specs/2026-05-12-ui5-p1-data-integrity-design.md` | UI-5 P1 design spec — 6 data-integrity fixes, warning propagation pattern |
 | `docs/superpowers/specs/2026-05-13-ui5-p2-core-workflow-design.md` | UI-5 P2 design spec — core workflow parity, chat formatting, task/status UX |

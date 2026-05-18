@@ -9,6 +9,6 @@ Current flat-layout modules migrate here when next significantly changed:
   chapter_registry.py  → tutor/chapter_registry.py
 
 Ownership: the Tutor epoch owns the write path to the knowledge library.
-It is the only epoch that writes to the knowledge_sources table and the
+It is the only epoch that writes to the papers table and the
 knowledge_library ChromaDB collection.
 """

@@ -12,7 +12,7 @@ Flat-layout modules that migrate here when next significantly changed:
   discovery_tools.py → research/discovery.py
 
 Interface to Tutor epoch: reads knowledge library via search_knowledge_library()
-only. Research epoch code contains no writes to knowledge_sources or the
+only. Research epoch code contains no writes to papers or the
 knowledge_library ChromaDB collection.
 
 Interface to DB epoch: reads/writes research artifact tables (ResearchHypothesis,

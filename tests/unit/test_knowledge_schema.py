@@ -12,7 +12,7 @@ def _engine():
     return engine
 
 
-def test_knowledge_sources_table_created():
+def test_papers_table_created():
     inspector = inspect(_engine())
     assert "papers" in inspector.get_table_names()
 

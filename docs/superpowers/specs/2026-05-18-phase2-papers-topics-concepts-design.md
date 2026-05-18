@@ -136,11 +136,12 @@ def get_topic_bundle(session, topic_id: int) -> dict
 # Returns:
 # {
 #   "topic": {id, name, description},
-#   "concepts": [{id, name, description}, ...],
-#   "papers": [{id, title, doi, status, summary}, ...],
-#   "study_notes": [{id, note_text, concept_tag, tagged_at}, ...],
-#   "dataset_packets": [{id, source, source_id, title, usefulness_state}, ...]
+#   "concepts": [{id, name, description}, ...],   # directly linked via topic_concepts only
+#   "papers": [{id, title, doi, status, summary}, ...],  # directly linked via paper_topics
+#   "study_notes": [{id, note_text, concept_tag, tagged_at}, ...],  # anchored to this topic_id
+#   "dataset_packets": [{id, source, source_id, title, usefulness_state}, ...]  # via dataset_packet_topics
 # }
+# Transitive concept retrieval (concepts linked through papers) is out of scope for Phase 2.
 ```
 
 ---
@@ -253,7 +254,8 @@ The API response model rename (`KnowledgeSourceItem` → `PaperItem`) is a break
 ### Migration test
 
 **`tests/unit/test_migrate_phase2.py`**
-- Run migration script against a fresh SQLite test DB seeded with one `knowledge_sources` row
+- Uses DuckDB in-memory (not SQLite) — the migration script uses `ALTER COLUMN DROP NOT NULL`, which SQLite does not support
+- Run migration script against a fresh DuckDB in-memory DB seeded with one `knowledge_sources` row
 - Assert the row appears in `papers` with the same data
 - Assert `abstract`, `authors_json`, `year` columns exist on `papers`
 - Assert `study_notes.index_id` is nullable

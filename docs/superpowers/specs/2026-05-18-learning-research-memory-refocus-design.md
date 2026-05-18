@@ -300,7 +300,7 @@ Acceptance criteria:
 ### Phase 2 - DB + Tutor: Papers, Topics, Concepts, And Study Context
 
 **Owner:** DB epoch for schema, Tutor epoch for curation/write workflows  
-**Status:** Design — not yet started  
+**Status:** Design complete — ready for implementation plan; see `docs/superpowers/specs/2026-05-18-phase2-papers-topics-concepts-design.md`  
 **Fits existing plan:** DB Phase 8/9 plus Tutor backlog sprint
 
 Deliverables:

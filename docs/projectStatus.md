@@ -1,8 +1,8 @@
 # NeuroDb — Project Status
 
 **Last updated:** 2026-05-18
-**Active focus:** DB Phase 9 dataset research packets — Learning and Research Memory Refocus Phase 1 implementation
-**Next:** Common UI-5 manual verification; UI-4 Streamlit retirement deferred until after UI-5
+**Active focus:** Common UI-5 manual verification
+**Next:** UI-4 Streamlit retirement after UI-5 sign-off
 **Goal alignment:** Two co-equal goals in a feedback loop — accumulate neuroscience understanding grounded in real data (Goal 1), and conduct structured neuroscience investigations using existing public datasets and good scientific method (Goal 2). See `NeuroDbGoals.md`.
 
 ---
@@ -11,7 +11,7 @@
 
 | Epoch | Source | Maturity | Next |
 |---|---|---|---|
-| DB | `src/neurodb/db/`, `src/neurodb/connectors/` | MVP complete (phases 0–6); Phase 9 dataset research packets in progress — 33 focused DB tests pass; full suite 517 passed / 9 config-routing failures | Entity resolution (7), research storage schema (8), complete Phase 9 source-aware enrichment |
+| DB | `src/neurodb/db/`, `src/neurodb/connectors/` | MVP complete (phases 0–6); Phase 9 dataset research packet increment signed off 2026-05-18 — 33 focused DB tests pass; full suite 517 passed / 9 config-routing failures; T1-T4 manual passed | Entity resolution (7), research storage schema (8), broader Phase 9 source-aware enrichment |
 | Agent Core | `src/neurodb/agents/` | Stable | Config Control Phases 1–4 signed off; Phase 6 may add fallback chain logic |
 | Tutor | `src/neurodb/tutor/` | MVP complete (LT-1/2/3) | Open backlog: LOG-001, LOG-006, LOG-030 |
 | Research | `src/neurodb/research/` | Scaffolded (LT-3); hypothesis review with structured tool-use output | Research run management, research question actions (LOG-037) |
@@ -63,7 +63,7 @@ See `docs/testLog.md`. Current open items: LOG-001 (textbook dropdown ambiguity)
 | `docs/TechDebt_EpochPlan.md` | Tech Debt epoch plan — argument-order safety, keyword-only APIs, parser helpers, request/config objects, reusable abstractions |
 | **Active Plans / Specs** | |
 | `docs/superpowers/specs/2026-05-18-learning-research-memory-refocus-design.md` | Cross-epoch design spec — refocus NeuroDb as a learning/research memory system and fix shallow dataset sourcing through dataset research packets |
-| `docs/testsPlans/manualTestPlan_db_phase9_dataset_research_packets.md` | DB Phase 9 manual test plan — dataset research packet ingest, coverage, sparse-record honesty, and idempotence |
 | `docs/testsPlans/manualTestPlan_ui5_common_parity.md` | UI-5 common manual test plan — 8 evals covering P1/P2/P3; pending sign-off |
 | **History** | |
 | `docs/archive/completedPhases.md` | Completed phases and tech debt sprints — full history |
+| `docs/testsPlans/completedAndPassedTestPlans/manualTestPlan_db_phase9_dataset_research_packets.md` | DB Phase 9 manual test plan — T1-T4 passed and signed off 2026-05-18 |

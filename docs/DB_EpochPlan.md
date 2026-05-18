@@ -1,6 +1,6 @@
 # NeuroDb — DB Epoch Plan
 
-**Status:** MVP complete (Phases 0–6); Phase 9 dataset research packets in progress
+**Status:** MVP complete (Phases 0–6); Phase 9 dataset research packet increment signed off 2026-05-18
 **Last updated:** 2026-05-18
 **Epoch directory:** `src/neurodb/db/`, `src/neurodb/connectors/`
 **Architecture reference:** `docs/superpowers/specs/2026-05-07-epoch-architecture-design.md`
@@ -11,9 +11,9 @@
 
 Build and maintain the local neuroscience data platform — source connectors, DuckDB schema, normalization transforms, merged views, and all structured storage schemas — that all other epochs depend on as their data substrate.
 
-**Active work:** Phase 9 first increment implements dataset research packets:
-source-aware context harvested during ingest, usefulness states, missing-context
-labels, packet coverage reporting, and manual verification support.
+**Active work:** none for DB. Phase 9 dataset research packets are implemented
+and signed off; broader source-aware enrichment remains planned for future DB
+work.
 
 ---
 
@@ -30,9 +30,9 @@ labels, packet coverage reporting, and manual verification support.
 | Phase 6 | NeuroVault + DANDI connectors | Complete | 74 | 2026-04-13 | — |
 | Phase 7 | Entity resolution — dedup across sources | Decision pending | — | — | — |
 | Phase 8 | Research storage schema — hypothesis layer tables | Not started | — | — | — |
-| Phase 9 | Research-grade metadata enrichment — dataset research packets, source-aware context, usefulness states, and packet coverage reports | In progress | 33 focused DB tests; full suite 517 passed / 9 config-routing failures | — | `docs/testsPlans/manualTestPlan_db_phase9_dataset_research_packets.md` |
+| Phase 9 | Research-grade metadata enrichment — dataset research packets, source-aware context, usefulness states, and packet coverage reports | Increment complete | 33 focused DB tests; full suite 517 passed / 9 config-routing failures; T1-T4 manual passed | 2026-05-18 | `docs/testsPlans/completedAndPassedTestPlans/manualTestPlan_db_phase9_dataset_research_packets.md` |
 
-Active test plan: `docs/testsPlans/manualTestPlan_db_phase9_dataset_research_packets.md`
+Active test plan: none
 
 ---
 

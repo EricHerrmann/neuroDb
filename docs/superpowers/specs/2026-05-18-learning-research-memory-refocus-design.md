@@ -1,7 +1,7 @@
 # Learning and Research Memory Refocus - Design Spec
 
 **Date:** 2026-05-18
-**Status:** Draft - user-approved direction; Phase 1 dataset research packets implemented
+**Status:** Draft - user-approved direction; Phase 1 dataset research packets implemented and signed off
 **Source:** User brainstorming on shallow dataset value, learning goals, and agent grounding
 
 ---
@@ -278,7 +278,7 @@ Acceptance criteria:
 ### Phase 1 - DB: Dataset Research Packet And Sourcing Audit
 
 **Owner:** DB epoch  
-**Status:** Implemented; manual sign-off pending
+**Status:** Complete — implemented and manually signed off 2026-05-18
 **Fits existing plan:** DB Phase 9, Research-Grade Metadata Enrichment
 
 Deliverables:
@@ -300,6 +300,7 @@ Acceptance criteria:
 ### Phase 2 - DB + Tutor: Papers, Topics, Concepts, And Study Context
 
 **Owner:** DB epoch for schema, Tutor epoch for curation/write workflows  
+**Status:** Design — not yet started  
 **Fits existing plan:** DB Phase 8/9 plus Tutor backlog sprint
 
 Deliverables:

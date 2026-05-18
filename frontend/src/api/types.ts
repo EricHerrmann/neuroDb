@@ -142,7 +142,16 @@ export interface ActiveContext {
   active_prior_topic: string | null
 }
 
-export type ModelInfo = Record<string, { provider: string; model: string }>
+export interface ModelRouteInfo {
+  tier: string
+  provider: string
+  model: string
+}
+
+export interface ModelInfo {
+  agent_modes: Record<string, ModelRouteInfo>
+  tiers: Record<'low' | 'mid' | 'high', ModelRouteInfo>
+}
 
 export interface TaskResponse {
   task_id: string

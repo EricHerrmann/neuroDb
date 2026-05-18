@@ -14,6 +14,12 @@ const MODES = [
   { value: 'neuro_research', label: 'Neuro Research' },
 ] as const
 
+const MODEL_TIERS = [
+  { key: 'low', label: 'Low' },
+  { key: 'mid', label: 'Mid' },
+  { key: 'high', label: 'High' },
+] as const
+
 type AgentModeValue = typeof MODES[number]['value']
 
 export default function ChatPanel({ agentMode }: { agentMode: AgentModeValue }) {
@@ -77,6 +83,27 @@ export default function ChatPanel({ agentMode }: { agentMode: AgentModeValue }) 
           CHAT
         </span>
         <div style={{ display: 'flex', gap: 6, alignItems: 'center' }}>
+          {modelInfo?.tiers && (
+            <div
+              aria-label="Active model tiers"
+              style={{
+                display: 'flex',
+                gap: 6,
+                alignItems: 'center',
+                flexWrap: 'wrap',
+                justifyContent: 'flex-end',
+              }}
+            >
+              {MODEL_TIERS.map(tier => (
+                <span
+                  key={tier.key}
+                  style={{ fontSize: 10, color: '#0f172a', fontWeight: 600, whiteSpace: 'nowrap' }}
+                >
+                  {tier.label}: {modelInfo.tiers[tier.key].model}
+                </span>
+              ))}
+            </div>
+          )}
           <button
             type="button"
             onClick={handleClear}
@@ -100,11 +127,6 @@ export default function ChatPanel({ agentMode }: { agentMode: AgentModeValue }) 
               <option key={mode.value} value={mode.value}>{mode.label}</option>
             ))}
           </select>
-          {modelInfo?.[agentMode] && (
-            <span style={{ fontSize: 10, color: '#94a3b8', whiteSpace: 'nowrap' }}>
-              {modelInfo[agentMode].model}
-            </span>
-          )}
         </div>
       </div>
       {clearError && (

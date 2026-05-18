@@ -66,6 +66,44 @@ describe('ChatPanel', () => {
     })
   })
 
+  it('renders low mid high model labels before clear with stronger contrast', async () => {
+    const fetchMock = vi.fn().mockImplementation((path: string) => {
+      if (path === '/api/model-info') {
+        return Promise.resolve(new Response(JSON.stringify({
+          agent_modes: {
+            neuro_tutor: { tier: 'standard', provider: 'anthropic', model: 'mid-model' },
+          },
+          tiers: {
+            low: { tier: 'economy', provider: 'anthropic', model: 'low-model' },
+            mid: { tier: 'standard', provider: 'anthropic', model: 'mid-model' },
+            high: { tier: 'premium', provider: 'anthropic', model: 'high-model' },
+          },
+        }), {
+          status: 200,
+          headers: { 'Content-Type': 'application/json' },
+        }))
+      }
+      return Promise.resolve(new Response(JSON.stringify({ active_prior_topic: null }), {
+        status: 200,
+        headers: { 'Content-Type': 'application/json' },
+      }))
+    })
+    vi.stubGlobal('fetch', fetchMock)
+
+    render(<ChatPanel agentMode="neuro_tutor" />, { wrapper: makeWrapper() })
+
+    const lowLabel = await screen.findByText('Low: low-model')
+    const midLabel = screen.getByText('Mid: mid-model')
+    const highLabel = screen.getByText('High: high-model')
+    const clearButton = screen.getByRole('button', { name: 'Clear' })
+
+    for (const label of [lowLabel, midLabel, highLabel]) {
+      expect(label.compareDocumentPosition(clearButton) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy()
+      expect((label as HTMLElement).style.color).toBe('rgb(15, 23, 42)')
+      expect((label as HTMLElement).style.fontWeight).toBe('600')
+    }
+  })
+
   it('changing agent mode fires PUT /api/preferences/agent-mode', async () => {
     const fetchMock = vi.fn().mockResolvedValue(
       new Response(JSON.stringify({ agent_mode: 'local_db' }), {

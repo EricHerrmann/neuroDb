@@ -60,6 +60,15 @@ def get_route_config_for_task(task_type: str) -> tuple[str, str, str, int]:
     return tier_name, provider, model_id, max_tokens
 
 
+def get_model_for_tier(tier_name: str) -> tuple[str, str]:
+    """Return (provider, model_id) for an active capability tier."""
+    config = load_model_config()
+    tier_cfg = config["tiers"][tier_name]
+    provider = _provider_for_tier(tier_name, tier_cfg)
+    model_id = tier_cfg["providers"][provider]["model"]
+    return provider, model_id
+
+
 def _provider_for_tier(tier_name: str, tier_cfg: dict) -> str:
     config = load_model_config()
     provider = config["routing"][tier_name]

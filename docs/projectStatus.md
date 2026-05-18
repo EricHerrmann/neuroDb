@@ -64,21 +64,6 @@ See `docs/testLog.md`. Current open items: LOG-001 (textbook dropdown ambiguity)
 | **Active Plans / Specs** | |
 | `docs/superpowers/specs/2026-05-18-learning-research-memory-refocus-design.md` | Cross-epoch design spec — refocus NeuroDb as a learning/research memory system and fix shallow dataset sourcing through dataset research packets |
 | `docs/testsPlans/manualTestPlan_db_phase9_dataset_research_packets.md` | DB Phase 9 manual test plan — dataset research packet ingest, coverage, sparse-record honesty, and idempotence |
-| `docs/superpowers/specs/2026-05-12-ui5-parity-completion-design.md` | UI-5 draft design — 26 remaining gaps; 6 P1 data-integrity, 10 P2 core workflow, 10 P3/enhancement |
-| `docs/superpowers/specs/2026-05-12-ui5-p1-data-integrity-design.md` | UI-5 P1 design spec — 6 data-integrity fixes, warning propagation pattern |
-| `docs/superpowers/specs/2026-05-13-ui5-p2-core-workflow-design.md` | UI-5 P2 design spec — core workflow parity, chat formatting, task/status UX |
-| `docs/superpowers/specs/2026-05-13-ui5-p3-polish-design.md` | UI-5 P3 design spec — polish parity, edit/tag convenience, registry/KL/SQL detail |
-| `docs/testsPlans/manualTestPlan_ui5_common_parity.md` | UI-5 common manual test plan — 8 evals covering P1/P2/P3 |
-| `docs/superpowers/plans/2026-05-12-ui5-p1-data-integrity.md` | UI-5 P1 implementation plan — 6 tasks complete |
-| `docs/testsPlans/deferredTestPlans/manualTestPlan_ui5_p1_data_integrity.md` | UI-5 P1 manual test plan — deferred detail plan superseded by common UI-5 plan |
-| `docs/superpowers/plans/2026-05-13-ui5-p2-core-workflow.md` | UI-5 P2 implementation plan — 8 tasks complete |
-| `docs/superpowers/plans/2026-05-13-ui5-p3-polish.md` | UI-5 P3 implementation plan — 6 tasks complete |
-| `docs/testsPlans/deferredTestPlans/manualTestPlan_ui5_p2_core_workflow.md` | UI-5 P2 manual test plan — deferred detail plan superseded by common UI-5 plan |
-| `docs/superpowers/plans/2026-05-11-ui2-react-workbench.md` | UI-2 implementation plan — 19 tasks complete; signed off 2026-05-11 |
-| `docs/superpowers/plans/2026-05-11-ui2b-layout-redesign.md` | UI-2B implementation plan — 6 tasks complete; signed off 2026-05-11 |
-| `docs/superpowers/plans/2026-05-11-ui3-parity-migration.md` | UI-3 implementation plan — 15 tasks complete; signed off 2026-05-13 |
-| `docs/testsPlans/completedAndPassedTestPlans/manualTestPlan_ui3_parity_migration.md` | UI-3 manual test plan — 9 evals passed; signed off 2026-05-13 |
-| `docs/testsPlans/completedAndPassedTestPlans/manualTestPlan_ui2_react_workbench.md` | UI-2 manual test plan — 11 evals passed; signed off 2026-05-11 |
-| `docs/testsPlans/completedAndPassedTestPlans/manualTestPlan_ui2b_layout_redesign.md` | UI-2B manual test plan — 9 evals passed; signed off 2026-05-11 |
+| `docs/testsPlans/manualTestPlan_ui5_common_parity.md` | UI-5 common manual test plan — 8 evals covering P1/P2/P3; pending sign-off |
 | **History** | |
 | `docs/archive/completedPhases.md` | Completed phases and tech debt sprints — full history |

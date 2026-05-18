@@ -209,7 +209,140 @@ function initZoomButtons() {
   });
   document.getElementById('zoom-reset').addEventListener('click', resetZoomPan);
 }
-function initSearch() {}
+// ─── Search helpers ───────────────────────────────────────────────────────────
+function getAutocompleteSuggestions(query) {
+  if (!query) return [];
+  const q = query.toLowerCase();
+  const scored = [];
+  for (const [term] of searchIndex) {
+    const pos = term.indexOf(q);
+    if (pos !== -1) scored.push({ term, pos });
+  }
+  scored.sort((a, b) => a.pos - b.pos || a.term.localeCompare(b.term));
+  return scored.slice(0, 10).map(s => s.term);
+}
+
+function selectTerm(term) {
+  state.searchTerm = term.toLowerCase();
+  updateSidebarMatchDots();
+  const matches = searchIndex.get(state.searchTerm) || [];
+  if (!matches.length) {
+    clearHighlight();
+    renderNoMatch(term);
+    return;
+  }
+  showHighlightWithZoom(matches[0].plateId, matches[0].region);
+  renderResults(term, matches);
+}
+
+// ─── Results panel ────────────────────────────────────────────────────────────
+function clearResults() {
+  const p = document.createElement('p');
+  p.className = 'empty-state';
+  p.textContent = 'Search a term to highlight regions';
+  document.getElementById('results-content').replaceChildren(p);
+}
+
+function renderNoMatch(term) {
+  const p = document.createElement('p');
+  p.className = 'no-match';
+  p.textContent = `No regions mapped for "${term}"`;
+  document.getElementById('results-content').replaceChildren(p);
+}
+
+function renderResults(term, matches) {
+  const plateNames = Object.fromEntries(state.plates.map(p => [p.id, p.displayName]));
+  const panel = document.getElementById('results-content');
+
+  const termDiv = document.createElement('div');
+  termDiv.className = 'result-term';
+  termDiv.textContent = term;
+
+  const label = document.createElement('div');
+  label.className = 'result-label';
+  label.textContent = 'APPEARS IN';
+
+  const ul = document.createElement('ul');
+  ul.className = 'result-plates';
+
+  for (const m of matches) {
+    const li = document.createElement('li');
+    if (m.plateId === state.activePlateId) li.classList.add('current');
+    li.textContent = plateNames[m.plateId] || m.plateId;
+    li.addEventListener('click', () => {
+      showHighlightWithZoom(m.plateId, m.region);
+      ul.querySelectorAll('li').forEach(el => el.classList.toggle('current', el === li));
+    });
+    ul.appendChild(li);
+  }
+
+  panel.replaceChildren(termDiv, label, ul);
+}
+
+function initSearch() {
+  const input = document.getElementById('search-input');
+  const dropdown = document.getElementById('autocomplete-dropdown');
+  let activeIdx = -1;
+
+  input.addEventListener('input', () => {
+    const q = input.value.trim();
+    activeIdx = -1;
+    if (!q) {
+      dropdown.classList.add('hidden');
+      state.searchTerm = '';
+      clearHighlight();
+      clearResults();
+      updateSidebarMatchDots();
+      return;
+    }
+    const suggestions = getAutocompleteSuggestions(q);
+    if (!suggestions.length) { dropdown.classList.add('hidden'); return; }
+    dropdown.innerHTML = '';
+    for (const t of suggestions) {
+      const div = document.createElement('div');
+      div.className = 'autocomplete-item';
+      div.textContent = t;
+      div.addEventListener('mousedown', e => {
+        e.preventDefault();
+        input.value = t;
+        dropdown.classList.add('hidden');
+        selectTerm(t);
+      });
+      dropdown.appendChild(div);
+    }
+    dropdown.classList.remove('hidden');
+  });
+
+  input.addEventListener('keydown', e => {
+    const items = dropdown.querySelectorAll('.autocomplete-item');
+    if (e.key === 'ArrowDown') {
+      activeIdx = Math.min(activeIdx + 1, items.length - 1);
+      items.forEach((el, i) => el.classList.toggle('active', i === activeIdx));
+      e.preventDefault();
+    } else if (e.key === 'ArrowUp') {
+      activeIdx = Math.max(activeIdx - 1, -1);
+      items.forEach((el, i) => el.classList.toggle('active', i === activeIdx));
+      e.preventDefault();
+    } else if (e.key === 'Enter') {
+      e.preventDefault();
+      if (activeIdx >= 0 && items[activeIdx]) {
+        input.value = items[activeIdx].textContent;
+        selectTerm(items[activeIdx].textContent);
+      } else if (input.value.trim()) {
+        selectTerm(input.value.trim());
+      }
+      dropdown.classList.add('hidden');
+    } else if (e.key === 'Escape') {
+      dropdown.classList.add('hidden');
+      activeIdx = -1;
+    }
+  });
+
+  document.addEventListener('click', e => {
+    if (!e.target.closest('.search-container')) dropdown.classList.add('hidden');
+  });
+}
+
 function clearHighlight() {
   document.getElementById('highlight-overlay').innerHTML = '';
   state.activeMatch = null;

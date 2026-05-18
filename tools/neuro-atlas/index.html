@@ -1,0 +1,45 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>NeuroAtlas Viewer</title>
+  <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+  <header>
+    <div class="logo">NeuroAtlas</div>
+    <div class="search-container">
+      <input type="text" id="search-input"
+        placeholder="Search a brain structure..." autocomplete="off">
+      <div id="autocomplete-dropdown" class="autocomplete-dropdown hidden"></div>
+    </div>
+  </header>
+  <main>
+    <aside id="sidebar">
+      <div class="sidebar-header">PLATES</div>
+      <ul id="plate-list"></ul>
+    </aside>
+    <div id="viewer-container">
+      <div id="viewer-surface">
+        <div id="viewer-inner">
+          <img id="atlas-image" src="" alt="" draggable="false">
+          <svg id="highlight-overlay"></svg>
+        </div>
+      </div>
+      <div class="zoom-controls">
+        <button id="zoom-out" title="Zoom out">−</button>
+        <button id="zoom-in"  title="Zoom in">+</button>
+        <button id="zoom-reset" title="Reset view">⟳</button>
+      </div>
+    </div>
+    <aside id="results-panel">
+      <div class="panel-header">RESULTS</div>
+      <div id="results-content">
+        <p class="empty-state">Search a term to highlight regions</p>
+      </div>
+    </aside>
+  </main>
+  <script src="atlas.js"></script>
+</body>
+</html>

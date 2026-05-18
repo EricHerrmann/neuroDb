@@ -11,17 +11,18 @@ import sys
 import webbrowser
 
 PORT = int(sys.argv[1]) if len(sys.argv) > 1 else 8080
-ROOT = os.path.join(os.path.dirname(__file__), "..", "tools", "neuro-atlas")
+REPO_ROOT = os.path.abspath(os.path.join(os.path.dirname(__file__), ".."))
 
-os.chdir(os.path.abspath(ROOT))
+os.chdir(REPO_ROOT)
 
 handler = http.server.SimpleHTTPRequestHandler
 handler.log_message = lambda *a: None  # silence request logs
 
-print(f"NeuroAtlas viewer → http://localhost:{PORT}")
+URL = f"http://localhost:{PORT}/tools/neuro-atlas/"
+print(f"NeuroAtlas viewer → {URL}")
 print("Stop with Ctrl+C")
 try:
-    webbrowser.open(f"http://localhost:{PORT}")
+    webbrowser.open(URL)
 except Exception:
     pass
 

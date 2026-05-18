@@ -16,7 +16,7 @@ from neurodb.schema import (
     DatasetIndex,
     HypothesisReview,
     KnowledgeGrowthSnapshot,
-    KnowledgeSource,
+    Paper,
     LiteratureSearch,
     ResearchHypothesis,
     ResearchQuestion,
@@ -259,10 +259,10 @@ def get_knowledge_growth_metrics(
     timestamp = now or _now_iso()
     with get_session(engine) as session:
         approved_sources = (
-            session.query(KnowledgeSource).filter_by(status="approved").count()
+            session.query(Paper).filter_by(status="approved").count()
         )
         pending_sources = (
-            session.query(KnowledgeSource).filter_by(status="pending").count()
+            session.query(Paper).filter_by(status="pending").count()
         )
         chat_sessions = session.query(ChatSession).count()
         literature_searches = session.query(LiteratureSearch).count()
@@ -275,8 +275,8 @@ def get_knowledge_growth_metrics(
         research_questions = session.query(ResearchQuestion).count()
         research_hypotheses = session.query(ResearchHypothesis).count()
         source_type_counts = dict(
-            session.query(KnowledgeSource.source_type, func.count())
-            .group_by(KnowledgeSource.source_type)
+            session.query(Paper.source_type, func.count())
+            .group_by(Paper.source_type)
             .all()
         )
 

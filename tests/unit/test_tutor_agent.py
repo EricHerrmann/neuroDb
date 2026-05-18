@@ -8,7 +8,7 @@ from sqlalchemy.orm import Session
 
 from neurodb.agents.tutor_agent import NeuroTutorAgent, normalize_title
 from neurodb.knowledge_store import KnowledgeLibraryStore
-from neurodb.schema import Base, KnowledgeSource
+from neurodb.schema import Base, Paper
 
 
 class _StubEmbedder:
@@ -71,7 +71,7 @@ def test_queue_source_inserts_pending_row():
     }))
     assert result["status"] == "queued"
     with Session(engine) as session:
-        row = session.query(KnowledgeSource).one()
+        row = session.query(Paper).one()
         assert row.status == "pending"
         assert row.normalized_title == "principles of neural science"
 

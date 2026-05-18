@@ -71,7 +71,7 @@ export interface LearningSourceContent {
   [key: string]: unknown
 }
 
-export interface KnowledgeSourceItem {
+export interface PaperItem {
   id: number
   title: string
   doi: string | null

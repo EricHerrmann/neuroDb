@@ -12,10 +12,10 @@ from pydantic import BaseModel
 from sqlalchemy import Engine
 
 from neurodb.api.deps import get_engine, get_knowledge_store, get_task_store
-from neurodb.api.schemas.knowledge_library import KnowledgeSourceItem
+from neurodb.api.schemas.knowledge_library import PaperItem
 from neurodb.api.tasks import TaskRecord
 from neurodb.db import get_session
-from neurodb.schema import KnowledgeSource
+from neurodb.schema import Paper
 
 logger = logging.getLogger(__name__)
 
@@ -33,37 +33,37 @@ class DuplicateCheckResponse(BaseModel):
     candidates: list[DuplicateCandidate]
 
 
-@router.get("", response_model=list[KnowledgeSourceItem])
+@router.get("", response_model=list[PaperItem])
 def get_knowledge_library(
     status: str = "all",
     engine: Engine = Depends(get_engine),
-) -> list[KnowledgeSourceItem]:
+) -> list[PaperItem]:
     with get_session(engine) as session:
-        query = session.query(KnowledgeSource)
+        query = session.query(Paper)
         if status != "all":
-            query = query.filter(KnowledgeSource.status == status)
-        rows = query.order_by(KnowledgeSource.queued_at.desc()).all()
-        return [KnowledgeSourceItem.model_validate(row) for row in rows]
+            query = query.filter(Paper.status == status)
+        rows = query.order_by(Paper.queued_at.desc()).all()
+        return [PaperItem.model_validate(row) for row in rows]
 
 
-@router.post("/{source_id}/approve", response_model=KnowledgeSourceItem)
+@router.post("/{source_id}/approve", response_model=PaperItem)
 def approve_source(
     source_id: int,
     engine: Engine = Depends(get_engine),
     knowledge_store=Depends(get_knowledge_store),
-) -> KnowledgeSourceItem:
+) -> PaperItem:
     reviewed_at = datetime.now(UTC).isoformat()
     warnings: list[str] = []
     with get_session(engine) as session:
-        row = session.get(KnowledgeSource, source_id)
+        row = session.get(Paper, source_id)
         if row is None:
             raise HTTPException(
-                status_code=404, detail=f"KnowledgeSource {source_id} not found"
+                status_code=404, detail=f"Paper {source_id} not found"
             )
         row.status = "approved"
         row.reviewed_at = reviewed_at
         session.flush()
-        item = KnowledgeSourceItem.model_validate(row)
+        item = PaperItem.model_validate(row)
         # Capture scalar values before the session closes — ORM objects are detached after commit
         _id, _title, _doi, _topic, _summary = (
             row.id, row.title, row.doi, row.topic_context, row.summary
@@ -77,7 +77,7 @@ def approve_source(
             summary=_summary or "",
         )
         with get_session(engine) as session:
-            row = session.get(KnowledgeSource, source_id)
+            row = session.get(Paper, source_id)
             if row is not None:
                 row.chroma_id = chroma_id
     except Exception as exc:
@@ -94,10 +94,10 @@ def approve_source_with_summary(
     tasks: dict[str, TaskRecord] = Depends(get_task_store),
 ) -> dict[str, str]:
     with get_session(engine) as session:
-        row = session.get(KnowledgeSource, source_id)
+        row = session.get(Paper, source_id)
         if row is None:
             raise HTTPException(
-                status_code=404, detail=f"KnowledgeSource {source_id} not found"
+                status_code=404, detail=f"Paper {source_id} not found"
             )
 
     task_id = str(uuid.uuid4())
@@ -132,10 +132,10 @@ def get_duplicate_candidates(
     knowledge_store=Depends(get_knowledge_store),
 ) -> DuplicateCheckResponse:
     with get_session(engine) as session:
-        row = session.get(KnowledgeSource, source_id)
+        row = session.get(Paper, source_id)
         if row is None:
             raise HTTPException(
-                status_code=404, detail=f"KnowledgeSource {source_id} not found"
+                status_code=404, detail=f"Paper {source_id} not found"
             )
         query = f"{row.title}\n{row.topic_context}"
 
@@ -163,31 +163,31 @@ def get_duplicate_candidates(
     return DuplicateCheckResponse(candidates=candidates)
 
 
-@router.post("/{source_id}/reject", response_model=KnowledgeSourceItem)
-def reject_source(source_id: int, engine: Engine = Depends(get_engine)) -> KnowledgeSourceItem:
+@router.post("/{source_id}/reject", response_model=PaperItem)
+def reject_source(source_id: int, engine: Engine = Depends(get_engine)) -> PaperItem:
     return _set_status(source_id, "rejected", engine)
 
 
-def _set_status(source_id: int, status: str, engine: Engine) -> KnowledgeSourceItem:
+def _set_status(source_id: int, status: str, engine: Engine) -> PaperItem:
     reviewed_at = datetime.now(UTC).isoformat()
     with get_session(engine) as session:
-        row = session.get(KnowledgeSource, source_id)
+        row = session.get(Paper, source_id)
         if row is None:
             raise HTTPException(
-                status_code=404, detail=f"KnowledgeSource {source_id} not found"
+                status_code=404, detail=f"Paper {source_id} not found"
             )
         row.status = status
         row.reviewed_at = reviewed_at
         session.flush()
-        return KnowledgeSourceItem.model_validate(row)
+        return PaperItem.model_validate(row)
 
 
 def _approve_with_summary(source_id: int, engine: Engine, knowledge_store) -> dict:
     reviewed_at = datetime.now(UTC).isoformat()
     with get_session(engine) as session:
-        row = session.get(KnowledgeSource, source_id)
+        row = session.get(Paper, source_id)
         if row is None:
-            raise ValueError(f"KnowledgeSource {source_id} not found")
+            raise ValueError(f"Paper {source_id} not found")
         summary = _generate_summary(row)
         row.status = "approved"
         row.reviewed_at = reviewed_at
@@ -209,13 +209,13 @@ def _approve_with_summary(source_id: int, engine: Engine, knowledge_store) -> di
         summary=values["summary"],
     )
     with get_session(engine) as session:
-        row = session.get(KnowledgeSource, source_id)
+        row = session.get(Paper, source_id)
         if row is not None:
             row.chroma_id = chroma_id
     return {"approved": True, "source_id": source_id, "chroma_id": chroma_id}
 
 
-def _generate_summary(row: KnowledgeSource) -> str:
+def _generate_summary(row: Paper) -> str:
     try:
         from neurodb.config.provider_factory import build_provider_clients
         from neurodb.config.task_router import TaskRouter
@@ -251,7 +251,7 @@ def _generate_summary(row: KnowledgeSource) -> str:
     return _fallback_summary(row)
 
 
-def _fallback_summary(row: KnowledgeSource) -> str:
+def _fallback_summary(row: Paper) -> str:
     return (
         f"Key concepts: {row.title} was queued as a {row.source_type} while discussing "
         f"{row.topic_context}.\n\n"

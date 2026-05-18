@@ -1,7 +1,7 @@
 """DB epoch — ORM schema definitions for all NeuroDb structured storage.
 
 Owns: all SQLAlchemy ORM models including source tables, DatasetIndex,
-StudyNote, ChatSession, KnowledgeSource, ResearchHypothesis, HypothesisReview,
+StudyNote, ChatSession, Paper, ResearchHypothesis, HypothesisReview,
 ModelCallLog, and any future research artifact tables.
 
 Migration target: src/neurodb/db/schema.py
@@ -223,15 +223,15 @@ class SourceSuggestion(Base):
     suggested_at: Mapped[str] = mapped_column(String(32), nullable=False)
 
 
-class KnowledgeSource(Base):
+class Paper(Base):
     """Candidate and approved learning sources surfaced by NeuroTutorAgent."""
-    __tablename__ = "knowledge_sources"
+    __tablename__ = "papers"
     __table_args__ = (
-        UniqueConstraint("doi", name="uq_knowledge_sources_doi"),
-        UniqueConstraint("normalized_title", name="uq_knowledge_sources_normalized_title"),
+        UniqueConstraint("doi", name="uq_papers_doi"),
+        UniqueConstraint("normalized_title", name="uq_papers_normalized_title"),
     )
 
-    id: Mapped[int] = mapped_column(Integer, Sequence("knowledge_sources_id_seq"), primary_key=True)
+    id: Mapped[int] = mapped_column(Integer, Sequence("papers_id_seq"), primary_key=True)
     title: Mapped[str] = mapped_column(Text, nullable=False)
     normalized_title: Mapped[str] = mapped_column(String(512), nullable=False, index=True)
     doi: Mapped[str | None] = mapped_column(String(256), nullable=True)
@@ -243,6 +243,9 @@ class KnowledgeSource(Base):
     reviewed_at: Mapped[str | None] = mapped_column(String(32), nullable=True)
     summary: Mapped[str | None] = mapped_column(Text, nullable=True)
     chroma_id: Mapped[str | None] = mapped_column(String(128), nullable=True)
+    abstract: Mapped[str | None] = mapped_column(Text, nullable=True)
+    authors_json: Mapped[str | None] = mapped_column(Text, nullable=True)
+    year: Mapped[int | None] = mapped_column(Integer, nullable=True)
 
 
 class ChatSession(Base):

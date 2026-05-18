@@ -12,7 +12,7 @@ from neurodb.agents.db_agent import TOOLS as _DB_TOOLS
 from neurodb.agents.db_agent import execute_tool
 from neurodb.db import get_session
 from neurodb.knowledge_store import KnowledgeLibraryStore
-from neurodb.schema import KnowledgeSource
+from neurodb.schema import Paper
 
 _MODEL = os.environ.get("NEURODB_AGENT_MODEL", "claude-sonnet-4-6")
 
@@ -147,15 +147,15 @@ class NeuroTutorAgent(BaseAgent):
 
         with get_session(self._engine) as session:
             if doi:
-                existing = session.query(KnowledgeSource).filter_by(doi=doi).first()
+                existing = session.query(Paper).filter_by(doi=doi).first()
             else:
-                existing = session.query(KnowledgeSource).filter_by(
+                existing = session.query(Paper).filter_by(
                     normalized_title=normalized
                 ).first()
             if existing is not None:
                 return json.dumps({"status": "already_exists", "id": existing.id})
 
-            row = KnowledgeSource(
+            row = Paper(
                 title=title,
                 normalized_title=normalized,
                 doi=doi,

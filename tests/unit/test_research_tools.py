@@ -19,7 +19,7 @@ from neurodb.schema import (
     HypothesisReview,
     IngestRun,
     KnowledgeGrowthSnapshot,
-    KnowledgeSource,
+    Paper,
     ResearchHypothesis,
     ResearchQuestion,
     StudyNote,
@@ -170,7 +170,7 @@ def test_create_hypothesis_review_persists_without_duplicating_hypothesis():
 def test_knowledge_growth_metrics_computes_counts_and_persists_on_demand():
     engine = _engine()
     with Session(engine) as session:
-        session.add(KnowledgeSource(
+        session.add(Paper(
             title="LTP Review",
             normalized_title="ltp review",
             source_type="review",

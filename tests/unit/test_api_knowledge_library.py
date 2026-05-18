@@ -8,7 +8,7 @@ from sqlalchemy.pool import StaticPool
 
 from neurodb.api.routes.knowledge_library import router
 from neurodb.db import get_session
-from neurodb.schema import Base, KnowledgeSource
+from neurodb.schema import Base, Paper
 
 
 def _make_app(engine, knowledge_store=None):
@@ -32,7 +32,7 @@ def _make_client(knowledge_store=None):
 
 def _insert_source(engine, title: str = "Test Source", status: str = "pending"):
     with get_session(engine) as session:
-        session.add(KnowledgeSource(
+        session.add(Paper(
             title=title,
             normalized_title=title.lower(),
             source_type="paper",

@@ -3,7 +3,7 @@ from sqlalchemy import create_engine, inspect
 from sqlalchemy.exc import IntegrityError
 from sqlalchemy.orm import Session
 
-from neurodb.schema import Base, ChatSession, KnowledgeSource, LiteratureSearch
+from neurodb.schema import Base, ChatSession, Paper, LiteratureSearch
 
 
 def _engine():
@@ -14,7 +14,7 @@ def _engine():
 
 def test_knowledge_sources_table_created():
     inspector = inspect(_engine())
-    assert "knowledge_sources" in inspector.get_table_names()
+    assert "papers" in inspector.get_table_names()
 
 
 def test_chat_sessions_table_created():
@@ -35,7 +35,7 @@ def test_literature_search_has_observability_columns():
 def test_knowledge_source_doi_unique():
     engine = _engine()
     with Session(engine) as session:
-        session.add(KnowledgeSource(
+        session.add(Paper(
             title="Paper A",
             normalized_title="paper a",
             doi="10.1234/test",
@@ -45,7 +45,7 @@ def test_knowledge_source_doi_unique():
             queued_at="2026-05-05T00:00:00",
         ))
         session.commit()
-        session.add(KnowledgeSource(
+        session.add(Paper(
             title="Paper B",
             normalized_title="paper b",
             doi="10.1234/test",
@@ -61,7 +61,7 @@ def test_knowledge_source_doi_unique():
 def test_knowledge_source_normalized_title_unique():
     engine = _engine()
     with Session(engine) as session:
-        session.add(KnowledgeSource(
+        session.add(Paper(
             title="Paper A",
             normalized_title="paper a",
             source_type="paper",
@@ -70,7 +70,7 @@ def test_knowledge_source_normalized_title_unique():
             queued_at="2026-05-05T00:00:00",
         ))
         session.commit()
-        session.add(KnowledgeSource(
+        session.add(Paper(
             title="paper a",
             normalized_title="paper a",
             source_type="review",
@@ -107,7 +107,7 @@ def test_chat_session_session_id_unique():
 def test_knowledge_source_optional_fields_default_to_none():
     engine = _engine()
     with Session(engine) as session:
-        row = KnowledgeSource(
+        row = Paper(
             title="Some Review",
             normalized_title="some review",
             source_type="review",

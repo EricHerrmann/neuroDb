@@ -7,7 +7,7 @@ from sqlalchemy import create_engine
 from sqlalchemy.orm import Session
 
 from neurodb.config.model_client import ContentBlock, ModelResponse
-from neurodb.schema import Base, KnowledgeSource, ModelCallLog
+from neurodb.schema import Base, Paper, ModelCallLog
 
 
 def _source() -> str:
@@ -36,7 +36,7 @@ def test_knowledge_library_has_approve_and_reject_actions():
 
 
 def test_knowledge_library_uses_knowledge_source_model():
-    assert "KnowledgeSource" in _source()
+    assert "Paper" in _source()
 
 
 def test_knowledge_library_adds_summary_to_knowledge_store():
@@ -137,7 +137,7 @@ def test_approve_source_logs_knowledge_summary_telemetry():
     engine = create_engine("sqlite:///:memory:")
     Base.metadata.create_all(engine)
     with Session(engine) as session:
-        source = KnowledgeSource(
+        source = Paper(
             title="Hippocampal Place Cells",
             normalized_title="hippocampal place cells",
             doi="10.1000/xyz",
@@ -168,7 +168,7 @@ def test_approve_source_logs_knowledge_summary_telemetry():
                 knowledge_library._approve_source(engine, source_id)
 
     with Session(engine) as session:
-        source = session.query(KnowledgeSource).filter_by(id=source_id).one()
+        source = session.query(Paper).filter_by(id=source_id).one()
         row = session.query(ModelCallLog).one()
         assert source.status == "approved"
         assert source.summary == "summary text"

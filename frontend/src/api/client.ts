@@ -8,7 +8,7 @@ import type {
   DuplicateCheckResponse,
   Hypothesis,
   HypothesisReviewItem,
-  KnowledgeSourceItem,
+  PaperItem,
   LearningSourceItem,
   ModelInfo,
   Preferences,
@@ -112,15 +112,15 @@ export const api = {
   createRegistryEntry: (body: CreateLearningSourceRequest) =>
     post<LearningSourceItem>('/api/registry', body),
   getKnowledgeLibrary: (status = 'all') =>
-    get<KnowledgeSourceItem[]>(`/api/knowledge-library?status=${status}`),
+    get<PaperItem[]>(`/api/knowledge-library?status=${status}`),
   approveSource: (id: number) =>
-    post<KnowledgeSourceItem>(`/api/knowledge-library/${id}/approve`),
+    post<PaperItem>(`/api/knowledge-library/${id}/approve`),
   approveSourceWithSummary: (id: number) =>
     post<TaskResponse>(`/api/knowledge-library/${id}/approve-with-summary`),
   getKnowledgeDuplicates: (id: number) =>
     get<DuplicateCheckResponse>(`/api/knowledge-library/${id}/duplicates`),
   rejectSource: (id: number) =>
-    post<KnowledgeSourceItem>(`/api/knowledge-library/${id}/reject`),
+    post<PaperItem>(`/api/knowledge-library/${id}/reject`),
   getResearchMetrics: () => get<ResearchMetrics>('/api/research/metrics'),
   getResearchQuestions: (statuses: string[] = []) => {
     const params = new URLSearchParams()

@@ -3,7 +3,7 @@ from __future__ import annotations
 from pydantic import BaseModel
 
 
-class KnowledgeSourceItem(BaseModel):
+class PaperItem(BaseModel):
     model_config = {"from_attributes": True}
 
     id: int

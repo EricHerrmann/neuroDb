@@ -8,7 +8,7 @@ from sqlalchemy import Engine
 
 from neurodb.db import get_session
 from neurodb.model_telemetry import add_model_call_log
-from neurodb.schema import KnowledgeSource
+from neurodb.schema import Paper
 
 
 def render(engine: Engine) -> None:
@@ -77,19 +77,19 @@ def _render_library(engine: Engine) -> None:
                 st.caption("No summary available.")
 
 
-def _list_sources(engine: Engine, status: str) -> list[KnowledgeSource]:
+def _list_sources(engine: Engine, status: str) -> list[Paper]:
     with get_session(engine) as session:
         return (
-            session.query(KnowledgeSource)
+            session.query(Paper)
             .filter_by(status=status)
-            .order_by(KnowledgeSource.queued_at.desc())
+            .order_by(Paper.queued_at.desc())
             .all()
         )
 
 
 def _approve_source(engine: Engine, source_id: int) -> None:
     with get_session(engine) as session:
-        row = session.query(KnowledgeSource).filter_by(id=source_id).one()
+        row = session.query(Paper).filter_by(id=source_id).one()
         summary, telemetry = _generate_summary(row)
         row.summary = summary
         row.status = "approved"
@@ -113,12 +113,12 @@ def _approve_source(engine: Engine, source_id: int) -> None:
 
 def _reject_source(engine: Engine, source_id: int) -> None:
     with get_session(engine) as session:
-        row = session.query(KnowledgeSource).filter_by(id=source_id).one()
+        row = session.query(Paper).filter_by(id=source_id).one()
         row.status = "rejected"
         row.reviewed_at = datetime.now(timezone.utc).isoformat()
 
 
-def _find_near_duplicate(row: KnowledgeSource) -> dict | None:
+def _find_near_duplicate(row: Paper) -> dict | None:
     knowledge_store = st.session_state.get("knowledge_store")
     if knowledge_store is None:
         return None
@@ -144,7 +144,7 @@ def _dedup_threshold() -> float:
         return 0.15
 
 
-def _generate_summary(row: KnowledgeSource) -> tuple[str, dict | None]:
+def _generate_summary(row: Paper) -> tuple[str, dict | None]:
     api_key = os.environ.get("ANTHROPIC_API_KEY")
     legacy_model = os.environ.get("NEURODB_KNOWLEDGE_SUMMARY_MODEL")
     if not api_key and legacy_model:
@@ -218,7 +218,7 @@ def _generate_summary(row: KnowledgeSource) -> tuple[str, dict | None]:
     return _fallback_summary(row), None
 
 
-def _fallback_summary(row: KnowledgeSource) -> str:
+def _fallback_summary(row: Paper) -> str:
     return (
         f"Key concepts: {row.title} was queued as a {row.source_type} while discussing "
         f"{row.topic_context}.\n\n"

@@ -210,8 +210,49 @@ function initZoomButtons() {
   document.getElementById('zoom-reset').addEventListener('click', resetZoomPan);
 }
 function initSearch() {}
-function clearHighlight() {}
-function showHighlightWithZoom(plateId, region) {}
+function clearHighlight() {
+  document.getElementById('highlight-overlay').innerHTML = '';
+  state.activeMatch = null;
+}
+function showHighlight(region) {
+  const img = document.getElementById('atlas-image');
+  const svg = document.getElementById('highlight-overlay');
+  const cx = (region.cx / 100) * img.naturalWidth;
+  const cy = (region.cy / 100) * img.naturalHeight;
+  const r  = (region.r  / 100) * img.naturalWidth;
+  svg.innerHTML = `
+    <circle class="highlight-circle" cx="${cx}" cy="${cy}" r="${r}"/>
+    <text class="highlight-label"
+          x="${cx}" y="${cy - r - 8}"
+          text-anchor="middle">${region.label}</text>
+  `;
+}
+
+function showHighlightWithZoom(plateId, region) {
+  const doRender = () => {
+    showHighlight(region);
+    state.activeMatch = { plateId, region };
+    const img = document.getElementById('atlas-image');
+    const surface = document.getElementById('viewer-surface');
+    const cx_px = (region.cx / 100) * img.naturalWidth;
+    const cy_px = (region.cy / 100) * img.naturalHeight;
+    state.zoom = 2.5;
+    state.panX = surface.clientWidth  / 2 - cx_px * state.zoom;
+    state.panY = surface.clientHeight / 2 - cy_px * state.zoom;
+    applyTransform();
+  };
+
+  if (state.activePlateId !== plateId) {
+    setActivePlate(plateId);
+    const img = document.getElementById('atlas-image');
+    const prev = img.onload;
+    img.onload = () => { if (prev) prev(); doRender(); };
+  } else {
+    const img = document.getElementById('atlas-image');
+    if (img.complete && img.naturalWidth > 0) doRender();
+    else img.onload = () => { updateHighlightOverlaySize(); resetZoomPan(); doRender(); };
+  }
+}
 
 // ─── Bootstrap ────────────────────────────────────────────────────────────────
 document.addEventListener('DOMContentLoaded', init);

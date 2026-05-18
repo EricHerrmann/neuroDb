@@ -103,7 +103,7 @@ function updateSidebarMatchDots() {
   });
 }
 
-// ─── Placeholder stubs (filled in Tasks 4–7) ─────────────────────────────────
+// ─── Plate switching ──────────────────────────────────────────────────────────
 function setActivePlate(plateId) {
   const plate = state.plates.find(p => p.id === plateId);
   if (!plate) return;
@@ -353,12 +353,19 @@ function showHighlight(region) {
   const cx = (region.cx / 100) * img.naturalWidth;
   const cy = (region.cy / 100) * img.naturalHeight;
   const r  = (region.r  / 100) * img.naturalWidth;
-  svg.innerHTML = `
-    <circle class="highlight-circle" cx="${cx}" cy="${cy}" r="${r}"/>
-    <text class="highlight-label"
-          x="${cx}" y="${cy - r - 8}"
-          text-anchor="middle">${region.label}</text>
-  `;
+  const svgNS = 'http://www.w3.org/2000/svg';
+  const circle = document.createElementNS(svgNS, 'circle');
+  circle.setAttribute('class', 'highlight-circle');
+  circle.setAttribute('cx', cx);
+  circle.setAttribute('cy', cy);
+  circle.setAttribute('r', r);
+  const text = document.createElementNS(svgNS, 'text');
+  text.setAttribute('class', 'highlight-label');
+  text.setAttribute('x', cx);
+  text.setAttribute('y', cy - r - 8);
+  text.setAttribute('text-anchor', 'middle');
+  text.textContent = region.label;
+  svg.replaceChildren(circle, text);
 }
 
 function showHighlightWithZoom(plateId, region) {

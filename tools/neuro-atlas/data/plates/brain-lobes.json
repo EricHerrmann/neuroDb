@@ -1,0 +1,18 @@
+{
+  "id": "brain-lobes",
+  "filename": "ATLAS Human Brain Lobes.png",
+  "displayName": "Human Brain Lobes",
+  "category": "lobes",
+  "regions": [
+    { "term": "frontal lobe",              "cx": 25.0, "cy": 22.0, "r": 10.0, "label": "Frontal lobe" },
+    { "term": "central sulcus",            "cx": 46.0, "cy": 17.0, "r":  3.5, "label": "Central sulcus" },
+    { "term": "parietal lobe",             "cx": 57.0, "cy": 19.0, "r":  9.0, "label": "Parietal lobe" },
+    { "term": "lateral sulcus",            "cx": 41.0, "cy": 34.0, "r":  4.0, "label": "Lateral (Sylvian) fissure" },
+    { "term": "temporal lobe",             "cx": 35.0, "cy": 37.0, "r":  9.0, "label": "Temporal lobe" },
+    { "term": "preoccipital notch",        "cx": 66.0, "cy": 34.0, "r":  3.0, "label": "Preoccipital notch" },
+    { "term": "occipital lobe",            "cx": 72.0, "cy": 26.0, "r":  8.0, "label": "Occipital lobe" },
+    { "term": "cingulate gyrus",           "cx": 31.0, "cy": 63.0, "r":  4.0, "label": "Cingulate gyrus" },
+    { "term": "cingulate sulcus",          "cx": 27.0, "cy": 60.0, "r":  3.0, "label": "Cingulate sulcus" },
+    { "term": "parieto-occipital sulcus",  "cx": 60.0, "cy": 64.0, "r":  3.0, "label": "Parieto-occipital sulcus" }
+  ]
+}

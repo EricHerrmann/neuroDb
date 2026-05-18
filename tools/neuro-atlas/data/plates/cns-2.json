@@ -1,0 +1,29 @@
+{
+  "id": "cns-2",
+  "filename": "ATLAS Human CNS 2.png",
+  "displayName": "CNS Lateral & Medial II",
+  "category": "cns",
+  "regions": [
+    { "term": "superior frontal gyrus",    "cx": 30.0, "cy": 11.0, "r": 4.0, "label": "Superior frontal gyrus" },
+    { "term": "superior frontal sulcus",   "cx": 32.0, "cy": 14.0, "r": 3.0, "label": "Superior frontal sulcus" },
+    { "term": "middle frontal gyrus",      "cx": 28.0, "cy": 17.0, "r": 4.0, "label": "Middle frontal gyrus" },
+    { "term": "inferior frontal gyrus",    "cx": 24.0, "cy": 21.0, "r": 4.0, "label": "Inferior frontal gyrus" },
+    { "term": "precentral gyrus",          "cx": 35.0, "cy": 16.0, "r": 4.0, "label": "Precentral gyrus" },
+    { "term": "central sulcus",            "cx": 43.0, "cy": 15.0, "r": 3.0, "label": "Central sulcus" },
+    { "term": "superior parietal lobule",  "cx": 53.0, "cy": 14.0, "r": 4.0, "label": "Superior parietal lobule" },
+    { "term": "postcentral gyrus",         "cx": 46.0, "cy": 19.0, "r": 3.5, "label": "Postcentral gyrus" },
+    { "term": "angular gyrus",             "cx": 57.0, "cy": 26.0, "r": 4.0, "label": "Angular gyrus" },
+    { "term": "supramarginal gyrus",       "cx": 52.0, "cy": 25.0, "r": 4.0, "label": "Supramarginal gyrus" },
+    { "term": "superior temporal gyrus",   "cx": 38.0, "cy": 33.0, "r": 4.0, "label": "Superior temporal gyrus" },
+    { "term": "middle temporal gyrus",     "cx": 38.0, "cy": 36.0, "r": 4.0, "label": "Middle temporal gyrus" },
+    { "term": "inferior temporal gyrus",   "cx": 40.0, "cy": 40.0, "r": 4.0, "label": "Inferior temporal gyrus" },
+    { "term": "lateral sulcus",            "cx": 38.0, "cy": 27.0, "r": 3.0, "label": "Lateral (Sylvian) fissure" },
+    { "term": "cerebellar hemisphere",     "cx": 62.0, "cy": 40.0, "r": 5.0, "label": "Cerebellar hemisphere" },
+    { "term": "cingulate gyrus",           "cx": 30.0, "cy": 61.0, "r": 4.0, "label": "Cingulate gyrus" },
+    { "term": "corpus callosum",           "cx": 44.0, "cy": 64.0, "r": 4.0, "label": "Corpus callosum, body" },
+    { "term": "thalamus",                  "cx": 42.0, "cy": 67.0, "r": 4.0, "label": "Thalamus" },
+    { "term": "midbrain",                  "cx": 44.0, "cy": 74.0, "r": 4.0, "label": "Midbrain" },
+    { "term": "pons",                      "cx": 44.0, "cy": 79.0, "r": 4.0, "label": "Pons" },
+    { "term": "medulla oblongata",         "cx": 43.0, "cy": 84.0, "r": 4.0, "label": "Medulla oblongata" }
+  ]
+}

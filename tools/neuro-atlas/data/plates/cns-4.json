@@ -1,0 +1,19 @@
+{
+  "id": "cns-4",
+  "filename": "ATLAS Human CNS 4.png",
+  "displayName": "CNS Dorsal & Ventral II",
+  "category": "cns",
+  "regions": [
+    { "term": "supramarginal gyrus",    "cx": 62.0, "cy": 22.0, "r": 4.0, "label": "Supramarginal gyrus" },
+    { "term": "angular gyrus",          "cx": 63.0, "cy": 27.0, "r": 4.0, "label": "Angular gyrus" },
+    { "term": "central sulcus",         "cx": 48.0, "cy": 17.0, "r": 3.0, "label": "Central sulcus" },
+    { "term": "precentral gyrus",       "cx": 41.0, "cy": 18.0, "r": 4.0, "label": "Precentral gyrus" },
+    { "term": "superior frontal gyrus", "cx": 32.0, "cy": 23.0, "r": 4.0, "label": "Superior frontal gyrus" },
+    { "term": "postcentral gyrus",      "cx": 53.0, "cy": 22.0, "r": 4.0, "label": "Postcentral gyrus" },
+    { "term": "optic chiasm",           "cx": 44.0, "cy": 70.0, "r": 3.5, "label": "Optic chiasm" },
+    { "term": "pons",                   "cx": 48.0, "cy": 77.0, "r": 5.0, "label": "Pons" },
+    { "term": "medulla oblongata",      "cx": 48.0, "cy": 85.0, "r": 4.0, "label": "Medulla oblongata" },
+    { "term": "cerebellar hemisphere",  "cx": 57.0, "cy": 80.0, "r": 6.0, "label": "Cerebellar hemisphere" },
+    { "term": "cerebral peduncle",      "cx": 46.0, "cy": 74.0, "r": 4.0, "label": "Cerebral peduncle" }
+  ]
+}

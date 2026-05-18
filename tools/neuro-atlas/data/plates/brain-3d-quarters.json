@@ -1,0 +1,14 @@
+{
+  "id": "brain-3d-quarters",
+  "filename": "ATLAS Brain 3d quarters.png",
+  "displayName": "Brain 3D Planes",
+  "category": "orientation",
+  "regions": [
+    { "term": "corona radiata",          "cx": 47.0, "cy": 21.0, "r": 4.0, "label": "Corona radiata, central" },
+    { "term": "internal capsule",        "cx": 47.0, "cy": 26.0, "r": 4.0, "label": "Internal capsule" },
+    { "term": "coronal plane",           "cx": 42.0, "cy": 70.0, "r": 5.0, "label": "Coronal (frontal) plane" },
+    { "term": "sagittal plane",          "cx": 55.0, "cy": 62.0, "r": 5.0, "label": "Sagittal plane" },
+    { "term": "horizontal plane",        "cx": 60.0, "cy": 78.0, "r": 5.0, "label": "Horizontal (axial) plane" },
+    { "term": "middle cerebellar peduncle", "cx": 46.0, "cy": 38.0, "r": 4.0, "label": "Middle cerebellar peduncle" }
+  ]
+}

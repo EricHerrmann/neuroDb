@@ -1,0 +1,16 @@
+{
+  "id": "neural-map-2",
+  "filename": "ATLAS Brain Nueral Map 2.png",
+  "displayName": "White Matter Tracts II",
+  "category": "tractography",
+  "regions": [
+    { "term": "corpus callosum",                  "cx": 50.0, "cy": 22.0, "r": 4.0, "label": "Corpus callosum, body" },
+    { "term": "cingulum bundle",                  "cx": 43.0, "cy": 22.0, "r": 4.0, "label": "Cingulum bundle" },
+    { "term": "corona radiata",                   "cx": 52.0, "cy": 18.0, "r": 4.0, "label": "Corona radiata, central" },
+    { "term": "superior longitudinal fasciculus", "cx": 60.0, "cy": 23.0, "r": 4.0, "label": "Superior longitudinal fasciculus" },
+    { "term": "internal capsule",                 "cx": 46.0, "cy": 63.0, "r": 4.0, "label": "Internal capsule, posterior limb" },
+    { "term": "uncinate fasciculus",              "cx": 35.0, "cy": 71.0, "r": 4.0, "label": "Uncinate fasciculus" },
+    { "term": "middle cerebellar peduncle",       "cx": 48.0, "cy": 81.0, "r": 4.0, "label": "Middle cerebellar peduncle" },
+    { "term": "inferior cerebellar peduncle",     "cx": 52.0, "cy": 85.0, "r": 4.0, "label": "Inferior cerebellar peduncle" }
+  ]
+}

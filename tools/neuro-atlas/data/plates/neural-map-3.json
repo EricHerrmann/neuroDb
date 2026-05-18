@@ -1,0 +1,19 @@
+{
+  "id": "neural-map-3",
+  "filename": "ATLAS Brain Nueral Map 3.png",
+  "displayName": "White Matter Tracts III",
+  "category": "tractography",
+  "regions": [
+    { "term": "corona radiata",                   "cx": 47.0, "cy": 21.0, "r": 4.0, "label": "Corona radiata, central" },
+    { "term": "internal capsule",                 "cx": 47.0, "cy": 26.0, "r": 4.0, "label": "Internal capsule" },
+    { "term": "superior longitudinal fasciculus", "cx": 55.0, "cy": 22.0, "r": 4.0, "label": "Superior longitudinal fasciculus" },
+    { "term": "inferior longitudinal fasciculus", "cx": 56.0, "cy": 30.0, "r": 4.0, "label": "Inferior longitudinal fasciculus" },
+    { "term": "uncinate fasciculus",              "cx": 36.0, "cy": 27.0, "r": 4.0, "label": "Uncinate fasciculus" },
+    { "term": "middle cerebellar peduncle",       "cx": 46.0, "cy": 38.0, "r": 4.0, "label": "Middle cerebellar peduncle" },
+    { "term": "medullary pyramid",                "cx": 47.0, "cy": 41.0, "r": 3.0, "label": "Medullary pyramid" },
+    { "term": "inferior cerebellar peduncle",     "cx": 49.0, "cy": 40.0, "r": 3.0, "label": "Inferior cerebellar peduncle" },
+    { "term": "coronal plane",                    "cx": 42.0, "cy": 70.0, "r": 5.0, "label": "Coronal (frontal) plane" },
+    { "term": "sagittal plane",                   "cx": 55.0, "cy": 62.0, "r": 5.0, "label": "Sagittal plane" },
+    { "term": "horizontal plane",                 "cx": 60.0, "cy": 78.0, "r": 5.0, "label": "Horizontal (axial) plane" }
+  ]
+}

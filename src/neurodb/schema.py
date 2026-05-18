@@ -6,7 +6,7 @@ ModelCallLog, and any future research artifact tables.
 
 Migration target: src/neurodb/db/schema.py
 """
-from sqlalchemy import Float, ForeignKey, Index, Integer, Sequence, String, Text, UniqueConstraint
+from sqlalchemy import CheckConstraint, Float, ForeignKey, Index, Integer, Sequence, String, Text, UniqueConstraint
 from sqlalchemy.orm import DeclarativeBase, Mapped, mapped_column, relationship
 
 
@@ -93,13 +93,29 @@ class QualityEvent(Base):
 
 
 class StudyNote(Base):
+    """User note tied to a dataset, topic, concept, or paper for study tracking."""
     __tablename__ = "study_notes"
     __table_args__ = (
-        UniqueConstraint("index_id", "concept_tag", name="uq_study_note_index_concept"),
+        CheckConstraint(
+            "index_id IS NOT NULL OR topic_id IS NOT NULL OR "
+            "concept_id IS NOT NULL OR paper_id IS NOT NULL",
+            name="ck_study_notes_one_anchor",
+        ),
     )
 
     id: Mapped[int] = mapped_column(Integer, Sequence("study_notes_id_seq"), primary_key=True)
-    index_id: Mapped[int] = mapped_column(ForeignKey("datasets_index.id"), nullable=False, index=True)
+    index_id: Mapped[int | None] = mapped_column(
+        ForeignKey("datasets_index.id"), nullable=True, index=True
+    )
+    topic_id: Mapped[int | None] = mapped_column(
+        ForeignKey("topics.id"), nullable=True, index=True
+    )
+    concept_id: Mapped[int | None] = mapped_column(
+        ForeignKey("concepts.id"), nullable=True, index=True
+    )
+    paper_id: Mapped[int | None] = mapped_column(
+        ForeignKey("papers.id"), nullable=True, index=True
+    )
     concept_tag: Mapped[str] = mapped_column(String(128), nullable=False, index=True)
     section_ref: Mapped[str | None] = mapped_column(String(64), nullable=True)
     note_text: Mapped[str | None] = mapped_column(Text, nullable=True)

@@ -378,6 +378,7 @@ class AppPreference(Base):
 
 
 class Topic(Base):
+    """Researchable subject area used to group Papers, Concepts, notes, and dataset packets."""
     __tablename__ = "topics"
 
     id: Mapped[int] = mapped_column(Integer, Sequence("topics_id_seq"), primary_key=True)
@@ -389,6 +390,7 @@ class Topic(Base):
 
 
 class Concept(Base):
+    """Learnable idea, mechanism, anatomy term, or clinical concept within a topic."""
     __tablename__ = "concepts"
 
     id: Mapped[int] = mapped_column(Integer, Sequence("concepts_id_seq"), primary_key=True)

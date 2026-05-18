@@ -59,5 +59,8 @@ def test_concept_name_is_unique(engine):
 def test_topic_description_is_optional(engine):
     now = _now()
     with Session(engine) as s:
-        s.add(Topic(name="cortical remapping", status="active", created_at=now, updated_at=now))
+        topic = Topic(name="cortical remapping", status="active", created_at=now, updated_at=now)
+        s.add(topic)
         s.commit()
+        s.refresh(topic)
+        assert topic.description is None

@@ -5,7 +5,12 @@ from sqlalchemy.exc import IntegrityError
 from sqlalchemy.orm import Session
 from sqlalchemy.pool import StaticPool
 
-from neurodb.schema import Base, Concept, Topic
+from neurodb.schema import (
+    Base, Concept, Topic,
+    DatasetPacketPaper, DatasetPacketTopic,
+    PaperConcept, PaperTopic, TopicConcept,
+    Paper,
+)
 
 
 def _now():
@@ -64,3 +69,46 @@ def test_topic_description_is_optional(engine):
         s.commit()
         s.refresh(topic)
         assert topic.description is None
+
+
+def test_linking_tables_all_exist(engine):
+    names = set(inspect(engine).get_table_names())
+    for t in (
+        "paper_topics",
+        "paper_concepts",
+        "topic_concepts",
+        "dataset_packet_topics",
+        "dataset_packet_papers",
+    ):
+        assert t in names, f"Table '{t}' missing"
+
+
+def test_paper_topics_has_required_columns(engine):
+    cols = {c["name"] for c in inspect(engine).get_columns("paper_topics")}
+    assert {"paper_id", "topic_id"}.issubset(cols)
+
+
+def test_topic_concepts_has_required_columns(engine):
+    cols = {c["name"] for c in inspect(engine).get_columns("topic_concepts")}
+    assert {"topic_id", "concept_id"}.issubset(cols)
+
+
+def test_paper_topic_unique_constraint_enforced(engine):
+    now = _now()
+    with Session(engine) as s:
+        paper = Paper(
+            title="Test Paper", normalized_title="test paper",
+            source_type="paper", topic_context="test",
+            status="pending", queued_at=now,
+        )
+        topic = Topic(name="test topic", status="active", created_at=now, updated_at=now)
+        s.add_all([paper, topic])
+        s.flush()
+        s.add(PaperTopic(paper_id=paper.id, topic_id=topic.id))
+        s.commit()
+    with pytest.raises(IntegrityError):
+        with Session(engine) as s:
+            paper = s.query(Paper).first()
+            topic = s.query(Topic).first()
+            s.add(PaperTopic(paper_id=paper.id, topic_id=topic.id))
+            s.commit()

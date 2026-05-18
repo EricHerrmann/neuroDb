@@ -402,3 +402,61 @@ class Concept(Base):
     status: Mapped[str] = mapped_column(String(16), nullable=False, default="active")
     created_at: Mapped[str] = mapped_column(String(32), nullable=False)
     updated_at: Mapped[str] = mapped_column(String(32), nullable=False)
+
+
+class PaperTopic(Base):
+    """Join table linking a Paper to a Topic."""
+    __tablename__ = "paper_topics"
+    __table_args__ = (UniqueConstraint("paper_id", "topic_id", name="uq_paper_topics"),)
+
+    id: Mapped[int] = mapped_column(Integer, Sequence("paper_topics_id_seq"), primary_key=True)
+    paper_id: Mapped[int] = mapped_column(ForeignKey("papers.id"), nullable=False, index=True)
+    topic_id: Mapped[int] = mapped_column(ForeignKey("topics.id"), nullable=False, index=True)
+
+
+class PaperConcept(Base):
+    """Join table linking a Paper to a Concept."""
+    __tablename__ = "paper_concepts"
+    __table_args__ = (UniqueConstraint("paper_id", "concept_id", name="uq_paper_concepts"),)
+
+    id: Mapped[int] = mapped_column(Integer, Sequence("paper_concepts_id_seq"), primary_key=True)
+    paper_id: Mapped[int] = mapped_column(ForeignKey("papers.id"), nullable=False, index=True)
+    concept_id: Mapped[int] = mapped_column(ForeignKey("concepts.id"), nullable=False, index=True)
+
+
+class TopicConcept(Base):
+    """Join table linking a Topic to a Concept."""
+    __tablename__ = "topic_concepts"
+    __table_args__ = (UniqueConstraint("topic_id", "concept_id", name="uq_topic_concepts"),)
+
+    id: Mapped[int] = mapped_column(Integer, Sequence("topic_concepts_id_seq"), primary_key=True)
+    topic_id: Mapped[int] = mapped_column(ForeignKey("topics.id"), nullable=False, index=True)
+    concept_id: Mapped[int] = mapped_column(ForeignKey("concepts.id"), nullable=False, index=True)
+
+
+class DatasetPacketTopic(Base):
+    """Join table linking a DatasetResearchPacket to a Topic."""
+    __tablename__ = "dataset_packet_topics"
+    __table_args__ = (UniqueConstraint("packet_id", "topic_id", name="uq_dataset_packet_topics"),)
+
+    id: Mapped[int] = mapped_column(
+        Integer, Sequence("dataset_packet_topics_id_seq"), primary_key=True
+    )
+    packet_id: Mapped[int] = mapped_column(
+        ForeignKey("dataset_research_packets.id"), nullable=False, index=True
+    )
+    topic_id: Mapped[int] = mapped_column(ForeignKey("topics.id"), nullable=False, index=True)
+
+
+class DatasetPacketPaper(Base):
+    """Join table linking a DatasetResearchPacket to a Paper."""
+    __tablename__ = "dataset_packet_papers"
+    __table_args__ = (UniqueConstraint("packet_id", "paper_id", name="uq_dataset_packet_papers"),)
+
+    id: Mapped[int] = mapped_column(
+        Integer, Sequence("dataset_packet_papers_id_seq"), primary_key=True
+    )
+    packet_id: Mapped[int] = mapped_column(
+        ForeignKey("dataset_research_packets.id"), nullable=False, index=True
+    )
+    paper_id: Mapped[int] = mapped_column(ForeignKey("papers.id"), nullable=False, index=True)

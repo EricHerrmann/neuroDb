@@ -104,7 +104,51 @@ function updateSidebarMatchDots() {
 }
 
 // ─── Placeholder stubs (filled in Tasks 4–7) ─────────────────────────────────
-function setActivePlate(plateId) { state.activePlateId = plateId; updateSidebarActive(); }
+function setActivePlate(plateId) {
+  const plate = state.plates.find(p => p.id === plateId);
+  if (!plate) return;
+  state.activePlateId = plateId;
+  clearHighlight();
+  const img = document.getElementById('atlas-image');
+  img.alt = plate.displayName;
+  img.src = `../../library/Neuroscience7thed/images/${encodeURIComponent(plate.filename)}`;
+  img.onload = () => {
+    updateHighlightOverlaySize();
+    resetZoomPan();
+  };
+  img.onerror = () => {
+    img.alt = `[Image not found: ${plate.filename}]`;
+  };
+  updateSidebarActive();
+}
+
+// ─── Viewer helpers ───────────────────────────────────────────────────────────
+function updateHighlightOverlaySize() {
+  const img = document.getElementById('atlas-image');
+  const svg = document.getElementById('highlight-overlay');
+  svg.setAttribute('width', img.naturalWidth);
+  svg.setAttribute('height', img.naturalHeight);
+  svg.setAttribute('viewBox', `0 0 ${img.naturalWidth} ${img.naturalHeight}`);
+}
+
+function resetZoomPan() {
+  const surface = document.getElementById('viewer-surface');
+  const img = document.getElementById('atlas-image');
+  if (!img.naturalWidth) return;
+  const scaleX = surface.clientWidth / img.naturalWidth;
+  const scaleY = surface.clientHeight / img.naturalHeight;
+  state.zoom = Math.min(scaleX, scaleY, 1);
+  state.panX = (surface.clientWidth - img.naturalWidth * state.zoom) / 2;
+  state.panY = (surface.clientHeight - img.naturalHeight * state.zoom) / 2;
+  applyTransform();
+}
+
+function applyTransform() {
+  const inner = document.getElementById('viewer-inner');
+  inner.style.transform =
+    `translate(${state.panX}px, ${state.panY}px) scale(${state.zoom})`;
+}
+
 function initPan() {}
 function initZoomButtons() {}
 function initSearch() {}

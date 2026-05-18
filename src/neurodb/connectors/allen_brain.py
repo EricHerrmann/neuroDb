@@ -1,10 +1,12 @@
 import json
-from typing import Any, Iterator
+from collections.abc import Iterator
+
 import httpx
-from sqlalchemy import String, Integer, ForeignKey, Sequence, Text
+from sqlalchemy import ForeignKey, Integer, Sequence, String, Text
 from sqlalchemy.orm import Mapped, mapped_column
-from neurodb.schema import Base, Subject
+
 from neurodb.connectors.base import BaseConnector
+from neurodb.schema import Base, Subject
 
 _BASE = "https://api.brain-map.org/api/v2/data/query.json"
 
@@ -13,7 +15,9 @@ class AllenDataset(Base):
     __tablename__ = "allen_datasets"
 
     id: Mapped[int] = mapped_column(Integer, Sequence("allen_datasets_id_seq"), primary_key=True)
-    index_id: Mapped[int] = mapped_column(ForeignKey("datasets_index.id"), nullable=False, unique=True)
+    index_id: Mapped[int] = mapped_column(
+        ForeignKey("datasets_index.id"), nullable=False, unique=True
+    )
     source_id: Mapped[str] = mapped_column(String(128), nullable=False, index=True)
     title: Mapped[str] = mapped_column(Text, nullable=False)
     modality: Mapped[str | None] = mapped_column(String(64), nullable=True, index=True)
@@ -27,6 +31,10 @@ class AllenDataset(Base):
 class AllenBrainConnector(BaseConnector):
     SOURCE_NAME = "allen_brain"
     VERSION = "0.1.0"
+    REFERENCE_PATTERNS = (
+        r"mouse\.brain-map\.org/experiment/show/(?P<id>\d+)",
+        r"brain-map\.org/.+SectionDataSet\[id\$eq(?P<id>\d+)\]",
+    )
 
     def fetch_datasets(self, limit: int = 100) -> Iterator[dict]:
         try:

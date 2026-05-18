@@ -22,8 +22,8 @@ describe('RegistryPanel', () => {
   it('renders source groups with items', () => {
     render(<RegistryPanel />, {
       wrapper: makeWrapper([
-        { id: 1, source_type: 'paper', source_key: 'doi:test', display_name: 'LTP Paper', added_by: 'user', added_at: '2026-01-01T00:00:00' },
-        { id: 2, source_type: 'book', source_key: 'isbn:test', display_name: 'Neuro Text', added_by: 'user', added_at: '2026-01-01T00:00:00' },
+        { id: 1, source_type: 'paper', source_key: 'doi:test', display_name: 'LTP Paper', added_by: 'user', added_at: '2026-01-01T00:00:00', content_json: null },
+        { id: 2, source_type: 'book', source_key: 'isbn:test', display_name: 'Neuro Text', added_by: 'user', added_at: '2026-01-01T00:00:00', content_json: null },
       ]),
     })
     expect(screen.getByText('LTP Paper')).toBeTruthy()
@@ -33,7 +33,7 @@ describe('RegistryPanel', () => {
   it('renders Remove buttons per item', () => {
     render(<RegistryPanel />, {
       wrapper: makeWrapper([
-        { id: 1, source_type: 'paper', source_key: 'doi:test', display_name: 'LTP Paper', added_by: 'user', added_at: '2026-01-01T00:00:00' },
+        { id: 1, source_type: 'paper', source_key: 'doi:test', display_name: 'LTP Paper', added_by: 'user', added_at: '2026-01-01T00:00:00', content_json: null },
       ]),
     })
     expect(screen.getByText('Remove')).toBeTruthy()
@@ -53,7 +53,7 @@ describe('RegistryPanel', () => {
 
     render(<RegistryPanel />, {
       wrapper: makeWrapper([
-        { id: 1, source_type: 'paper', source_key: 'doi:test', display_name: 'LTP Paper', added_by: 'user', added_at: '2026-01-01T00:00:00' },
+        { id: 1, source_type: 'paper', source_key: 'doi:test', display_name: 'LTP Paper', added_by: 'user', added_at: '2026-01-01T00:00:00', content_json: null },
       ]),
     })
     fireEvent.click(screen.getByText('Remove'))
@@ -81,7 +81,7 @@ describe('RegistryPanel', () => {
   it('add-source form submits POST /api/registry with topics', async () => {
     const newItem = {
       id: 99, source_type: 'paper', source_key: 'doi:new',
-      display_name: 'New Paper', added_by: 'user', added_at: '2026-01-01T00:00:00',
+      display_name: 'New Paper', added_by: 'user', added_at: '2026-01-01T00:00:00', content_json: null,
     }
     const fetchMock = vi.fn().mockImplementation((path: string, init?: RequestInit) => {
       if (path === '/api/registry' && init?.method === 'POST') {
@@ -112,5 +112,25 @@ describe('RegistryPanel', () => {
       expect(body.topics).toEqual(['LTP', 'plasticity'])
       expect(body.added_by).toBeUndefined()
     })
+  })
+
+  it('expands topics from content_json', () => {
+    render(<RegistryPanel />, {
+      wrapper: makeWrapper([
+        {
+          id: 1,
+          source_type: 'paper',
+          source_key: 'doi:test',
+          display_name: 'LTP Paper',
+          added_by: 'user',
+          added_at: '2026-01-01T00:00:00',
+          content_json: { topics: ['plasticity', 'LTP'] },
+        },
+      ]),
+    })
+
+    fireEvent.click(screen.getByText('Topics'))
+    expect(screen.getByText('plasticity')).toBeTruthy()
+    expect(screen.getByText('LTP')).toBeTruthy()
   })
 })

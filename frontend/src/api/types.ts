@@ -49,6 +49,9 @@ export interface DatasetItem {
   id: number
   source: string
   source_id: string
+  title: string | null
+  modality: string | null
+  n_subjects: number | null
 }
 
 export interface LearningSourceItem {
@@ -58,6 +61,14 @@ export interface LearningSourceItem {
   display_name: string
   added_by: string
   added_at: string
+  content_json?: LearningSourceContent | null
+}
+
+export interface LearningSourceContent {
+  topics?: string[]
+  chapters?: Array<{ number?: number | string; title?: string; name?: string } | string>
+  raw?: unknown
+  [key: string]: unknown
 }
 
 export interface KnowledgeSourceItem {
@@ -95,6 +106,11 @@ export interface Hypothesis {
   id: number
   title: string
   mechanism: string | null
+  evidence_json: unknown[]
+  predictions_json: unknown[]
+  datasets_json: unknown[]
+  confounds_json: unknown[]
+  limitations: string | null
   status: string
   created_at: string | null
 }
@@ -122,8 +138,30 @@ export interface Preferences {
   relevance_threshold: number
 }
 
+export interface ActiveContext {
+  active_prior_topic: string | null
+}
+
+export type ModelInfo = Record<string, { provider: string; model: string }>
+
 export interface TaskResponse {
   task_id: string
+}
+
+export interface DeleteStudyNoteResponse {
+  deleted: boolean
+  warnings?: string[]
+}
+
+export interface DuplicateCandidate {
+  id: string
+  title: string
+  doi: string | null
+  distance: number | null
+}
+
+export interface DuplicateCheckResponse {
+  candidates: DuplicateCandidate[]
 }
 
 export interface CreateStudyNoteRequest {

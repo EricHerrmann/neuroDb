@@ -29,6 +29,7 @@ def create_app(
         chat,
         datasets,
         knowledge_library,
+        model_info,
         preferences,
         registry,
         research,
@@ -41,6 +42,7 @@ def create_app(
     )
 
     app.include_router(status.router, prefix="/api")
+    app.include_router(model_info.router, prefix="/api")
     app.include_router(tasks.router, prefix="/api")
     app.include_router(preferences.router, prefix="/api")
     app.include_router(research.router, prefix="/api/research")

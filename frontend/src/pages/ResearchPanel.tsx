@@ -27,7 +27,56 @@ function ReviewList({ label, values }: { label: string; values: unknown[] }) {
   )
 }
 
+function StatusFilters({
+  options,
+  selected,
+  onToggle,
+}: {
+  options: string[]
+  selected: string[]
+  onToggle: (status: string) => void
+}) {
+  return (
+    <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap', marginBottom: 8 }}>
+      {options.map(status => (
+        <button
+          key={status}
+          type="button"
+          onClick={() => onToggle(status)}
+          style={{
+            fontSize: 11,
+            padding: '2px 7px',
+            border: '1px solid #cbd5e1',
+            borderRadius: 4,
+            background: selected.includes(status) ? '#1e3a8a' : '#fff',
+            color: selected.includes(status) ? '#fff' : '#334155',
+            cursor: 'pointer',
+          }}
+        >
+          {status}
+        </button>
+      ))}
+    </div>
+  )
+}
+
 function HypothesisReviewCard({ review }: { review: HypothesisReviewItem }) {
+  const queryClient = useQueryClient()
+  const accept = useMutation({
+    mutationFn: () => api.acceptHypothesisReview(review.id),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['research-hypotheses'] })
+      queryClient.invalidateQueries({ queryKey: ['hypothesis-reviews', review.hypothesis_id] })
+    },
+  })
+  const dismiss = useMutation({
+    mutationFn: () => api.dismissHypothesisReview(review.id),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['research-hypotheses'] })
+      queryClient.invalidateQueries({ queryKey: ['hypothesis-reviews', review.hypothesis_id] })
+    },
+  })
+
   return (
     <div style={{ marginTop: 8, padding: 8, background: '#f8fafc', border: '1px solid #e2e8f0', borderRadius: 6 }}>
       <div style={{ fontSize: 11, color: '#64748b', marginBottom: 4 }}>
@@ -44,6 +93,45 @@ function HypothesisReviewCard({ review }: { review: HypothesisReviewItem }) {
           {review.suggested_revisions}
         </div>
       </div>
+      {review.status === 'pending' && (
+        <div style={{ display: 'flex', gap: 6, marginTop: 8 }}>
+          <button
+            onClick={() => accept.mutate()}
+            disabled={accept.isPending || dismiss.isPending}
+            style={{ fontSize: 11, padding: '2px 8px', cursor: 'pointer' }}
+          >
+            Accept Revisions
+          </button>
+          <button
+            onClick={() => dismiss.mutate()}
+            disabled={accept.isPending || dismiss.isPending}
+            style={{ fontSize: 11, padding: '2px 8px', cursor: 'pointer' }}
+          >
+            Dismiss
+          </button>
+        </div>
+      )}
+    </div>
+  )
+}
+
+function HypothesisDetails({ hypothesis }: { hypothesis: Hypothesis }) {
+  return (
+    <div style={{ marginTop: 8, padding: 8, background: '#f8fafc', border: '1px solid #e2e8f0', borderRadius: 6 }}>
+      {hypothesis.mechanism && (
+        <div style={{ fontSize: 12, color: '#334155', marginBottom: 6 }}>
+          <strong>Mechanism:</strong> {hypothesis.mechanism}
+        </div>
+      )}
+      <ReviewList label="Evidence" values={hypothesis.evidence_json} />
+      <ReviewList label="Predictions" values={hypothesis.predictions_json} />
+      <ReviewList label="Relevant datasets" values={hypothesis.datasets_json} />
+      <ReviewList label="Confounds" values={hypothesis.confounds_json} />
+      {hypothesis.limitations && (
+        <div style={{ marginTop: 6, fontSize: 11, color: '#334155' }}>
+          <strong>Limitations:</strong> {hypothesis.limitations}
+        </div>
+      )}
     </div>
   )
 }
@@ -51,6 +139,7 @@ function HypothesisReviewCard({ review }: { review: HypothesisReviewItem }) {
 function HypothesisCard({ hypothesis }: { hypothesis: Hypothesis }) {
   const queryClient = useQueryClient()
   const [taskId, setTaskId] = useState<string | null>(null)
+  const [expanded, setExpanded] = useState(false)
   const { data: reviews = [] } = useQuery({
     queryKey: ['hypothesis-reviews', hypothesis.id],
     queryFn: () => api.getHypothesisReviews(hypothesis.id),
@@ -75,14 +164,23 @@ function HypothesisCard({ hypothesis }: { hypothesis: Hypothesis }) {
             {hypothesis.status} · {hypothesis.created_at?.slice(0, 10)}
           </div>
         </div>
-        <button
-          onClick={() => reviewMutation.mutate()}
-          disabled={reviewMutation.isPending || taskState.status === 'running'}
-          style={{ fontSize: 11, padding: '2px 8px', cursor: 'pointer' }}
-        >
-          Run Review
-        </button>
+        <div style={{ display: 'flex', gap: 6 }}>
+          <button
+            onClick={() => setExpanded(value => !value)}
+            style={{ fontSize: 11, padding: '2px 8px', cursor: 'pointer' }}
+          >
+            {expanded ? 'Hide' : 'Details'}
+          </button>
+          <button
+            onClick={() => reviewMutation.mutate()}
+            disabled={reviewMutation.isPending || taskState.status === 'running'}
+            style={{ fontSize: 11, padding: '2px 8px', cursor: 'pointer' }}
+          >
+            Run Review
+          </button>
+        </div>
       </div>
+      {expanded && <HypothesisDetails hypothesis={hypothesis} />}
       <TaskStatus
         status={taskState.status}
         error={taskState.error}
@@ -109,19 +207,32 @@ function HypothesisCard({ hypothesis }: { hypothesis: Hypothesis }) {
 
 export default function ResearchPanel() {
   const queryClient = useQueryClient()
+  const [questionStatuses, setQuestionStatuses] = useState<string[]>([])
+  const [hypothesisStatuses, setHypothesisStatuses] = useState<string[]>([])
 
   const { data: metrics, isLoading: metricsLoading } = useQuery({
     queryKey: ['research-metrics'],
     queryFn: api.getResearchMetrics,
   })
   const { data: questions = [], isLoading: questionsLoading } = useQuery({
-    queryKey: ['research-questions'],
-    queryFn: () => api.getResearchQuestions('all'),
+    queryKey: questionStatuses.length ? ['research-questions', questionStatuses] : ['research-questions'],
+    queryFn: () => api.getResearchQuestions(questionStatuses),
   })
   const { data: hypotheses = [], isLoading: hypothesesLoading } = useQuery({
-    queryKey: ['research-hypotheses'],
-    queryFn: () => api.getHypotheses('all'),
+    queryKey: hypothesisStatuses.length ? ['research-hypotheses', hypothesisStatuses] : ['research-hypotheses'],
+    queryFn: () => api.getHypotheses(hypothesisStatuses),
   })
+
+  const toggleQuestionStatus = (status: string) => {
+    setQuestionStatuses(current => current.includes(status)
+      ? current.filter(item => item !== status)
+      : [...current, status])
+  }
+  const toggleHypothesisStatus = (status: string) => {
+    setHypothesisStatuses(current => current.includes(status)
+      ? current.filter(item => item !== status)
+      : [...current, status])
+  }
 
   const snapshot = useMutation({
     mutationFn: api.snapshotMetrics,
@@ -166,6 +277,11 @@ export default function ResearchPanel() {
         <div style={{ fontWeight: 600, fontSize: 12, marginBottom: 6 }}>
           Research Questions ({questions.length})
         </div>
+        <StatusFilters
+          options={['open', 'parked', 'converted_to_hypothesis', 'closed']}
+          selected={questionStatuses}
+          onToggle={toggleQuestionStatus}
+        />
         {questionsLoading ? (
           <span style={{ fontSize: 12, color: '#94a3b8' }}>Loading...</span>
         ) : questions.length === 0 ? (
@@ -186,6 +302,11 @@ export default function ResearchPanel() {
         <div style={{ fontWeight: 600, fontSize: 12, marginBottom: 6 }}>
           Draft Hypotheses ({hypotheses.length})
         </div>
+        <StatusFilters
+          options={['draft', 'needs_evidence', 'ready_for_plan', 'archived', 'complete', 'reviewed']}
+          selected={hypothesisStatuses}
+          onToggle={toggleHypothesisStatus}
+        />
         {hypothesesLoading ? (
           <span style={{ fontSize: 12, color: '#94a3b8' }}>Loading...</span>
         ) : hypotheses.length === 0 ? (

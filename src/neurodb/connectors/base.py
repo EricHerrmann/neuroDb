@@ -1,5 +1,8 @@
+import re
 from abc import ABC, abstractmethod
-from typing import Any, Iterator
+from collections.abc import Iterator
+from typing import Any
+
 from neurodb.schema import Subject
 
 
@@ -14,6 +17,7 @@ class BaseConnector(ABC):
 
     SOURCE_NAME: str  # subclasses set this as a class attribute
     VERSION: str      # bump when the connector's fetch/normalize logic changes
+    REFERENCE_PATTERNS: tuple[str, ...] = ()
 
     @abstractmethod
     def fetch_datasets(self, limit: int = 100) -> Iterator[dict]:
@@ -45,3 +49,28 @@ class BaseConnector(ABC):
         Override in connectors that support keyword search. Default raises NotImplementedError.
         """
         raise NotImplementedError(f"{self.__class__.__name__} does not support keyword search.")
+
+    def fetch_by_id(self, dataset_id: str) -> dict:
+        """Fetch one raw dataset by source-native id.
+
+        Connectors that support direct lookup should override this method.
+        """
+        raise NotImplementedError(f"{self.__class__.__name__} does not support direct lookup.")
+
+    @classmethod
+    def extract_source_id(cls, reference: str) -> str | None:
+        """Extract a source-native id from a URL, prefixed reference, or bare id."""
+        value = reference.strip()
+        if not value:
+            return None
+
+        prefix = f"{cls.SOURCE_NAME}:"
+        if value.lower().startswith(prefix.lower()):
+            return value[len(prefix):].strip() or None
+
+        for pattern in cls.REFERENCE_PATTERNS:
+            match = re.search(pattern, value, re.IGNORECASE)
+            if match:
+                return match.group("id")
+
+        return None

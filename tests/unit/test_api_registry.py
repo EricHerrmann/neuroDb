@@ -39,6 +39,18 @@ def _insert_source(engine, source_type: str = "book", display_name: str = "Test 
         ))
 
 
+def _insert_source_with_content(engine):
+    with get_session(engine) as session:
+        session.add(LearningSource(
+            source_type="paper",
+            source_key="doi:content",
+            display_name="Content Paper",
+            content_json=json.dumps({"topics": ["plasticity", "LTP"]}),
+            added_by="user",
+            added_at="2026-01-01T00:00:00",
+        ))
+
+
 def test_get_registry_empty():
     client, _ = _make_client()
     resp = client.get("/api/registry")
@@ -57,6 +69,18 @@ def test_get_registry_returns_rows():
     assert len(data) == 1
     assert data[0]["display_name"] == "Neuroscience by Purves"
     assert data[0]["source_type"] == "book"
+    assert data[0]["content_json"] is None
+
+
+def test_get_registry_returns_content_json_as_object():
+    client, engine = _make_client()
+    _insert_source_with_content(engine)
+
+    resp = client.get("/api/registry")
+
+    data = resp.json()
+    assert resp.status_code == 200
+    assert data[0]["content_json"] == {"topics": ["plasticity", "LTP"]}
 
 
 def test_get_registry_ordered_by_type_then_name():

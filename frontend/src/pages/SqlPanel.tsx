@@ -4,7 +4,8 @@ import { useMutation } from '@tanstack/react-query'
 import { api } from '../api/client'
 import type { SqlResult } from '../api/types'
 
-const DEFAULT_SQL = 'SELECT * FROM ingest_runs LIMIT 10;'
+const DEFAULT_SQL = 'SELECT * FROM v_dataset_summary ORDER BY n_datasets DESC;'
+const TABLE_HINT = 'Tables: v_dataset_summary, openneuro_datasets, datasets_index, subjects, ingest_runs'
 
 export default function SqlPanel() {
   const [sql, setSql] = useState(DEFAULT_SQL)
@@ -40,6 +41,9 @@ export default function SqlPanel() {
           resize: 'vertical',
         }}
       />
+      <div style={{ marginTop: 4, fontSize: 11, color: '#64748b' }}>
+        {TABLE_HINT}
+      </div>
       <button
         onClick={() => execute.mutate()}
         disabled={execute.isPending || !sql.trim()}

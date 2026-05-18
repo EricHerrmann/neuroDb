@@ -28,7 +28,6 @@ Use `Log ID` for cross-references across Open, Resolved, triage, sprint planning
 | LOG-013 | UI-shell-rearchitecture | Streamlit cannot support fixed-pane app-shell behavior; reassess UI stack after LT-3 | Deferred post-LT-3 |
 | LOG-030 | lt3-t2-pass-header-size | LT-3 T2 passed, but titles/headers render too large | UI polish |
 | LOG-051 | ui-icon-pane-association | UI epoch feature: hard to associate activity-rail icons with right pane content; needs stronger tooltips/associations and icon reorder with Research first, then Study Log | UI polish |
-| LOG-052 | chat-markdown-plain-text | Agent returns Markdown, but chat window renders it as plain text, making responses hard to read | UI polish |
 
 ### Research
 | Log ID | Issue ID | Description | Priority |
@@ -55,8 +54,11 @@ Use `Log ID` for cross-references across Open, Resolved, triage, sprint planning
 | LOG-048 | 2026-05-09 | dismiss-draft-hypothesis | Research | No way to dismiss a draft hypothesis from the UI. Dismiss exists for hypothesis reviews but not for the hypothesis itself. Hypothesis status options include "archived" but there is no button to set it. | Config Phase 4 manual testing |
 | LOG-050 | 2026-05-09 | gemini-premium-testing-deferred | Config | Gemini/Google account is billing-enabled for premium tier; all wiring issues surfaced this session (GOOGLE_API_KEY rename, null streaming tokens) were fixed. Further testing against premium Gemini models deferred. | Config Phase 4 manual testing |
 | LOG-051 | 2026-05-12 | ui-icon-pane-association | UI | UI epoch feature: hard to associate activity-rail icons with the related right pane and know what is available in each pane; increase tooltips or associations, and reorganize icons with Research at top, then Study Log. | User logged during UI-3 manual/ad hoc review |
-| LOG-052 | 2026-05-12 | chat-markdown-plain-text | UI | Agent returns Markdown, but chat window renders it as plain text, making responses hard to read. | User logged during UI-3 manual/ad hoc review |
 | LOG-053 | 2026-05-12 | research-agent-no-dataimport-suggestions | Research | Research agent did not add suggestions to the data import queue even when specifically asked for suggestions. | User logged during UI-3 manual/ad hoc review |
+| LOG-054 | 2026-05-13 | dataset-minimal-research-value | Research | Datasets have minimal information; need to explore the right amount of dataset metadata for local research because current dataset value is unclear. | User logged during external dataset/agent-mode review |
+| LOG-056 | 2026-05-13 | knowledge-lib-duplicates-no-remove | Tutor | Knowledge Library has duplicate entries and no way to remove them. | User logged during UI-5 review |
+| LOG-057 | 2026-05-13 | args-position-dependent | Tech Debt | CLI and Python function arguments should not be brittle or position-dependent; review the codebase for positional CLI globals and multi-argument function calls, then determine options to fix with keyword-only APIs, structured request objects, shared parser helpers, and inheritable patterns. | User logged during CLI/manual-test review |
+| LOG-058 | 2026-05-13 | ui5-common-t1-pass | UI | UI-5 common manual test T1 passed. | User logged during UI-5 common manual verification |
 
 ---
 
@@ -104,3 +106,5 @@ Use `Log ID` for cross-references across Open, Resolved, triage, sprint planning
 | LOG-046 | 2026-05-09 | dismiss-review-no-action | Dismiss review button appeared to have no visible effect | Resolved: `_list_hypothesis_reviews` was not filtering out dismissed reviews — dismissed rows remained visible on rerender. Fixed by adding `filter(HypothesisReview.status != "dismissed")` to the query. |
 | LOG-040 | 2026-05-07 | config-phase1-t3-localdb-no-results-hang | Config Phase 1 T3 apparent hang on local DB no-results response; possible model-tier fit issue | Not reproduced in subsequent testing through Config Phases 2–4; resolved as no-recurrence 2026-05-10 |
 | LOG-049 | 2026-05-09 | gemini-routing-failure | Gemini provider routing failed; OpenAI worked. | Resolved 2026-05-09: Two root causes fixed — (1) `provider_factory.py` read `GEMINI_API_KEY` but key is stored as `GOOGLE_API_KEY`; renamed throughout. (2) `OpenAIModelClient.stream_message` lacked `stream_options={"include_usage": True}`, causing null token counts for all OpenAI-compat providers in streaming mode; fixed. |
+| LOG-052 | 2026-05-12 | chat-markdown-plain-text | Agent returns Markdown, but chat window renders it as plain text, making responses hard to read | Resolved in UI-5 P2: React chat now renders Markdown tables/lists/code/links and separates tool activity from answer text; covered by `MessageBubble` frontend tests. |
+| LOG-055 | 2026-05-13 | ui5p2-chat-md-rendering | Agent returns Markdown in the chat window, poorly rendering responses for the user; change agent prompts so responses use nicely formatted tables and text suitable for the user chat window | Resolved in UI-5 P2: DB, Tutor, and Research prompts now instruct user-readable prose/tables and no raw tool JSON; chat bubble renderer supports formatted tables and text. |

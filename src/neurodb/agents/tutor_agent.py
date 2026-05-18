@@ -3,12 +3,13 @@ import json
 import os
 import re
 import unicodedata
-from datetime import datetime, timezone
+from datetime import UTC, datetime
 
 from sqlalchemy import Engine
 
 from neurodb.agents.base import BaseAgent
-from neurodb.agents.db_agent import TOOLS as _DB_TOOLS, execute_tool
+from neurodb.agents.db_agent import TOOLS as _DB_TOOLS
+from neurodb.agents.db_agent import execute_tool
 from neurodb.db import get_session
 from neurodb.knowledge_store import KnowledgeLibraryStore
 from neurodb.schema import KnowledgeSource
@@ -24,11 +25,15 @@ except Exception:
 _TUTOR_SYSTEM_PROMPT = (
     "You are a neuroscience learning partner with access to a curated Knowledge Library, "
     "local study notes, local dataset tools, and your own training knowledge. "
-    "For topic questions, call search_knowledge_library before relying on training knowledge alone. "
+    "For topic questions, call search_knowledge_library before relying on training "
+    "knowledge alone. "
     "Whenever you cite or recommend an external resource such as a paper, review, textbook, "
     "or website, call queue_source with the title, source type, and topic context so the user "
     "can review it later. To discover candidate learning resources, call search_literature. "
-    "Never fabricate paper titles, DOIs, dataset IDs, counts, or source details."
+    "Never fabricate paper titles, DOIs, dataset IDs, counts, or source details. "
+    "Format user-facing answers for the chat window: use concise prose, short lists, "
+    "and simple Markdown tables only when they make comparison easier. Do not put raw "
+    "tool JSON or debug traces in the final answer."
 )
 
 _TUTOR_TOOLS = [
@@ -158,7 +163,7 @@ class NeuroTutorAgent(BaseAgent):
                 source_type=inputs["source_type"],
                 topic_context=inputs["topic_context"],
                 status="pending",
-                queued_at=datetime.now(timezone.utc).isoformat(),
+                queued_at=datetime.now(UTC).isoformat(),
             )
             session.add(row)
             session.flush()

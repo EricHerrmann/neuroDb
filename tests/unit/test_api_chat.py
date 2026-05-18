@@ -5,14 +5,13 @@ import json
 from types import SimpleNamespace
 from unittest.mock import MagicMock, patch
 
-import pytest
 from fastapi import FastAPI
 from fastapi.testclient import TestClient
 from sqlalchemy import create_engine
 from sqlalchemy.pool import StaticPool
 
-from neurodb.schema import Base
 from neurodb.api.routes.chat import router
+from neurodb.schema import Base
 
 
 def _make_app(engine):
@@ -89,6 +88,31 @@ def test_chat_turn_streams_text_delta_event():
     assert events.index(text_delta_events[0]) < events.index(done_events[0])
 
 
+def test_chat_turn_streams_tool_activity_events():
+    client = _make_client()
+
+    class StreamingAgent:
+        def chat_stream(self, message, history):
+            yield {"type": "tool_start", "tool_name": "query_db", "tool_input": {"sql": "SELECT 1"}}
+            yield {"type": "tool_result", "tool_name": "query_db", "result": "[{\"x\": 1}]"}
+            yield {"type": "done", "text": "Done", "stop_reason": "end_turn"}
+
+    with patch("neurodb.api.routes.chat._build_agent", return_value=StreamingAgent()):
+        with patch(
+            "neurodb.api.routes.chat.build_provider_clients",
+            return_value={"anthropic": MagicMock()},
+        ):
+            resp = client.post(
+                "/api/chat/turn",
+                json={"message": "hi", "history": [], "agent_mode": "local_db"},
+            )
+
+    assert resp.status_code == 200
+    events = _parse_sse_events(resp.text)
+    assert [event["type"] for event in events] == ["tool_start", "tool_result", "done"]
+    assert events[0]["tool_name"] == "query_db"
+
+
 def test_chat_turn_rejects_unknown_agent_mode():
     """POST with agent_mode='invalid' should return 400 before streaming."""
     client = _make_client()
@@ -139,6 +163,7 @@ def test_build_agent_passes_chroma_stores_to_research_agent():
             knowledge_store="knowledge-store",
             context_store="context-store",
             providers={"anthropic": object()},
+            prior_context="prior",
         )
 
     router_cls.return_value.route.assert_called_once_with("agent.loop.neuro_research")
@@ -150,6 +175,46 @@ def test_build_agent_passes_chroma_stores_to_research_agent():
         vector_store="vector-store",
         knowledge_store="knowledge-store",
         context_store="context-store",
+        prior_context="prior",
+        model_provider="anthropic",
+    )
+    assert agent == agent_cls.return_value
+
+
+def test_build_agent_preserves_external_db_mode():
+    from neurodb.api.routes.chat import _build_agent
+
+    route = SimpleNamespace(
+        model_client=object(),
+        model_id="db-model",
+        provider="anthropic",
+        max_tokens=2048,
+    )
+
+    with (
+        patch("neurodb.api.routes.chat.TaskRouter") as router_cls,
+        patch("neurodb.api.routes.chat.NeuroDbAgent") as agent_cls,
+    ):
+        router_cls.return_value.route.return_value = route
+        agent = _build_agent(
+            "external_db",
+            engine="engine",
+            vector_store="vector-store",
+            knowledge_store="knowledge-store",
+            context_store="context-store",
+            providers={"anthropic": object()},
+            prior_context="prior",
+        )
+
+    router_cls.return_value.route.assert_called_once_with("agent.loop.external_db")
+    agent_cls.assert_called_once_with(
+        model_client=route.model_client,
+        model="db-model",
+        max_tokens=2048,
+        engine="engine",
+        vector_store="vector-store",
+        mode="external_db",
+        prior_context="prior",
         model_provider="anthropic",
     )
     assert agent == agent_cls.return_value
@@ -188,4 +253,5 @@ def test_chat_turn_passes_context_store_to_agent_builder():
         "knowledge-store",
         "context-store",
         providers,
+        "",
     )

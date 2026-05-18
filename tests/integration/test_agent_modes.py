@@ -44,6 +44,7 @@ def test_external_db_mode_includes_discovery_tools():
     call_kwargs = client.messages.create.call_args[1]
     tool_names = {tool["name"] for tool in call_kwargs["tools"]}
     assert "search_external" in tool_names
+    assert "inspect_external_dataset" in tool_names
     assert "suggest_import" in tool_names
     assert "query_db" in tool_names
 

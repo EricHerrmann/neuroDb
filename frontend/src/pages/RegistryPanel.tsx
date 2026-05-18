@@ -2,7 +2,61 @@ import { useState, type FormEvent } from 'react'
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 
 import { api } from '../api/client'
-import type { CreateLearningSourceRequest, LearningSourceItem } from '../api/types'
+import type { CreateLearningSourceRequest, LearningSourceContent, LearningSourceItem } from '../api/types'
+
+function ContentDetails({ item }: { item: LearningSourceItem }) {
+  const content = item.content_json
+  if (!content) return null
+
+  if (item.source_type === 'book' && Array.isArray(content.chapters) && content.chapters.length > 0) {
+    return (
+      <details style={{ marginTop: 4, fontSize: 11, color: '#475569' }}>
+        <summary style={{ cursor: 'pointer' }}>Chapters</summary>
+        <ul style={{ margin: '4px 0 0', paddingLeft: 16 }}>
+          {content.chapters.map((chapter, index) => (
+            <li key={index}>{formatChapter(chapter)}</li>
+          ))}
+        </ul>
+      </details>
+    )
+  }
+
+  if (Array.isArray(content.topics) && content.topics.length > 0) {
+    return (
+      <details style={{ marginTop: 4, fontSize: 11, color: '#475569' }}>
+        <summary style={{ cursor: 'pointer' }}>Topics</summary>
+        <div style={{ display: 'flex', gap: 4, flexWrap: 'wrap', marginTop: 4 }}>
+          {content.topics.map(topic => (
+            <span
+              key={topic}
+              style={{ border: '1px solid #cbd5e1', borderRadius: 4, padding: '1px 5px', background: '#f8fafc' }}
+            >
+              {topic}
+            </span>
+          ))}
+        </div>
+      </details>
+    )
+  }
+
+  if ('raw' in content) {
+    return (
+      <details style={{ marginTop: 4, fontSize: 11, color: '#475569' }}>
+        <summary style={{ cursor: 'pointer' }}>Content</summary>
+        <pre style={{ whiteSpace: 'pre-wrap', margin: '4px 0 0' }}>{String(content.raw)}</pre>
+      </details>
+    )
+  }
+
+  return null
+}
+
+function formatChapter(chapter: NonNullable<LearningSourceContent['chapters']>[number]): string {
+  if (typeof chapter === 'string') return chapter
+  const label = chapter.number ? `Ch${chapter.number}` : 'Chapter'
+  const title = chapter.title ?? chapter.name
+  return title ? `${label} - ${title}` : label
+}
 
 function SourceGroup({
   title,
@@ -41,6 +95,7 @@ function SourceGroup({
             <div style={{ fontSize: 11, color: '#64748b' }}>
               {item.source_key} · added by {item.added_by} on {item.added_at.slice(0, 10)}
             </div>
+            <ContentDetails item={item} />
           </div>
           <button
             onClick={() => onRemove(item.id)}

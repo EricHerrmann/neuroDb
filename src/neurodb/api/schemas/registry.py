@@ -1,5 +1,7 @@
 from __future__ import annotations
 
+from typing import Any
+
 from pydantic import BaseModel
 
 
@@ -12,3 +14,4 @@ class LearningSourceItem(BaseModel):
     display_name: str
     added_by: str
     added_at: str
+    content_json: dict[str, Any] | None = None

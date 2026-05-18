@@ -1,8 +1,8 @@
 # NeuroDb — Project Status
 
 **Last updated:** 2026-05-13
-**Active focus:** UI-3 signed off 2026-05-13 (9 evals passed); UI-5 P1 complete; UI-5 P2 planning next
-**Next:** UI-5 P2 parity completion (20 remaining gaps); UI-4 Streamlit retirement deferred until after UI-5
+**Active focus:** UI-3 signed off 2026-05-13 (9 evals passed); UI-5 P1/P2/P3 implementation complete; common UI-5 manual verification active
+**Next:** Common UI-5 manual verification; UI-4 Streamlit retirement deferred until after UI-5
 **Goal alignment:** Two co-equal goals in a feedback loop — accumulate neuroscience understanding grounded in real data (Goal 1), and conduct structured neuroscience investigations using existing public datasets and good scientific method (Goal 2). See `NeuroDbGoals.md`.
 
 ---
@@ -11,12 +11,13 @@
 
 | Epoch | Source | Maturity | Next |
 |---|---|---|---|
-| DB | `src/neurodb/db/`, `src/neurodb/connectors/` | MVP complete (phases 0–6) | Entity resolution (7), research storage schema (8) |
+| DB | `src/neurodb/db/`, `src/neurodb/connectors/` | MVP complete (phases 0–6) | Entity resolution (7), research storage schema (8), research-grade metadata enrichment (9) |
 | Agent Core | `src/neurodb/agents/` | Stable | Config Control Phases 1–4 signed off; Phase 6 may add fallback chain logic |
 | Tutor | `src/neurodb/tutor/` | MVP complete (LT-1/2/3) | Open backlog: LOG-001, LOG-006, LOG-030 |
 | Research | `src/neurodb/research/` | Scaffolded (LT-3); hypothesis review with structured tool-use output | Research run management, research question actions (LOG-037) |
-| UI | `src/neurodb/ui/`, `src/neurodb/api/`, `frontend/` | UI-3 signed off 2026-05-13; UI-5 P1 complete — 485 Python tests, 47 frontend tests, build passed | UI-5 P2 planning — 20 remaining parity gaps |
+| UI | `src/neurodb/ui/`, `src/neurodb/api/`, `frontend/` | UI-3 signed off 2026-05-13; UI-5 P1/P2/P3 implementation complete — 515 Python tests, 57 frontend tests, build passed; common manual plan active | Common UI-5 manual verification |
 | Config Control | `src/neurodb/config/` | Phase 5B complete — 398 automated tests; Phase 4 signed off 2026-05-09 | Phase 6: constructor fallback chain, SystemWarning table, CLI surface |
+| Tech Debt | Cross-cutting | Planned — TD-1 CLI argument normalization started from LOG-057; TD-5 abstraction/extensibility review logged | TD-1 parser coverage, TD-2 keyword-only helper APIs, TD-5 reusable abstractions |
 
 ---
 
@@ -57,18 +58,26 @@ See `docs/testLog.md`. Current open items: LOG-001 (textbook dropdown ambiguity)
 | `docs/Tutor_EpochPlan.md` | Tutor epoch plan — NeuroTutorAgent, Knowledge Library, session management, open backlog |
 | `docs/Research_EpochPlan.md` | Research epoch plan — NeuroResearchAgent, hypothesis tools, hypothesis review, open backlog |
 | `docs/ConfigControl_EpochPlan.md` | Config Control epoch plan — routing phases, provider adapters, telemetry, Phase 6 next |
-| `docs/DB_EpochPlan.md` | DB epoch plan — connectors, schema ownership, phases 0–8 |
+| `docs/DB_EpochPlan.md` | DB epoch plan — connectors, schema ownership, phases 0–9 |
 | `docs/UI_EpochPlan.md` | UI epoch plan — Streamlit MVP, FastAPI/React migration path, phases UI-0–5 |
+| `docs/TechDebt_EpochPlan.md` | Tech Debt epoch plan — argument-order safety, keyword-only APIs, parser helpers, request/config objects, reusable abstractions |
 | **Active Plans / Specs** | |
 | `docs/superpowers/specs/2026-05-11-ui2-react-workbench-design.md` | UI-2 design spec — Vite + React + React Router v7 + TanStack Query v5; two-column layout; 7 panels; data flow; testing strategy |
 | `docs/superpowers/specs/2026-05-11-ui2b-layout-redesign.md` | UI-2B design spec — activity rail, react-resizable-panels, collapsible right panel, agent mode in chat header |
 | `docs/superpowers/specs/2026-05-11-ui3-parity-migration-design.md` | UI-3 design spec — 7 write operations, background task system, Streamlit deprecation |
 | `docs/superpowers/specs/2026-05-12-ui5-parity-completion-design.md` | UI-5 draft design — 26 remaining gaps; 6 P1 data-integrity, 10 P2 core workflow, 10 P3/enhancement |
 | `docs/superpowers/specs/2026-05-12-ui5-p1-data-integrity-design.md` | UI-5 P1 design spec — 6 data-integrity fixes, warning propagation pattern |
+| `docs/superpowers/specs/2026-05-13-ui5-p2-core-workflow-design.md` | UI-5 P2 design spec — core workflow parity, chat formatting, task/status UX |
+| `docs/superpowers/specs/2026-05-13-ui5-p3-polish-design.md` | UI-5 P3 design spec — polish parity, edit/tag convenience, registry/KL/SQL detail |
+| `docs/testsPlans/manualTestPlan_ui5_common_parity.md` | UI-5 common manual test plan — 8 evals covering P1/P2/P3 |
 | `docs/superpowers/plans/2026-05-12-ui5-p1-data-integrity.md` | UI-5 P1 implementation plan — 6 tasks complete |
+| `docs/testsPlans/deferredTestPlans/manualTestPlan_ui5_p1_data_integrity.md` | UI-5 P1 manual test plan — deferred detail plan superseded by common UI-5 plan |
+| `docs/superpowers/plans/2026-05-13-ui5-p2-core-workflow.md` | UI-5 P2 implementation plan — 8 tasks complete |
+| `docs/superpowers/plans/2026-05-13-ui5-p3-polish.md` | UI-5 P3 implementation plan — 6 tasks complete |
+| `docs/testsPlans/deferredTestPlans/manualTestPlan_ui5_p2_core_workflow.md` | UI-5 P2 manual test plan — deferred detail plan superseded by common UI-5 plan |
 | `docs/superpowers/plans/2026-05-11-ui2-react-workbench.md` | UI-2 implementation plan — 19 tasks complete; signed off 2026-05-11 |
 | `docs/superpowers/plans/2026-05-11-ui2b-layout-redesign.md` | UI-2B implementation plan — 6 tasks complete; signed off 2026-05-11 |
-| `docs/superpowers/plans/2026-05-11-ui3-parity-migration.md` | UI-3 implementation plan — 15 tasks complete; manual verification pending |
+| `docs/superpowers/plans/2026-05-11-ui3-parity-migration.md` | UI-3 implementation plan — 15 tasks complete; signed off 2026-05-13 |
 | `docs/testsPlans/completedAndPassedTestPlans/manualTestPlan_ui3_parity_migration.md` | UI-3 manual test plan — 9 evals passed; signed off 2026-05-13 |
 | `docs/testsPlans/completedAndPassedTestPlans/manualTestPlan_ui2_react_workbench.md` | UI-2 manual test plan — 11 evals passed; signed off 2026-05-11 |
 | `docs/testsPlans/completedAndPassedTestPlans/manualTestPlan_ui2b_layout_redesign.md` | UI-2B manual test plan — 9 evals passed; signed off 2026-05-11 |

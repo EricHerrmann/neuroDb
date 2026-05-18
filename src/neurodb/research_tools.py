@@ -4,18 +4,8 @@ and evidence tracking helpers.
 Migration target: src/neurodb/research/tools.py
 """
 import json
-from datetime import datetime, timezone
+from datetime import UTC, datetime
 from typing import Any, TypedDict
-
-
-class EvidenceItem(TypedDict):
-    source: str
-    summary: str
-
-
-class DatasetItem(TypedDict):
-    dataset_id: str
-    relevance: str
 
 from sqlalchemy import Engine, func, text
 
@@ -34,8 +24,18 @@ from neurodb.schema import (
 )
 
 
+class EvidenceItem(TypedDict):
+    source: str
+    summary: str
+
+
+class DatasetItem(TypedDict):
+    dataset_id: str
+    relevance: str
+
+
 def _now_iso() -> str:
-    return datetime.now(timezone.utc).isoformat()
+    return datetime.now(UTC).isoformat()
 
 
 def _json_list(value: str) -> list:
@@ -349,7 +349,11 @@ def cross_reference_datasets(
 
     source_filter = {s.lower() for s in sources or []}
     concept_filter = [tag.lower() for tag in concept_tags or []]
-    query_terms = [term for term in cleaned_query.lower().replace(",", " ").split() if len(term) > 2]
+    query_terms = [
+        term
+        for term in cleaned_query.lower().replace(",", " ").split()
+        if len(term) > 2
+    ]
     limitations: list[str] = []
     if vector_store is None:
         limitations.append("semantic search unavailable; using DB metadata and study notes only")
@@ -386,24 +390,42 @@ def cross_reference_datasets(
     ))
     if not candidates:
         limitations.append("no local datasets matched the query")
-    return {"query": cleaned_query, "candidates": candidates[:n_results], "limitations": limitations}
+    return {
+        "query": cleaned_query,
+        "candidates": candidates[:n_results],
+        "limitations": limitations,
+    }
 
 
-def list_research_questions(engine: Engine, status: str = "all") -> list:
+def _normalize_status_filter(status: str | list[str] | tuple[str, ...] | None) -> list[str]:
+    if status is None or status == "all" or status == ["all"]:
+        return []
+    if isinstance(status, str):
+        raw_values = status.split(",")
+    else:
+        raw_values = []
+        for item in status:
+            raw_values.extend(str(item).split(","))
+    return [value.strip() for value in raw_values if value.strip() and value.strip() != "all"]
+
+
+def list_research_questions(engine: Engine, status: str | list[str] = "all") -> list:
     """Return persisted research questions, optionally filtered by status."""
     with get_session(engine) as session:
         query = session.query(ResearchQuestion)
-        if status != "all":
-            query = query.filter_by(status=status)
+        statuses = _normalize_status_filter(status)
+        if statuses:
+            query = query.filter(ResearchQuestion.status.in_(statuses))
         return query.order_by(ResearchQuestion.created_at.desc()).all()
 
 
-def list_hypotheses(engine: Engine, status: str = "all") -> list:
+def list_hypotheses(engine: Engine, status: str | list[str] = "all") -> list:
     """Return persisted draft hypotheses, optionally filtered by status."""
     with get_session(engine) as session:
         query = session.query(ResearchHypothesis)
-        if status != "all":
-            query = query.filter_by(status=status)
+        statuses = _normalize_status_filter(status)
+        if statuses:
+            query = query.filter(ResearchHypothesis.status.in_(statuses))
         return query.order_by(ResearchHypothesis.created_at.desc()).all()
 
 
@@ -440,10 +462,17 @@ def _load_dataset_metadata(session) -> tuple[dict[tuple[str, str], dict], list[s
             for row in rows
         }, []
     except Exception:
-        return {}, ["v_all_datasets unavailable; returning source/source_id plus study-note matches"]
+        return {}, [
+            "v_all_datasets unavailable; returning source/source_id plus study-note matches"
+        ]
 
 
-def _matched_notes(session, index_id: int, concept_filter: list[str], query_terms: list[str]) -> list[dict]:
+def _matched_notes(
+    session,
+    index_id: int,
+    concept_filter: list[str],
+    query_terms: list[str],
+) -> list[dict]:
     rows = session.query(StudyNote).filter_by(index_id=index_id).all()
     matches = []
     for row in rows:

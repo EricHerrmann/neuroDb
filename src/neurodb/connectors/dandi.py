@@ -1,10 +1,12 @@
 import json
-from typing import Iterator
+from collections.abc import Iterator
+
 import httpx
 from sqlalchemy import Float, ForeignKey, Integer, Sequence, String, Text
 from sqlalchemy.orm import Mapped, mapped_column
-from neurodb.schema import Base, Subject
+
 from neurodb.connectors.base import BaseConnector
+from neurodb.schema import Base, Subject
 
 _BASE = "https://api.dandiarchive.org/api/dandisets/"
 
@@ -12,8 +14,12 @@ _BASE = "https://api.dandiarchive.org/api/dandisets/"
 class DandiDataset(Base):
     __tablename__ = "dandi_datasets"
 
-    id: Mapped[int] = mapped_column(Integer, Sequence("dandi_datasets_id_seq"), primary_key=True)
-    index_id: Mapped[int] = mapped_column(ForeignKey("datasets_index.id"), nullable=False, unique=True)
+    id: Mapped[int] = mapped_column(
+        Integer, Sequence("dandi_datasets_id_seq"), primary_key=True
+    )
+    index_id: Mapped[int] = mapped_column(
+        ForeignKey("datasets_index.id"), nullable=False, unique=True
+    )
     source_id: Mapped[str] = mapped_column(String(128), nullable=False, index=True)
     title: Mapped[str] = mapped_column(Text, nullable=False)
     doi: Mapped[str | None] = mapped_column(String(256), nullable=True, index=True)
@@ -33,6 +39,10 @@ class DandiDataset(Base):
 class DandiConnector(BaseConnector):
     SOURCE_NAME = "dandi"
     VERSION = "0.1.0"
+    REFERENCE_PATTERNS = (
+        r"dandiarchive\.org/(?:dandiset/)?(?P<id>\d{6})",
+        r"DANDI:(?P<id>\d{6})",
+    )
 
     def fetch_datasets(self, limit: int = 100) -> Iterator[dict]:
         url: str | None = _BASE

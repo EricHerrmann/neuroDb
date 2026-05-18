@@ -1,6 +1,6 @@
 import json
 from types import SimpleNamespace
-from unittest.mock import MagicMock
+from unittest.mock import MagicMock, patch
 
 from sqlalchemy import create_engine
 from sqlalchemy.orm import Session
@@ -64,6 +64,8 @@ def test_research_tool_list_contains_expected_tools_and_excludes_tag_dataset():
     names = {tool["name"] for tool in _agent()._get_active_tools()}
     assert "search_knowledge_library" in names
     assert "search_literature" in names
+    assert "search_external" in names
+    assert "inspect_external_dataset" in names
     assert "cross_reference_datasets" in names
     assert "get_knowledge_growth_metrics" in names
     assert "record_research_question" in names
@@ -72,6 +74,7 @@ def test_research_tool_list_contains_expected_tools_and_excludes_tag_dataset():
     assert "semantic_search" in names
     assert "get_study_notes" in names
     assert "tag_dataset" not in names
+    assert "suggest_import" not in names
 
 
 def test_all_array_properties_in_tool_schemas_have_items():
@@ -101,6 +104,7 @@ def test_research_prompt_includes_current_date_and_prior_context():
     assert "Current date: 2026-05-06" in prompt
     assert "Prior sessions relevant" in prompt
     assert "confounds and limitations" in prompt
+    assert "inspect_external_dataset" in prompt
 
 
 def test_research_agent_has_larger_default_tool_budget():
@@ -152,7 +156,12 @@ def test_research_agent_finishes_after_successful_draft_hypothesis_tool():
     draft_input = {
         "title": "LTP learning hypothesis",
         "mechanism": "Hippocampal plasticity may affect learning-related measures.",
-        "evidence": [{"source": "knowledge_library", "summary": "LTP review supports plasticity hypothesis"}],
+        "evidence": [
+            {
+                "source": "knowledge_library",
+                "summary": "LTP review supports plasticity hypothesis",
+            }
+        ],
         "predictions": ["Learning measures vary with LTP-related markers."],
         "datasets": [{"dataset_id": "ds001", "relevance": "contains LTP behavioral data"}],
         "confounds": ["task design"],
@@ -185,7 +194,12 @@ def test_research_agent_stream_finishes_after_successful_draft_hypothesis_tool()
     draft_input = {
         "title": "LTP learning hypothesis",
         "mechanism": "Hippocampal plasticity may affect learning-related measures.",
-        "evidence": [{"source": "knowledge_library", "summary": "LTP review supports plasticity hypothesis"}],
+        "evidence": [
+            {
+                "source": "knowledge_library",
+                "summary": "LTP review supports plasticity hypothesis",
+            }
+        ],
         "predictions": ["Learning measures vary with LTP-related markers."],
         "datasets": [{"dataset_id": "ds001", "relevance": "contains LTP behavioral data"}],
         "confounds": ["task design"],
@@ -238,6 +252,42 @@ def test_search_literature_dispatch_uses_literature_client():
     ))
 
     assert result[0]["title"] == "LTP Review"
+
+
+def test_inspect_external_dataset_dispatch_uses_discovery_tool():
+    agent = _agent()
+
+    with patch(
+        "neurodb.agents.research_agent.run_inspect_external_dataset",
+        return_value='{"source": "dandi", "source_id": "000010"}',
+    ) as inspect_dataset:
+        result = json.loads(agent._execute_tool_block(
+            _block(
+                "inspect_external_dataset",
+                {
+                    "source": "auto",
+                    "reference": "https://dandiarchive.org/dandiset/000010",
+                },
+            )
+        ))
+
+    inspect_dataset.assert_called_once_with("auto", "https://dandiarchive.org/dandiset/000010")
+    assert result["source"] == "dandi"
+
+
+def test_search_external_dispatch_uses_discovery_tool():
+    agent = _agent()
+
+    with patch(
+        "neurodb.agents.research_agent.run_search_external",
+        return_value='[{"source": "openneuro", "id": "ds000001"}]',
+    ) as search_external:
+        result = json.loads(agent._execute_tool_block(
+            _block("search_external", {"source": "all", "query": "plasticity", "limit": 3})
+        ))
+
+    search_external.assert_called_once_with("all", "plasticity", 3)
+    assert result[0]["source"] == "openneuro"
 
 
 def test_record_research_question_dispatch_persists_row():
@@ -311,7 +361,6 @@ def test_research_agent_uses_4096_max_tokens_by_default():
 # ---------------------------------------------------------------------------
 
 def test_neuroresearch_agent_default_model_is_sonnet():
-    import importlib
     import neurodb.agents.research_agent as mod
     assert mod._MODEL == "claude-sonnet-4-6"
 
@@ -320,7 +369,11 @@ def test_neuroresearch_agent_reads_neurodb_research_model_env_var():
     import importlib
     import os
     import unittest.mock
-    with unittest.mock.patch.dict(os.environ, {"NEURODB_RESEARCH_MODEL": "claude-haiku-4-5"}, clear=False):
+    with unittest.mock.patch.dict(
+        os.environ,
+        {"NEURODB_RESEARCH_MODEL": "claude-haiku-4-5"},
+        clear=False,
+    ):
         import neurodb.agents.research_agent as mod
         reloaded = importlib.reload(mod)
         assert reloaded._MODEL == "claude-haiku-4-5"

@@ -3,10 +3,10 @@ from __future__ import annotations
 
 import json
 from collections.abc import Generator
+from unittest.mock import Mock
 
 from fastapi import APIRouter, Depends, Request
 from fastapi.responses import JSONResponse, StreamingResponse
-
 from sqlalchemy import Engine
 
 from neurodb.agents.db_agent import NeuroDbAgent
@@ -31,6 +31,7 @@ def _build_agent(
     knowledge_store,
     context_store,
     providers: dict,
+    prior_context: str = "",
 ):
     router_obj = TaskRouter(providers)
     route = router_obj.route(f"agent.loop.{agent_mode}")
@@ -43,6 +44,7 @@ def _build_agent(
             vector_store=vector_store,
             knowledge_store=knowledge_store,
             context_store=context_store,
+            prior_context=prior_context,
             model_provider=route.provider,
         )
     if agent_mode == "neuro_tutor":
@@ -52,6 +54,7 @@ def _build_agent(
             engine=engine,
             vector_store=vector_store,
             knowledge_store=knowledge_store,
+            prior_context=prior_context,
             model_provider=route.provider,
         )
     return NeuroDbAgent(
@@ -61,12 +64,30 @@ def _build_agent(
         engine=engine,
         vector_store=vector_store,
         mode=agent_mode,
+        prior_context=prior_context,
         model_provider=route.provider,
     )
 
 
+def _get_prior_context(request: Request, engine) -> str:
+    manager = getattr(request.app.state, "session_manager", None)
+    if manager is None:
+        return ""
+    context, _topic = manager.get_most_recent_session_info(engine)
+    return context
+
+
 def _stream_chat(agent, message: str, history: list[dict]) -> Generator[str, None, None]:
     """Drive agent.chat() and emit SSE events."""
+    chat_stream = getattr(agent, "chat_stream", None)
+    if callable(chat_stream) and not isinstance(chat_stream, Mock):
+        try:
+            for event in chat_stream(message, history):
+                yield _sse(event)
+            return
+        except AttributeError:
+            pass
+
     full_text_parts: list[str] = []
     try:
         for chunk in agent.chat(message, history):
@@ -87,7 +108,12 @@ def chat_turn(
     if body.agent_mode not in VALID_AGENT_MODES:
         return JSONResponse(
             status_code=400,
-            content={"detail": f"Unknown agent_mode '{body.agent_mode}'. Valid modes: {sorted(VALID_AGENT_MODES)}"},
+            content={
+                "detail": (
+                    f"Unknown agent_mode '{body.agent_mode}'. "
+                    f"Valid modes: {sorted(VALID_AGENT_MODES)}"
+                )
+            },
         )
 
     providers = build_provider_clients()
@@ -99,6 +125,7 @@ def chat_turn(
 
     stores = get_research_stores(request)
     history = [{"role": m.role, "content": m.content} for m in body.history]
+    prior_context = _get_prior_context(request, engine)
     agent = _build_agent(
         body.agent_mode,
         engine,
@@ -106,6 +133,7 @@ def chat_turn(
         stores["knowledge_store"],
         stores["context_store"],
         providers,
+        prior_context,
     )
 
     return StreamingResponse(

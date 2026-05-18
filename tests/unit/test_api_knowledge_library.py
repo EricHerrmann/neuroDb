@@ -15,6 +15,7 @@ def _make_app(engine, knowledge_store=None):
     app = FastAPI()
     app.state.engine = engine
     app.state.knowledge_store = knowledge_store if knowledge_store is not None else MagicMock()
+    app.state.tasks = {}
     app.include_router(router, prefix="/api/knowledge-library")
     return app
 
@@ -141,3 +142,31 @@ def test_reject_source_has_no_warnings_field_interaction():
 
     assert resp.status_code == 200
     assert resp.json()["status"] == "rejected"
+
+
+def test_duplicate_check_returns_near_candidates():
+    mock_ks = MagicMock()
+    mock_ks.search.return_value = [{
+        "id": "knowledge_source:2",
+        "metadata": {"source_id": "2", "title": "Similar Paper", "doi": "10.1/test"},
+        "distance": 0.05,
+    }]
+    client, engine = _make_client(mock_ks)
+    _insert_source(engine, "LTP Paper", "pending")
+    source_id = client.get("/api/knowledge-library").json()[0]["id"]
+
+    resp = client.get(f"/api/knowledge-library/{source_id}/duplicates")
+
+    assert resp.status_code == 200
+    assert resp.json()["candidates"][0]["title"] == "Similar Paper"
+
+
+def test_approve_with_summary_returns_task_id():
+    client, engine = _make_client()
+    _insert_source(engine, "LTP Paper", "pending")
+    source_id = client.get("/api/knowledge-library").json()[0]["id"]
+
+    resp = client.post(f"/api/knowledge-library/{source_id}/approve-with-summary")
+
+    assert resp.status_code == 200
+    assert resp.json()["task_id"]

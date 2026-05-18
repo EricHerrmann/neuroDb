@@ -1,7 +1,7 @@
 # NeuroDb — DB Epoch Plan
 
-**Status:** MVP complete (Phases 0–6); Phases 7–8 decision pending
-**Last updated:** 2026-05-09
+**Status:** MVP complete (Phases 0–6); Phases 7–9 decision pending
+**Last updated:** 2026-05-13
 **Epoch directory:** `src/neurodb/db/`, `src/neurodb/connectors/`
 **Architecture reference:** `docs/superpowers/specs/2026-05-07-epoch-architecture-design.md`
 
@@ -11,7 +11,9 @@
 
 Build and maintain the local neuroscience data platform — source connectors, DuckDB schema, normalization transforms, merged views, and all structured storage schemas — that all other epochs depend on as their data substrate.
 
-**Active work:** Phases 7 (entity resolution) and 8 (research storage schema) are next; both pending a scope decision based on Phase 6 field-coverage audit.
+**Active work:** Phases 7 (entity resolution), 8 (research storage schema), and 9
+(research-grade metadata enrichment) are pending scope decisions based on field
+coverage and current research workflow needs.
 
 ---
 
@@ -28,6 +30,7 @@ Build and maintain the local neuroscience data platform — source connectors, D
 | Phase 6 | NeuroVault + DANDI connectors | Complete | 74 | 2026-04-13 | — |
 | Phase 7 | Entity resolution — dedup across sources | Decision pending | — | — | — |
 | Phase 8 | Research storage schema — hypothesis layer tables | Not started | — | — | — |
+| Phase 9 | Research-grade metadata enrichment — publication, participant, design, acquisition, preprocessing, and modeling fields for interpreting local datasets | Planned | — | — | — |
 
 Active test plan: none
 
@@ -35,7 +38,59 @@ Active test plan: none
 
 ## Open Backlog
 
-No open LOG entries currently assigned to DB epoch.
+### Phase 9 — Research-Grade Metadata Enrichment
+
+Current dataset records are often too sparse to support learning or local research
+interpretation. The DB epoch needs a feature that separates "dataset exists" from
+"dataset is interpretable enough to support a research workflow."
+
+**Primary objective:** enrich source-specific tables and merged views with the
+metadata fields most useful for understanding what a dataset represents, how it was
+collected, and whether it can be compared with other datasets.
+
+**Priority order:**
+
+1. Publication linkage: DOI and paper URL are the highest-impact fields because
+   they let the user inspect the methods section when structured metadata is absent.
+2. Orientation fields: subject count and cognitive paradigm are the next most useful
+   fields for quickly understanding whether a dataset is relevant.
+3. Research comparability fields: acquisition, preprocessing, and modeling metadata
+   determine whether maps or measurements can be compared across collections.
+
+**Metadata contract by category:**
+
+| Category | Fields |
+|---|---|
+| Publication and attribution | DOI, paper URL, journal name, authors, publication status |
+| Participants | Subject count, age mean, age min, age max, handedness, proportion male, inclusion criteria, exclusion criteria, group comparison flag, group description |
+| Experimental design | Design type, number of imaging runs, number of experimental units, run length, block length, trial length |
+| Scanner and acquisition | Scanner make, scanner model, field strength, pulse sequence, repetition time, echo time, flip angle, field of view, matrix size, slice thickness |
+| Preprocessing pipeline | Motion correction, slice timing correction, B0 unwarping, intersubject registration, software used for each, smoothing FWHM, coordinate space, target template, resampled voxel size |
+| Modeling | Hemodynamic response function, temporal derivatives flag, dispersion derivatives flag, motion regressors, high-pass filter method, intrasubject model type, group model type, group inference type |
+
+**Implementation shape:**
+
+- Add nullable structured metadata fields or a normalized research-metadata table
+  keyed by `(source, source_id)`, preserving raw source metadata in `metadata_json`.
+- Add connector enrichment hooks that populate the fields when source APIs expose
+  them directly.
+- Add DOI/paper URL recovery as the first enrichment pass. If a source provides only
+  a title or accession, use source metadata and literature lookup to populate DOI,
+  paper URL, authors, journal, and publication status with provenance.
+- Track field-level provenance and confidence where values are inferred rather than
+  directly supplied by the source API.
+- Expose metadata coverage in query surfaces so users can distinguish sparse records
+  from research-ready records.
+
+**Acceptance criteria:**
+
+- A field-coverage report shows non-null rates for every Phase 9 field by source.
+- At minimum, DOI or paper URL coverage improves for NeuroVault, DANDI, OpenNeuro,
+  and Allen Brain records where source metadata or linked publication data supports it.
+- `v_all_datasets` or a companion view exposes DOI/paper URL, subject count,
+  cognitive paradigm, and a metadata completeness score for quick filtering.
+- Records with insufficient metadata remain visible but are labeled as sparse rather
+  than silently treated as research-ready.
 
 ---
 

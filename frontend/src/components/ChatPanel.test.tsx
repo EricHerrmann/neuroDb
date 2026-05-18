@@ -13,6 +13,15 @@ function makeWrapper() {
     React.createElement(QueryClientProvider, { client: qc }, children)
 }
 
+function makeWrapperWithClient() {
+  const qc = new QueryClient({
+    defaultOptions: { queries: { retry: false }, mutations: { retry: false } },
+  })
+  const wrapper = ({ children }: { children: React.ReactNode }) =>
+    React.createElement(QueryClientProvider, { client: qc }, children)
+  return { qc, wrapper }
+}
+
 describe('ChatPanel', () => {
   beforeEach(() => {
     vi.restoreAllMocks()
@@ -35,6 +44,28 @@ describe('ChatPanel', () => {
     expect((select as HTMLSelectElement).value).toBe('neuro_tutor')
   })
 
+  it('renders prior context banner when active context exists', async () => {
+    const fetchMock = vi.fn().mockImplementation((path: string) => {
+      if (path === '/api/sessions/active-context') {
+        return Promise.resolve(new Response(JSON.stringify({ active_prior_topic: 'LTP basics' }), {
+          status: 200,
+          headers: { 'Content-Type': 'application/json' },
+        }))
+      }
+      return Promise.resolve(new Response('{}', {
+        status: 200,
+        headers: { 'Content-Type': 'application/json' },
+      }))
+    })
+    vi.stubGlobal('fetch', fetchMock)
+
+    render(<ChatPanel agentMode="neuro_tutor" />, { wrapper: makeWrapper() })
+
+    await waitFor(() => {
+      expect(screen.getByText('Prior context: LTP basics')).toBeTruthy()
+    })
+  })
+
   it('changing agent mode fires PUT /api/preferences/agent-mode', async () => {
     const fetchMock = vi.fn().mockResolvedValue(
       new Response(JSON.stringify({ agent_mode: 'local_db' }), {
@@ -52,6 +83,37 @@ describe('ChatPanel', () => {
         '/api/preferences/agent-mode',
         expect.objectContaining({ method: 'PUT' }),
       )
+    })
+  })
+
+  it('changing agent mode updates preferences cache immediately', async () => {
+    const fetchMock = vi.fn().mockImplementation((path: string) => {
+      if (path === '/api/sessions/active-context') {
+        return Promise.resolve(new Response(JSON.stringify({ active_prior_topic: null }), {
+          status: 200,
+          headers: { 'Content-Type': 'application/json' },
+        }))
+      }
+      return Promise.resolve(new Response(JSON.stringify({ agent_mode: 'external_db' }), {
+        status: 200,
+        headers: { 'Content-Type': 'application/json' },
+      }))
+    })
+    vi.stubGlobal('fetch', fetchMock)
+    const { qc, wrapper } = makeWrapperWithClient()
+    qc.setQueryData(['preferences'], {
+      agent_mode: 'local_db',
+      relevance_threshold: 0.75,
+    })
+
+    render(<ChatPanel agentMode="local_db" />, { wrapper })
+    fireEvent.change(screen.getByRole('combobox'), { target: { value: 'external_db' } })
+
+    await waitFor(() => {
+      expect(qc.getQueryData(['preferences'])).toEqual({
+        agent_mode: 'external_db',
+        relevance_threshold: 0.75,
+      })
     })
   })
 

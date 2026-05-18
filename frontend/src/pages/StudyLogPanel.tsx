@@ -5,6 +5,15 @@ import { api } from '../api/client'
 import type { ChatSession, CreateStudyNoteRequest, StudyNote } from '../api/types'
 
 type View = 'study-tags' | 'chat-history'
+const SOURCE_OPTIONS = ['openneuro', 'allen_brain', 'neurovault', 'dandi', 'pubmed', 'arxiv']
+
+const EMPTY_FORM = {
+  source: 'openneuro',
+  source_id: '',
+  concept_tag: '',
+  section_ref: '',
+  note_text: '',
+}
 
 function StudyTagsView() {
   const queryClient = useQueryClient()
@@ -13,26 +22,67 @@ function StudyTagsView() {
     queryFn: api.getStudyLog,
   })
   const [showForm, setShowForm] = useState(false)
-  const [form, setForm] = useState({
-    source: 'openneuro',
-    source_id: '',
-    concept_tag: '',
-    section_ref: '',
-    note_text: '',
-  })
+  const [selectedNoteId, setSelectedNoteId] = useState<number | null>(null)
+  const [conceptFilter, setConceptFilter] = useState('')
+  const [sourceFilter, setSourceFilter] = useState('all')
+  const [form, setForm] = useState(EMPTY_FORM)
   const [formError, setFormError] = useState<string | null>(null)
   const [warning, setWarning] = useState<string | null>(null)
+  const visibleRows = data.filter(row => {
+    const conceptMatches = !conceptFilter.trim() || row.concept_tag.toLowerCase().includes(conceptFilter.trim().toLowerCase())
+    const sourceMatches = sourceFilter === 'all' || row.source === sourceFilter
+    return conceptMatches && sourceMatches
+  })
 
   const create = useMutation({
     mutationFn: (body: CreateStudyNoteRequest) => api.createStudyNote(body),
     onSuccess: (data) => {
       queryClient.invalidateQueries({ queryKey: ['study-log'] })
       setShowForm(false)
-      setForm({ source: 'openneuro', source_id: '', concept_tag: '', section_ref: '', note_text: '' })
+      setSelectedNoteId(null)
+      setForm(EMPTY_FORM)
       setFormError(null)
       setWarning(data.warnings?.length ? data.warnings[0] : null)
     },
   })
+  const update = useMutation({
+    mutationFn: ({ id, body }: { id: number; body: CreateStudyNoteRequest }) => api.updateStudyNote(id, body),
+    onSuccess: (data) => {
+      queryClient.invalidateQueries({ queryKey: ['study-log'] })
+      setShowForm(false)
+      setSelectedNoteId(null)
+      setForm(EMPTY_FORM)
+      setFormError(null)
+      setWarning(data.warnings?.length ? data.warnings[0] : null)
+    },
+  })
+  const remove = useMutation({
+    mutationFn: (id: number) => api.deleteStudyNote(id),
+    onSuccess: data => {
+      queryClient.invalidateQueries({ queryKey: ['study-log'] })
+      setWarning(data.warnings?.length ? data.warnings[0] : null)
+    },
+  })
+
+  const resetForm = () => {
+    setShowForm(false)
+    setSelectedNoteId(null)
+    setForm(EMPTY_FORM)
+    setFormError(null)
+  }
+
+  const selectRow = (row: StudyNote) => {
+    setSelectedNoteId(row.id)
+    setForm({
+      source: row.source,
+      source_id: row.source_id,
+      concept_tag: row.concept_tag,
+      section_ref: row.section_ref ?? '',
+      note_text: row.note_text ?? '',
+    })
+    setShowForm(true)
+    setFormError(null)
+  }
 
   const handleSubmit = (event: FormEvent) => {
     event.preventDefault()
@@ -41,13 +91,18 @@ function StudyTagsView() {
       return
     }
     setFormError(null)
-    create.mutate({
+    const body = {
       source: form.source,
       source_id: form.source_id,
       concept_tag: form.concept_tag,
       section_ref: form.section_ref || undefined,
       note_text: form.note_text || undefined,
-    })
+    }
+    if (selectedNoteId !== null) {
+      update.mutate({ id: selectedNoteId, body })
+    } else {
+      create.mutate(body)
+    }
   }
 
   if (isLoading) return <div style={{ padding: 12 }}>Loading...</div>
@@ -60,29 +115,78 @@ function StudyTagsView() {
       {data.length === 0 ? (
         <p style={{ color: '#94a3b8', fontSize: 13 }}>No study tags yet.</p>
       ) : (
-        <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: 12 }}>
-          <thead>
-            <tr style={{ borderBottom: '2px solid #e2e8f0', textAlign: 'left' }}>
-              <th style={{ padding: '4px 8px' }}>Source</th>
-              <th style={{ padding: '4px 8px' }}>Concept</th>
-              <th style={{ padding: '4px 8px' }}>Section</th>
-              <th style={{ padding: '4px 8px' }}>Tagged</th>
-            </tr>
-          </thead>
-          <tbody>
-            {data.map(row => (
-              <tr key={row.id} style={{ borderBottom: '1px solid #f1f5f9' }}>
-                <td style={{ padding: '4px 8px', color: '#475569' }}>{row.source}:{row.source_id}</td>
-                <td style={{ padding: '4px 8px' }}>{row.concept_tag}</td>
-                <td style={{ padding: '4px 8px', color: '#94a3b8' }}>{row.section_ref ?? '-'}</td>
-                <td style={{ padding: '4px 8px', color: '#94a3b8' }}>{row.tagged_at.slice(0, 10)}</td>
-              </tr>
-            ))}
-          </tbody>
-        </table>
+        <>
+          <div style={{ display: 'flex', gap: 6, marginBottom: 8 }}>
+            <input
+              value={conceptFilter}
+              onChange={event => setConceptFilter(event.target.value)}
+              placeholder="Filter concept"
+              style={{ flex: 1, fontSize: 12, padding: '3px 6px' }}
+            />
+            <select
+              value={sourceFilter}
+              onChange={event => setSourceFilter(event.target.value)}
+              style={{ fontSize: 12, padding: '3px 6px' }}
+            >
+              <option value="all">All sources</option>
+              {SOURCE_OPTIONS.map(source => <option key={source} value={source}>{source}</option>)}
+            </select>
+          </div>
+          {visibleRows.length === 0 ? (
+            <p style={{ color: '#94a3b8', fontSize: 13 }}>No study tags match the filters.</p>
+          ) : (
+            <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: 12 }}>
+              <thead>
+                <tr style={{ borderBottom: '2px solid #e2e8f0', textAlign: 'left' }}>
+                  <th style={{ padding: '4px 8px' }}>Source</th>
+                  <th style={{ padding: '4px 8px' }}>Concept</th>
+                  <th style={{ padding: '4px 8px' }}>Section</th>
+                  <th style={{ padding: '4px 8px' }}>Tagged</th>
+                  <th style={{ padding: '4px 8px' }}>Action</th>
+                </tr>
+              </thead>
+              <tbody>
+                {visibleRows.map(row => (
+                  <tr
+                    key={row.id}
+                    onClick={() => selectRow(row)}
+                    style={{
+                      borderBottom: '1px solid #f1f5f9',
+                      background: selectedNoteId === row.id ? '#eff6ff' : undefined,
+                      cursor: 'pointer',
+                    }}
+                  >
+                    <td style={{ padding: '4px 8px', color: '#475569' }}>{row.source}:{row.source_id}</td>
+                    <td style={{ padding: '4px 8px' }}>{row.concept_tag}</td>
+                    <td style={{ padding: '4px 8px', color: '#94a3b8' }}>{row.section_ref ?? '-'}</td>
+                    <td style={{ padding: '4px 8px', color: '#94a3b8' }}>{row.tagged_at.slice(0, 10)}</td>
+                    <td style={{ padding: '4px 8px' }}>
+                      <button
+                        onClick={(event) => {
+                          event.stopPropagation()
+                          remove.mutate(row.id)
+                        }}
+                        disabled={remove.isPending}
+                        style={{ fontSize: 11, padding: '2px 6px', cursor: 'pointer' }}
+                      >
+                        Remove
+                      </button>
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          )}
+        </>
       )}
       <button
-        onClick={() => setShowForm(value => !value)}
+        onClick={() => {
+          if (showForm) {
+            resetForm()
+          } else {
+            setShowForm(true)
+          }
+        }}
         style={{ fontSize: 12, marginTop: 8, padding: '3px 10px', cursor: 'pointer' }}
       >
         {showForm ? 'Cancel' : 'Add Tag'}
@@ -90,16 +194,22 @@ function StudyTagsView() {
       {showForm && (
         <form
           onSubmit={handleSubmit}
+          onKeyDown={event => {
+            if (event.key === 'Escape') resetForm()
+          }}
           style={{ marginTop: 8, display: 'flex', flexDirection: 'column', gap: 6 }}
         >
+          {selectedNoteId !== null && (
+            <div style={{ fontSize: 11, color: '#1d4ed8', fontWeight: 600 }}>
+              Editing study tag #{selectedNoteId}
+            </div>
+          )}
           <select
             value={form.source}
             onChange={event => setForm(current => ({ ...current, source: event.target.value }))}
             style={{ fontSize: 12, padding: '3px 6px' }}
           >
-            <option value="openneuro">openneuro</option>
-            <option value="pubmed">pubmed</option>
-            <option value="arxiv">arxiv</option>
+            {SOURCE_OPTIONS.map(source => <option key={source} value={source}>{source}</option>)}
           </select>
           <input
             value={form.source_id}
@@ -129,17 +239,17 @@ function StudyTagsView() {
             placeholder="note (optional)"
             style={{ fontSize: 12, padding: '3px 6px' }}
           />
-          {create.error && (
+          {(create.error || update.error) && (
             <span style={{ fontSize: 11, color: '#dc2626' }}>
-              {(create.error as Error).message}
+              {((create.error || update.error) as Error).message}
             </span>
           )}
           <button
             type="submit"
-            disabled={create.isPending}
+            disabled={create.isPending || update.isPending}
             style={{ fontSize: 12, padding: '3px 10px', cursor: 'pointer' }}
           >
-            Save
+            {selectedNoteId !== null ? 'Save Edit' : 'Save'}
           </button>
         </form>
       )}

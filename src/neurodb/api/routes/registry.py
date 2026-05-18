@@ -3,6 +3,7 @@ from __future__ import annotations
 
 import json
 from datetime import UTC, datetime
+from typing import Any
 
 from fastapi import APIRouter, Depends, HTTPException
 from pydantic import BaseModel
@@ -17,6 +18,28 @@ from neurodb.schema import LearningSource
 router = APIRouter()
 
 
+def _parse_content_json(raw: str | None) -> dict[str, Any] | None:
+    if not raw:
+        return None
+    try:
+        parsed = json.loads(raw)
+    except (TypeError, json.JSONDecodeError):
+        return {"raw": raw}
+    return parsed if isinstance(parsed, dict) else {"raw": parsed}
+
+
+def _source_item(row: LearningSource) -> LearningSourceItem:
+    return LearningSourceItem(
+        id=row.id,
+        source_type=row.source_type,
+        source_key=row.source_key,
+        display_name=row.display_name,
+        added_by=row.added_by,
+        added_at=row.added_at,
+        content_json=_parse_content_json(row.content_json),
+    )
+
+
 @router.get("", response_model=list[LearningSourceItem])
 def get_registry(engine: Engine = Depends(get_engine)) -> list[LearningSourceItem]:
     with get_session(engine) as session:
@@ -25,7 +48,7 @@ def get_registry(engine: Engine = Depends(get_engine)) -> list[LearningSourceIte
             .order_by(LearningSource.source_type, LearningSource.display_name)
             .all()
         )
-        return [LearningSourceItem.model_validate(row) for row in rows]
+        return [_source_item(row) for row in rows]
 
 
 @router.delete("/{item_id}", status_code=204)
@@ -64,4 +87,4 @@ def create_registry_entry(
             session.flush()
         except IntegrityError as exc:
             raise HTTPException(status_code=409, detail="source_key already exists") from exc
-        return LearningSourceItem.model_validate(source)
+        return _source_item(source)

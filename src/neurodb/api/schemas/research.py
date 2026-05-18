@@ -20,6 +20,11 @@ class Hypothesis(BaseModel):
     id: int
     title: str
     mechanism: str | None = None
+    evidence_json: list[object] = []
+    predictions_json: list[object] = []
+    datasets_json: list[object] = []
+    confounds_json: list[object] = []
+    limitations: str | None = None
     status: str
     created_at: datetime | None = None
 

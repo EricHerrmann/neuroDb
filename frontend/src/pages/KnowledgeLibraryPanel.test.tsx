@@ -44,25 +44,47 @@ describe('KnowledgeLibraryPanel', () => {
     expect(screen.getByText('Reject')).toBeTruthy()
   })
 
-  it('shows warning banner when approve returns a warning', async () => {
+  it('renders bare DOI as resolver link', () => {
+    render(<KnowledgeLibraryPanel />, {
+      wrapper: makeWrapper([{
+        id: 1,
+        title: 'LTP Review',
+        doi: '10.1234/test',
+        url: null,
+        source_type: 'paper',
+        topic_context: 'plasticity',
+        status: 'approved',
+        queued_at: '2026-01-01',
+        reviewed_at: '2026-01-02',
+        summary: null,
+      }]),
+    })
+
+    const link = screen.getByRole('link', { name: '10.1234/test' })
+    expect(link.getAttribute('href')).toBe('https://doi.org/10.1234/test')
+  })
+
+  it('starts summary task when approve has no duplicates', async () => {
     const fetchMock = vi.fn().mockImplementation((path: string, init?: RequestInit) => {
-      if (path.includes('/approve') && init?.method === 'POST') {
+      if (path.includes('/duplicates')) {
         return Promise.resolve({
           ok: true,
           status: 200,
-          json: async () => ({
-            id: 1,
-            title: 'LTP Review',
-            doi: null,
-            url: null,
-            source_type: 'paper',
-            topic_context: 'plasticity',
-            status: 'approved',
-            queued_at: '2026-01-01',
-            reviewed_at: '2026-05-12T00:00:00',
-            summary: null,
-            warnings: ['ChromaDB indexing failed: chroma down'],
-          }),
+          json: async () => ({ candidates: [] }),
+        })
+      }
+      if (path.includes('/approve-with-summary') && init?.method === 'POST') {
+        return Promise.resolve({
+          ok: true,
+          status: 200,
+          json: async () => ({ task_id: 'task-1' }),
+        })
+      }
+      if (path.includes('/api/tasks/task-1')) {
+        return Promise.resolve({
+          ok: true,
+          status: 200,
+          json: async () => ({ status: 'running', result: null, error: null }),
         })
       }
       return Promise.resolve({ ok: true, status: 200, json: async () => [] })
@@ -80,7 +102,7 @@ describe('KnowledgeLibraryPanel', () => {
     fireEvent.click(screen.getByText('Approve'))
 
     await waitFor(() => {
-      expect(screen.getByText(/ChromaDB indexing failed/)).toBeTruthy()
+      expect(screen.getByText(/Running/)).toBeTruthy()
     })
   })
 })

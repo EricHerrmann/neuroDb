@@ -52,6 +52,9 @@ def test_get_datasets_returns_rows():
     assert len(data) == 1
     assert data[0]["source"] == "openneuro"
     assert data[0]["source_id"] == "ds001"
+    assert "title" in data[0]
+    assert "modality" in data[0]
+    assert "n_subjects" in data[0]
 
 
 def test_get_datasets_keyword_filter():
@@ -65,3 +68,13 @@ def test_get_datasets_keyword_filter():
     assert resp.status_code == 200
     assert len(data) == 1
     assert data[0]["source_id"] == "ds001"
+
+
+def test_get_datasets_modality_filter_returns_empty_when_view_unavailable():
+    client, engine = _make_client()
+    _insert_dataset(engine, "openneuro", "ds001")
+
+    resp = client.get("/api/datasets?modality=fMRI")
+
+    assert resp.status_code == 200
+    assert resp.json() == []

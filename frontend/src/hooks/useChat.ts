@@ -6,11 +6,21 @@ export interface Message {
   content: string
   streaming?: boolean
   error?: boolean
+  activity?: ToolActivity[]
+}
+
+export interface ToolActivity {
+  id: string
+  toolName: string
+  input?: unknown
+  result?: string
+  status: 'running' | 'done'
 }
 
 export function useChat(agentMode: string) {
   const [messages, setMessages] = useState<Message[]>([])
   const [isStreaming, setIsStreaming] = useState(false)
+  const [sessionId, setSessionId] = useState(() => crypto.randomUUID())
   const queryClient = useQueryClient()
   const abortRef = useRef<AbortController | null>(null)
 
@@ -57,7 +67,13 @@ export function useChat(agentMode: string) {
           if (!line.startsWith('data: ')) continue
           const payload = line.slice(6).trim()
           if (!payload) continue
-          const event = JSON.parse(payload) as { type: string; text?: string }
+          const event = JSON.parse(payload) as {
+            type: string
+            text?: string
+            tool_name?: string
+            tool_input?: unknown
+            result?: string
+          }
           if (event.type === 'text_delta') {
             setMessages(prev => {
               const next = [...prev]
@@ -66,13 +82,55 @@ export function useChat(agentMode: string) {
               next[next.length - 1] = last
               return next
             })
+          } else if (event.type === 'tool_start') {
+            setMessages(prev => {
+              const next = [...prev]
+              const last = { ...next[next.length - 1] }
+              const activity = [...(last.activity ?? [])]
+              activity.push({
+                id: `${event.tool_name ?? 'tool'}-${activity.length}`,
+                toolName: event.tool_name ?? 'tool',
+                input: event.tool_input,
+                status: 'running',
+              })
+              last.activity = activity
+              next[next.length - 1] = last
+              return next
+            })
+          } else if (event.type === 'tool_result') {
+            setMessages(prev => {
+              const next = [...prev]
+              const last = { ...next[next.length - 1] }
+              const activity = [...(last.activity ?? [])]
+              let index = -1
+              for (let i = activity.length - 1; i >= 0; i -= 1) {
+                if (activity[i].toolName === (event.tool_name ?? 'tool') && activity[i].status === 'running') {
+                  index = i
+                  break
+                }
+              }
+              if (index >= 0) {
+                activity[index] = {
+                  ...activity[index],
+                  result: event.result ?? '',
+                  status: 'done',
+                }
+              }
+              last.activity = activity
+              next[next.length - 1] = last
+              return next
+            })
           } else if (event.type === 'done') {
             setMessages(prev => {
               const next = [...prev]
+              if (event.text) {
+                next[next.length - 1] = { ...next[next.length - 1], content: event.text }
+              }
               next[next.length - 1] = { ...next[next.length - 1], streaming: false }
               return next
             })
             queryClient.invalidateQueries({ queryKey: ['sessions'] })
+            queryClient.invalidateQueries({ queryKey: ['active-context'] })
           } else if (event.type === 'error') {
             throw new Error(event.text ?? 'Chat stream error')
           }
@@ -102,5 +160,25 @@ export function useChat(agentMode: string) {
     }
   }, [agentMode, isStreaming, messages, queryClient])
 
-  return { messages, isStreaming, sendMessage }
+  const clearChat = useCallback(async () => {
+    if (isStreaming) return
+    const endedSessionId = sessionId
+    const conversation = messages.map(message => ({
+      role: message.role,
+      content: message.content,
+    }))
+    await fetch(`/api/sessions/${endedSessionId}/end`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ messages: conversation, agent_mode: agentMode }),
+    }).then(async res => {
+      if (!res.ok) throw new Error(await res.text() || `${res.status}`)
+    })
+    setMessages([])
+    setSessionId(crypto.randomUUID())
+    queryClient.invalidateQueries({ queryKey: ['sessions'] })
+    queryClient.invalidateQueries({ queryKey: ['active-context'] })
+  }, [agentMode, isStreaming, messages, queryClient, sessionId])
+
+  return { messages, isStreaming, sendMessage, clearChat }
 }

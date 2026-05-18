@@ -4,8 +4,8 @@ from fastapi.testclient import TestClient
 from sqlalchemy import create_engine
 from sqlalchemy.pool import StaticPool
 
-from neurodb.schema import Base
 from neurodb.api.routes.research import router
+from neurodb.schema import Base, HypothesisReview
 
 
 def _make_app(engine):
@@ -33,8 +33,8 @@ def _make_client():
 # ---------------------------------------------------------------------------
 
 def _insert_question(engine, question: str, status: str, topic_context: str = "ctx") -> None:
-    from neurodb.schema import ResearchQuestion as ResearchQuestionORM
     from neurodb.db import get_session
+    from neurodb.schema import ResearchQuestion as ResearchQuestionORM
 
     with get_session(engine) as session:
         session.add(ResearchQuestionORM(
@@ -46,23 +46,45 @@ def _insert_question(engine, question: str, status: str, topic_context: str = "c
         ))
 
 
-def _insert_hypothesis(engine, title: str, status: str) -> None:
-    from neurodb.schema import ResearchHypothesis
+def _insert_hypothesis(engine, title: str, status: str) -> int:
     from neurodb.db import get_session
+    from neurodb.schema import ResearchHypothesis
 
     with get_session(engine) as session:
-        session.add(ResearchHypothesis(
+        row = ResearchHypothesis(
             title=title,
             mechanism="test mechanism",
-            evidence_json="[]",
-            predictions_json="[]",
-            datasets_json="[]",
-            confounds_json="[]",
+            evidence_json='["evidence A"]',
+            predictions_json='["prediction A"]',
+            datasets_json='[{"dataset_id": "ds001", "relevance": "test"}]',
+            confounds_json='["confound A"]',
             limitations="none",
             status=status,
             created_at="2026-01-01T00:00:00",
             updated_at="2026-01-01T00:00:00",
-        ))
+        )
+        session.add(row)
+        session.flush()
+        return row.id
+
+
+def _insert_review(engine, hypothesis_id: int, status: str = "pending") -> int:
+    from neurodb.db import get_session
+
+    with get_session(engine) as session:
+        row = HypothesisReview(
+            hypothesis_id=hypothesis_id,
+            created_at="2026-01-02T00:00:00",
+            model="test-model",
+            critique_text="Needs stronger evidence.",
+            unsupported_claims_json='["Claim A"]',
+            missing_confounds_json='["Confound A"]',
+            suggested_revisions="Add controls.",
+            status=status,
+        )
+        session.add(row)
+        session.flush()
+        return row.id
 
 
 # ---------------------------------------------------------------------------
@@ -116,6 +138,18 @@ def test_get_questions_filters_by_status():
     assert data[0]["status"] == "open"
 
 
+def test_get_questions_filters_by_multiple_statuses():
+    client, engine = _make_client()
+    _insert_question(engine, "Open Q", "open")
+    _insert_question(engine, "Parked Q", "parked")
+    _insert_question(engine, "Closed Q", "closed")
+
+    resp = client.get("/api/research/questions?status=open&status=parked")
+
+    assert resp.status_code == 200
+    assert {row["status"] for row in resp.json()} == {"open", "parked"}
+
+
 # ---------------------------------------------------------------------------
 # Hypotheses tests
 # ---------------------------------------------------------------------------
@@ -143,3 +177,31 @@ def test_get_hypotheses_filters_by_status():
     assert len(data) == 1
     assert data[0]["title"] == "Draft H"
     assert data[0]["status"] == "draft"
+
+
+def test_get_hypotheses_returns_detail_fields():
+    client, engine = _make_client()
+    _insert_hypothesis(engine, "Detailed H", "draft")
+
+    resp = client.get("/api/research/hypotheses")
+
+    assert resp.status_code == 200
+    data = resp.json()[0]
+    assert data["evidence_json"] == ["evidence A"]
+    assert data["predictions_json"] == ["prediction A"]
+    assert data["confounds_json"] == ["confound A"]
+    assert data["limitations"] == "none"
+
+
+def test_accept_and_dismiss_review_routes_update_status():
+    client, engine = _make_client()
+    hypothesis_id = _insert_hypothesis(engine, "Reviewed H", "draft")
+    review_id = _insert_review(engine, hypothesis_id)
+
+    accept_resp = client.post(f"/api/research/reviews/{review_id}/accept")
+    dismiss_resp = client.post(f"/api/research/reviews/{review_id}/dismiss")
+
+    assert accept_resp.status_code == 200
+    assert accept_resp.json()["status"] == "accepted"
+    assert dismiss_resp.status_code == 200
+    assert dismiss_resp.json()["status"] == "dismissed"

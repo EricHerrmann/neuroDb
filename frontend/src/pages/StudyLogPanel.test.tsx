@@ -153,4 +153,69 @@ describe('StudyLogPanel', () => {
       expect(screen.getByText(/Vector embedding failed/)).toBeTruthy()
     })
   })
+
+  it('selecting a row pre-fills edit form', () => {
+    const tag = {
+      id: 12,
+      source: 'openneuro',
+      source_id: 'ds001',
+      concept_tag: 'LTP',
+      section_ref: '3.1',
+      note_text: 'Existing note',
+      tagged_at: '2026-01-15T00:00:00',
+    }
+    render(<StudyLogPanel />, { wrapper: makeWrapper([tag]) })
+
+    fireEvent.click(screen.getByText('LTP'))
+
+    expect(screen.getByText('Editing study tag #12')).toBeTruthy()
+    expect((screen.getByPlaceholderText('source_id') as HTMLInputElement).value).toBe('ds001')
+    expect((screen.getByPlaceholderText('concept_tag') as HTMLInputElement).value).toBe('LTP')
+    expect((screen.getByPlaceholderText('section_ref (optional)') as HTMLInputElement).value).toBe('3.1')
+    expect((screen.getByPlaceholderText('note (optional)') as HTMLTextAreaElement).value).toBe('Existing note')
+  })
+
+  it('edit form submits PATCH /api/study-log/{id}', async () => {
+    const fetchMock = vi.fn().mockImplementation((path: string, init?: RequestInit) => {
+      if (path === '/api/study-log/12' && init?.method === 'PATCH') {
+        return Promise.resolve({
+          ok: true,
+          status: 200,
+          json: async () => ({
+            id: 12,
+            source: 'openneuro',
+            source_id: 'ds001',
+            concept_tag: 'LTD',
+            section_ref: null,
+            note_text: null,
+            tagged_at: '2026-01-01T00:00:00',
+            warnings: [],
+          }),
+        })
+      }
+      return Promise.resolve({ ok: true, status: 200, json: async () => [] })
+    })
+    vi.stubGlobal('fetch', fetchMock)
+    const tag = {
+      id: 12,
+      source: 'openneuro',
+      source_id: 'ds001',
+      concept_tag: 'LTP',
+      section_ref: null,
+      note_text: null,
+      tagged_at: '2026-01-15T00:00:00',
+    }
+    render(<StudyLogPanel />, { wrapper: makeWrapper([tag]) })
+
+    fireEvent.click(screen.getByText('LTP'))
+    fireEvent.change(screen.getByPlaceholderText('concept_tag'), { target: { value: 'LTD' } })
+    fireEvent.click(screen.getByText('Save Edit'))
+
+    await waitFor(() => {
+      expect(fetchMock).toHaveBeenCalledWith(
+        '/api/study-log/12',
+        expect.objectContaining({ method: 'PATCH' }),
+      )
+    })
+  })
 })

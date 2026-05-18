@@ -9,3 +9,6 @@ class DatasetItem(BaseModel):
     id: int
     source: str
     source_id: str
+    title: str | None = None
+    modality: str | None = None
+    n_subjects: int | None = None

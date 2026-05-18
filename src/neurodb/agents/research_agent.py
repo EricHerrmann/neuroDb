@@ -6,7 +6,13 @@ from datetime import date
 from sqlalchemy import Engine
 
 from neurodb.agents.base import BaseAgent
-from neurodb.agents.db_agent import TOOLS as _DB_TOOLS, execute_tool
+from neurodb.agents.db_agent import TOOLS as _DB_TOOLS
+from neurodb.agents.db_agent import execute_tool
+from neurodb.discovery_tools import (
+    READ_ONLY_DISCOVERY_TOOLS,
+    run_inspect_external_dataset,
+    run_search_external,
+)
 from neurodb.knowledge_store import KnowledgeLibraryStore
 from neurodb.research_tools import (
     cross_reference_datasets,
@@ -33,7 +39,12 @@ _RESEARCH_SYSTEM_PROMPT = (
     "about local datasets, curated sources, prior project knowledge, or literature-search "
     "history. Hypotheses are drafts until explicitly tested. Every draft hypothesis must "
     "include confounds and limitations. Never claim a hypothesis is tested unless local "
-    "DB evidence and a testing plan support that claim."
+    "DB evidence and a testing plan support that claim. When the user asks you to check "
+    "an external dataset URL or source-native id, call inspect_external_dataset instead "
+    "of saying you cannot browse. When the user asks to find external datasets by topic, "
+    "call search_external. Format user-facing answers for the chat window: use concise "
+    "prose, short lists, and simple Markdown tables only when they make comparison easier. "
+    "Do not put raw tool JSON or debug traces in the final answer."
 )
 
 _RESEARCH_TOOLS = [
@@ -198,7 +209,7 @@ class NeuroResearchAgent(BaseAgent):
         self._current_date = current_date
 
     def _get_active_tools(self) -> list[dict]:
-        return list(_RESEARCH_TOOLS) + list(_READ_ONLY_DB_TOOLS)
+        return list(_RESEARCH_TOOLS) + list(READ_ONLY_DISCOVERY_TOOLS) + list(_READ_ONLY_DB_TOOLS)
 
     def _build_system_prompt(self) -> str:
         current_date = self._current_date or date.today().isoformat()
@@ -212,6 +223,17 @@ class NeuroResearchAgent(BaseAgent):
             return self._execute_search_knowledge_library(block.tool_input)
         if block.tool_name == "search_literature":
             return self._execute_search_literature(block.tool_input)
+        if block.tool_name == "search_external":
+            return run_search_external(
+                block.tool_input["source"],
+                block.tool_input["query"],
+                block.tool_input.get("limit", 10),
+            )
+        if block.tool_name == "inspect_external_dataset":
+            return run_inspect_external_dataset(
+                block.tool_input["source"],
+                block.tool_input["reference"],
+            )
         if block.tool_name == "cross_reference_datasets":
             return json.dumps(cross_reference_datasets(
                 self._engine,

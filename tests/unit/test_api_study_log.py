@@ -6,9 +6,9 @@ from fastapi.testclient import TestClient
 from sqlalchemy import create_engine, select
 from sqlalchemy.pool import StaticPool
 
-from neurodb.schema import Base, IngestRun, DatasetIndex, StudyNote
 from neurodb.api.routes.study_log import router
 from neurodb.db import get_session
+from neurodb.schema import Base, DatasetIndex, IngestRun, StudyNote
 
 
 def _make_app(engine, vector_store=None):
@@ -44,7 +44,11 @@ def _insert_note(engine, concept_tag: str):
             idx = DatasetIndex(source="openneuro", source_id="ds001", run_id=run.id)
             session.add(idx)
             session.flush()
-        session.add(StudyNote(index_id=idx.id, concept_tag=concept_tag, tagged_at="2026-01-01T00:00:00"))
+        session.add(StudyNote(
+            index_id=idx.id,
+            concept_tag=concept_tag,
+            tagged_at="2026-01-01T00:00:00",
+        ))
 
 
 def test_get_study_log_empty():
@@ -162,3 +166,83 @@ def test_post_study_log_returns_warning_when_embed_fails():
     data = resp.json()
     assert len(data["warnings"]) == 1
     assert "Vector embedding failed" in data["warnings"][0]
+
+
+def test_delete_study_log_removes_note_and_vector():
+    mock_vs = MagicMock()
+    client, engine = _make_client(mock_vs)
+    _insert_note(engine, "LTP")
+    note_id = client.get("/api/study-log").json()[0]["id"]
+
+    resp = client.delete(f"/api/study-log/{note_id}")
+
+    assert resp.status_code == 200
+    assert resp.json()["deleted"] is True
+    assert client.get("/api/study-log").json() == []
+    mock_vs.delete_note.assert_called_once_with(note_id)
+
+
+def test_patch_study_log_updates_note_and_vector():
+    mock_vs = MagicMock()
+    client, engine = _make_client(mock_vs)
+    _insert_note(engine, "LTP")
+    note_id = client.get("/api/study-log").json()[0]["id"]
+
+    resp = client.patch(f"/api/study-log/{note_id}", json={
+        "source": "openneuro",
+        "source_id": "ds001",
+        "concept_tag": "LTD",
+        "section_ref": "Ch4",
+        "note_text": "Updated note",
+    })
+
+    assert resp.status_code == 200
+    data = resp.json()
+    assert data["id"] == note_id
+    assert data["concept_tag"] == "LTD"
+    assert data["section_ref"] == "Ch4"
+    assert data["note_text"] == "Updated note"
+    assert data["warnings"] == []
+    mock_vs.upsert_note.assert_called_once_with(
+        note_id, "openneuro", "ds001", "LTD", "Ch4", "Updated note"
+    )
+
+
+def test_patch_study_log_returns_warning_when_embed_fails():
+    mock_vs = MagicMock()
+    mock_vs.upsert_note.side_effect = RuntimeError("chroma down")
+    client, engine = _make_client(mock_vs)
+    _insert_note(engine, "LTP")
+    note_id = client.get("/api/study-log").json()[0]["id"]
+
+    resp = client.patch(f"/api/study-log/{note_id}", json={
+        "source": "openneuro",
+        "source_id": "ds001",
+        "concept_tag": "LTD",
+    })
+
+    assert resp.status_code == 200
+    data = resp.json()
+    assert data["concept_tag"] == "LTD"
+    assert "Vector embedding failed" in data["warnings"][0]
+
+
+def test_patch_study_log_404_for_unknown_note():
+    client, engine = _make_client()
+    _insert_dataset(engine, "openneuro", "ds001")
+
+    resp = client.patch("/api/study-log/999", json={
+        "source": "openneuro",
+        "source_id": "ds001",
+        "concept_tag": "LTP",
+    })
+
+    assert resp.status_code == 404
+
+
+def test_delete_study_log_404_for_unknown():
+    client, _ = _make_client()
+
+    resp = client.delete("/api/study-log/999")
+
+    assert resp.status_code == 404

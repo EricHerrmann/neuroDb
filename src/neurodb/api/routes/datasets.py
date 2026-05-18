@@ -13,6 +13,7 @@ from neurodb.api.deps import get_engine, get_task_store
 from neurodb.api.schemas.datasets import DatasetItem
 from neurodb.api.tasks import TaskRecord
 from neurodb.db import get_session
+from neurodb.query import search_datasets
 from neurodb.schema import DatasetIndex, ImportQueue
 
 logger = logging.getLogger(__name__)
@@ -23,14 +24,26 @@ router = APIRouter()
 @router.get("", response_model=list[DatasetItem])
 def get_datasets(
     keyword: str | None = None,
+    modality: str | None = None,
     engine: Engine = Depends(get_engine),
 ) -> list[DatasetItem]:
     with get_session(engine) as session:
-        query = session.query(DatasetIndex)
-        if keyword:
-            query = query.filter(DatasetIndex.source_id.ilike(f"%{keyword}%"))
-        rows = query.order_by(DatasetIndex.source, DatasetIndex.source_id).limit(200).all()
-        return [DatasetItem.model_validate(row) for row in rows]
+        try:
+            rows = search_datasets(
+                session,
+                keyword=keyword,
+                modality=None if modality in {None, "", "all"} else modality,
+            )
+            return [DatasetItem(**dict(row)) for row in rows]
+        except Exception:
+            query = session.query(DatasetIndex)
+            if keyword:
+                query = query.filter(DatasetIndex.source_id.ilike(f"%{keyword}%"))
+            rows = query.order_by(DatasetIndex.source, DatasetIndex.source_id).limit(200).all()
+            items = [DatasetItem.model_validate(row) for row in rows]
+            if modality not in {None, "", "all"}:
+                return []
+            return items
 
 
 @router.post("/{source}/{source_id}/import")

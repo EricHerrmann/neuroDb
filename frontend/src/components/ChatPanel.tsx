@@ -1,8 +1,9 @@
 import { useEffect, useRef, useState } from 'react'
 import type { FormEvent } from 'react'
-import { useMutation, useQueryClient } from '@tanstack/react-query'
+import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 
 import { api } from '../api/client'
+import type { ModelInfo, Preferences } from '../api/types'
 import { useChat } from '../hooks/useChat'
 import MessageBubble from './MessageBubble'
 
@@ -17,13 +18,29 @@ type AgentModeValue = typeof MODES[number]['value']
 
 export default function ChatPanel({ agentMode }: { agentMode: AgentModeValue }) {
   const queryClient = useQueryClient()
-  const { messages, isStreaming, sendMessage } = useChat(agentMode)
+  const { messages, isStreaming, sendMessage, clearChat } = useChat(agentMode)
+  const { data: activeContext } = useQuery({
+    queryKey: ['active-context'],
+    queryFn: api.getActiveContext,
+  })
+  const { data: modelInfo } = useQuery<ModelInfo>({
+    queryKey: ['model-info'],
+    queryFn: api.getModelInfo,
+    staleTime: Infinity,
+  })
   const [input, setInput] = useState('')
+  const [clearError, setClearError] = useState<string | null>(null)
   const bottomRef = useRef<HTMLDivElement>(null)
 
   const setMode = useMutation({
     mutationFn: (mode: string) => api.setAgentMode(mode),
-    onSuccess: () => queryClient.invalidateQueries({ queryKey: ['preferences'] }),
+    onSuccess: data => {
+      queryClient.setQueryData<Preferences>(['preferences'], old => ({
+        relevance_threshold: old?.relevance_threshold ?? 0.5,
+        agent_mode: data.agent_mode as Preferences['agent_mode'],
+      }))
+      queryClient.invalidateQueries({ queryKey: ['preferences'] })
+    },
   })
 
   useEffect(() => {
@@ -35,6 +52,15 @@ export default function ChatPanel({ agentMode }: { agentMode: AgentModeValue }) 
     if (!input.trim()) return
     sendMessage(input)
     setInput('')
+  }
+
+  const handleClear = async () => {
+    setClearError(null)
+    try {
+      await clearChat()
+    } catch (err) {
+      setClearError(err instanceof Error ? err.message : 'Clear failed')
+    }
   }
 
   return (
@@ -50,22 +76,53 @@ export default function ChatPanel({ agentMode }: { agentMode: AgentModeValue }) 
         <span style={{ fontSize: 11, fontWeight: 700, color: '#475569', letterSpacing: '0.05em' }}>
           CHAT
         </span>
-        <select
-          value={agentMode}
-          onChange={event => setMode.mutate(event.target.value)}
-          disabled={setMode.isPending}
-          style={{
-            padding: '3px 6px',
-            fontSize: 11,
-            border: '1px solid #cbd5e1',
-            borderRadius: 4,
-          }}
-        >
-          {MODES.map(mode => (
-            <option key={mode.value} value={mode.value}>{mode.label}</option>
-          ))}
-        </select>
+        <div style={{ display: 'flex', gap: 6, alignItems: 'center' }}>
+          <button
+            type="button"
+            onClick={handleClear}
+            disabled={isStreaming || messages.length === 0}
+            style={{ fontSize: 11, padding: '3px 8px', cursor: 'pointer' }}
+          >
+            Clear
+          </button>
+          <select
+            value={agentMode}
+            onChange={event => setMode.mutate(event.target.value)}
+            disabled={setMode.isPending}
+            style={{
+              padding: '3px 6px',
+              fontSize: 11,
+              border: '1px solid #cbd5e1',
+              borderRadius: 4,
+            }}
+          >
+            {MODES.map(mode => (
+              <option key={mode.value} value={mode.value}>{mode.label}</option>
+            ))}
+          </select>
+          {modelInfo?.[agentMode] && (
+            <span style={{ fontSize: 10, color: '#94a3b8', whiteSpace: 'nowrap' }}>
+              {modelInfo[agentMode].model}
+            </span>
+          )}
+        </div>
       </div>
+      {clearError && (
+        <div style={{ color: '#dc2626', background: '#fee2e2', padding: '4px 12px', fontSize: 11 }}>
+          {clearError}
+        </div>
+      )}
+      {activeContext?.active_prior_topic && (
+        <div style={{
+          color: '#1d4ed8',
+          background: '#eff6ff',
+          borderBottom: '1px solid #bfdbfe',
+          padding: '4px 12px',
+          fontSize: 11,
+        }}>
+          Prior context: {activeContext.active_prior_topic}
+        </div>
+      )}
       <div style={{ flex: 1, overflowY: 'auto', padding: 12 }}>
         {messages.length === 0 && (
           <p style={{ color: '#94a3b8', fontSize: 13, textAlign: 'center', marginTop: 32 }}>

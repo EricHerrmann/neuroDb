@@ -4,9 +4,9 @@
 # To change active providers, edit [routing] below — no env vars needed.
 
 [routing]
-economy  = "anthropic"
-standard = "anthropic"
-premium  = "anthropic"
+economy  = "openai"
+standard = "openai"
+premium  = "openai"
 
 [tiers.economy]
 

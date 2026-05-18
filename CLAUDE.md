@@ -139,6 +139,8 @@ Manual test plans are phase-gate artifacts, not post-hoc documentation.
 - Add the new manual test plan to `docs/projectStatus.md` in the same step when the plan document is first created, following the normal source-document and active-test-plan sync rules.
 - If implementation materially changes the intended workflow after the plan is written, update the plan in the same change that shifts the workflow.
 - **Every manual test plan must include an automated-test prerequisite step.** The Prerequisites section of every manual test plan document must contain an explicit step that runs `uv run pytest tests/ -q` and defines pass criteria: no new failures beyond those already tracked in `docs/testLog.md`. This step is always listed first in Prerequisites.
+- Manual tests should not duplicate automated tests without adding human-visible or cross-process value. When an automated test already covers the underlying logic, the manual test should focus on the browser workflow, real server/DB wiring, operator steps, visual feedback, or production-like integration risk that automation does not cover.
+- Long or multi-line verification commands must live in a checked-in helper script under `tests/manual/` or another appropriate test-support directory. Manual plans should reference the script with a short command and document only the inputs, expected output, and pass/fail criteria.
 
 When a test plan or test run document is updated to a passing or signed-off terminal state, update `docs/projectStatus.md` in the same step — phase row, active focus, and archived test plan table. This fires on the document update itself, not on a separate user request.
 

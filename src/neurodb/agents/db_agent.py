@@ -6,7 +6,8 @@ from sqlalchemy import Engine, text
 
 from neurodb.agents.base import BaseAgent
 from neurodb.db import get_session
-from neurodb.study import list_tags, tag_dataset as _tag_dataset
+from neurodb.study import list_tags
+from neurodb.study import tag_dataset as _tag_dataset
 from neurodb.vector_store import VectorStore
 
 _MODEL = os.environ.get("NEURODB_AGENT_MODEL", "claude-sonnet-4-6")
@@ -40,7 +41,8 @@ TOOLS = [
         "name": "semantic_search",
         "description": (
             "Search datasets and study notes by semantic similarity using vector embeddings. "
-            "Use this for natural language queries like 'find datasets related to spatial navigation'."
+            "Use this for natural language queries like "
+            "'find datasets related to spatial navigation'."
         ),
         "input_schema": {
             "type": "object",
@@ -115,11 +117,19 @@ TOOLS = [
 _SYSTEM_PROMPT = (
     "You are a helpful neuroscience research assistant with access to a local database "
     "of neuroscience datasets and study notes. "
-    "When a question asks about specific datasets, records, study notes, or what is in the database, "
+    "When a question asks about specific datasets, records, study notes, or what is "
+    "in the database, "
     "use your tools to retrieve data and ground your answer in real results. "
-    "When a question is about general neuroscience knowledge or concepts (anatomy, physiology, theory), "
-    "answer directly from your training knowledge — do not call tools to search for data that is unlikely to exist. "
-    "Never fabricate dataset IDs, counts, or details — if something is not in the database, say so clearly."
+    "In external_db mode, when the user asks you to check an external dataset URL or "
+    "source-native id, call inspect_external_dataset instead of saying you cannot browse. "
+    "When the user asks to find external datasets by topic, call search_external. "
+    "When a question is about general neuroscience knowledge or concepts "
+    "(anatomy, physiology, theory), answer directly from your training knowledge — "
+    "do not call tools to search for data that is unlikely to exist. "
+    "Never fabricate dataset IDs, counts, or details — if something is not in the "
+    "database, say so clearly. Format user-facing answers for the chat window: "
+    "use concise prose, short lists, and simple Markdown tables only when they make "
+    "comparison easier. Do not put raw tool JSON or debug traces in the final answer."
 )
 
 
@@ -151,6 +161,7 @@ def execute_tool(
 
 def _execute_discovery_tool(name: str, inputs: dict, engine: Engine) -> str:
     from neurodb.discovery_tools import (
+        run_inspect_external_dataset,
         run_search_external,
         run_suggest_import,
         run_suggest_learning_source,
@@ -159,6 +170,8 @@ def _execute_discovery_tool(name: str, inputs: dict, engine: Engine) -> str:
 
     if name == "search_external":
         return run_search_external(inputs["source"], inputs["query"], inputs.get("limit", 10))
+    if name == "inspect_external_dataset":
+        return run_inspect_external_dataset(inputs["source"], inputs["reference"])
     if name == "suggest_import":
         return run_suggest_import(
             inputs["source"],
@@ -282,6 +295,7 @@ class NeuroDbAgent(BaseAgent):
     def _execute_tool_block(self, block) -> str:
         if block.tool_name in {
             "search_external",
+            "inspect_external_dataset",
             "suggest_import",
             "suggest_learning_source",
             "suggest_new_source",

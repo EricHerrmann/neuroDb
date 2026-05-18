@@ -149,8 +149,66 @@ function applyTransform() {
     `translate(${state.panX}px, ${state.panY}px) scale(${state.zoom})`;
 }
 
-function initPan() {}
-function initZoomButtons() {}
+function initPan() {
+  const surface = document.getElementById('viewer-surface');
+
+  surface.addEventListener('mousedown', e => {
+    if (e.button !== 0) return;
+    state.isDragging = true;
+    state.dragStartX = e.clientX;
+    state.dragStartY = e.clientY;
+    state.dragStartPanX = state.panX;
+    state.dragStartPanY = state.panY;
+    surface.classList.add('dragging');
+    e.preventDefault();
+  });
+
+  window.addEventListener('mousemove', e => {
+    if (!state.isDragging) return;
+    state.panX = state.dragStartPanX + (e.clientX - state.dragStartX);
+    state.panY = state.dragStartPanY + (e.clientY - state.dragStartY);
+    applyTransform();
+  });
+
+  window.addEventListener('mouseup', () => {
+    state.isDragging = false;
+    surface.classList.remove('dragging');
+  });
+
+  surface.addEventListener('wheel', e => {
+    e.preventDefault();
+    const factor = e.deltaY < 0 ? 1.15 : 1 / 1.15;
+    zoomAt(factor, e.clientX, e.clientY);
+  }, { passive: false });
+}
+
+function zoomAt(factor, clientX, clientY) {
+  const surface = document.getElementById('viewer-surface');
+  const rect = surface.getBoundingClientRect();
+  const mouseX = clientX - rect.left;
+  const mouseY = clientY - rect.top;
+  const imgX = (mouseX - state.panX) / state.zoom;
+  const imgY = (mouseY - state.panY) / state.zoom;
+  const newZoom = Math.min(8, Math.max(0.5, state.zoom * factor));
+  state.panX = mouseX - imgX * newZoom;
+  state.panY = mouseY - imgY * newZoom;
+  state.zoom = newZoom;
+  applyTransform();
+}
+
+function initZoomButtons() {
+  document.getElementById('zoom-in').addEventListener('click', () => {
+    const surface = document.getElementById('viewer-surface');
+    const rect = surface.getBoundingClientRect();
+    zoomAt(1.25, rect.left + rect.width / 2, rect.top + rect.height / 2);
+  });
+  document.getElementById('zoom-out').addEventListener('click', () => {
+    const surface = document.getElementById('viewer-surface');
+    const rect = surface.getBoundingClientRect();
+    zoomAt(0.8, rect.left + rect.width / 2, rect.top + rect.height / 2);
+  });
+  document.getElementById('zoom-reset').addEventListener('click', resetZoomPan);
+}
 function initSearch() {}
 function clearHighlight() {}
 function showHighlightWithZoom(plateId, region) {}

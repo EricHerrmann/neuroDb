@@ -1,5 +1,6 @@
 import json
 import uuid
+from types import SimpleNamespace
 from unittest.mock import MagicMock
 
 import chromadb
@@ -8,7 +9,7 @@ from sqlalchemy.orm import Session
 
 from neurodb.agents.tutor_agent import NeuroTutorAgent, normalize_title
 from neurodb.knowledge_store import KnowledgeLibraryStore
-from neurodb.schema import Base, Paper
+from neurodb.schema import Base, Paper, PaperTopic, Topic
 
 
 class _StubEmbedder:
@@ -150,3 +151,66 @@ def test_system_prompt_contains_tutor_instructions():
     prompt = _agent()._build_system_prompt().lower()
     assert "knowledge library" in prompt
     assert "queue_source" in prompt
+
+
+def test_search_topics_and_get_topic_bundle_in_tool_list():
+    names = {tool["name"] for tool in _agent()._get_active_tools()}
+    assert "search_topics" in names
+    assert "get_topic_bundle" in names
+
+
+def test_queue_source_tool_schema_has_topics_field():
+    tools = {t["name"]: t for t in _agent()._get_active_tools()}
+    props = tools["queue_source"]["input_schema"]["properties"]
+    assert "topics" in props
+    assert props["topics"]["type"] == "array"
+
+
+def test_search_topics_tool_returns_matching_topics():
+    engine = _engine()
+    from neurodb.db.topic_store import get_or_create_topic
+    with Session(engine) as s:
+        get_or_create_topic(s, "hippocampal plasticity")
+        s.commit()
+    agent = _agent(engine)
+    block = SimpleNamespace(tool_name="search_topics", tool_input={"query": "hippocampal"})
+    result = json.loads(agent._execute_tool_block(block))
+    assert any(r["name"] == "hippocampal plasticity" for r in result)
+
+
+def test_get_topic_bundle_tool_returns_bundle():
+    engine = _engine()
+    from neurodb.db.topic_store import get_or_create_topic
+    with Session(engine) as s:
+        topic = get_or_create_topic(s, "stroke recovery")
+        s.commit()
+        topic_id = topic.id
+    agent = _agent(engine)
+    block = SimpleNamespace(tool_name="get_topic_bundle", tool_input={"topic_id": topic_id})
+    result = json.loads(agent._execute_tool_block(block))
+    assert result["topic"]["name"] == "stroke recovery"
+
+
+def test_queue_source_with_topics_creates_links():
+    engine = _engine()
+    agent = _agent(engine)
+    result = json.loads(agent._execute_queue_source({
+        "title": "LTP Review Paper",
+        "source_type": "paper",
+        "topic_context": "hippocampal plasticity",
+        "topics": ["hippocampal plasticity", "synaptic potentiation"],
+    }))
+    assert result["status"] == "queued"
+    paper_id = result["id"]
+    with Session(engine) as s:
+        links = s.query(PaperTopic).filter_by(paper_id=paper_id).all()
+        assert len(links) == 2
+        topic_ids = {link.topic_id for link in links}
+        names = {s.get(Topic, tid).name for tid in topic_ids}
+    assert names == {"hippocampal plasticity", "synaptic potentiation"}
+
+
+def test_system_prompt_mentions_topic_retrieval_tools():
+    prompt = _agent()._build_system_prompt()
+    assert "search_topics" in prompt
+    assert "get_topic_bundle" in prompt

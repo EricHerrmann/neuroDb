@@ -27,6 +27,8 @@ _TUTOR_SYSTEM_PROMPT = (
     "local study notes, local dataset tools, and your own training knowledge. "
     "For topic questions, call search_knowledge_library before relying on training "
     "knowledge alone. "
+    "To retrieve local context for a topic, call search_topics to find the topic ID, "
+    "then get_topic_bundle to retrieve related papers, concepts, notes, and datasets. "
     "Whenever you cite or recommend an external resource such as a paper, review, textbook, "
     "or website, call queue_source with the title, source type, and topic context so the user "
     "can review it later. To discover candidate learning resources, call search_literature. "
@@ -77,8 +79,39 @@ _TUTOR_TOOLS = [
                 },
                 "doi": {"type": "string", "description": "DOI if known."},
                 "url": {"type": "string", "description": "URL if known."},
+                "topics": {
+                    "type": "array",
+                    "items": {"type": "string"},
+                    "description": "Topic names to link to this source.",
+                },
             },
             "required": ["title", "source_type", "topic_context"],
+        },
+    },
+    {
+        "name": "search_topics",
+        "description": "Search for topics in the NeuroDb knowledge base by name or description keyword.",
+        "input_schema": {
+            "type": "object",
+            "properties": {
+                "query": {"type": "string", "description": "Keyword to search for."},
+                "limit": {"type": "integer", "description": "Maximum results to return."},
+            },
+            "required": ["query"],
+        },
+    },
+    {
+        "name": "get_topic_bundle",
+        "description": (
+            "Retrieve all related papers, concepts, study notes, and dataset packets "
+            "for a topic. Use search_topics first to find the topic_id."
+        ),
+        "input_schema": {
+            "type": "object",
+            "properties": {
+                "topic_id": {"type": "integer", "description": "Topic ID from search_topics."},
+            },
+            "required": ["topic_id"],
         },
     },
 ]
@@ -138,6 +171,10 @@ class NeuroTutorAgent(BaseAgent):
             return self._execute_search_knowledge_library(block.tool_input)
         if block.tool_name == "search_literature":
             return self._execute_search_literature(block.tool_input)
+        if block.tool_name == "search_topics":
+            return self._execute_search_topics(block.tool_input)
+        if block.tool_name == "get_topic_bundle":
+            return self._execute_get_topic_bundle(block.tool_input)
         return execute_tool(block.tool_name, block.tool_input, self._engine, self._vector_store)
 
     def _execute_queue_source(self, inputs: dict) -> str:
@@ -167,7 +204,14 @@ class NeuroTutorAgent(BaseAgent):
             )
             session.add(row)
             session.flush()
-            return json.dumps({"status": "queued", "id": row.id})
+            paper_id = row.id
+            topics = inputs.get("topics") or []
+            if topics:
+                from neurodb.db.topic_store import get_or_create_topic, link_paper_topic
+                for topic_name in topics:
+                    topic = get_or_create_topic(session, topic_name)
+                    link_paper_topic(session, paper_id, topic.id)
+            return json.dumps({"status": "queued", "id": paper_id})
 
     def _execute_search_knowledge_library(self, inputs: dict) -> str:
         if self._knowledge_store is None:
@@ -184,3 +228,15 @@ class NeuroTutorAgent(BaseAgent):
 
             self._literature_client = LiteratureSearchClient(self._engine)
         return json.dumps(self._literature_client.search(inputs["query"]))
+
+    def _execute_search_topics(self, inputs: dict) -> str:
+        from neurodb.db.topic_store import search_topics
+        with get_session(self._engine) as session:
+            results = search_topics(session, inputs["query"], limit=inputs.get("limit", 10))
+        return json.dumps(results)
+
+    def _execute_get_topic_bundle(self, inputs: dict) -> str:
+        from neurodb.db.topic_store import get_topic_bundle
+        with get_session(self._engine) as session:
+            bundle = get_topic_bundle(session, inputs["topic_id"])
+        return json.dumps(bundle)

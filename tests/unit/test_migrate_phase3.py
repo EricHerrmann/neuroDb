@@ -57,6 +57,12 @@ def _get_tables(engine) -> set:
 
 
 def _get_columns(engine, table: str) -> list[dict]:
+    """Return column info for *table* using information_schema.
+
+    SQLAlchemy's inspect().get_columns() uses a Postgres-dialect query that
+    references pg_collation, which duckdb-engine does not implement.
+    Query information_schema directly — supported by both DuckDB and SQLite.
+    """
     with engine.connect() as conn:
         rows = conn.execute(
             text(

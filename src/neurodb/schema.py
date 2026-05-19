@@ -512,12 +512,12 @@ class EvidenceLink(Base):
     hypothesis_id: Mapped[int] = mapped_column(
         ForeignKey("research_hypotheses.id"), nullable=False, index=True
     )
-    claim_id: Mapped[int | None] = mapped_column(ForeignKey("claims.id"), nullable=True)
-    paper_id: Mapped[int | None] = mapped_column(ForeignKey("papers.id"), nullable=True)
+    claim_id: Mapped[int | None] = mapped_column(ForeignKey("claims.id"), nullable=True, index=True)
+    paper_id: Mapped[int | None] = mapped_column(ForeignKey("papers.id"), nullable=True, index=True)
     packet_id: Mapped[int | None] = mapped_column(
-        ForeignKey("dataset_research_packets.id"), nullable=True
+        ForeignKey("dataset_research_packets.id"), nullable=True, index=True
     )
-    note_id: Mapped[int | None] = mapped_column(ForeignKey("study_notes.id"), nullable=True)
+    note_id: Mapped[int | None] = mapped_column(ForeignKey("study_notes.id"), nullable=True, index=True)
     link_type: Mapped[str] = mapped_column(String(32), nullable=False)
     created_at: Mapped[str] = mapped_column(String(32), nullable=False)
 

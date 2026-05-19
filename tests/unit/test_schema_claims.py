@@ -154,6 +154,17 @@ def test_research_gap_accepts_hypothesis_only():
         session.flush()
 
 
+def test_research_gap_accepts_both_anchors():
+    engine = _engine()
+    with Session(engine) as session:
+        session.add(ResearchGap(
+            question_id=1, hypothesis_id=1, description="Anchored to both",
+            gap_type="other", status="open",
+            created_at="2026-01-01T00:00:00", updated_at="2026-01-01T00:00:00",
+        ))
+        session.flush()  # must not raise
+
+
 # --- ResearchHypothesis nullable fields ---
 
 def test_research_hypothesis_accepts_null_evidence_json():

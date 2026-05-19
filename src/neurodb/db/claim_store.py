@@ -278,5 +278,9 @@ def get_question_bundle(session: Session, question_id: int) -> dict:
             for h in hypotheses
         ],
         "claims": claims,
-        "gaps": gaps,
+        "gaps": [
+            {"id": g["id"], "description": g["description"],
+             "gap_type": g["gap_type"], "status": g["status"]}
+            for g in gaps
+        ],
     }

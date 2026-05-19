@@ -303,6 +303,7 @@ class ResearchQuestion(Base):
     status: Mapped[str] = mapped_column(String(32), nullable=False, default="open", index=True)
     created_at: Mapped[str] = mapped_column(String(32), nullable=False)
     updated_at: Mapped[str] = mapped_column(String(32), nullable=False)
+    topic_id: Mapped[int | None] = mapped_column(ForeignKey("topics.id"), nullable=True)
 
 
 class ResearchHypothesis(Base):
@@ -316,10 +317,10 @@ class ResearchHypothesis(Base):
     )
     title: Mapped[str] = mapped_column(Text, nullable=False)
     mechanism: Mapped[str] = mapped_column(Text, nullable=False)
-    evidence_json: Mapped[str] = mapped_column(Text, nullable=False)
+    evidence_json: Mapped[str | None] = mapped_column(Text, nullable=True)
     predictions_json: Mapped[str] = mapped_column(Text, nullable=False)
-    datasets_json: Mapped[str] = mapped_column(Text, nullable=False)
-    confounds_json: Mapped[str] = mapped_column(Text, nullable=False)
+    datasets_json: Mapped[str | None] = mapped_column(Text, nullable=True)
+    confounds_json: Mapped[str | None] = mapped_column(Text, nullable=True)
     limitations: Mapped[str] = mapped_column(Text, nullable=False)
     status: Mapped[str] = mapped_column(String(32), nullable=False, default="draft", index=True)
     created_at: Mapped[str] = mapped_column(String(32), nullable=False)
@@ -476,3 +477,70 @@ class DatasetPacketPaper(Base):
         ForeignKey("dataset_research_packets.id"), nullable=False, index=True
     )
     paper_id: Mapped[int] = mapped_column(ForeignKey("papers.id"), nullable=False, index=True)
+
+
+class Claim(Base):
+    """Paper-sourced claim awaiting review — candidate, approved, or rejected."""
+    __tablename__ = "claims"
+
+    id: Mapped[int] = mapped_column(Integer, Sequence("claims_id_seq"), primary_key=True)
+    paper_id: Mapped[int] = mapped_column(ForeignKey("papers.id"), nullable=False, index=True)
+    text: Mapped[str] = mapped_column(Text, nullable=False)
+    claim_type: Mapped[str] = mapped_column(String(32), nullable=False)
+    status: Mapped[str] = mapped_column(String(16), nullable=False, default="candidate")
+    created_at: Mapped[str] = mapped_column(String(32), nullable=False)
+    updated_at: Mapped[str] = mapped_column(String(32), nullable=False)
+
+
+class EvidenceLink(Base):
+    """Structured evidence link from a hypothesis to a claim, paper, dataset packet, or study note.
+
+    CheckConstraint enforces exactly one of (claim_id, paper_id, packet_id, note_id) non-null.
+    """
+    __tablename__ = "evidence_links"
+    __table_args__ = (
+        CheckConstraint(
+            "(CASE WHEN claim_id IS NOT NULL THEN 1 ELSE 0 END + "
+            "CASE WHEN paper_id IS NOT NULL THEN 1 ELSE 0 END + "
+            "CASE WHEN packet_id IS NOT NULL THEN 1 ELSE 0 END + "
+            "CASE WHEN note_id IS NOT NULL THEN 1 ELSE 0 END) = 1",
+            name="ck_evidence_links_one_source",
+        ),
+    )
+
+    id: Mapped[int] = mapped_column(Integer, Sequence("evidence_links_id_seq"), primary_key=True)
+    hypothesis_id: Mapped[int] = mapped_column(
+        ForeignKey("research_hypotheses.id"), nullable=False, index=True
+    )
+    claim_id: Mapped[int | None] = mapped_column(ForeignKey("claims.id"), nullable=True)
+    paper_id: Mapped[int | None] = mapped_column(ForeignKey("papers.id"), nullable=True)
+    packet_id: Mapped[int | None] = mapped_column(
+        ForeignKey("dataset_research_packets.id"), nullable=True
+    )
+    note_id: Mapped[int | None] = mapped_column(ForeignKey("study_notes.id"), nullable=True)
+    link_type: Mapped[str] = mapped_column(String(32), nullable=False)
+    created_at: Mapped[str] = mapped_column(String(32), nullable=False)
+
+
+class ResearchGap(Base):
+    """Named evidence gap anchored to a research question or hypothesis (or both)."""
+    __tablename__ = "research_gaps"
+    __table_args__ = (
+        CheckConstraint(
+            "question_id IS NOT NULL OR hypothesis_id IS NOT NULL",
+            name="ck_research_gaps_one_anchor",
+        ),
+    )
+
+    id: Mapped[int] = mapped_column(Integer, Sequence("research_gaps_id_seq"), primary_key=True)
+    question_id: Mapped[int | None] = mapped_column(
+        ForeignKey("research_questions.id"), nullable=True
+    )
+    hypothesis_id: Mapped[int | None] = mapped_column(
+        ForeignKey("research_hypotheses.id"), nullable=True
+    )
+    description: Mapped[str] = mapped_column(Text, nullable=False)
+    gap_type: Mapped[str] = mapped_column(String(32), nullable=False)
+    status: Mapped[str] = mapped_column(String(16), nullable=False, default="open")
+    created_at: Mapped[str] = mapped_column(String(32), nullable=False)
+    updated_at: Mapped[str] = mapped_column(String(32), nullable=False)

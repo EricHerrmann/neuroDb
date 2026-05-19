@@ -1,8 +1,8 @@
 # NeuroDb — Project Status
 
 **Last updated:** 2026-05-19
-**Active focus:** Phase 3 claims/evidence/gaps implementation complete — awaiting manual verification
-**Next:** Phase 3 manual verification and sign-off
+**Active focus:** Phase 4 context modes/evidence boundaries design draft — Phase 3 manual verification still pending
+**Next:** Phase 3 manual sign-off, then Phase 4 manual plan and implementation
 **Goal alignment:** Two co-equal goals in a feedback loop — accumulate neuroscience understanding grounded in real data (Goal 1), and conduct structured neuroscience investigations using existing public datasets and good scientific method (Goal 2). See `NeuroDbGoals.md`.
 
 ---
@@ -11,10 +11,10 @@
 
 | Epoch | Source | Maturity | Next |
 |---|---|---|---|
-| DB | `src/neurodb/db/`, `src/neurodb/connectors/` | MVP complete (phases 0–3, 9); Phase 3 (claims/evidence/gaps) complete — 5 integration tests pass; full suite 641 passed / 15 pre-existing failures; Phase 9 T1-T4 manual passed; Phase 3 manual verification pending | Phase 3 manual verification and sign-off; entity resolution (7); broader Phase 9 source-aware enrichment |
-| Agent Core | `src/neurodb/agents/` | Stable | Config Control Phases 1–4 signed off; Phase 6 may add fallback chain logic |
-| Tutor | `src/neurodb/tutor/` | MVP complete (LT-1/2/3) | Open backlog: LOG-001, LOG-006, LOG-030 |
-| Research | `src/neurodb/research/` | Scaffolded (LT-3); hypothesis review with structured tool-use output | Research run management, research question actions (LOG-037) |
+| DB | `src/neurodb/db/`, `src/neurodb/connectors/` | MVP complete (phases 0–3, 9); Phase 3 (claims/evidence/gaps) complete — 5 integration tests pass; 9 Phase 3 migration tests pass; full suite 641 passed / 15 pre-existing failures; Phase 9 T1-T4 manual passed; Phase 3 manual verification pending | Phase 3 manual verification and sign-off; entity resolution (7); broader Phase 9 source-aware enrichment |
+| Agent Core | `src/neurodb/agents/` | Stable; Phase 4 context-mode design drafted | Phase 4 context mode mechanics and context-bundle injection |
+| Tutor | `src/neurodb/tutor/` | MVP complete (LT-1/2/3); Phase 4 context-mode behavior designed | Open backlog: LOG-001, LOG-006, LOG-030; Phase 4 prompt/boundary updates |
+| Research | `src/neurodb/research/` | Scaffolded (LT-3); Phase 3 claims/evidence/gaps complete; Phase 4 context-mode behavior designed | Phase 3 manual verification; Phase 4 grounded/contextual behavior |
 | UI | `src/neurodb/ui/`, `src/neurodb/api/`, `frontend/` | UI-3 signed off 2026-05-13; UI-5 P1/P2/P3 implementation complete — 516 Python tests, 58 frontend tests, build passed; common manual plan active | Common UI-5 manual verification |
 | Config Control | `src/neurodb/config/` | Phase 5B complete — 398 automated tests; Phase 4 signed off 2026-05-09 | Phase 6: constructor fallback chain, SystemWarning table, CLI surface |
 | Tech Debt | Cross-cutting | Planned — TD-1 CLI argument normalization started from LOG-057; TD-5 abstraction/extensibility review logged | TD-1 parser coverage, TD-2 keyword-only helper APIs, TD-5 reusable abstractions |
@@ -65,6 +65,7 @@ See `docs/testLog.md`. Current open items: LOG-001 (textbook dropdown ambiguity)
 | `docs/superpowers/specs/2026-05-18-learning-research-memory-refocus-design.md` | Cross-epoch design spec — refocus NeuroDb as a learning/research memory system and fix shallow dataset sourcing through dataset research packets |
 | `docs/superpowers/specs/2026-05-18-phase2-papers-topics-concepts-design.md` | Phase 2 design spec — rename KnowledgeSource → Paper, add topics/concepts tables, linking tables, StudyNote generalization, topic_store helper, Tutor agent tools |
 | `docs/superpowers/specs/2026-05-19-phase3-claims-evidence-design.md` | Phase 3 design spec — claims, evidence_links, research_gaps tables, claim_store helper, research agent tools |
+| `docs/superpowers/specs/2026-05-19-phase4-context-modes-evidence-boundaries-design.md` | Phase 4 design spec — context modes, shared context orchestrator, evidence-boundary prompts, context metadata |
 | `docs/superpowers/plans/2026-05-19-phase3-claims-evidence.md` | Phase 3 implementation plan — 5 tasks: schema, migration, claim_store, agent tools, integration test |
 | `docs/testsPlans/manualTestPlan_db_phase2_papers_topics.md` | DB Phase 2 manual test plan — T1-T8 covering migration, topic_store, StudyNote anchors, Tutor agent tools; pending sign-off |
 | `docs/testsPlans/manualTestPlan_db_phase3_claims_evidence.md` | DB Phase 3 manual test plan — T1-T8 covering migration, claim_store, evidence links, gaps, question bundle, research agent tools; pending sign-off |

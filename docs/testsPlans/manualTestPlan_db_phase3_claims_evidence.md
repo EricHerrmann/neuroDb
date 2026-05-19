@@ -3,7 +3,7 @@
 **Epoch scope:** DB epoch (schema, migration, claim_store helper); Research epoch (agent tools).
 **Phases covered:** Learning and Research Memory Refocus Phase 3.
 **Design source:** `docs/superpowers/specs/2026-05-19-phase3-claims-evidence-design.md`
-**Status:** Pending sign-off.
+**Status:** T1-T7 passed; T8 pending sign-off.
 **Date:** 2026-05-19
 
 All commands run from the repo root (`/home/oldha/projects/neuroDb`) unless noted.
@@ -41,7 +41,9 @@ rm -f /tmp/neurodb_phase3_manual.duckdb
 uv run scripts/migrate_phase3_claims_evidence.py
 ```
 
-Expected output: script completes with no Python tracebacks and no DuckDB errors.
+Expected output: script completes with no Python tracebacks and no DuckDB
+errors. On a fresh DB, it may report that `research_questions` is missing and
+that `create_all` will create the current schema.
 
 Verify the new tables exist:
 
@@ -203,8 +205,13 @@ engine = create_engine('duckdb:////tmp/neurodb_phase3_manual.duckdb')
 
 with Session(engine) as s:
     now = datetime.now(UTC).isoformat()
+    from neurodb.db.topic_store import get_or_create_topic
+    topic = get_or_create_topic(s, 'synaptic plasticity')
+    s.flush()
+
     q = ResearchQuestion(question='Does LTP drive learning?', topic_context='plasticity',
-                         status='open', created_at=now, updated_at=now)
+                         status='open', created_at=now, updated_at=now,
+                         topic_id=topic.id)
     s.add(q)
     s.flush()
 
@@ -296,23 +303,59 @@ Expected:
 
 **Goal:** A question linked to a topic returns hypotheses, approved claims, and gaps in one call.
 
+DuckDB blocks updates to a row after another table references it by foreign key,
+so this check must not set `ResearchQuestion.topic_id` after hypotheses or gaps
+exist. T5 creates the question with `topic_id` already set. If T5 was run before
+this plan was corrected, the command below creates a second linked question and
+adds a hypothesis/gap for bundle verification.
+
 ```bash
 uv run python -c "
 from sqlalchemy import create_engine
 from sqlalchemy.orm import Session
-from neurodb.db.claim_store import get_question_bundle
+from neurodb.db.claim_store import add_gap, get_question_bundle
 from neurodb.db.topic_store import get_or_create_topic
+from neurodb.schema import ResearchHypothesis, ResearchQuestion
+from datetime import UTC, datetime
 
 engine = create_engine('duckdb:////tmp/neurodb_phase3_manual.duckdb')
 
 with Session(engine) as s:
-    # Link the question to its topic
     topic = get_or_create_topic(s, 'synaptic plasticity')
     s.flush()
 
-    from neurodb.schema import ResearchQuestion
-    q = s.query(ResearchQuestion).first()
-    q.topic_id = topic.id
+    q = s.query(ResearchQuestion).filter_by(topic_id=topic.id).first()
+    if q is None:
+        now = datetime.now(UTC).isoformat()
+        q = ResearchQuestion(
+            question='Does LTP drive learning?',
+            topic_context='plasticity',
+            status='open',
+            created_at=now,
+            updated_at=now,
+            topic_id=topic.id,
+        )
+        s.add(q)
+        s.flush()
+
+    h = s.query(ResearchHypothesis).filter_by(question_id=q.id).first()
+    if h is None:
+        now = datetime.now(UTC).isoformat()
+        h = ResearchHypothesis(
+            question_id=q.id,
+            title='LTP learning link',
+            mechanism='LTP strengthens synapses.',
+            predictions_json='[]',
+            limitations='draft',
+            status='draft',
+            created_at=now,
+            updated_at=now,
+        )
+        s.add(h)
+        s.flush()
+
+    if not get_question_bundle(s, q.id)['gaps']:
+        add_gap(s, 'No fMRI datasets available for this topic.', 'missing_dataset', question_id=q.id)
     s.commit()
 
     bundle = get_question_bundle(s, q.id)
@@ -379,13 +422,13 @@ Verify the system prompt addition is present by sending:
 
 All of the following must be true before signing off:
 
-- [ ] T1: Migration runs cleanly, all three new tables exist, topic_id added, evidence fields nullable
-- [ ] T2: Migration is idempotent (second run does not error)
-- [ ] T3: create_claim, update_claim_status, get_claims_for_paper work correctly
-- [ ] T4: get_approved_claims_for_topic returns only approved claims from linked papers
-- [ ] T5: add_evidence_link and get_evidence_links work for all source types
-- [ ] T6: add_gap, resolve_gap, get_gaps work correctly
-- [ ] T7: get_question_bundle returns correct shape with all linked content
+- [x] T1: Migration runs cleanly, all three new tables exist, topic_id added, evidence fields nullable
+- [x] T2: Migration is idempotent (second run does not error)
+- [x] T3: create_claim, update_claim_status, get_claims_for_paper work correctly
+- [x] T4: get_approved_claims_for_topic returns only approved claims from linked papers
+- [x] T5: add_evidence_link and get_evidence_links work for all source types
+- [x] T6: add_gap, resolve_gap, get_gaps work correctly
+- [x] T7: get_question_bundle returns correct shape with all linked content
 - [ ] T8: All six research agent tools dispatch through real server without errors
 
 **Sign-off:** _____________________________ Date: ___________

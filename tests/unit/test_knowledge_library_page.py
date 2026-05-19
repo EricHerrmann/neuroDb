@@ -81,30 +81,28 @@ def _make_knowledge_source(**kwargs):
 
 
 def test_generate_summary_default_model_is_haiku():
-    """_generate_summary uses Haiku when NEURODB_KNOWLEDGE_SUMMARY_MODEL is not set."""
+    """_generate_summary routes to economy tier via TaskRouter when NEURODB_KNOWLEDGE_SUMMARY_MODEL is not set."""
     from neurodb.ui.pages import knowledge_library
 
-    captured_model = {}
+    model_client = MagicMock()
+    model_client.create_message.return_value = ModelResponse(
+        stop_reason="end_turn",
+        content=[ContentBlock(type="text", text="summary text")],
+        input_tokens=20,
+        output_tokens=8,
+    )
 
-    def fake_create(**kwargs):
-        captured_model["model"] = kwargs.get("model")
-        block = SimpleNamespace(type="text", text="summary text")
-        return SimpleNamespace(content=[block])
+    with patch(
+        "neurodb.config.provider_factory.build_provider_clients",
+        return_value={"openai": model_client},
+    ):
+        with patch.dict("os.environ", {}, clear=True):
+            summary, telemetry = knowledge_library._generate_summary(_make_knowledge_source())
 
-    mock_client = MagicMock()
-    mock_client.messages.create.side_effect = fake_create
-
-    env_without_key = {
-        k: v for k, v in os.environ.items()
-        if k != "NEURODB_KNOWLEDGE_SUMMARY_MODEL"
-    }
-
-    with patch.dict("os.environ", env_without_key, clear=True):
-        with patch("anthropic.Anthropic", return_value=mock_client):
-            with patch.dict("os.environ", {"ANTHROPIC_API_KEY": "test-key"}):
-                knowledge_library._generate_summary(_make_knowledge_source())
-
-    assert captured_model.get("model") == "claude-haiku-4-5-20251001"
+    assert summary == "summary text"
+    assert telemetry is not None
+    assert telemetry["provider"] == "openai"
+    assert telemetry["task_type"] == "summary.knowledge_source"
 
 
 def test_generate_summary_reads_neurodb_knowledge_summary_model_env():

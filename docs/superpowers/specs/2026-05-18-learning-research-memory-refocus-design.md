@@ -338,6 +338,7 @@ Acceptance criteria:
 ### Phase 4 - Agent Core + Tutor + Research: Context Modes And Evidence Boundaries
 
 **Owner:** Agent Core for shared mode mechanics, Tutor/Research for prompts/tools
+**Status:** Design draft — see `docs/superpowers/specs/2026-05-19-phase4-context-modes-evidence-boundaries-design.md`
 
 Deliverables:
 

@@ -24,15 +24,15 @@ def test_load_model_config_has_tasks():
 
 def test_get_model_for_task_economy_tier():
     provider, model_id, max_tokens = get_model_for_task("summary.session")
-    assert provider == "anthropic"
-    assert "haiku" in model_id.lower()
+    assert provider == "openai"
+    assert "mini" in model_id.lower()
     assert max_tokens == 512
 
 
 def test_get_model_for_task_standard_tier():
     provider, model_id, max_tokens = get_model_for_task("agent.loop.research")
-    assert provider == "anthropic"
-    assert "sonnet" in model_id.lower()
+    assert provider == "openai"
+    assert "gpt" in model_id.lower()
     assert max_tokens == 2048
 
 
@@ -80,17 +80,17 @@ def test_get_model_for_task_routing_section_unknown_provider_raises(monkeypatch)
 
 def test_get_model_for_task_tier_env_var_has_no_effect(monkeypatch):
     """NEURODB_STANDARD_PROVIDER env var is ignored — provider comes from [routing] only."""
-    monkeypatch.setenv("NEURODB_STANDARD_PROVIDER", "openai")
+    monkeypatch.setenv("NEURODB_STANDARD_PROVIDER", "anthropic")
 
     provider, _, _ = get_model_for_task("agent.loop.research")
 
-    assert provider == "anthropic"
+    assert provider == "openai"
 
 
 def test_get_model_for_task_premium_tier():
     provider, model_id, max_tokens = get_model_for_task("research.hypothesis_review")
-    assert provider == "anthropic"
-    assert "opus" in model_id.lower()
+    assert provider == "openai"
+    assert "gpt" in model_id.lower()
     assert max_tokens == 4096
 
 

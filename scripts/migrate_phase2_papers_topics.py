@@ -75,19 +75,19 @@ def run_migration(engine) -> None:
             else:
                 print(f"✓ papers.{col} already present — skip")
 
-    # Step 5: create new tables via create_all (topics, concepts, linking tables)
-    Base.metadata.create_all(engine, checkfirst=True)
-    print("✓ create_all complete — new tables created if missing")
-
     with engine.begin() as conn:
-        # Step 6: make study_notes.index_id nullable
+        # Steps 5–8: ALTER study_notes BEFORE create_all.
+        # create_all creates evidence_links with a FK to study_notes; DuckDB blocks
+        # ALTER COLUMN DROP NOT NULL on a table that has referential constraints pointing at it.
+
+        # Step 5: make study_notes.index_id nullable
         if _table_exists(conn, "study_notes") and not _is_nullable(conn, "study_notes", "index_id"):
             conn.execute(text("ALTER TABLE study_notes ALTER COLUMN index_id DROP NOT NULL"))
             print("✓ study_notes.index_id is now nullable")
         else:
             print("✓ study_notes.index_id already nullable — skip")
 
-        # Steps 7–9: add new FK columns to study_notes
+        # Steps 6–8: add new FK columns to study_notes
         # Note: DuckDB does not support ADD COLUMN with inline REFERENCES constraint.
         # Columns are added as plain INTEGER; FK semantics are enforced at the ORM level.
         for col in ["topic_id", "concept_id", "paper_id"]:
@@ -99,7 +99,7 @@ def run_migration(engine) -> None:
             else:
                 print(f"✓ study_notes.{col} already present — skip")
 
-        # Step 10: drop old unique constraint (best-effort)
+        # Step 9: drop old unique constraint (best-effort)
         try:
             conn.execute(
                 text("ALTER TABLE study_notes DROP CONSTRAINT uq_study_note_index_concept")
@@ -107,6 +107,11 @@ def run_migration(engine) -> None:
             print("✓ Dropped uq_study_note_index_concept")
         except Exception:
             print("✓ uq_study_note_index_concept already gone — skip")
+
+    # Step 10: create new tables via create_all (topics, concepts, linking tables, Phase 3 tables).
+    # Must run AFTER study_notes ALTERs to avoid DuckDB FK dependency errors.
+    Base.metadata.create_all(engine, checkfirst=True)
+    print("✓ create_all complete — new tables created if missing")
 
 
 if __name__ == "__main__":

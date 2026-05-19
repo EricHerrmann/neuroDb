@@ -64,7 +64,9 @@ def run_migration(engine) -> None:
     with engine.begin() as conn:
         # Step 1: add topic_id FK to research_questions (before create_all adds
         # any tables that reference research_questions)
-        if not _column_exists(conn, "research_questions", "topic_id"):
+        if not _table_exists(conn, "research_questions"):
+            print("✓ research_questions missing — create_all will create current schema")
+        elif not _column_exists(conn, "research_questions", "topic_id"):
             # DuckDB does not support ADD COLUMN with inline REFERENCES.
             # FK semantics are enforced at the ORM level.
             conn.execute(

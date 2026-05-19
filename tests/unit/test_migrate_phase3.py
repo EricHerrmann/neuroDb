@@ -133,3 +133,30 @@ def test_migration_is_idempotent(pre_migration_engine):
     from migrate_phase3_claims_evidence import run_migration
     run_migration(pre_migration_engine)
     run_migration(pre_migration_engine)  # must not raise
+
+
+def test_migration_runs_against_fresh_database():
+    from migrate_phase3_claims_evidence import run_migration
+
+    engine = create_engine("duckdb:///:memory:")
+    try:
+        run_migration(engine)
+        tables = _get_tables(engine)
+        assert "research_questions" in tables
+        assert "research_hypotheses" in tables
+        assert "claims" in tables
+        assert "evidence_links" in tables
+        assert "research_gaps" in tables
+
+        question_cols = {c["name"] for c in _get_columns(engine, "research_questions")}
+        assert "topic_id" in question_cols
+
+        hypothesis_cols = {
+            c["name"]: c["nullable"]
+            for c in _get_columns(engine, "research_hypotheses")
+        }
+        assert hypothesis_cols["evidence_json"] is True
+        assert hypothesis_cols["datasets_json"] is True
+        assert hypothesis_cols["confounds_json"] is True
+    finally:
+        engine.dispose()

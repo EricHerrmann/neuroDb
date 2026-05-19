@@ -3,7 +3,7 @@
 **Epoch scope:** DB epoch (schema, migration, topic_store helper); Tutor epoch (agent tools, queue_source extension).
 **Phases covered:** Learning and Research Memory Refocus Phase 2.
 **Design source:** `docs/superpowers/specs/2026-05-18-phase2-papers-topics-concepts-design.md`
-**Status:** Pending sign-off.
+**Status:** T1-T6 passed; T7-T8 pending sign-off.
 **Date:** 2026-05-19
 
 All commands run from the repo root (`/home/oldha/projects/neuroDb`) unless noted.
@@ -118,25 +118,32 @@ from neurodb.db.topic_store import (
     get_or_create_topic, get_or_create_concept,
     link_paper_topic, link_topic_concept, search_topics, get_topic_bundle
 )
-import json
-from datetime import datetime
+from datetime import UTC, datetime
 
 engine = create_engine('duckdb:////tmp/neurodb_phase2_manual.duckdb')
 Base.metadata.create_all(engine)
 
 with Session(engine) as s:
-    now = datetime.utcnow().isoformat()
+    now = datetime.now(UTC).isoformat()
     topic = get_or_create_topic(s, 'stroke recovery', 'Neural plasticity following ischemic stroke')
     concept = get_or_create_concept(s, 'cortical remapping', 'Reorganization of motor/sensory cortex maps')
     link_topic_concept(s, topic.id, concept.id)
 
-    paper = Paper(
-        title='Cortical Remapping After Stroke', doi='10.1234/test', source_type='pubmed',
-        status='approved', summary='Study of remapping post-stroke.',
-        added_by='user', added_at=now, updated_at=now
-    )
-    s.add(paper)
-    s.flush()
+    paper = s.query(Paper).filter_by(doi='10.1234/test').one_or_none()
+    if paper is None:
+        paper = Paper(
+            title='Cortical Remapping After Stroke',
+            normalized_title='cortical remapping after stroke',
+            doi='10.1234/test',
+            source_type='pubmed',
+            topic_context='stroke recovery',
+            status='approved',
+            queued_at=now,
+            reviewed_at=now,
+            summary='Study of remapping post-stroke.',
+        )
+        s.add(paper)
+        s.flush()
     link_paper_topic(s, paper.id, topic.id)
     s.commit()
 
@@ -193,7 +200,7 @@ from sqlalchemy import create_engine
 from sqlalchemy.orm import Session
 from neurodb.schema import Base, StudyNote
 from neurodb.db.topic_store import get_or_create_topic
-from datetime import datetime
+from datetime import UTC, datetime
 
 engine = create_engine('duckdb:////tmp/neurodb_phase2_manual.duckdb')
 Base.metadata.create_all(engine)
@@ -204,7 +211,7 @@ with Session(engine) as s:
         topic_id=topic.id,
         concept_tag='remapping overview',
         note_text='Key mechanism is activity-dependent synaptic potentiation.',
-        tagged_at=datetime.utcnow().isoformat()
+        tagged_at=datetime.now(UTC).isoformat()
     )
     s.add(note)
     s.commit()
@@ -311,12 +318,12 @@ With the API server running from T7:
 
 All of the following must be true before signing off:
 
-- [ ] T1: Migration runs cleanly, all tables created, knowledge_sources gone, new columns present
-- [ ] T2: Migration is idempotent (second run does not error)
-- [ ] T3: topic_store creates topic, concept, paper, links them; search_topics and get_topic_bundle return correct data
-- [ ] T4: search_topics returns empty for non-matching query
-- [ ] T5: StudyNote with topic-only anchor persists without constraint violation
-- [ ] T6: Topic-anchored StudyNote appears in get_topic_bundle result
+- [x] T1: Migration runs cleanly, all tables created, knowledge_sources gone, new columns present
+- [x] T2: Migration is idempotent (second run does not error)
+- [x] T3: topic_store creates topic, concept, paper, links them; search_topics and get_topic_bundle return correct data
+- [x] T4: search_topics returns empty for non-matching query
+- [x] T5: StudyNote with topic-only anchor persists without constraint violation
+- [x] T6: Topic-anchored StudyNote appears in get_topic_bundle result
 - [ ] T7: Tutor agent dispatches search_topics and get_topic_bundle; queue_source links topics
 - [ ] T8: Knowledge Library panel renders; PaperItem rename causes no frontend errors
 

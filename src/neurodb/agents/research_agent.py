@@ -44,7 +44,11 @@ _RESEARCH_SYSTEM_PROMPT = (
     "of saying you cannot browse. When the user asks to find external datasets by topic, "
     "call search_external. Format user-facing answers for the chat window: use concise "
     "prose, short lists, and simple Markdown tables only when they make comparison easier. "
-    "Do not put raw tool JSON or debug traces in the final answer."
+    "Do not put raw tool JSON or debug traces in the final answer. "
+    "Before answering a research question, call get_question_bundle to retrieve the active "
+    "topic, hypotheses, approved claims, and open gaps; use add_evidence_link to ground "
+    "hypothesis drafts in local sources rather than free-text evidence; use add_gap when "
+    "local evidence is insufficient to support a claim."
 )
 
 _RESEARCH_TOOLS = [
@@ -154,12 +158,113 @@ _RESEARCH_TOOLS = [
             "required": [
                 "title",
                 "mechanism",
-                "evidence",
                 "predictions",
-                "datasets",
                 "confounds",
                 "limitations",
             ],
+        },
+    },
+    {
+        "name": "extract_claims",
+        "description": (
+            "Extract candidate claims from an approved paper using the paper's "
+            "title, abstract, and summary. Stores each as a candidate claim for review."
+        ),
+        "input_schema": {
+            "type": "object",
+            "properties": {
+                "paper_id": {
+                    "type": "integer",
+                    "description": "ID of the approved paper to extract claims from.",
+                },
+            },
+            "required": ["paper_id"],
+        },
+    },
+    {
+        "name": "update_claim_status",
+        "description": "Approve or reject a candidate claim.",
+        "input_schema": {
+            "type": "object",
+            "properties": {
+                "claim_id": {"type": "integer"},
+                "status": {
+                    "type": "string",
+                    "description": "approved or rejected",
+                },
+            },
+            "required": ["claim_id", "status"],
+        },
+    },
+    {
+        "name": "add_evidence_link",
+        "description": (
+            "Attach a structured evidence link to a hypothesis from a claim, paper, "
+            "dataset packet, or study note."
+        ),
+        "input_schema": {
+            "type": "object",
+            "properties": {
+                "hypothesis_id": {"type": "integer"},
+                "link_type": {
+                    "type": "string",
+                    "description": "supports, contradicts, or contextualizes",
+                },
+                "source_type": {
+                    "type": "string",
+                    "description": "claim, paper, dataset, or note",
+                },
+                "source_id": {
+                    "type": "integer",
+                    "description": "ID of the source object",
+                },
+            },
+            "required": ["hypothesis_id", "link_type", "source_type", "source_id"],
+        },
+    },
+    {
+        "name": "add_gap",
+        "description": "Record a named evidence gap for a research question or hypothesis.",
+        "input_schema": {
+            "type": "object",
+            "properties": {
+                "description": {"type": "string"},
+                "gap_type": {
+                    "type": "string",
+                    "description": (
+                        "missing_dataset, missing_paper, missing_evidence, "
+                        "unsupported_claim, or other"
+                    ),
+                },
+                "question_id": {"type": "integer"},
+                "hypothesis_id": {"type": "integer"},
+            },
+            "required": ["description", "gap_type"],
+        },
+    },
+    {
+        "name": "resolve_gap",
+        "description": "Mark an evidence gap as resolved.",
+        "input_schema": {
+            "type": "object",
+            "properties": {
+                "gap_id": {"type": "integer"},
+            },
+            "required": ["gap_id"],
+        },
+    },
+    {
+        "name": "get_question_bundle",
+        "description": (
+            "Retrieve the full workspace context for a research question: "
+            "topic, hypotheses, approved claims, and open gaps."
+        ),
+        "input_schema": {
+            "type": "object",
+            "properties": {
+                "question_id": {"type": "integer"},
+            },
+            "required": ["question_id"],
         },
     },
 ]
@@ -271,6 +376,41 @@ class NeuroResearchAgent(BaseAgent):
                 question_id=block.tool_input.get("question_id"),
                 status=block.tool_input.get("status", "draft"),
             ))
+        if block.tool_name == "extract_claims":
+            return json.dumps(self._execute_extract_claims(block.tool_input))
+        if block.tool_name == "update_claim_status":
+            from neurodb.db import get_session
+            from neurodb.db.claim_store import update_claim_status as _update_claim_status
+            with get_session(self._engine) as session:
+                return json.dumps(_update_claim_status(
+                    session,
+                    block.tool_input["claim_id"],
+                    block.tool_input["status"],
+                ))
+        if block.tool_name == "add_evidence_link":
+            return json.dumps(self._execute_add_evidence_link(block.tool_input))
+        if block.tool_name == "add_gap":
+            from neurodb.db import get_session
+            from neurodb.db.claim_store import add_gap as _add_gap
+            with get_session(self._engine) as session:
+                gap = _add_gap(
+                    session,
+                    block.tool_input["description"],
+                    block.tool_input["gap_type"],
+                    question_id=block.tool_input.get("question_id"),
+                    hypothesis_id=block.tool_input.get("hypothesis_id"),
+                )
+                return json.dumps({"id": gap.id, "status": gap.status, "gap_type": gap.gap_type})
+        if block.tool_name == "resolve_gap":
+            from neurodb.db import get_session
+            from neurodb.db.claim_store import resolve_gap as _resolve_gap
+            with get_session(self._engine) as session:
+                return json.dumps(_resolve_gap(session, block.tool_input["gap_id"]))
+        if block.tool_name == "get_question_bundle":
+            from neurodb.db import get_session
+            from neurodb.db.claim_store import get_question_bundle as _get_question_bundle
+            with get_session(self._engine) as session:
+                return json.dumps(_get_question_bundle(session, block.tool_input["question_id"]))
         return execute_tool(block.tool_name, block.tool_input, self._engine, self._vector_store)
 
     def _execute_search_knowledge_library(self, inputs: dict) -> str:
@@ -287,6 +427,88 @@ class NeuroResearchAgent(BaseAgent):
 
             self._literature_client = LiteratureSearchClient(self._engine)
         return json.dumps(self._literature_client.search(inputs["query"]))
+
+    def _execute_extract_claims(self, inputs: dict) -> dict:
+        from neurodb.db import get_session
+        from neurodb.db.claim_store import create_claim
+        from neurodb.schema import Paper
+
+        paper_id = inputs["paper_id"]
+        with get_session(self._engine) as session:
+            paper = session.get(Paper, paper_id)
+            if paper is None:
+                return {"error": f"Paper {paper_id} not found"}
+            if paper.status != "approved":
+                return {"error": f"Paper {paper_id} is not approved (status={paper.status!r})"}
+
+            parts = [f"Title: {paper.title}"]
+            if paper.abstract:
+                parts.append(f"Abstract: {paper.abstract}")
+            if paper.summary:
+                parts.append(f"Summary: {paper.summary}")
+            context = "\n\n".join(parts)
+
+            prompt = (
+                "Extract distinct claims from this neuroscience paper. "
+                "Return a JSON array of objects, each with 'text' (string) and "
+                "'claim_type' (one of: finding, limitation, method, question).\n\n"
+                f"{context}\n\nReturn only the JSON array."
+            )
+            response = self._client.messages.create(
+                model=self._model,
+                max_tokens=1024,
+                messages=[{"role": "user", "content": prompt}],
+            )
+            raw = response.content[0].text
+            try:
+                candidate_claims = json.loads(raw)
+            except (json.JSONDecodeError, IndexError):
+                return {"error": "Failed to parse claim extraction response", "raw": raw}
+
+            created = []
+            for item in candidate_claims:
+                if not isinstance(item, dict) or "text" not in item or "claim_type" not in item:
+                    continue
+                try:
+                    claim = create_claim(session, paper_id, item["text"], item["claim_type"])
+                    created.append({"id": claim.id, "text": claim.text, "claim_type": claim.claim_type})
+                except ValueError:
+                    continue
+            return {
+                "paper_id": paper_id,
+                "claims_created": len(created),
+                "claims": created,
+            }
+
+    def _execute_add_evidence_link(self, inputs: dict) -> dict:
+        from neurodb.db import get_session
+        from neurodb.db.claim_store import add_evidence_link as _add_evidence_link
+
+        source_type = inputs["source_type"]
+        source_id = inputs["source_id"]
+        source_kwargs = {
+            "claim": {"claim_id": source_id},
+            "paper": {"paper_id": source_id},
+            "dataset": {"packet_id": source_id},
+            "note": {"note_id": source_id},
+        }
+        if source_type not in source_kwargs:
+            return {"error": f"Unknown source_type: {source_type!r}. Valid: claim, paper, dataset, note"}
+
+        with get_session(self._engine) as session:
+            link = _add_evidence_link(
+                session,
+                inputs["hypothesis_id"],
+                inputs["link_type"],
+                **source_kwargs[source_type],
+            )
+            return {
+                "id": link.id,
+                "hypothesis_id": link.hypothesis_id,
+                "link_type": link.link_type,
+                "source_type": source_type,
+                "source_id": source_id,
+            }
 
     def _build_terminal_tool_response(self, tool_trace: list[dict]) -> str | None:
         if not tool_trace:

@@ -8,7 +8,7 @@ from sqlalchemy.orm import Session
 from neurodb.agents.base import BaseAgent
 from neurodb.agents.research_agent import NeuroResearchAgent
 from neurodb.config.model_client import ContentBlock
-from neurodb.schema import Base, ResearchHypothesis, ResearchQuestion
+from neurodb.schema import Base, Paper, ResearchHypothesis, ResearchQuestion
 
 
 def _engine():
@@ -378,3 +378,114 @@ def test_neuroresearch_agent_reads_neurodb_research_model_env_var():
         reloaded = importlib.reload(mod)
         assert reloaded._MODEL == "claude-haiku-4-5"
     importlib.reload(mod)
+
+
+# ---------------------------------------------------------------------------
+# Phase 3 — 6 new claim/evidence/gap tools
+# ---------------------------------------------------------------------------
+
+def test_new_claim_tools_present_in_active_tools():
+    names = {tool["name"] for tool in _agent()._get_active_tools()}
+    assert "extract_claims" in names
+    assert "update_claim_status" in names
+    assert "add_evidence_link" in names
+    assert "add_gap" in names
+    assert "resolve_gap" in names
+    assert "get_question_bundle" in names
+
+
+def test_draft_hypothesis_evidence_is_optional():
+    tool = next(
+        t for t in _agent()._get_active_tools()
+        if t["name"] == "draft_hypothesis"
+    )
+    assert "evidence" not in tool["input_schema"].get("required", [])
+
+
+def test_system_prompt_mentions_get_question_bundle():
+    prompt = _agent()._build_system_prompt()
+    assert "get_question_bundle" in prompt
+
+
+def test_update_claim_status_dispatch_updates_db():
+    engine = _engine()
+    agent = _agent(engine)
+    with Session(engine) as session:
+        paper = Paper(
+            title="Test Paper", normalized_title="test paper",
+            source_type="paper", topic_context="test", status="approved",
+            queued_at="2026-01-01T00:00:00",
+        )
+        session.add(paper)
+        session.flush()
+        from neurodb.db.claim_store import create_claim
+        claim = create_claim(session, paper.id, "A finding.", "finding")
+        session.commit()
+        claim_id = claim.id
+
+    result = json.loads(agent._execute_tool_block(_block(
+        "update_claim_status", {"claim_id": claim_id, "status": "approved"}
+    )))
+    assert result["status"] == "approved"
+
+
+def test_add_gap_dispatch_persists_row():
+    engine = _engine()
+    agent = _agent(engine)
+    with Session(engine) as session:
+        q = ResearchQuestion(
+            question="Does LTP matter?", topic_context="plasticity",
+            status="open", created_at="2026-01-01T00:00:00", updated_at="2026-01-01T00:00:00",
+        )
+        session.add(q)
+        session.commit()
+        q_id = q.id
+
+    result = json.loads(agent._execute_tool_block(_block(
+        "add_gap",
+        {
+            "description": "No fMRI data for this topic.",
+            "gap_type": "missing_dataset",
+            "question_id": q_id,
+        },
+    )))
+    assert "id" in result
+
+
+def test_resolve_gap_dispatch_updates_status():
+    engine = _engine()
+    agent = _agent(engine)
+    with Session(engine) as session:
+        q = ResearchQuestion(
+            question="LTP and memory?", topic_context="plasticity",
+            status="open", created_at="2026-01-01T00:00:00", updated_at="2026-01-01T00:00:00",
+        )
+        session.add(q)
+        session.flush()
+        from neurodb.db.claim_store import add_gap
+        gap = add_gap(session, "Missing data.", "missing_paper", question_id=q.id)
+        session.commit()
+        gap_id = gap.id
+
+    result = json.loads(agent._execute_tool_block(_block(
+        "resolve_gap", {"gap_id": gap_id}
+    )))
+    assert result["status"] == "resolved"
+
+
+def test_get_question_bundle_dispatch_returns_bundle_shape():
+    engine = _engine()
+    agent = _agent(engine)
+    with Session(engine) as session:
+        q = ResearchQuestion(
+            question="LTP question?", topic_context="plasticity",
+            status="open", created_at="2026-01-01T00:00:00", updated_at="2026-01-01T00:00:00",
+        )
+        session.add(q)
+        session.commit()
+        q_id = q.id
+
+    result = json.loads(agent._execute_tool_block(_block(
+        "get_question_bundle", {"question_id": q_id}
+    )))
+    assert set(result.keys()) == {"question", "topic", "hypotheses", "claims", "gaps"}

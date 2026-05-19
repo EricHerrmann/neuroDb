@@ -489,3 +489,82 @@ def test_get_question_bundle_dispatch_returns_bundle_shape():
         "get_question_bundle", {"question_id": q_id}
     )))
     assert set(result.keys()) == {"question", "topic", "hypotheses", "claims", "gaps"}
+
+
+def test_extract_claims_dispatch_returns_error_for_missing_paper():
+    engine = _engine()
+    agent = _agent(engine)
+    result = json.loads(agent._execute_tool_block(_block(
+        "extract_claims", {"paper_id": 9999}
+    )))
+    assert "error" in result
+
+
+def test_extract_claims_dispatch_returns_error_for_unapproved_paper():
+    engine = _engine()
+    agent = _agent(engine)
+    with Session(engine) as session:
+        paper = Paper(
+            title="Pending Paper", normalized_title="pending paper",
+            source_type="paper", topic_context="test", status="pending",
+            queued_at="2026-01-01T00:00:00",
+        )
+        session.add(paper)
+        session.commit()
+        paper_id = paper.id
+
+    result = json.loads(agent._execute_tool_block(_block(
+        "extract_claims", {"paper_id": paper_id}
+    )))
+    assert "error" in result
+    assert "not approved" in result["error"]
+
+
+def test_add_evidence_link_dispatch_persists_link():
+    engine = _engine()
+    agent = _agent(engine)
+    with Session(engine) as session:
+        paper = Paper(
+            title="LTP Paper", normalized_title="ltp paper",
+            source_type="paper", topic_context="plasticity", status="approved",
+            queued_at="2026-01-01T00:00:00",
+        )
+        session.add(paper)
+        session.flush()
+        hyp = ResearchHypothesis(
+            title="Test hyp", mechanism="LTP.",
+            predictions_json="[]", limitations="draft",
+            status="draft", created_at="2026-01-01T00:00:00", updated_at="2026-01-01T00:00:00",
+        )
+        session.add(hyp)
+        session.commit()
+        paper_id = paper.id
+        hyp_id = hyp.id
+
+    result = json.loads(agent._execute_tool_block(_block(
+        "add_evidence_link",
+        {
+            "hypothesis_id": hyp_id,
+            "link_type": "contextualizes",
+            "source_type": "paper",
+            "source_id": paper_id,
+        },
+    )))
+    assert "id" in result
+    assert result["link_type"] == "contextualizes"
+    assert result["source_type"] == "paper"
+
+
+def test_add_evidence_link_dispatch_returns_error_for_unknown_source_type():
+    engine = _engine()
+    agent = _agent(engine)
+    result = json.loads(agent._execute_tool_block(_block(
+        "add_evidence_link",
+        {
+            "hypothesis_id": 1,
+            "link_type": "supports",
+            "source_type": "unknown_type",
+            "source_id": 1,
+        },
+    )))
+    assert "error" in result

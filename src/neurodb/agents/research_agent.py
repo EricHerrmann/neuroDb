@@ -464,6 +464,8 @@ class NeuroResearchAgent(BaseAgent):
                 candidate_claims = json.loads(raw)
             except (json.JSONDecodeError, IndexError):
                 return {"error": "Failed to parse claim extraction response", "raw": raw}
+            if not isinstance(candidate_claims, list):
+                return {"error": "Claim extraction returned non-array JSON", "raw": raw}
 
             created = []
             for item in candidate_claims:

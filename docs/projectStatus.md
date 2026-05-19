@@ -1,8 +1,8 @@
 # NeuroDb — Project Status
 
 **Last updated:** 2026-05-19
-**Active focus:** Phase 2 DB+Tutor implementation complete — DB schema, topic_store, Tutor agent extensions; awaiting Phase 2 manual verification
-**Next:** Phase 2 manual verification and sign-off
+**Active focus:** Phase 3 claims/evidence/gaps implementation complete — awaiting manual verification
+**Next:** Phase 3 manual verification and sign-off
 **Goal alignment:** Two co-equal goals in a feedback loop — accumulate neuroscience understanding grounded in real data (Goal 1), and conduct structured neuroscience investigations using existing public datasets and good scientific method (Goal 2). See `NeuroDbGoals.md`.
 
 ---
@@ -11,7 +11,7 @@
 
 | Epoch | Source | Maturity | Next |
 |---|---|---|---|
-| DB | `src/neurodb/db/`, `src/neurodb/connectors/` | MVP complete (phases 0–2, 9); Phase 2 (topics/concepts/papers/study-notes) signed off 2026-05-18 — 36 focused DB tests pass; full suite 573 passed / 9 config-routing failures; Phase 9 T1-T4 manual passed | Phase 2 manual verification, entity resolution (7), research storage schema (8), broader Phase 9 source-aware enrichment |
+| DB | `src/neurodb/db/`, `src/neurodb/connectors/` | MVP complete (phases 0–3, 9); Phase 3 (claims/evidence/gaps) complete — 5 integration tests pass; full suite 641 passed / 15 pre-existing failures; Phase 9 T1-T4 manual passed; Phase 3 manual verification pending | Phase 3 manual verification and sign-off; entity resolution (7); broader Phase 9 source-aware enrichment |
 | Agent Core | `src/neurodb/agents/` | Stable | Config Control Phases 1–4 signed off; Phase 6 may add fallback chain logic |
 | Tutor | `src/neurodb/tutor/` | MVP complete (LT-1/2/3) | Open backlog: LOG-001, LOG-006, LOG-030 |
 | Research | `src/neurodb/research/` | Scaffolded (LT-3); hypothesis review with structured tool-use output | Research run management, research question actions (LOG-037) |

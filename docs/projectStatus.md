@@ -64,6 +64,7 @@ See `docs/testLog.md`. Current open items: LOG-001 (textbook dropdown ambiguity)
 | **Active Plans / Specs** | |
 | `docs/superpowers/specs/2026-05-18-learning-research-memory-refocus-design.md` | Cross-epoch design spec — refocus NeuroDb as a learning/research memory system and fix shallow dataset sourcing through dataset research packets |
 | `docs/superpowers/specs/2026-05-18-phase2-papers-topics-concepts-design.md` | Phase 2 design spec — rename KnowledgeSource → Paper, add topics/concepts tables, linking tables, StudyNote generalization, topic_store helper, Tutor agent tools |
+| `docs/superpowers/specs/2026-05-19-phase3-claims-evidence-design.md` | Phase 3 design spec — claims, evidence_links, research_gaps tables, claim_store helper, research agent tools |
 | `docs/testsPlans/manualTestPlan_db_phase2_papers_topics.md` | DB Phase 2 manual test plan — T1-T8 covering migration, topic_store, StudyNote anchors, Tutor agent tools; pending sign-off |
 | `docs/testsPlans/manualTestPlan_ui5_common_parity.md` | UI-5 common manual test plan — 8 evals covering P1/P2/P3; pending sign-off |
 | **History** | |

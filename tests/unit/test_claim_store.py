@@ -140,6 +140,11 @@ def test_update_claim_status_raises_for_unknown_status(session):
         update_claim_status(session, claim.id, "published")
 
 
+def test_update_claim_status_raises_for_unknown_id(session):
+    with pytest.raises(ValueError, match="not found"):
+        update_claim_status(session, 9999, "approved")
+
+
 # --- get_claims_for_paper ---
 
 def test_get_claims_for_paper_returns_only_that_paper(session):
@@ -410,3 +415,15 @@ def test_get_question_bundle_topic_is_none_when_no_topic_id(session):
     session.flush()
     bundle = get_question_bundle(session, q.id)
     assert bundle["topic"] is None
+
+
+def test_get_gaps_no_filter_returns_all_gaps(session):
+    q_a = _make_question(session)
+    q_b = _make_question(session)
+    session.flush()
+    add_gap(session, "Gap A.", "missing_dataset", question_id=q_a.id)
+    add_gap(session, "Gap B.", "missing_paper", question_id=q_b.id)
+    session.flush()
+
+    all_gaps = get_gaps(session)
+    assert len(all_gaps) >= 2

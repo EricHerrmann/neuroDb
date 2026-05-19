@@ -163,6 +163,7 @@ def get_evidence_links(session: Session, hypothesis_id: int) -> list[dict]:
             obj = session.get(DatasetResearchPacket, lnk.packet_id)
             summary = ((obj.title or obj.source_id)[:80] if obj else f"packet:{lnk.packet_id}")
         else:
+            assert lnk.note_id is not None, f"EvidenceLink {lnk.id} has all FK columns null"
             source_type, source_id = "note", lnk.note_id
             obj = session.get(StudyNote, lnk.note_id)
             summary = ((obj.note_text or obj.concept_tag)[:80] if obj else f"note:{lnk.note_id}")
@@ -223,6 +224,7 @@ def get_gaps(
     question_id: int | None = None,
     hypothesis_id: int | None = None,
 ) -> list[dict]:
+    # With no filters, returns all gaps in the DB — intentional for admin/debug callers.
     stmt = select(ResearchGap)
     if question_id is not None:
         stmt = stmt.where(ResearchGap.question_id == question_id)

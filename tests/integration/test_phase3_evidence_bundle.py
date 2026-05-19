@@ -104,7 +104,9 @@ def test_approved_claim_from_linked_paper_appears_in_bundle(engine):
 
         bundle = get_question_bundle(session, question.id)
 
-    assert any(c["text"] == "LTP potentiates synaptic weight." for c in bundle["claims"])
+    matching = [c for c in bundle["claims"] if c["text"] == "LTP potentiates synaptic weight."]
+    assert len(matching) == 1
+    assert matching[0]["claim_type"] == "finding"
 
 
 def test_evidence_links_of_all_source_types_stored_and_retrieved(engine):
@@ -203,6 +205,7 @@ def test_gap_added_appears_in_bundle_and_resolves(engine):
             question_id=question.id,
         )
         session.commit()
+        # IDs captured before session closes; objects become detached after commit
         gap_id = gap.id
         q_id = question.id
 

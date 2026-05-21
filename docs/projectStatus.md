@@ -1,8 +1,8 @@
 # NeuroDb — Project Status
 
 **Last updated:** 2026-05-21
-**Active focus:** Phase 5a — Focus Controls and Agent In-Progress Feedback signed off 2026-05-21; UI-5 common manual verification pending
-**Next:** UI-5 common manual verification; monitor LOG-060 recurrence
+**Active focus:** Phase 5b — Evidence Lens, Dataset Honesty, Retract Lifecycle; implementation complete, manual verification pending
+**Next:** Phase 5b manual verification (T1-T7); UI-5 common manual verification
 **Goal alignment:** Two co-equal goals in a feedback loop — accumulate neuroscience understanding grounded in real data (Goal 1), and conduct structured neuroscience investigations using existing public datasets and good scientific method (Goal 2). See `NeuroDbGoals.md`.
 
 ---
@@ -15,7 +15,7 @@
 | Agent Core | `src/neurodb/agents/` | Stable; Phase 4 context-mode mechanics implemented and signed off 2026-05-21; provider live-tool reliability gap identified | Coordinate provider capability validation with Config Control |
 | Tutor | `src/neurodb/tutor/` | MVP complete (LT-1/2/3); Phase 4 context-mode prompt and bundle behavior signed off 2026-05-21 | Open backlog: LOG-001, LOG-006, LOG-030; Phase 2/3 manual verification |
 | Research | `src/neurodb/research/` | Scaffolded (LT-3); Phase 3 claims/evidence/gaps complete; Phase 2/3 manual signed off 2026-05-21; Phase 4 grounded/contextual behavior signed off 2026-05-21 | Open backlog: LOG-037, LOG-045, LOG-048, LOG-053, LOG-061 |
-| UI | `src/neurodb/ui/`, `src/neurodb/api/`, `frontend/` | UI-3 signed off 2026-05-13; UI-5 P1/P2/P3 implementation complete; Phase 4 API preference and stream contract signed off 2026-05-21; Phase 5a signed off 2026-05-21; LOG-060 moved to monitor after likely renderer fix | Common UI-5 manual verification; monitor LOG-060 recurrence |
+| UI | `src/neurodb/ui/`, `src/neurodb/api/`, `frontend/` | UI-3 signed off 2026-05-13; UI-5 P1/P2/P3 implementation complete; Phase 4 API preference and stream contract signed off 2026-05-21; Phase 5a signed off 2026-05-21; Phase 5b implementation complete 2026-05-21; LOG-060 moved to monitor after likely renderer fix | Phase 5b manual verification (T1-T7); monitor LOG-060 recurrence |
 | Config Control | `src/neurodb/config/` | Phase 5B complete; live validation found OpenAI Chat Completions + tools fails for `gpt-5.4`, Anthropic full Tutor tool path succeeds | Provider-by-provider live tool-call matrix; OpenAI Responses adapter design; then Phase 6 fallback/telemetry |
 | Tech Debt | Cross-cutting | Planned — TD-1 CLI argument normalization started from LOG-057; TD-5 abstraction/extensibility review logged | TD-1 parser coverage, TD-2 keyword-only helper APIs, TD-5 reusable abstractions |
 

@@ -52,6 +52,8 @@ export interface DatasetItem {
   title: string | null
   modality: string | null
   n_subjects: number | null
+  usefulness_state: string | null
+  missing_context: string | null
 }
 
 export interface LearningSourceItem {
@@ -187,4 +189,46 @@ export interface CreateLearningSourceRequest {
   source_key: string
   display_name: string
   topics?: string[]
+}
+
+export interface EvidenceSummary {
+  mode: string
+  papers: number
+  notes: number
+  claims: number
+  datasets: number
+  gaps: number
+}
+
+export interface ClaimItem {
+  id: number
+  paper_id: number
+  text: string
+  claim_type: string
+  status: string
+  created_at: string
+  updated_at: string
+}
+
+export interface ResearchGapItem {
+  id: number
+  question_id: number | null
+  hypothesis_id: number | null
+  description: string
+  gap_type: string
+  status: string
+  created_at: string
+  updated_at: string
+}
+
+export interface EvidenceLinkItem {
+  id: number
+  hypothesis_id: number
+  claim_id: number | null
+  paper_id: number | null
+  packet_id: number | null
+  note_id: number | null
+  link_type: string
+  status: string
+  created_at: string
 }

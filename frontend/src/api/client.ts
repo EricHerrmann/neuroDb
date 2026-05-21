@@ -1,17 +1,21 @@
 import type {
   ChatSession,
   ActiveContext,
+  ClaimItem,
   CreateLearningSourceRequest,
   CreateStudyNoteRequest,
   DatasetItem,
   DeleteStudyNoteResponse,
   DuplicateCheckResponse,
+  EvidenceLinkItem,
+  EvidenceSummary,
   Hypothesis,
   HypothesisReviewItem,
   PaperItem,
   LearningSourceItem,
   ModelInfo,
   Preferences,
+  ResearchGapItem,
   ResearchMetrics,
   ResearchQuestion,
   SqlResult,
@@ -148,4 +152,20 @@ export const api = {
   endSession: (sessionId: string, body: { messages: { role: string; content: string }[]; agent_mode: string }) =>
     post<ChatSession>(`/api/sessions/${sessionId}/end`, body),
   executeSQL: (sql: string) => post<SqlResult>('/api/sql/execute', { sql }),
+  getClaims: () => get<ClaimItem[]>('/api/research/claims'),
+  getGaps: () => get<ResearchGapItem[]>('/api/research/gaps'),
+  getEvidenceLinks: (hypothesisId: number) =>
+    get<EvidenceLinkItem[]>(`/api/research/hypotheses/${hypothesisId}/evidence-links`),
+  retractEvidenceLink: (id: number) =>
+    post<EvidenceLinkItem>(`/api/research/evidence-links/${id}/retract`),
+  archiveQuestion: (id: number) =>
+    post<ResearchQuestion>(`/api/research/questions/${id}/archive`),
+  approveClaim: (id: number) =>
+    post<ClaimItem>(`/api/research/claims/${id}/approve`),
+  rejectClaim: (id: number) =>
+    post<ClaimItem>(`/api/research/claims/${id}/reject`),
+  resolveGap: (id: number) =>
+    post<ResearchGapItem>(`/api/research/gaps/${id}/resolve`),
+  archiveGap: (id: number) =>
+    post<ResearchGapItem>(`/api/research/gaps/${id}/archive`),
 }

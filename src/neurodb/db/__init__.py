@@ -31,11 +31,12 @@ _spec = importlib.util.spec_from_file_location("_db_legacy", _db_module_path)
 _db_legacy = importlib.util.module_from_spec(_spec)
 _spec.loader.exec_module(_db_legacy)
 
-# Re-export all public functions
+# Re-export all public functions and internal migration registry
 get_engine = _db_legacy.get_engine
 init_db = _db_legacy.init_db
 seed_learning_sources = _db_legacy.seed_learning_sources
 create_views = _db_legacy.create_views
 get_session = _db_legacy.get_session
+_MIGRATIONS = _db_legacy._MIGRATIONS
 
 __all__ = ["get_engine", "init_db", "seed_learning_sources", "create_views", "get_session"]

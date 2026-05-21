@@ -208,6 +208,28 @@ def _migration_007_research_questions_topic_id(conn) -> None:
     ))
 
 
+def _migration_008_evidence_links_status(conn) -> None:
+    """Add status column to evidence_links for retract lifecycle."""
+    try:
+        conn.execute(text("ALTER TABLE evidence_links ADD COLUMN status VARCHAR(16) DEFAULT 'active'"))
+    except Exception:
+        pass
+    conn.execute(text(
+        "CREATE INDEX IF NOT EXISTS ix_evidence_links_status ON evidence_links (status)"
+    ))
+
+
+def _migration_009_research_questions_archived_guard(conn) -> None:
+    """Guard migration: research_questions.status already exists; ensure index present."""
+    try:
+        conn.execute(text("ALTER TABLE research_questions ADD COLUMN status VARCHAR(32) DEFAULT 'open'"))
+    except Exception:
+        pass
+    conn.execute(text(
+        "CREATE INDEX IF NOT EXISTS ix_research_questions_status ON research_questions (status)"
+    ))
+
+
 _MIGRATIONS: dict[int, callable] = {
     1: _migration_001_study_note_unique,
     2: _migration_002_model_call_log,
@@ -216,6 +238,8 @@ _MIGRATIONS: dict[int, callable] = {
     5: _migration_005_study_notes_topic_id,
     6: _migration_006_study_notes_concept_paper_id,
     7: _migration_007_research_questions_topic_id,
+    8: _migration_008_evidence_links_status,
+    9: _migration_009_research_questions_archived_guard,
 }
 
 

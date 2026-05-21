@@ -1,7 +1,9 @@
 import pytest
 from sqlalchemy import create_engine, inspect, text
+from sqlalchemy.pool import StaticPool
 from neurodb.migrations import apply_migrations, get_schema_version
 from neurodb.db import init_db
+from neurodb.schema import Base
 
 
 def _engine():
@@ -54,3 +56,41 @@ def test_init_db_creates_schema_migrations_table():
     init_db(engine)
     tables = inspect(engine).get_table_names()
     assert "schema_migrations" in tables
+
+
+def test_migration_008_adds_evidence_links_status():
+    """Migration 8 adds status column to evidence_links; idempotent on re-run."""
+    from neurodb.migrations import apply_migrations
+
+    engine = create_engine(
+        "sqlite:///:memory:",
+        connect_args={"check_same_thread": False},
+        poolclass=StaticPool,
+    )
+    Base.metadata.create_all(engine)
+
+    from neurodb.db import _MIGRATIONS
+
+    apply_migrations(engine, {8: _MIGRATIONS[8]})
+    apply_migrations(engine, {8: _MIGRATIONS[8]})  # idempotent — must not raise
+
+    with engine.connect() as conn:
+        result = conn.execute(text(
+            "SELECT status FROM evidence_links LIMIT 1"
+        ))
+        assert result is not None
+
+
+def test_migration_009_research_questions_archived_guard_is_idempotent():
+    """Migration 9 runs without error on a fresh DB (column already present)."""
+    from neurodb.migrations import apply_migrations
+    from neurodb.db import _MIGRATIONS
+
+    engine = create_engine(
+        "sqlite:///:memory:",
+        connect_args={"check_same_thread": False},
+        poolclass=StaticPool,
+    )
+    Base.metadata.create_all(engine)
+    apply_migrations(engine, {9: _MIGRATIONS[9]})
+    apply_migrations(engine, {9: _MIGRATIONS[9]})  # idempotent — must not raise

@@ -519,6 +519,7 @@ class EvidenceLink(Base):
     )
     note_id: Mapped[int | None] = mapped_column(ForeignKey("study_notes.id"), nullable=True, index=True)
     link_type: Mapped[str] = mapped_column(String(32), nullable=False)
+    status: Mapped[str] = mapped_column(String(16), nullable=False, default="active", index=True)
     created_at: Mapped[str] = mapped_column(String(32), nullable=False)
 
 

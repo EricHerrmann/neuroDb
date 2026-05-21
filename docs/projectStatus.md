@@ -73,6 +73,8 @@ See `docs/testLog.md`. Current open items: LOG-001 (textbook dropdown ambiguity)
 | `docs/superpowers/specs/2026-05-21-phase5a-focus-controls-design.md` | Phase 5a design spec — three-dropdown header, ThinkingBubble, Tooltip, useChat thinkingState/activeTool |
 | `docs/superpowers/plans/2026-05-21-phase5a-focus-controls.md` | Phase 5a implementation spec — phased frontend plan for header controls, in-progress feedback, and verification |
 | `docs/testsPlans/manualTestPlan_ui5_common_parity.md` | UI-5 common manual test plan — 8 evals covering P1/P2/P3; pending sign-off |
+| `docs/testsPlans/manualTestPlan_phase5b_evidence_retract.md` | Phase 5b manual test plan — Evidence Lens, Dataset Honesty, Retract Lifecycle (T1-T7); active |
+| `docs/superpowers/plans/2026-05-21-phase5b-evidence-lens-dataset-honesty-retract.md` | Phase 5b implementation plan |
 | **History** | |
 | `docs/archive/completedPhases.md` | Completed phases and tech debt sprints — full history |
 | `docs/testsPlans/completedAndPassedTestPlans/manualTestPlan_phase5a_focus_controls.md` | Phase 5a manual test plan — T1-T10 passed and signed off 2026-05-21 |

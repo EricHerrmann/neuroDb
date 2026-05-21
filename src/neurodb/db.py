@@ -167,11 +167,55 @@ def _migration_004_dataset_research_packets(conn) -> None:
     ))
 
 
+def _migration_005_study_notes_topic_id(conn) -> None:
+    """Add topic_id column to study_notes for existing DB files that predate the column."""
+    try:
+        conn.execute(text("ALTER TABLE study_notes ADD COLUMN topic_id INTEGER"))
+    except Exception:
+        pass  # column already exists
+    conn.execute(text(
+        "CREATE INDEX IF NOT EXISTS ix_study_notes_topic_id ON study_notes (topic_id)"
+    ))
+
+
+def _migration_006_study_notes_concept_paper_id(conn) -> None:
+    """Add concept_id and paper_id columns to study_notes (added alongside topic_id in b9791a3)."""
+    try:
+        conn.execute(text("ALTER TABLE study_notes ADD COLUMN concept_id INTEGER"))
+    except Exception:
+        pass
+    try:
+        conn.execute(text("ALTER TABLE study_notes ADD COLUMN paper_id INTEGER"))
+    except Exception:
+        pass
+    conn.execute(text(
+        "CREATE INDEX IF NOT EXISTS ix_study_notes_concept_id ON study_notes (concept_id)"
+    ))
+    conn.execute(text(
+        "CREATE INDEX IF NOT EXISTS ix_study_notes_paper_id ON study_notes (paper_id)"
+    ))
+
+
+def _migration_007_research_questions_topic_id(conn) -> None:
+    """Add topic_id column to research_questions (added in 7ea2979 to an existing table)."""
+    try:
+        conn.execute(text("ALTER TABLE research_questions ADD COLUMN topic_id INTEGER"))
+    except Exception:
+        pass
+    conn.execute(text(
+        "CREATE INDEX IF NOT EXISTS ix_research_questions_topic_id "
+        "ON research_questions (topic_id)"
+    ))
+
+
 _MIGRATIONS: dict[int, callable] = {
     1: _migration_001_study_note_unique,
     2: _migration_002_model_call_log,
     3: _migration_003_hypothesis_reviews,
     4: _migration_004_dataset_research_packets,
+    5: _migration_005_study_notes_topic_id,
+    6: _migration_006_study_notes_concept_paper_id,
+    7: _migration_007_research_questions_topic_id,
 }
 
 

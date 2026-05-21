@@ -9,13 +9,21 @@ from datetime import UTC, datetime, timedelta
 
 from fastapi import APIRouter, Depends, HTTPException
 from pydantic import BaseModel
-from sqlalchemy import Engine
+from sqlalchemy import Engine, text
 
 from neurodb.api.deps import get_engine, get_knowledge_store, get_task_store
 from neurodb.api.schemas.knowledge_library import PaperItem
 from neurodb.api.tasks import TaskRecord
 from neurodb.db import get_session
-from neurodb.schema import Paper
+from neurodb.schema import (
+    Claim,
+    DatasetPacketPaper,
+    EvidenceLink,
+    Paper,
+    PaperConcept,
+    PaperTopic,
+    StudyNote,
+)
 
 logger = logging.getLogger(__name__)
 
@@ -54,20 +62,15 @@ def approve_source(
 ) -> PaperItem:
     reviewed_at = datetime.now(UTC).isoformat()
     warnings: list[str] = []
-    with get_session(engine) as session:
-        row = session.get(Paper, source_id)
-        if row is None:
-            raise HTTPException(
-                status_code=404, detail=f"Paper {source_id} not found"
-            )
-        row.status = "approved"
-        row.reviewed_at = reviewed_at
-        session.flush()
-        item = PaperItem.model_validate(row)
-        # Capture scalar values before the session closes — ORM objects are detached after commit
-        _id, _title, _doi, _topic, _summary = (
-            row.id, row.title, row.doi, row.topic_context, row.summary
-        )
+    item = _update_paper_fields(
+        source_id,
+        engine,
+        status="approved",
+        reviewed_at=reviewed_at,
+    )
+    _id, _title, _doi, _topic, _summary = (
+        item.id, item.title, item.doi, item.topic_context, item.summary
+    )
     try:
         chroma_id = knowledge_store.add_summary(
             source_id=_id,
@@ -76,10 +79,7 @@ def approve_source(
             topic_context=_topic,
             summary=_summary or "",
         )
-        with get_session(engine) as session:
-            row = session.get(Paper, source_id)
-            if row is not None:
-                row.chroma_id = chroma_id
+        _update_paper_fields(source_id, engine, chroma_id=chroma_id)
     except Exception as exc:
         logger.exception("ChromaDB indexing failed for source %d", source_id)
         warnings.append(f"ChromaDB indexing failed: {exc}")
@@ -170,16 +170,7 @@ def reject_source(source_id: int, engine: Engine = Depends(get_engine)) -> Paper
 
 def _set_status(source_id: int, status: str, engine: Engine) -> PaperItem:
     reviewed_at = datetime.now(UTC).isoformat()
-    with get_session(engine) as session:
-        row = session.get(Paper, source_id)
-        if row is None:
-            raise HTTPException(
-                status_code=404, detail=f"Paper {source_id} not found"
-            )
-        row.status = status
-        row.reviewed_at = reviewed_at
-        session.flush()
-        return PaperItem.model_validate(row)
+    return _update_paper_fields(source_id, engine, status=status, reviewed_at=reviewed_at)
 
 
 def _approve_with_summary(source_id: int, engine: Engine, knowledge_store) -> dict:
@@ -189,17 +180,20 @@ def _approve_with_summary(source_id: int, engine: Engine, knowledge_store) -> di
         if row is None:
             raise ValueError(f"Paper {source_id} not found")
         summary = _generate_summary(row)
-        row.status = "approved"
-        row.reviewed_at = reviewed_at
-        row.summary = summary
-        session.flush()
-        values = {
-            "id": row.id,
-            "title": row.title,
-            "doi": row.doi,
-            "topic_context": row.topic_context,
-            "summary": row.summary or "",
-        }
+    item = _update_paper_fields(
+        source_id,
+        engine,
+        status="approved",
+        reviewed_at=reviewed_at,
+        summary=summary,
+    )
+    values = {
+        "id": item.id,
+        "title": item.title,
+        "doi": item.doi,
+        "topic_context": item.topic_context,
+        "summary": item.summary or "",
+    }
 
     chroma_id = knowledge_store.add_summary(
         source_id=values["id"],
@@ -208,11 +202,209 @@ def _approve_with_summary(source_id: int, engine: Engine, knowledge_store) -> di
         topic_context=values["topic_context"],
         summary=values["summary"],
     )
-    with get_session(engine) as session:
-        row = session.get(Paper, source_id)
-        if row is not None:
-            row.chroma_id = chroma_id
+    _update_paper_fields(source_id, engine, chroma_id=chroma_id)
     return {"approved": True, "source_id": source_id, "chroma_id": chroma_id}
+
+
+def _update_paper_fields(source_id: int, engine: Engine, **fields) -> PaperItem:
+    if not fields:
+        with get_session(engine) as session:
+            row = _get_paper_or_404(session, source_id)
+            return PaperItem.model_validate(row)
+    if engine.dialect.name == "duckdb":
+        return _update_paper_fields_duckdb(source_id, engine, **fields)
+
+    with get_session(engine) as session:
+        row = _get_paper_or_404(session, source_id)
+        for field, value in fields.items():
+            setattr(row, field, value)
+        session.flush()
+        return PaperItem.model_validate(row)
+
+
+def _update_paper_fields_duckdb(source_id: int, engine: Engine, **fields) -> PaperItem:
+    """Update Paper fields while preserving paper references.
+
+    DuckDB currently rejects UPDATEs to a parent row when child rows reference it
+    through a foreign key, even when the primary key is unchanged. Knowledge
+    Library approval commonly touches papers that already have topic/concept or
+    claim links, so preserve those rows around the UPDATE.
+    """
+    with get_session(engine) as session:
+        _get_paper_or_404(session, source_id)
+        preserved_links = _detach_paper_links(session, source_id)
+
+    try:
+        with get_session(engine) as session:
+            row = _get_paper_or_404(session, source_id)
+            for field, value in fields.items():
+                setattr(row, field, value)
+            session.flush()
+            item = PaperItem.model_validate(row)
+    finally:
+        with get_session(engine) as session:
+            _restore_paper_links(session, preserved_links)
+    return item
+
+
+def _get_paper_or_404(session, source_id: int) -> Paper:
+    row = session.get(Paper, source_id)
+    if row is None:
+        raise HTTPException(status_code=404, detail=f"Paper {source_id} not found")
+    return row
+
+
+def _detach_paper_links(session, paper_id: int) -> dict[str, list[dict]]:
+    has_claims = _table_has_columns(
+        session,
+        "claims",
+        ["id", "paper_id", "text", "claim_type", "status", "created_at", "updated_at"],
+    )
+    has_study_notes = _table_has_columns(
+        session,
+        "study_notes",
+        [
+            "id",
+            "index_id",
+            "topic_id",
+            "concept_id",
+            "paper_id",
+            "concept_tag",
+            "section_ref",
+            "note_text",
+            "tagged_at",
+        ],
+    )
+    has_evidence_links = _table_has_columns(
+        session,
+        "evidence_links",
+        [
+            "id",
+            "hypothesis_id",
+            "claim_id",
+            "paper_id",
+            "packet_id",
+            "note_id",
+            "link_type",
+            "created_at",
+        ],
+    )
+    claims = session.query(Claim).filter_by(paper_id=paper_id).all() if has_claims else []
+    claim_ids = [claim.id for claim in claims]
+    study_notes = (
+        session.query(StudyNote).filter_by(paper_id=paper_id).all()
+        if has_study_notes
+        else []
+    )
+    study_note_ids = [note.id for note in study_notes]
+    evidence_links = []
+    if has_evidence_links:
+        evidence_query = session.query(EvidenceLink).filter(EvidenceLink.paper_id == paper_id)
+        if claim_ids:
+            evidence_query = evidence_query.union(
+                session.query(EvidenceLink).filter(EvidenceLink.claim_id.in_(claim_ids))
+            )
+        if study_note_ids:
+            evidence_query = evidence_query.union(
+                session.query(EvidenceLink).filter(EvidenceLink.note_id.in_(study_note_ids))
+            )
+        evidence_links = evidence_query.all()
+    links: dict[str, list[dict]] = {
+        "paper_topics": [
+            {"id": link.id, "paper_id": link.paper_id, "topic_id": link.topic_id}
+            for link in session.query(PaperTopic).filter_by(paper_id=paper_id).all()
+        ],
+        "paper_concepts": [
+            {"id": link.id, "paper_id": link.paper_id, "concept_id": link.concept_id}
+            for link in session.query(PaperConcept).filter_by(paper_id=paper_id).all()
+        ],
+        "dataset_packet_papers": [
+            {"id": link.id, "packet_id": link.packet_id, "paper_id": link.paper_id}
+            for link in session.query(DatasetPacketPaper).filter_by(paper_id=paper_id).all()
+        ],
+        "study_notes": [
+            {
+                "id": note.id,
+                "index_id": note.index_id,
+                "topic_id": note.topic_id,
+                "concept_id": note.concept_id,
+                "paper_id": note.paper_id,
+                "concept_tag": note.concept_tag,
+                "section_ref": note.section_ref,
+                "note_text": note.note_text,
+                "tagged_at": note.tagged_at,
+            }
+            for note in study_notes
+        ],
+        "claims": [
+            {
+                "id": claim.id,
+                "paper_id": claim.paper_id,
+                "text": claim.text,
+                "claim_type": claim.claim_type,
+                "status": claim.status,
+                "created_at": claim.created_at,
+                "updated_at": claim.updated_at,
+            }
+            for claim in claims
+        ],
+        "evidence_links": [
+            {
+                "id": link.id,
+                "hypothesis_id": link.hypothesis_id,
+                "claim_id": link.claim_id,
+                "paper_id": link.paper_id,
+                "packet_id": link.packet_id,
+                "note_id": link.note_id,
+                "link_type": link.link_type,
+                "created_at": link.created_at,
+            }
+            for link in evidence_links
+        ],
+    }
+    for link in evidence_links:
+        session.delete(link)
+    for model, enabled in [
+        (PaperTopic, True),
+        (PaperConcept, True),
+        (DatasetPacketPaper, True),
+        (StudyNote, has_study_notes),
+        (Claim, has_claims),
+    ]:
+        if not enabled:
+            continue
+        for link in session.query(model).filter_by(paper_id=paper_id).all():
+            session.delete(link)
+    session.flush()
+    return links
+
+
+def _restore_paper_links(session, links: dict[str, list[dict]]) -> None:
+    for values in links["paper_topics"]:
+        session.add(PaperTopic(**values))
+    for values in links["paper_concepts"]:
+        session.add(PaperConcept(**values))
+    for values in links["dataset_packet_papers"]:
+        session.add(DatasetPacketPaper(**values))
+    for values in links["claims"]:
+        session.add(Claim(**values))
+    for values in links["study_notes"]:
+        session.add(StudyNote(**values))
+    for values in links["evidence_links"]:
+        session.add(EvidenceLink(**values))
+    session.flush()
+
+
+def _table_has_columns(session, table_name: str, column_names: list[str]) -> bool:
+    rows = session.execute(
+        text(
+            "SELECT column_name FROM information_schema.columns "
+            "WHERE table_name = :table_name"
+        ),
+        {"table_name": table_name},
+    ).fetchall()
+    actual = {row[0] for row in rows}
+    return set(column_names).issubset(actual)
 
 
 def _generate_summary(row: Paper) -> str:

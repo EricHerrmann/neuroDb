@@ -1,7 +1,7 @@
 # Learning and Research Memory Refocus - Design Spec
 
 **Date:** 2026-05-18
-**Status:** Draft - user-approved direction; Phase 1 dataset research packets implemented and signed off
+**Status:** Draft - user-approved direction; Phases 1-4 implemented, Phase 4 manual verification pending
 **Source:** User brainstorming on shallow dataset value, learning goals, and agent grounding
 
 ---
@@ -338,7 +338,7 @@ Acceptance criteria:
 ### Phase 4 - Agent Core + Tutor + Research: Context Modes And Evidence Boundaries
 
 **Owner:** Agent Core for shared mode mechanics, Tutor/Research for prompts/tools
-**Status:** Design draft — see `docs/superpowers/specs/2026-05-19-phase4-context-modes-evidence-boundaries-design.md`
+**Status:** Implemented — automated verification passed; manual verification pending; see `docs/superpowers/specs/2026-05-19-phase4-context-modes-evidence-boundaries-design.md`
 
 Deliverables:
 
@@ -356,12 +356,41 @@ Acceptance criteria:
 
 ### Phase 5 - UI: Focus Controls, Evidence Lens, And Dataset Honesty
 
-**Owner:** UI epoch  
+**Owner:** UI epoch
 **Fits existing plan:** UI-5 Enhancements or UI-6 after common UI-5 sign-off
+
+**Required pre-design checkpoint:** Before implementing Phase 5, hold a focused
+user brainstorm on agent mode control. Phase 4 proved the plumbing with explicit
+`general`, `contextual`, and `grounded` settings, but the product direction
+should not require the user to manually choose a mode for every question.
+
+Brainstorm topics:
+
+- whether the default should be `auto`, where the agent/router chooses the
+  effective mode from user intent, active focus, and evidence needs
+- when user language should force grounded behavior, such as "use local evidence
+  only" or "what does NeuroDb support?"
+- when user language should force general behavior, such as broad teaching,
+  definitions, or mechanism explanations
+- how the UI should display the effective mode and why it was selected
+- whether the user should be able to lock a mode for a session, a turn, or a
+  research workspace
+- how to prevent mode controls from becoming a burden while still preserving
+  user authority over evidence strictness
+
+Tentative direction pending that brainstorm:
+
+- default user-facing control should be `Auto`
+- API should distinguish `requested_mode` from `effective_mode`
+- explicit user override should remain available: General, Use NeuroDb context,
+  Strictly grounded
+- evidence lens should display the effective mode, source counts, active focus,
+  and unsupported-local-evidence warnings
 
 Deliverables:
 
-- add persistent context control to chat and research surfaces
+- add context control to chat and research surfaces, with `Auto` as the default
+  unless the user brainstorm decides otherwise
 - add active focus selector for topic or research question
 - add evidence lens showing retrieved counts and unsupported local gaps
 - add research-question workspace with tabs for overview, literature, concepts, claims, datasets, notes, and hypotheses
@@ -369,7 +398,11 @@ Deliverables:
 
 Acceptance criteria:
 
-- user can choose General, Use NeuroDb context, or Strictly grounded
+- agent/router can select the effective context mode automatically for common
+  learning and research turns
+- user can override or lock General, Use NeuroDb context, or Strictly grounded
+  when they explicitly want to constrain the response
+- UI shows the effective mode and, when useful, why that mode was selected
 - UI shows what local resources were used in an answer
 - dataset browser makes sparse vs research-ready status obvious
 - research workflow starts from question/focus rather than dataset list

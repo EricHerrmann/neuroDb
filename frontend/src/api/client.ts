@@ -81,6 +81,8 @@ export const api = {
   getModelInfo: () => get<ModelInfo>('/api/model-info'),
   setAgentMode: (mode: string) =>
     put<{ agent_mode: string }>('/api/preferences/agent-mode', { mode }),
+  setContextMode: (mode: string) =>
+    put<{ context_mode: string }>('/api/preferences/context-mode', { mode }),
   getSessions: () => get<ChatSession[]>('/api/sessions'),
   getActiveContext: () => get<ActiveContext>('/api/sessions/active-context'),
   getStudyLog: () => get<StudyNote[]>('/api/study-log'),

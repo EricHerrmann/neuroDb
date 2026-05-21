@@ -1,7 +1,7 @@
 # NeuroDb — UI Epoch Plan
 
 **Status:** UI-3 signed off 2026-05-13 - UI-5 P1/P2/P3 implementation complete - common UI-5 manual verification active
-**Last updated:** 2026-05-13
+**Last updated:** 2026-05-20
 **Epoch directory:** `src/neurodb/ui/`
 **Architecture reference:** `docs/superpowers/specs/2026-05-07-epoch-architecture-design.md`
 
@@ -61,6 +61,9 @@ Identified in 2026-05-12 Streamlit vs React comparison. Organized by capability,
 | P2 | Tool activity log — collapsible pane per turn | SSE events already emitted; frontend only |
 | P2 | Clear + auto-summarize | Requires `POST /api/sessions/{id}/end` |
 | P3 | Prior context banner | Shows `active_prior_topic` from preferences |
+| Enhancement | Context mode selector with usage guidance | Phase 4 added three context modes but no frontend selector — mode changes require a `curl` PUT. Add a mode selector to the chat header (General / Contextual / Grounded) with inline tooltip or short-help text explaining intended use: **General** — model knowledge only, good for broad topics before local data exists; **Contextual** — NeuroDb context prepended, use when working with already-ingested data; **Grounded** — strict local evidence boundary, use when drafting or evaluating a hypothesis against actual evidence. The distinction matters: Contextual answers from local context but fills gaps with model knowledge; Grounded names missing evidence instead. Calls `PUT /api/preferences/context-mode`; reads current mode from `GET /api/preferences` on load. |
+| Enhancement | Per-answer source lens | **Finding (brainstorm, 2026-05-20):** NeuroTutor and Neuro Research answers can draw from local NeuroDb context, external lookups, prior session memory, and general model knowledge. Add a per-answer source strip and expandable Source Lens so users can verify where an answer came from. Proposed groups: Local NeuroDb evidence/context, Local memory, External discovery, and General model knowledge. References should expose user-verifiable IDs when available: paper IDs, DOIs/URLs, dataset `source:source_id`, study-note IDs, claim IDs, evidence-link IDs, literature result source, and external dataset source IDs. The UI should distinguish evidence from context/discovery/general reasoning so sparse dataset packets or unapproved external search results are not presented as strong evidence. Depends on Agent Core emitting structured per-turn source metadata instead of requiring the frontend to infer trust boundaries from raw tool JSON. |
+| Enhancement | Agent in-progress feedback | **Finding (brainstorm, 2026-05-19):** After submit, an empty assistant bubble with `▋` appears but no visible progress until `text_delta` arrives — which can take several seconds (network + LLM API round-trip + tool calls before first text). Tool activity is already tracked in `useChat` but displayed in a collapsed `<details>` element; users don't see which tool is running. Two dead zones: (1) pre-first-event gap, (2) within a tool call between `tool_start` and `tool_result`. Design options and tradeoffs to be explored with user during P5 brainstorm. |
 
 #### Study Log
 | Priority | Feature | Notes |

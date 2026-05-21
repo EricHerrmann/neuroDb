@@ -5,6 +5,7 @@ import {
   FlaskConical,
   Lightbulb,
   Package,
+  ScanEye,
   Zap,
 } from 'lucide-react'
 import { NavLink } from 'react-router-dom'
@@ -27,6 +28,12 @@ const PANELS = [
   { path: '/research', label: 'Research', Icon: FlaskConical },
   { path: '/sql', label: 'SQL', Icon: Zap },
 ]
+
+async function launchAtlas() {
+  const res = await fetch('/api/atlas/launch', { method: 'POST' })
+  const { url } = await res.json()
+  window.open(url, '_blank', 'noopener,noreferrer')
+}
 
 export default function ActivityRail({ panelRef }: ActivityRailProps) {
   return (
@@ -68,6 +75,28 @@ export default function ActivityRail({ panelRef }: ActivityRailProps) {
           <Icon size={14} aria-hidden={true} />
         </NavLink>
       ))}
+
+      <div style={{ flex: 1 }} />
+
+      <button
+        title="NeuroAtlas viewer"
+        onClick={launchAtlas}
+        style={{
+          width: 26,
+          height: 26,
+          borderRadius: 5,
+          background: '#334155',
+          border: 'none',
+          cursor: 'pointer',
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'center',
+          color: '#64748b',
+          marginBottom: 10,
+        }}
+      >
+        <ScanEye size={14} aria-hidden={true} />
+      </button>
     </nav>
   )
 }

@@ -8,6 +8,10 @@ import pytest
 from neurodb.config.model_client import ContentBlock, ModelClient, ModelResponse
 
 
+class _RetryableError(Exception):
+    status_code = 500
+
+
 # --- ContentBlock ---
 
 def test_content_block_text_fields():
@@ -142,6 +146,28 @@ def test_anthropic_create_message_carries_token_counts():
     assert response.output_tokens == 123
 
 
+def test_anthropic_create_message_retries_retryable_provider_error():
+    from neurodb.config.providers.anthropic_client import AnthropicModelClient
+
+    sdk_response = SimpleNamespace(
+        stop_reason="end_turn",
+        content=[SimpleNamespace(type="text", text="Hello after retry")],
+        usage=SimpleNamespace(input_tokens=10, output_tokens=5),
+    )
+    mock_client = MagicMock()
+    mock_client.messages.create.side_effect = [
+        _RetryableError("Error code: 500"),
+        sdk_response,
+    ]
+
+    client = AnthropicModelClient(mock_client)
+    with patch("neurodb.config.providers.anthropic_client.sleep"):
+        response = client.create_message("m", [], "", [], 100)
+
+    assert response.content[0].text == "Hello after retry"
+    assert mock_client.messages.create.call_count == 2
+
+
 def test_anthropic_format_tool_passes_through_unchanged():
     from neurodb.config.providers.anthropic_client import AnthropicModelClient
 
@@ -163,6 +189,27 @@ def test_anthropic_format_tool_result_structure():
     assert result["type"] == "tool_result"
     assert result["tool_use_id"] == "tu_abc"
     assert result["content"][0]["text"] == "result text"
+
+
+def test_anthropic_stream_message_retries_retryable_provider_error():
+    from neurodb.config.providers.anthropic_client import AnthropicModelClient
+
+    @contextmanager
+    def stream_context():
+        yield []
+
+    mock_client = MagicMock()
+    mock_client.messages.stream.side_effect = [
+        _RetryableError("Error code: 500"),
+        stream_context(),
+    ]
+
+    client = AnthropicModelClient(mock_client)
+    with patch("neurodb.config.providers.anthropic_client.sleep"):
+        with client.stream_message("m", [], "", [], 100):
+            pass
+
+    assert mock_client.messages.stream.call_count == 2
 
 
 # --- OpenAIModelClient ---

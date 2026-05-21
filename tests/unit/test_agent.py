@@ -221,6 +221,16 @@ def test_execute_unknown_tool_returns_error():
 # NeuroDbAgent loop
 # ---------------------------------------------------------------------------
 
+def test_agent_system_prompt_allows_rich_chat_formatting():
+    agent = NeuroDbAgent(MagicMock(), _engine_with_dataset())
+
+    prompt = agent._build_system_prompt()
+
+    assert "readable Markdown" in prompt
+    assert "bold emphasis" in prompt
+    assert "simple Markdown tables" in prompt
+
+
 def test_agent_end_turn_yields_text():
     engine = _engine_with_dataset()
     mock_client = MagicMock()

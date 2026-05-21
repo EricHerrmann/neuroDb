@@ -3,8 +3,12 @@ from __future__ import annotations
 
 import json
 from contextlib import contextmanager
+from time import sleep
 
 from neurodb.config.model_client import ContentBlock, ModelClient, ModelResponse
+
+_RETRYABLE_STATUS_CODES = {408, 409, 429, 500, 502, 503, 504}
+_RETRY_DELAYS_SECONDS = (0.25, 0.75)
 
 
 class OpenAIModelClient(ModelClient):
@@ -30,7 +34,7 @@ class OpenAIModelClient(ModelClient):
         if tool_choice is not None:
             kwargs["tool_choice"] = tool_choice
 
-        response = self._client.chat.completions.create(**kwargs)
+        response = _call_with_retries(self._client.chat.completions.create, **kwargs)
         return _map_response(response)
 
     @contextmanager
@@ -48,7 +52,7 @@ class OpenAIModelClient(ModelClient):
         if oai_tools:
             kwargs["tools"] = [{"type": "function", "function": t} for t in oai_tools]
 
-        stream = self._client.chat.completions.create(**kwargs)
+        stream = _call_with_retries(self._client.chat.completions.create, **kwargs)
         yield _OpenAIStream(stream)
 
     def format_tool(self, tool_definition: dict) -> dict:
@@ -66,6 +70,27 @@ class OpenAIModelClient(ModelClient):
             "tool_use_id": tool_use_id,
             "content": [{"type": "text", "text": content}],
         }
+
+
+def _call_with_retries(fn, **kwargs):
+    last_exc = None
+    for attempt in range(len(_RETRY_DELAYS_SECONDS) + 1):
+        try:
+            return fn(**kwargs)
+        except Exception as exc:
+            last_exc = exc
+            if not _is_retryable_error(exc) or attempt >= len(_RETRY_DELAYS_SECONDS):
+                raise
+            sleep(_RETRY_DELAYS_SECONDS[attempt])
+    raise last_exc
+
+
+def _is_retryable_error(exc: Exception) -> bool:
+    status_code = getattr(exc, "status_code", None)
+    if status_code in _RETRYABLE_STATUS_CODES:
+        return True
+    message = str(exc)
+    return any(f"Error code: {code}" in message for code in _RETRYABLE_STATUS_CODES)
 
 
 class _OpenAIStream:

@@ -105,11 +105,66 @@ def test_research_prompt_includes_current_date_and_prior_context():
     assert "Prior sessions relevant" in prompt
     assert "confounds and limitations" in prompt
     assert "inspect_external_dataset" in prompt
+    assert "Never write that a source is queued" in prompt
+    assert "audit those references against tool results" in prompt
+    assert "readable Markdown" in prompt
+    assert "bold emphasis" in prompt
+    assert "simple Markdown tables" in prompt
+
+
+def test_research_prompt_includes_context_mode_and_bundle():
+    agent = _agent(
+        current_date="2026-05-19",
+        context_mode="grounded",
+        context_bundle={
+            "prompt_block": "NeuroDb context mode: grounded\nLocal claims: 1",
+        },
+    )
+
+    prompt = agent._build_system_prompt()
+
+    assert "Context mode: Strictly grounded" in prompt
+    assert "NeuroDb context mode: grounded" in prompt
 
 
 def test_research_agent_has_larger_default_tool_budget():
     agent = _agent()
     assert agent._max_tool_iterations > 10
+
+
+def test_research_chat_stream_emits_context_summary_event():
+    engine = _engine()
+    client = MagicMock()
+    client.messages.stream.return_value = _Stream(
+        [{"type": "text_delta", "text": "Answer"}],
+        _response("end_turn", [SimpleNamespace(type="text", text="Answer")]),
+    )
+    agent = NeuroResearchAgent(
+        client=client,
+        engine=engine,
+        context_mode="contextual",
+        context_bundle={
+            "mode": "contextual",
+            "active_focus": {"focus_type": "topic", "focus_id": 1, "label": "stroke"},
+            "source_counts": {
+                "papers": 1,
+                "concepts": 0,
+                "study_notes": 0,
+                "dataset_packets": 0,
+                "claims": 0,
+                "evidence_links": 0,
+                "gaps": 0,
+                "semantic_hits": 0,
+            },
+            "warnings": [],
+        },
+    )
+
+    events = list(agent.chat_stream("test", []))
+
+    assert events[0]["type"] == "context_summary"
+    assert events[0]["context_mode"] == "contextual"
+    assert events[0]["source_counts"]["papers"] == 1
 
 
 def test_research_agent_saves_partial_progress_on_budget_exhaustion():

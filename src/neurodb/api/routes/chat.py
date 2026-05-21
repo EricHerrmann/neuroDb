@@ -9,6 +9,11 @@ from fastapi import APIRouter, Depends, Request
 from fastapi.responses import JSONResponse, StreamingResponse
 from sqlalchemy import Engine
 
+from neurodb.agents.context_orchestrator import (
+    DEFAULT_CONTEXT_MODE,
+    build_context_bundle,
+    normalize_context_mode,
+)
 from neurodb.agents.db_agent import NeuroDbAgent
 from neurodb.agents.research_agent import NeuroResearchAgent
 from neurodb.agents.tutor_agent import NeuroTutorAgent
@@ -16,6 +21,7 @@ from neurodb.api.deps import VALID_AGENT_MODES, get_engine, get_research_stores
 from neurodb.api.schemas.chat import ChatTurnRequest
 from neurodb.config.provider_factory import build_provider_clients
 from neurodb.config.task_router import TaskRouter
+from neurodb.research_tools import load_app_preference
 
 router = APIRouter()
 
@@ -32,6 +38,8 @@ def _build_agent(
     context_store,
     providers: dict,
     prior_context: str = "",
+    context_mode: str = DEFAULT_CONTEXT_MODE,
+    context_bundle: dict | None = None,
 ):
     router_obj = TaskRouter(providers)
     route = router_obj.route(f"agent.loop.{agent_mode}")
@@ -46,6 +54,8 @@ def _build_agent(
             context_store=context_store,
             prior_context=prior_context,
             model_provider=route.provider,
+            context_mode=context_mode,
+            context_bundle=context_bundle,
         )
     if agent_mode == "neuro_tutor":
         return NeuroTutorAgent(
@@ -56,6 +66,8 @@ def _build_agent(
             knowledge_store=knowledge_store,
             prior_context=prior_context,
             model_provider=route.provider,
+            context_mode=context_mode,
+            context_bundle=context_bundle,
         )
     return NeuroDbAgent(
         model_client=route.model_client,
@@ -77,6 +89,16 @@ def _get_prior_context(request: Request, engine) -> str:
     return context
 
 
+def _active_focus_from_body(body: ChatTurnRequest) -> dict | None:
+    if body.active_focus_type is None and body.active_focus_id is None:
+        return None
+    if body.active_focus_type not in {"topic", "research_question"}:
+        raise ValueError("active_focus_type must be 'topic' or 'research_question'")
+    if body.active_focus_id is None:
+        raise ValueError("active_focus_id is required when active_focus_type is set")
+    return {"focus_type": body.active_focus_type, "focus_id": body.active_focus_id}
+
+
 def _stream_chat(agent, message: str, history: list[dict]) -> Generator[str, None, None]:
     """Drive agent.chat() and emit SSE events."""
     chat_stream = getattr(agent, "chat_stream", None)
@@ -87,6 +109,9 @@ def _stream_chat(agent, message: str, history: list[dict]) -> Generator[str, Non
             return
         except AttributeError:
             pass
+        except Exception as exc:
+            yield _sse({"type": "error", "text": str(exc)})
+            return
 
     full_text_parts: list[str] = []
     try:
@@ -126,6 +151,29 @@ def chat_turn(
     stores = get_research_stores(request)
     history = [{"role": m.role, "content": m.content} for m in body.history]
     prior_context = _get_prior_context(request, engine)
+    try:
+        context_mode = normalize_context_mode(
+            body.context_mode
+            or load_app_preference(engine, "context_mode", DEFAULT_CONTEXT_MODE)
+        )
+        active_focus = _active_focus_from_body(body)
+    except ValueError as exc:
+        return JSONResponse(status_code=400, content={"detail": str(exc)})
+
+    context_bundle = None
+    if body.agent_mode in {"neuro_tutor", "neuro_research"}:
+        context_bundle = build_context_bundle(
+            engine,
+            request={
+                "mode": context_mode,
+                "agent_mode": body.agent_mode,
+                "user_message": body.message,
+                "active_focus": active_focus,
+            },
+            knowledge_store=stores["knowledge_store"],
+            vector_store=stores["vector_store"],
+            context_store=stores["context_store"],
+        )
     agent = _build_agent(
         body.agent_mode,
         engine,
@@ -134,6 +182,8 @@ def chat_turn(
         stores["context_store"],
         providers,
         prior_context,
+        context_mode,
+        context_bundle,
     )
 
     return StreamingResponse(

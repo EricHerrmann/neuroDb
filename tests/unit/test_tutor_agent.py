@@ -151,6 +151,24 @@ def test_system_prompt_contains_tutor_instructions():
     prompt = _agent()._build_system_prompt().lower()
     assert "knowledge library" in prompt
     assert "queue_source" in prompt
+    assert "never write that a source is queued" in prompt
+    assert "audit those references against tool results" in prompt
+    assert "readable markdown" in prompt
+    assert "bold emphasis" in prompt
+    assert "simple markdown tables" in prompt
+
+
+def test_tutor_prompt_includes_context_mode_and_bundle():
+    agent = _agent()
+    agent._context_mode = "grounded"
+    agent._context_bundle = {
+        "prompt_block": "NeuroDb context mode: grounded\npapers=1",
+    }
+
+    prompt = agent._build_system_prompt()
+
+    assert "Context mode: Strictly grounded" in prompt
+    assert "NeuroDb context mode: grounded" in prompt
 
 
 def test_search_topics_and_get_topic_bundle_in_tool_list():

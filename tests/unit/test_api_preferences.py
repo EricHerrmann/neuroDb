@@ -4,8 +4,8 @@ from fastapi.testclient import TestClient
 from sqlalchemy import create_engine
 from sqlalchemy.pool import StaticPool
 
-from neurodb.schema import Base
 from neurodb.api.routes.preferences import router
+from neurodb.schema import Base
 
 
 def _make_app(engine):
@@ -33,6 +33,7 @@ def test_get_preferences_returns_defaults():
     assert "agent_mode" in data
     assert "relevance_threshold" in data
     assert data["agent_mode"] == "local_db"
+    assert data["context_mode"] == "contextual"
     assert isinstance(data["relevance_threshold"], float)
 
 
@@ -61,4 +62,20 @@ def test_put_agent_mode_persists_and_returns_new_mode():
 def test_put_agent_mode_rejects_unknown_mode():
     client, _ = _make_client()
     resp = client.put("/api/preferences/agent-mode", json={"mode": "invalid"})
+    assert resp.status_code == 400
+
+
+def test_put_context_mode_persists_and_returns_new_mode():
+    client, _ = _make_client()
+    put_resp = client.put("/api/preferences/context-mode", json={"mode": "grounded"})
+    assert put_resp.status_code == 200
+    assert put_resp.json()["context_mode"] == "grounded"
+    get_resp = client.get("/api/preferences")
+    assert get_resp.status_code == 200
+    assert get_resp.json()["context_mode"] == "grounded"
+
+
+def test_put_context_mode_rejects_unknown_mode():
+    client, _ = _make_client()
+    resp = client.put("/api/preferences/context-mode", json={"mode": "strict"})
     assert resp.status_code == 400

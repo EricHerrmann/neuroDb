@@ -141,6 +141,7 @@ describe('ChatPanel', () => {
     const { qc, wrapper } = makeWrapperWithClient()
     qc.setQueryData(['preferences'], {
       agent_mode: 'local_db',
+      context_mode: 'grounded',
       relevance_threshold: 0.75,
     })
 
@@ -150,6 +151,7 @@ describe('ChatPanel', () => {
     await waitFor(() => {
       expect(qc.getQueryData(['preferences'])).toEqual({
         agent_mode: 'external_db',
+        context_mode: 'grounded',
         relevance_threshold: 0.75,
       })
     })

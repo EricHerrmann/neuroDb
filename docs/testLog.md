@@ -28,6 +28,7 @@ Use `Log ID` for cross-references across Open, Resolved, triage, sprint planning
 | LOG-013 | UI-shell-rearchitecture | Streamlit cannot support fixed-pane app-shell behavior; reassess UI stack after LT-3 | Deferred post-LT-3 |
 | LOG-030 | lt3-t2-pass-header-size | LT-3 T2 passed, but titles/headers render too large | UI polish |
 | LOG-051 | ui-icon-pane-association | UI epoch feature: hard to associate activity-rail icons with right pane content; needs stronger tooltips/associations and icon reorder with Research first, then Study Log | UI polish |
+| LOG-060 | chat-turn-hang | Chat hangs periodically and causes a page error; appears to occur during chat/turn; no server-side errors logged | UI / Agent Core |
 
 ### Research
 | Log ID | Issue ID | Description | Priority |
@@ -36,6 +37,7 @@ Use `Log ID` for cross-references across Open, Resolved, triage, sprint planning
 | LOG-045 | research-agent-no-knowledge-queue | Research agent cannot nominate papers for import to the knowledge library; no bridge to Tutor curation queue | Feature — Research epoch |
 | LOG-048 | dismiss-draft-hypothesis | No way to dismiss a draft hypothesis from the UI; dismiss exists for reviews but not the hypothesis itself | Research UI polish |
 | LOG-053 | research-agent-no-dataimport-suggestions | Research agent did not add suggestions to the data import queue even when specifically asked for suggestions | Research UI/agent polish |
+| LOG-061 | no-retract-lifecycle | No retract/remove path for evidence links, research questions, approved papers, or claims; EvidenceLink has no status field; UI does not expose reject/archive/retract where DB transitions exist | Research / DB |
 
 ---
 
@@ -60,6 +62,8 @@ Use `Log ID` for cross-references across Open, Resolved, triage, sprint planning
 | LOG-057 | 2026-05-13 | args-position-dependent | Tech Debt | CLI and Python function arguments should not be brittle or position-dependent; review the codebase for positional CLI globals and multi-argument function calls, then determine options to fix with keyword-only APIs, structured request objects, shared parser helpers, and inheritable patterns. | User logged during CLI/manual-test review |
 | LOG-058 | 2026-05-13 | ui5-common-t1-pass | UI | UI-5 common manual test T1 passed. | User logged during UI-5 common manual verification |
 | LOG-059 | 2026-05-18 | study-inner-join-drops-anchors | Study Log | `list_tags()` and `search_tags()` in study.py use INNER JOIN on DatasetIndex; topic/concept/paper-anchored notes are invisible to the study log API. After Phase 2 Task 4, StudyNote.index_id became nullable but the JOIN silently filters non-dataset notes. Fix deferred to Phase 5 / study log API update. | Code review / technical debt |
+| LOG-060 | 2026-05-21 | chat-turn-hang | UI / Agent Core | Chat hangs periodically and causes a page error; appears to occur during `POST /api/chat/turn`; no server-side errors logged at time of failure. | Phase 4 manual verification — T3/T6/T8 ad hoc observation |
+| LOG-061 | 2026-05-21 | no-retract-lifecycle | Research / DB | No way to remove or retract evidence links, research questions, approved papers, or claims once created. Evidence links have no status field at all — no soft-delete path exists. Claims and gaps have status transitions (reject/resolve) but no UI exposes them. Research questions have no rejection or archive status. The no-hard-delete posture is intentional for audit trail; the gaps are: (1) EvidenceLink needs a status field and retract operation; (2) ResearchQuestion needs an archived/withdrawn status; (3) UI needs reject/archive/retract surfaces for claims, gaps, links, and questions wherever the DB supports it. | Phase 4 T8 manual testing — ad hoc observation |
 
 ---
 

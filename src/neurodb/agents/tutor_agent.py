@@ -33,9 +33,19 @@ _TUTOR_SYSTEM_PROMPT = (
     "or website, call queue_source with the title, source type, and topic context so the user "
     "can review it later. To discover candidate learning resources, call search_literature. "
     "Never fabricate paper titles, DOIs, dataset IDs, counts, or source details. "
-    "Format user-facing answers for the chat window: use concise prose, short lists, "
-    "and simple Markdown tables only when they make comparison easier. Do not put raw "
-    "tool JSON or debug traces in the final answer."
+    "Never write that a source is queued, in the Knowledge Library, approved, local, "
+    "or cited from NeuroDb unless that state came from a successful tool result in this "
+    "turn or verified local context in the prompt. If you know a concept from training "
+    "knowledge but cannot verify a specific source, label it as model knowledge or "
+    "needs verification; do not attach a fake citation, DOI, queue status, or library "
+    "status. Before finalizing an answer that mentions papers, DOIs, datasets, claims, "
+    "or queued sources, audit those references against tool results and local context; "
+    "if a reference cannot be verified, say that plainly. "
+    "Format user-facing answers for the chat window with readable Markdown. Use short "
+    "section headings, bold emphasis, bullet or numbered lists, Markdown links, inline "
+    "code, fenced code blocks, and simple Markdown tables when they improve scanning "
+    "or comparison. Keep formatting restrained and readable. Do not put raw tool JSON "
+    "or debug traces in the final answer."
 )
 
 _TUTOR_TOOLS = [
@@ -90,7 +100,9 @@ _TUTOR_TOOLS = [
     },
     {
         "name": "search_topics",
-        "description": "Search for topics in the NeuroDb knowledge base by name or description keyword.",
+        "description": (
+            "Search for topics in the NeuroDb knowledge base by name or description keyword."
+        ),
         "input_schema": {
             "type": "object",
             "properties": {
@@ -139,6 +151,8 @@ class NeuroTutorAgent(BaseAgent):
         max_tokens: int = _DEFAULT_MAX_TOKENS,
         model_client=None,
         model_provider: str = "anthropic",
+        context_mode: str = "contextual",
+        context_bundle: dict | None = None,
     ) -> None:
         super().__init__(
             client,
@@ -151,6 +165,8 @@ class NeuroTutorAgent(BaseAgent):
             telemetry_mode="neuro_tutor",
             model_client=model_client,
             model_provider=model_provider,
+            context_mode=context_mode,
+            context_bundle=context_bundle,
         )
         self._knowledge_store = knowledge_store
         self._literature_client = literature_client
@@ -159,7 +175,9 @@ class NeuroTutorAgent(BaseAgent):
         return list(_TUTOR_TOOLS) + list(_DB_TOOLS)
 
     def _build_system_prompt(self) -> str:
-        system = _TUTOR_SYSTEM_PROMPT
+        system = f"{_TUTOR_SYSTEM_PROMPT}\n\n{_context_prompt_rules(self._context_mode)}"
+        if self._context_bundle and self._context_bundle.get("prompt_block"):
+            system = f"{system}\n\n{self._context_bundle['prompt_block']}"
         if self.prior_context:
             system = f"{system}\n\n{self.prior_context}"
         return system
@@ -230,13 +248,43 @@ class NeuroTutorAgent(BaseAgent):
         return json.dumps(self._literature_client.search(inputs["query"]))
 
     def _execute_search_topics(self, inputs: dict) -> str:
+        if self._context_bundle and self._context_bundle.get("topic_bundle"):
+            topic = self._context_bundle["topic_bundle"].get("topic") or {}
+            query = (inputs.get("query") or "").lower()
+            if topic.get("name") and topic["name"].lower() in query:
+                return json.dumps([topic])
         from neurodb.db.topic_store import search_topics
         with get_session(self._engine) as session:
             results = search_topics(session, inputs["query"], limit=inputs.get("limit", 10))
         return json.dumps(results)
 
     def _execute_get_topic_bundle(self, inputs: dict) -> str:
+        if self._context_bundle and self._context_bundle.get("topic_bundle"):
+            topic = self._context_bundle["topic_bundle"].get("topic") or {}
+            if topic.get("id") == inputs["topic_id"]:
+                return json.dumps(self._context_bundle["topic_bundle"])
         from neurodb.db.topic_store import get_topic_bundle
         with get_session(self._engine) as session:
             bundle = get_topic_bundle(session, inputs["topic_id"])
         return json.dumps(bundle)
+
+
+def _context_prompt_rules(mode: str) -> str:
+    if mode == "general":
+        return (
+            "Context mode: General. Teach from your neurology training first. "
+            "Use NeuroDb context only when explicitly provided or clearly requested, "
+            "and label it separately."
+        )
+    if mode == "grounded":
+        return (
+            "Context mode: Strictly grounded. Use approved/local NeuroDb sources "
+            "for factual literature claims. You may explain terms with model knowledge, "
+            "but do not present model-only knowledge as local evidence. Include local "
+            "evidence and unsupported-or-missing boundaries when answering."
+        )
+    return (
+        "Context mode: Use NeuroDb context. Teach from model neurology knowledge, "
+        "then focus the answer using available NeuroDb topics, papers, notes, "
+        "claims, and dataset packets. Separate general neurology from local context."
+    )

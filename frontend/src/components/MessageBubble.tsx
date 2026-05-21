@@ -1,17 +1,48 @@
 import type { Message } from '../hooks/useChat'
 
+function safeHref(href: string) {
+  const trimmed = href.trim()
+  if (/^(https?:|mailto:)/i.test(trimmed)) return trimmed
+  return '#'
+}
+
 function renderInline(text: string) {
-  const parts = text.split(/(`[^`]+`|\[[^\]]+\]\([^)]+\))/g)
+  const parts = text.split(/(`[^`]+`|\*\*[^*]+\*\*|\*[^*]+\*|\[[^\]]+\]\([^)]+\))/g)
   return parts.map((part, index) => {
     if (part.startsWith('`') && part.endsWith('`')) {
       return <code key={index} style={{ background: '#e2e8f0', padding: '1px 3px', borderRadius: 3 }}>{part.slice(1, -1)}</code>
     }
+    if (part.startsWith('**') && part.endsWith('**')) {
+      return <strong key={index}>{renderInline(part.slice(2, -2))}</strong>
+    }
+    if (part.startsWith('*') && part.endsWith('*')) {
+      return <em key={index}>{renderInline(part.slice(1, -1))}</em>
+    }
     const link = part.match(/^\[([^\]]+)\]\(([^)]+)\)$/)
     if (link) {
-      return <a key={index} href={link[2]} target="_blank" rel="noreferrer">{link[1]}</a>
+      return <a key={index} href={safeHref(link[2])} target="_blank" rel="noreferrer">{link[1]}</a>
     }
     return part
   })
+}
+
+function isTableStart(lines: string[], index: number) {
+  return (
+    lines[index]?.includes('|') &&
+    index + 1 < lines.length &&
+    /^\s*\|?\s*:?-{3,}/.test(lines[index + 1])
+  )
+}
+
+function isBlockStart(lines: string[], index: number) {
+  const line = lines[index] ?? ''
+  return (
+    line.startsWith('```') ||
+    /^#{1,4}\s+/.test(line) ||
+    /^\s*[-*]\s+/.test(line) ||
+    /^\s*\d+\.\s+/.test(line) ||
+    isTableStart(lines, index)
+  )
 }
 
 function MarkdownContent({ text }: { text: string }) {
@@ -39,7 +70,24 @@ function MarkdownContent({ text }: { text: string }) {
       )
       continue
     }
-    if (line.includes('|') && index + 1 < lines.length && /^\s*\|?\s*:?-{3,}/.test(lines[index + 1])) {
+    const heading = line.match(/^(#{1,4})\s+(.+)$/)
+    if (heading) {
+      const level = heading[1].length
+      const fontSize = level === 1 ? 18 : level === 2 ? 16 : 14
+      blocks.push(
+        <div
+          key={blocks.length}
+          role="heading"
+          aria-level={level}
+          style={{ fontWeight: 700, fontSize, margin: '8px 0 4px' }}
+        >
+          {renderInline(heading[2])}
+        </div>,
+      )
+      index += 1
+      continue
+    }
+    if (isTableStart(lines, index)) {
       const header = line.split('|').map(cell => cell.trim()).filter(Boolean)
       index += 2
       const rows = []
@@ -50,7 +98,7 @@ function MarkdownContent({ text }: { text: string }) {
       blocks.push(
         <table key={blocks.length} style={{ width: '100%', borderCollapse: 'collapse', margin: '6px 0' }}>
           <thead>
-            <tr>{header.map(cell => <th key={cell} style={{ textAlign: 'left', borderBottom: '1px solid #cbd5e1', padding: 3 }}>{cell}</th>)}</tr>
+            <tr>{header.map((cell, cellIndex) => <th key={cellIndex} style={{ textAlign: 'left', borderBottom: '1px solid #cbd5e1', padding: 3 }}>{renderInline(cell)}</th>)}</tr>
           </thead>
           <tbody>
             {rows.map((row, rowIndex) => (
@@ -83,9 +131,7 @@ function MarkdownContent({ text }: { text: string }) {
     while (
       index < lines.length &&
       lines[index].trim() &&
-      !lines[index].startsWith('```') &&
-      !/^\s*[-*]\s+/.test(lines[index]) &&
-      !/^\s*\d+\.\s+/.test(lines[index])
+      !isBlockStart(lines, index)
     ) {
       paragraph.push(lines[index])
       index += 1

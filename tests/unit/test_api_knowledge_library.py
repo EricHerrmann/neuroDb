@@ -3,12 +3,12 @@ from unittest.mock import MagicMock
 
 from fastapi import FastAPI
 from fastapi.testclient import TestClient
-from sqlalchemy import create_engine
+from sqlalchemy import create_engine, text
 from sqlalchemy.pool import StaticPool
 
 from neurodb.api.routes.knowledge_library import router
 from neurodb.db import get_session
-from neurodb.schema import Base, Paper
+from neurodb.schema import Base, Claim, Paper, PaperTopic, Topic
 
 
 def _make_app(engine, knowledge_store=None):
@@ -26,6 +26,12 @@ def _make_client(knowledge_store=None):
         connect_args={"check_same_thread": False},
         poolclass=StaticPool,
     )
+    Base.metadata.create_all(engine)
+    return TestClient(_make_app(engine, knowledge_store)), engine
+
+
+def _make_duckdb_client(knowledge_store=None):
+    engine = create_engine("duckdb:///:memory:", poolclass=StaticPool)
     Base.metadata.create_all(engine)
     return TestClient(_make_app(engine, knowledge_store)), engine
 
@@ -115,6 +121,148 @@ def test_approve_source_calls_add_summary():
     assert resp.status_code == 200
     assert resp.json()["warnings"] == []
     mock_ks.add_summary.assert_called_once()
+
+
+def test_approve_source_preserves_topic_links_with_duckdb():
+    mock_ks = MagicMock()
+    mock_ks.add_summary.return_value = "knowledge_source:1"
+    client, engine = _make_duckdb_client(mock_ks)
+    with get_session(engine) as session:
+        paper = Paper(
+            title="Linked Paper",
+            normalized_title="linked paper",
+            source_type="paper",
+            topic_context="stroke",
+            status="pending",
+            queued_at="2026-01-01T00:00:00",
+        )
+        topic = Topic(
+            name="stroke recovery",
+            description=None,
+            status="active",
+            created_at="2026-01-01T00:00:00",
+            updated_at="2026-01-01T00:00:00",
+        )
+        session.add_all([paper, topic])
+        session.flush()
+        source_id = paper.id
+        topic_id = topic.id
+        session.add(PaperTopic(paper_id=source_id, topic_id=topic_id))
+
+    resp = client.post(f"/api/knowledge-library/{source_id}/approve")
+
+    assert resp.status_code == 200
+    assert resp.json()["status"] == "approved"
+    with get_session(engine) as session:
+        link = session.query(PaperTopic).filter_by(
+            paper_id=source_id,
+            topic_id=topic_id,
+        ).one_or_none()
+        assert link is not None
+
+
+def test_approve_source_preserves_claims_with_duckdb():
+    mock_ks = MagicMock()
+    mock_ks.add_summary.return_value = "knowledge_source:1"
+    client, engine = _make_duckdb_client(mock_ks)
+    with get_session(engine) as session:
+        paper = Paper(
+            title="Claimed Paper",
+            normalized_title="claimed paper",
+            source_type="paper",
+            topic_context="stroke",
+            status="pending",
+            queued_at="2026-01-01T00:00:00",
+        )
+        session.add(paper)
+        session.flush()
+        source_id = paper.id
+        claim = Claim(
+            paper_id=source_id,
+            text="A real extracted claim.",
+            claim_type="finding",
+            status="approved",
+            created_at="2026-01-01T00:00:00",
+            updated_at="2026-01-01T00:00:00",
+        )
+        session.add(claim)
+        session.flush()
+        claim_id = claim.id
+
+    resp = client.post(f"/api/knowledge-library/{source_id}/approve")
+
+    assert resp.status_code == 200
+    assert resp.json()["status"] == "approved"
+    with get_session(engine) as session:
+        claim = session.get(Claim, claim_id)
+        assert claim is not None
+        assert claim.paper_id == source_id
+        assert claim.text == "A real extracted claim."
+
+
+def test_reject_source_handles_legacy_study_notes_without_paper_id_duckdb():
+    client, engine = _make_legacy_study_notes_duckdb_client()
+    with get_session(engine) as session:
+        paper = Paper(
+            title="Legacy Paper",
+            normalized_title="legacy paper",
+            source_type="paper",
+            topic_context="legacy",
+            status="pending",
+            queued_at="2026-01-01T00:00:00",
+        )
+        session.add(paper)
+        session.flush()
+        source_id = paper.id
+
+    resp = client.post(f"/api/knowledge-library/{source_id}/reject")
+
+    assert resp.status_code == 200
+    assert resp.json()["status"] == "rejected"
+
+
+def test_approve_source_handles_legacy_study_notes_without_paper_id_duckdb():
+    mock_ks = MagicMock()
+    mock_ks.add_summary.return_value = "knowledge_source:1"
+    client, engine = _make_legacy_study_notes_duckdb_client(mock_ks)
+    with get_session(engine) as session:
+        paper = Paper(
+            title="Legacy Approve Paper",
+            normalized_title="legacy approve paper",
+            source_type="paper",
+            topic_context="legacy",
+            status="pending",
+            queued_at="2026-01-01T00:00:00",
+        )
+        session.add(paper)
+        session.flush()
+        source_id = paper.id
+
+    resp = client.post(f"/api/knowledge-library/{source_id}/approve")
+
+    assert resp.status_code == 200
+    assert resp.json()["status"] == "approved"
+    assert resp.json()["warnings"] == []
+
+
+def _make_legacy_study_notes_duckdb_client(knowledge_store=None):
+    client, engine = _make_duckdb_client(knowledge_store)
+    with engine.begin() as conn:
+        conn.execute(text("DROP TABLE evidence_links"))
+        conn.execute(text("DROP TABLE study_notes"))
+        conn.execute(text("""
+            CREATE TABLE study_notes (
+                id INTEGER PRIMARY KEY,
+                index_id INTEGER,
+                topic_id INTEGER,
+                concept_id INTEGER,
+                concept_tag VARCHAR(128) NOT NULL,
+                section_ref VARCHAR(64),
+                note_text TEXT,
+                tagged_at VARCHAR(32) NOT NULL
+            )
+        """))
+    return client, engine
 
 
 def test_approve_source_returns_warning_when_chroma_fails():

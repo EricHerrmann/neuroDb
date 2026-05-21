@@ -39,12 +39,23 @@ _RESEARCH_SYSTEM_PROMPT = (
     "about local datasets, curated sources, prior project knowledge, or literature-search "
     "history. Hypotheses are drafts until explicitly tested. Every draft hypothesis must "
     "include confounds and limitations. Never claim a hypothesis is tested unless local "
-    "DB evidence and a testing plan support that claim. When the user asks you to check "
+    "DB evidence and a testing plan support that claim. "
+    "Never write that a source is queued, in the Knowledge Library, approved, local, "
+    "or cited from NeuroDb unless that state came from a successful tool result in this "
+    "turn or verified local context in the prompt. If you know a concept from training "
+    "knowledge but cannot verify a specific source, label it as model knowledge or "
+    "needs verification; do not attach a fake citation, DOI, queue status, or library "
+    "status. Before finalizing an answer that mentions papers, DOIs, datasets, claims, "
+    "evidence links, or queued sources, audit those references against tool results "
+    "and local context; if a reference cannot be verified, say that plainly. "
+    "When the user asks you to check "
     "an external dataset URL or source-native id, call inspect_external_dataset instead "
     "of saying you cannot browse. When the user asks to find external datasets by topic, "
-    "call search_external. Format user-facing answers for the chat window: use concise "
-    "prose, short lists, and simple Markdown tables only when they make comparison easier. "
-    "Do not put raw tool JSON or debug traces in the final answer. "
+    "call search_external. Format user-facing answers for the chat window with readable "
+    "Markdown. Use short section headings, bold emphasis, bullet or numbered lists, "
+    "Markdown links, inline code, fenced code blocks, and simple Markdown tables when "
+    "they improve scanning or comparison. Keep formatting restrained and readable. Do "
+    "not put raw tool JSON or debug traces in the final answer. "
     "Before answering a research question, call get_question_bundle to retrieve the active "
     "topic, hypotheses, approved claims, and open gaps; use add_evidence_link to ground "
     "hypothesis drafts in local sources rather than free-text evidence; use add_gap when "
@@ -294,6 +305,8 @@ class NeuroResearchAgent(BaseAgent):
         max_tokens: int = _RESEARCH_MAX_TOKENS,
         model_client=None,
         model_provider: str = "anthropic",
+        context_mode: str = "contextual",
+        context_bundle: dict | None = None,
     ) -> None:
         super().__init__(
             client,
@@ -307,6 +320,8 @@ class NeuroResearchAgent(BaseAgent):
             telemetry_mode="neuro_research",
             model_client=model_client,
             model_provider=model_provider,
+            context_mode=context_mode,
+            context_bundle=context_bundle,
         )
         self._knowledge_store = knowledge_store
         self._literature_client = literature_client
@@ -318,7 +333,13 @@ class NeuroResearchAgent(BaseAgent):
 
     def _build_system_prompt(self) -> str:
         current_date = self._current_date or date.today().isoformat()
-        system = f"{_RESEARCH_SYSTEM_PROMPT}\n\nCurrent date: {current_date}"
+        system = (
+            f"{_RESEARCH_SYSTEM_PROMPT}\n\n"
+            f"{_context_prompt_rules(self._context_mode)}\n\n"
+            f"Current date: {current_date}"
+        )
+        if self._context_bundle and self._context_bundle.get("prompt_block"):
+            system = f"{system}\n\n{self._context_bundle['prompt_block']}"
         if self.prior_context:
             system = f"{system}\n\n{self.prior_context}"
         return system
@@ -407,6 +428,10 @@ class NeuroResearchAgent(BaseAgent):
             with get_session(self._engine) as session:
                 return json.dumps(_resolve_gap(session, block.tool_input["gap_id"]))
         if block.tool_name == "get_question_bundle":
+            if self._context_bundle and self._context_bundle.get("question_bundle"):
+                question = self._context_bundle["question_bundle"].get("question") or {}
+                if question.get("id") == block.tool_input["question_id"]:
+                    return json.dumps(self._context_bundle["question_bundle"])
             from neurodb.db import get_session
             from neurodb.db.claim_store import get_question_bundle as _get_question_bundle
             with get_session(self._engine) as session:
@@ -454,12 +479,22 @@ class NeuroResearchAgent(BaseAgent):
                 "'claim_type' (one of: finding, limitation, method, question).\n\n"
                 f"{context}\n\nReturn only the JSON array."
             )
-            response = self._client.messages.create(
+            response = self._model_client.create_message(
                 model=self._model,
-                max_tokens=1024,
                 messages=[{"role": "user", "content": prompt}],
+                system="",
+                tools=[],
+                max_tokens=1024,
             )
-            raw = response.content[0].text
+            text_blocks = [b for b in response.content if b.type == "text" and b.text]
+            if not text_blocks:
+                return {"error": "Claim extraction returned no text content"}
+            raw = text_blocks[0].text.strip()
+            if raw.startswith("```"):
+                raw = raw.split("```", 2)[1]
+                if raw.startswith("json"):
+                    raw = raw[4:]
+                raw = raw.rsplit("```", 1)[0].strip()
             try:
                 candidate_claims = json.loads(raw)
             except (json.JSONDecodeError, IndexError):
@@ -473,7 +508,11 @@ class NeuroResearchAgent(BaseAgent):
                     continue
                 try:
                     claim = create_claim(session, paper_id, item["text"], item["claim_type"])
-                    created.append({"id": claim.id, "text": claim.text, "claim_type": claim.claim_type})
+                    created.append({
+                        "id": claim.id,
+                        "text": claim.text,
+                        "claim_type": claim.claim_type,
+                    })
                 except ValueError:
                     continue
             return {
@@ -495,7 +534,12 @@ class NeuroResearchAgent(BaseAgent):
             "note": {"note_id": source_id},
         }
         if source_type not in source_kwargs:
-            return {"error": f"Unknown source_type: {source_type!r}. Valid: claim, paper, dataset, note"}
+            return {
+                "error": (
+                    f"Unknown source_type: {source_type!r}. "
+                    "Valid: claim, paper, dataset, note"
+                )
+            }
 
         with get_session(self._engine) as session:
             link = _add_evidence_link(
@@ -559,3 +603,24 @@ def _format_section_value(value) -> str:
     if isinstance(value, dict):
         return ", ".join(f"{key}: {val}" for key, val in value.items())
     return str(value)
+
+
+def _context_prompt_rules(mode: str) -> str:
+    if mode == "general":
+        return (
+            "Context mode: General. You may brainstorm and explain mechanisms from "
+            "model neurology knowledge, but label ungrounded research ideas as model "
+            "reasoning rather than local evidence."
+        )
+    if mode == "grounded":
+        return (
+            "Context mode: Strictly grounded. Start from approved/local evidence, "
+            "claims, notes, and question bundles. Do not present a research conclusion "
+            "without local support. If support is missing, identify or record an "
+            "evidence gap instead."
+        )
+    return (
+        "Context mode: Use NeuroDb context. Use model neurology knowledge for "
+        "reasoning, but organize the answer around available question bundles, "
+        "topic context, approved claims, evidence links, and gaps."
+    )

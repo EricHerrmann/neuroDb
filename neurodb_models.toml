@@ -4,9 +4,9 @@
 # To change active providers, edit [routing] below — no env vars needed.
 
 [routing]
-economy  = "openai"
-standard = "openai"
-premium  = "openai"
+economy  = "anthropic"
+standard = "anthropic"
+premium  = "anthropic"
 
 [tiers.economy]
 
@@ -22,18 +22,18 @@ last_verified_at = "2026-05-08"
 
 [tiers.economy.providers.gemini]
 model = "gemini-2.5-flash-lite"
-eval_status = "baseline"
-last_verified_at = "2026-05-08"
+eval_status = "degraded"
+last_verified_at = "2026-05-20"
 
 [tiers.economy.providers.groq]
 model = "llama-3.1-8b-instant"
 eval_status = "baseline"
-last_verified_at = "2026-05-08"
+last_verified_at = "2026-05-20"
 
 [tiers.economy.providers.deepseek]
 model = "deepseek-chat"
-eval_status = "unverified"
-last_verified_at = ""
+eval_status = "baseline"
+last_verified_at = "2026-05-20"
 
 [tiers.standard]
 
@@ -50,17 +50,17 @@ last_verified_at = "2026-05-08"
 [tiers.standard.providers.gemini]
 model = "gemini-2.5-flash"
 eval_status = "baseline"
-last_verified_at = "2026-05-08"
+last_verified_at = "2026-05-20"
 
 [tiers.standard.providers.groq]
 model = "llama-3.3-70b-versatile"
 eval_status = "baseline"
-last_verified_at = "2026-05-08"
+last_verified_at = "2026-05-20"
 
 [tiers.standard.providers.deepseek]
 model = "deepseek-chat"
-eval_status = "unverified"
-last_verified_at = ""
+eval_status = "baseline"
+last_verified_at = "2026-05-20"
 
 [tiers.premium]
 
@@ -81,13 +81,13 @@ last_verified_at = "2026-05-08"
 
 [tiers.premium.providers.groq]
 model = "openai/gpt-oss-120b"
-eval_status = "baseline"
-last_verified_at = "2026-05-08"
+eval_status = "degraded"
+last_verified_at = "2026-05-20"
 
 [tiers.premium.providers.deepseek]
 model = "deepseek-reasoner"
-eval_status = "unverified"
-last_verified_at = ""
+eval_status = "baseline"
+last_verified_at = "2026-05-20"
 
 # Task types → tier + max_tokens
 # task_type keys must match the telemetry_task_type values used in agents
@@ -114,7 +114,7 @@ max_tokens = 2048
 
 [tasks."agent.loop.neuro_tutor"]
 tier = "standard"
-max_tokens = 2048
+max_tokens = 4096
 
 [tasks."agent.loop.neuro_research"]
 tier = "standard"
@@ -122,7 +122,7 @@ max_tokens = 4096
 
 [tasks."agent.loop.research"]
 tier = "standard"
-max_tokens = 2048
+max_tokens = 4096
 
 [tasks."agent.loop.unknown"]
 tier = "standard"

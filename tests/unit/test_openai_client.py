@@ -25,6 +25,10 @@ def _make_completion(text="hello", finish_reason="stop"):
     return response
 
 
+class _RetryableError(Exception):
+    status_code = 500
+
+
 def test_create_message_uses_max_completion_tokens():
     client, mock_sdk = _make_client()
     mock_sdk.chat.completions.create.return_value = _make_completion()
@@ -41,6 +45,26 @@ def test_create_message_uses_max_completion_tokens():
     assert "max_completion_tokens" in call_kwargs
     assert call_kwargs["max_completion_tokens"] == 512
     assert "max_tokens" not in call_kwargs
+
+
+def test_create_message_retries_retryable_provider_error():
+    client, mock_sdk = _make_client()
+    mock_sdk.chat.completions.create.side_effect = [
+        _RetryableError("Error code: 500"),
+        _make_completion(),
+    ]
+
+    with patch("neurodb.config.providers.openai_client.sleep"):
+        response = client.create_message(
+            model="gpt-5.4-mini",
+            messages=[{"role": "user", "content": "hi"}],
+            system="you are helpful",
+            tools=[],
+            max_tokens=512,
+        )
+
+    assert response.content[0].text == "hello"
+    assert mock_sdk.chat.completions.create.call_count == 2
 
 
 def test_stream_message_uses_max_completion_tokens():
@@ -60,6 +84,26 @@ def test_stream_message_uses_max_completion_tokens():
     assert "max_completion_tokens" in call_kwargs
     assert call_kwargs["max_completion_tokens"] == 512
     assert "max_tokens" not in call_kwargs
+
+
+def test_stream_message_retries_retryable_provider_error():
+    client, mock_sdk = _make_client()
+    mock_sdk.chat.completions.create.side_effect = [
+        _RetryableError("Error code: 500"),
+        iter([]),
+    ]
+
+    with patch("neurodb.config.providers.openai_client.sleep"):
+        with client.stream_message(
+            model="gpt-5.4-mini",
+            messages=[{"role": "user", "content": "hi"}],
+            system="you are helpful",
+            tools=[],
+            max_tokens=512,
+        ):
+            pass
+
+    assert mock_sdk.chat.completions.create.call_count == 2
 
 
 def test_format_tool_result_returns_anthropic_format():

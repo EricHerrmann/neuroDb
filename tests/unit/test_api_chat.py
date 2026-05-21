@@ -3,7 +3,7 @@ from __future__ import annotations
 
 import json
 from types import SimpleNamespace
-from unittest.mock import MagicMock, patch
+from unittest.mock import ANY, MagicMock, patch
 
 from fastapi import FastAPI
 from fastapi.testclient import TestClient
@@ -113,6 +113,30 @@ def test_chat_turn_streams_tool_activity_events():
     assert events[0]["tool_name"] == "query_db"
 
 
+def test_chat_turn_streams_error_event_when_agent_stream_raises():
+    client = _make_client()
+
+    class FailingStreamingAgent:
+        def chat_stream(self, message, history):
+            yield {"type": "context_summary", "context_mode": "contextual"}
+            raise RuntimeError("provider stream failed")
+
+    with patch("neurodb.api.routes.chat._build_agent", return_value=FailingStreamingAgent()):
+        with patch(
+            "neurodb.api.routes.chat.build_provider_clients",
+            return_value={"anthropic": MagicMock()},
+        ):
+            resp = client.post(
+                "/api/chat/turn",
+                json={"message": "hi", "history": [], "agent_mode": "local_db"},
+            )
+
+    assert resp.status_code == 200
+    events = _parse_sse_events(resp.text)
+    assert [event["type"] for event in events] == ["context_summary", "error"]
+    assert "provider stream failed" in events[-1]["text"]
+
+
 def test_chat_turn_rejects_unknown_agent_mode():
     """POST with agent_mode='invalid' should return 400 before streaming."""
     client = _make_client()
@@ -164,6 +188,8 @@ def test_build_agent_passes_chroma_stores_to_research_agent():
             context_store="context-store",
             providers={"anthropic": object()},
             prior_context="prior",
+            context_mode="grounded",
+            context_bundle={"mode": "grounded"},
         )
 
     router_cls.return_value.route.assert_called_once_with("agent.loop.neuro_research")
@@ -177,6 +203,8 @@ def test_build_agent_passes_chroma_stores_to_research_agent():
         context_store="context-store",
         prior_context="prior",
         model_provider="anthropic",
+        context_mode="grounded",
+        context_bundle={"mode": "grounded"},
     )
     assert agent == agent_cls.return_value
 
@@ -204,6 +232,8 @@ def test_build_agent_preserves_external_db_mode():
             context_store="context-store",
             providers={"anthropic": object()},
             prior_context="prior",
+            context_mode="general",
+            context_bundle={"mode": "general"},
         )
 
     router_cls.return_value.route.assert_called_once_with("agent.loop.external_db")
@@ -254,4 +284,71 @@ def test_chat_turn_passes_context_store_to_agent_builder():
         "context-store",
         providers,
         "",
+        "contextual",
+        ANY,
     )
+
+
+def test_chat_turn_rejects_unknown_context_mode():
+    client = _make_client()
+    with patch(
+        "neurodb.api.routes.chat.build_provider_clients",
+        return_value={"anthropic": MagicMock()},
+    ):
+        resp = client.post(
+            "/api/chat/turn",
+            json={
+                "message": "hi",
+                "history": [],
+                "agent_mode": "neuro_tutor",
+                "context_mode": "strict",
+            },
+        )
+    assert resp.status_code == 400
+
+
+def test_chat_turn_passes_request_context_mode_and_focus_to_bundle_builder():
+    engine = create_engine(
+        "sqlite:///:memory:",
+        connect_args={"check_same_thread": False},
+        poolclass=StaticPool,
+    )
+    Base.metadata.create_all(engine)
+    app = FastAPI()
+    app.state.engine = engine
+    app.state.vector_store = "vector-store"
+    app.state.knowledge_store = "knowledge-store"
+    app.state.context_store = "context-store"
+    app.include_router(router, prefix="/api")
+    client = TestClient(app)
+
+    mock_agent = MagicMock()
+    mock_agent.chat.return_value = iter(["hello"])
+    providers = {"anthropic": MagicMock()}
+    context_bundle = {"mode": "grounded", "source_counts": {}, "warnings": []}
+    with patch("neurodb.api.routes.chat._build_agent", return_value=mock_agent):
+        with patch("neurodb.api.routes.chat.build_provider_clients", return_value=providers):
+            with patch(
+                "neurodb.api.routes.chat.build_context_bundle",
+                return_value=context_bundle,
+            ) as build_bundle:
+                resp = client.post(
+                    "/api/chat/turn",
+                    json={
+                        "message": "hi",
+                        "history": [],
+                        "agent_mode": "neuro_research",
+                        "context_mode": "grounded",
+                        "active_focus_type": "research_question",
+                        "active_focus_id": 7,
+                    },
+                )
+
+    assert resp.status_code == 200
+    build_bundle.assert_called_once()
+    assert build_bundle.call_args.kwargs["request"] == {
+        "mode": "grounded",
+        "agent_mode": "neuro_research",
+        "user_message": "hi",
+        "active_focus": {"focus_type": "research_question", "focus_id": 7},
+    }

@@ -43,6 +43,7 @@ export default function ChatPanel({ agentMode }: { agentMode: AgentModeValue }) 
     onSuccess: data => {
       queryClient.setQueryData<Preferences>(['preferences'], old => ({
         relevance_threshold: old?.relevance_threshold ?? 0.5,
+        context_mode: old?.context_mode ?? 'contextual',
         agent_mode: data.agent_mode as Preferences['agent_mode'],
       }))
       queryClient.invalidateQueries({ queryKey: ['preferences'] })

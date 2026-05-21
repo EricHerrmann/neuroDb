@@ -3,6 +3,11 @@ from abc import ABC, abstractmethod
 from collections.abc import Generator, Iterable
 from time import perf_counter
 
+from neurodb.agents.context_orchestrator import (
+    DEFAULT_CONTEXT_MODE,
+    context_summary_event,
+    normalize_context_mode,
+)
 from neurodb.config.model_client import ContentBlock, ModelClient
 from neurodb.model_telemetry import record_model_call
 
@@ -27,6 +32,8 @@ class BaseAgent(ABC):
         telemetry_task_type: str | None = None,
         model_client: ModelClient | None = None,
         model_provider: str = "anthropic",
+        context_mode: str = DEFAULT_CONTEXT_MODE,
+        context_bundle: dict | None = None,
     ) -> None:
         self._client = client
         self._engine = engine
@@ -37,6 +44,8 @@ class BaseAgent(ABC):
         self._save_partial_progress_on_budget = save_partial_progress_on_budget
         self._max_tokens = max_tokens
         self._telemetry_mode = telemetry_mode
+        self._context_mode = normalize_context_mode(context_mode)
+        self._context_bundle = context_bundle
         self._telemetry_task_type = (
             telemetry_task_type
             or f"agent.loop.{telemetry_mode or 'unknown'}"
@@ -163,6 +172,9 @@ class BaseAgent(ABC):
     def _chat_stream_inner(self, user_message: str, messages: list[dict]) -> Iterable[dict]:
         active_tools = self._get_active_tools()
         system = self._build_system_prompt()
+        summary_event = context_summary_event(self._context_bundle)
+        if summary_event is not None:
+            yield summary_event
 
         checkpoint = len(messages)
         messages.append({"role": "user", "content": user_message})

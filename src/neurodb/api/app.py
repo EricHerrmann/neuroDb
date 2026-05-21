@@ -26,6 +26,7 @@ def create_app(
     app.state.tasks = {}
 
     from neurodb.api.routes import (
+        atlas,
         chat,
         datasets,
         knowledge_library,
@@ -41,6 +42,7 @@ def create_app(
         tasks,
     )
 
+    app.include_router(atlas.router, prefix="/api")
     app.include_router(status.router, prefix="/api")
     app.include_router(model_info.router, prefix="/api")
     app.include_router(tasks.router, prefix="/api")

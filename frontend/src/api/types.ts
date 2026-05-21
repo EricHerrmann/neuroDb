@@ -135,6 +135,7 @@ export interface SqlResult {
 
 export interface Preferences {
   agent_mode: 'local_db' | 'external_db' | 'neuro_tutor' | 'neuro_research'
+  context_mode: 'general' | 'contextual' | 'grounded'
   relevance_threshold: number
 }
 

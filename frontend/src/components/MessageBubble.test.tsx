@@ -19,6 +19,39 @@ describe('MessageBubble', () => {
     expect(screen.getByText('10.1/test')).toBeTruthy()
   })
 
+  it('renders common rich markdown formatting', () => {
+    render(
+      <MessageBubble
+        message={{
+          role: 'assistant',
+          content: '## Evidence\n\n**Local:** [Paper](https://example.test/paper) with `doi`.\n\n- first\n- second',
+        }}
+      />,
+    )
+
+    expect(screen.getByRole('heading', { name: 'Evidence' })).toBeTruthy()
+    expect(screen.getByText('Local:').tagName).toBe('STRONG')
+    expect(screen.getByRole('link', { name: 'Paper' })).toHaveAttribute(
+      'href',
+      'https://example.test/paper',
+    )
+    expect(screen.getByText('doi').tagName).toBe('CODE')
+    expect(screen.getByText('first').tagName).toBe('LI')
+  })
+
+  it('blocks unsafe markdown link protocols', () => {
+    render(
+      <MessageBubble
+        message={{
+          role: 'assistant',
+          content: '[Unsafe](javascript:alert(1))',
+        }}
+      />,
+    )
+
+    expect(screen.getByRole('link', { name: 'Unsafe' })).toHaveAttribute('href', '#')
+  })
+
   it('renders tool activity separately from answer text', () => {
     render(
       <MessageBubble

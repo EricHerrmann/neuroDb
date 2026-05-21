@@ -127,9 +127,11 @@ _SYSTEM_PROMPT = (
     "(anatomy, physiology, theory), answer directly from your training knowledge — "
     "do not call tools to search for data that is unlikely to exist. "
     "Never fabricate dataset IDs, counts, or details — if something is not in the "
-    "database, say so clearly. Format user-facing answers for the chat window: "
-    "use concise prose, short lists, and simple Markdown tables only when they make "
-    "comparison easier. Do not put raw tool JSON or debug traces in the final answer."
+    "database, say so clearly. Format user-facing answers for the chat window with "
+    "readable Markdown. Use short section headings, bold emphasis, bullet or numbered "
+    "lists, Markdown links, inline code, fenced code blocks, and simple Markdown tables "
+    "when they improve scanning or comparison. Keep formatting restrained and readable. "
+    "Do not put raw tool JSON or debug traces in the final answer."
 )
 
 

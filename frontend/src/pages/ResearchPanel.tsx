@@ -2,9 +2,10 @@ import { useState } from 'react'
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 
 import { api } from '../api/client'
+import StatusChip from '../components/StatusChip'
 import TaskStatus from '../components/TaskStatus'
 import { useTask } from '../hooks/useTask'
-import type { Hypothesis, HypothesisReviewItem } from '../api/types'
+import type { ClaimItem, EvidenceLinkItem, Hypothesis, HypothesisReviewItem, ResearchGapItem } from '../api/types'
 
 function renderListValue(value: unknown): string {
   if (typeof value === 'string') return value
@@ -58,6 +59,18 @@ function StatusFilters({
       ))}
     </div>
   )
+}
+
+function QuestionStatusChip({ question }: { question: { id: number; status: string } }) {
+  const queryClient = useQueryClient()
+  const archive = useMutation({
+    mutationFn: () => api.archiveQuestion(question.id),
+    onSuccess: () => queryClient.invalidateQueries({ queryKey: ['research-questions'] }),
+  })
+  const transitions: { label: string; onSelect: () => void }[] = question.status !== 'archived'
+    ? [{ label: 'Archive', onSelect: () => archive.mutate() }]
+    : []
+  return <StatusChip status={question.status} transitions={transitions} isPending={archive.isPending} />
 }
 
 function HypothesisReviewCard({ review }: { review: HypothesisReviewItem }) {
@@ -116,6 +129,23 @@ function HypothesisReviewCard({ review }: { review: HypothesisReviewItem }) {
 }
 
 function HypothesisDetails({ hypothesis }: { hypothesis: Hypothesis }) {
+  const queryClient = useQueryClient()
+  const { data: evidenceLinks = [] } = useQuery({
+    queryKey: ['evidence-links', hypothesis.id],
+    queryFn: () => api.getEvidenceLinks(hypothesis.id),
+  })
+
+  function LinkChip({ link }: { link: EvidenceLinkItem }) {
+    const retract = useMutation({
+      mutationFn: () => api.retractEvidenceLink(link.id),
+      onSuccess: () => queryClient.invalidateQueries({ queryKey: ['evidence-links', hypothesis.id] }),
+    })
+    const transitions: { label: string; onSelect: () => void }[] = link.status === 'active'
+      ? [{ label: 'Retract', onSelect: () => retract.mutate() }]
+      : []
+    return <StatusChip status={link.status} transitions={transitions} isPending={retract.isPending} />
+  }
+
   return (
     <div style={{ marginTop: 8, padding: 8, background: '#f8fafc', border: '1px solid #e2e8f0', borderRadius: 6 }}>
       {hypothesis.mechanism && (
@@ -130,6 +160,17 @@ function HypothesisDetails({ hypothesis }: { hypothesis: Hypothesis }) {
       {hypothesis.limitations && (
         <div style={{ marginTop: 6, fontSize: 11, color: '#334155' }}>
           <strong>Limitations:</strong> {hypothesis.limitations}
+        </div>
+      )}
+      {evidenceLinks.length > 0 && (
+        <div style={{ marginTop: 8 }}>
+          <div style={{ fontSize: 11, fontWeight: 600, color: '#475569', marginBottom: 4 }}>Evidence Links</div>
+          {evidenceLinks.map(link => (
+            <div key={link.id} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '3px 0', fontSize: 11, color: '#334155' }}>
+              <span>{link.link_type} · {link.paper_id != null ? `paper:${link.paper_id}` : link.claim_id != null ? `claim:${link.claim_id}` : link.packet_id != null ? `packet:${link.packet_id}` : `note:${link.note_id}`}</span>
+              <LinkChip link={link} />
+            </div>
+          ))}
         </div>
       )}
     </div>
@@ -201,6 +242,114 @@ function HypothesisCard({ hypothesis }: { hypothesis: Hypothesis }) {
           ))}
         </div>
       )}
+    </div>
+  )
+}
+
+function ClaimsSection() {
+  const queryClient = useQueryClient()
+  const { data: claims = [], isLoading } = useQuery({
+    queryKey: ['research-claims'],
+    queryFn: api.getClaims,
+  })
+
+  function ClaimChip({ claim }: { claim: ClaimItem }) {
+    const approve = useMutation({
+      mutationFn: () => api.approveClaim(claim.id),
+      onSuccess: () => queryClient.invalidateQueries({ queryKey: ['research-claims'] }),
+    })
+    const reject = useMutation({
+      mutationFn: () => api.rejectClaim(claim.id),
+      onSuccess: () => queryClient.invalidateQueries({ queryKey: ['research-claims'] }),
+    })
+    const transitions: { label: string; onSelect: () => void }[] = []
+    if (claim.status === 'candidate' || claim.status === 'rejected') {
+      transitions.push({ label: 'Approve', onSelect: () => approve.mutate() })
+    }
+    if (claim.status === 'candidate' || claim.status === 'approved') {
+      transitions.push({ label: 'Reject', onSelect: () => reject.mutate() })
+    }
+    return (
+      <StatusChip
+        status={claim.status}
+        transitions={transitions}
+        isPending={approve.isPending || reject.isPending}
+      />
+    )
+  }
+
+  return (
+    <div style={{ marginBottom: 12 }}>
+      <div style={{ fontWeight: 600, fontSize: 12, marginBottom: 6 }}>
+        Claims ({claims.length})
+      </div>
+      {isLoading ? (
+        <span style={{ fontSize: 12, color: '#94a3b8' }}>Loading...</span>
+      ) : claims.length === 0 ? (
+        <p style={{ color: '#94a3b8', fontSize: 12 }}>No claims yet.</p>
+      ) : claims.map(claim => (
+        <div key={claim.id} style={{ padding: '6px 0', borderBottom: '1px solid #f1f5f9', display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', gap: 8 }}>
+          <div>
+            <div style={{ fontSize: 12, color: '#334155' }}>{claim.text}</div>
+            <div style={{ fontSize: 10, color: '#94a3b8' }}>{claim.claim_type} · {claim.created_at?.slice(0, 10)}</div>
+          </div>
+          <ClaimChip claim={claim} />
+        </div>
+      ))}
+    </div>
+  )
+}
+
+function GapsSection() {
+  const queryClient = useQueryClient()
+  const { data: gaps = [], isLoading } = useQuery({
+    queryKey: ['research-gaps'],
+    queryFn: api.getGaps,
+  })
+
+  function GapChip({ gap }: { gap: ResearchGapItem }) {
+    const resolve = useMutation({
+      mutationFn: () => api.resolveGap(gap.id),
+      onSuccess: () => queryClient.invalidateQueries({ queryKey: ['research-gaps'] }),
+    })
+    const archive = useMutation({
+      mutationFn: () => api.archiveGap(gap.id),
+      onSuccess: () => queryClient.invalidateQueries({ queryKey: ['research-gaps'] }),
+    })
+    const transitions: { label: string; onSelect: () => void }[] = []
+    if (gap.status === 'open') {
+      transitions.push({ label: 'Resolve', onSelect: () => resolve.mutate() })
+    }
+    if (gap.status !== 'archived') {
+      transitions.push({ label: 'Archive', onSelect: () => archive.mutate() })
+    }
+    return (
+      <StatusChip
+        status={gap.status}
+        transitions={transitions}
+        isPending={resolve.isPending || archive.isPending}
+      />
+    )
+  }
+
+  return (
+    <div style={{ marginBottom: 12 }}>
+      <div style={{ fontWeight: 600, fontSize: 12, marginBottom: 6 }}>
+        Gaps ({gaps.length})
+      </div>
+      {isLoading ? (
+        <span style={{ fontSize: 12, color: '#94a3b8' }}>Loading...</span>
+      ) : gaps.length === 0 ? (
+        <p style={{ color: '#94a3b8', fontSize: 12 }}>No gaps yet.</p>
+      ) : gaps.map(gap => (
+        <div key={gap.id} style={{ padding: '6px 0', borderBottom: '1px solid #f1f5f9', display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', gap: 8 }}>
+          <div>
+            <div style={{ fontSize: 12, color: '#334155' }}>{gap.description}</div>
+            <div style={{ fontSize: 10, color: '#94a3b8' }}>{gap.gap_type} · {gap.created_at?.slice(0, 10)}</div>
+          </div>
+          <GapChip gap={gap} />
+        </div>
+      ))}
     </div>
   )
 }
@@ -287,14 +436,23 @@ export default function ResearchPanel() {
         ) : questions.length === 0 ? (
           <p style={{ color: '#94a3b8', fontSize: 12 }}>No research questions yet.</p>
         ) : questions.map(question => (
-          <div key={question.id} style={{ padding: '6px 0', borderBottom: '1px solid #f1f5f9' }}>
-            <div style={{ fontSize: 13 }}>{question.question}</div>
-            <div style={{ fontSize: 11, color: '#94a3b8' }}>
-              {question.status} · {question.created_at?.slice(0, 10)}
+          <div key={question.id} style={{ padding: '6px 0', borderBottom: '1px solid #f1f5f9', display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', gap: 8 }}>
+            <div>
+              <div style={{ fontSize: 13 }}>{question.question}</div>
+              <div style={{ fontSize: 11, color: '#94a3b8' }}>{question.created_at?.slice(0, 10)}</div>
             </div>
+            <QuestionStatusChip question={question} />
           </div>
         ))}
       </div>
+
+      <hr style={{ margin: '12px 0', border: 'none', borderTop: '1px solid #e2e8f0' }} />
+
+      <ClaimsSection />
+
+      <hr style={{ margin: '12px 0', border: 'none', borderTop: '1px solid #e2e8f0' }} />
+
+      <GapsSection />
 
       <hr style={{ margin: '12px 0', border: 'none', borderTop: '1px solid #e2e8f0' }} />
 

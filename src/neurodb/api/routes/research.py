@@ -240,6 +240,69 @@ def _hypothesis_item(row: ResearchHypothesis) -> Hypothesis:
     )
 
 
+def _update_status(engine: Engine, model_cls, item_id: int, status: str, schema_cls):
+    """Generic status update helper. Returns 404 if item not found."""
+    with get_session(engine) as session:
+        row = session.get(model_cls, item_id)
+        if row is None:
+            raise HTTPException(
+                status_code=404,
+                detail=f"{model_cls.__name__} {item_id} not found",
+            )
+        row.status = status
+        session.flush()
+        return schema_cls.model_validate(row)
+
+
+@router.post("/evidence-links/{link_id}/retract", response_model=EvidenceLinkItem)
+def retract_evidence_link(
+    link_id: int,
+    engine: Engine = Depends(get_engine),
+) -> EvidenceLinkItem:
+    return _update_status(engine, EvidenceLink, link_id, "retracted", EvidenceLinkItem)
+
+
+@router.post("/questions/{question_id}/archive", response_model=ResearchQuestion)
+def archive_question(
+    question_id: int,
+    engine: Engine = Depends(get_engine),
+) -> ResearchQuestion:
+    from neurodb.schema import ResearchQuestion as ResearchQuestionORM
+    return _update_status(engine, ResearchQuestionORM, question_id, "archived", ResearchQuestion)
+
+
+@router.post("/claims/{claim_id}/approve", response_model=ClaimItem)
+def approve_claim(
+    claim_id: int,
+    engine: Engine = Depends(get_engine),
+) -> ClaimItem:
+    return _update_status(engine, Claim, claim_id, "approved", ClaimItem)
+
+
+@router.post("/claims/{claim_id}/reject", response_model=ClaimItem)
+def reject_claim(
+    claim_id: int,
+    engine: Engine = Depends(get_engine),
+) -> ClaimItem:
+    return _update_status(engine, Claim, claim_id, "rejected", ClaimItem)
+
+
+@router.post("/gaps/{gap_id}/resolve", response_model=ResearchGapItem)
+def resolve_gap(
+    gap_id: int,
+    engine: Engine = Depends(get_engine),
+) -> ResearchGapItem:
+    return _update_status(engine, ResearchGap, gap_id, "resolved", ResearchGapItem)
+
+
+@router.post("/gaps/{gap_id}/archive", response_model=ResearchGapItem)
+def archive_gap(
+    gap_id: int,
+    engine: Engine = Depends(get_engine),
+) -> ResearchGapItem:
+    return _update_status(engine, ResearchGap, gap_id, "archived", ResearchGapItem)
+
+
 def _review_item(engine: Engine, review_id: int) -> HypothesisReviewItem:
     with get_session(engine) as session:
         row = session.get(HypothesisReview, review_id)

@@ -185,3 +185,107 @@ def test_get_evidence_links_404_for_missing_hypothesis():
     client, _ = _make_client()
     resp = client.get("/api/research/hypotheses/9999/evidence-links")
     assert resp.status_code == 404
+
+
+# ---------------------------------------------------------------------------
+# POST /api/research/evidence-links/{id}/retract
+# ---------------------------------------------------------------------------
+
+def test_retract_evidence_link_sets_status():
+    client, engine = _make_client()
+    hyp_id = _insert_hypothesis(engine)
+    paper_id = _insert_paper(engine)
+    link_id = _insert_evidence_link(engine, hyp_id, paper_id, status="active")
+    resp = client.post(f"/api/research/evidence-links/{link_id}/retract")
+    assert resp.status_code == 200
+    assert resp.json()["status"] == "retracted"
+
+
+def test_retract_evidence_link_404():
+    client, _ = _make_client()
+    resp = client.post("/api/research/evidence-links/9999/retract")
+    assert resp.status_code == 404
+
+
+# ---------------------------------------------------------------------------
+# POST /api/research/questions/{id}/archive
+# ---------------------------------------------------------------------------
+
+def test_archive_question_sets_status():
+    client, engine = _make_client()
+    with get_session(engine) as session:
+        q = ResearchQuestion(
+            question="Does LTP correlate with stroke recovery?",
+            topic_context="ctx",
+            status="open",
+            created_at="2026-01-01T00:00:00",
+            updated_at="2026-01-01T00:00:00",
+        )
+        session.add(q)
+        session.flush()
+        question_id = q.id
+    resp = client.post(f"/api/research/questions/{question_id}/archive")
+    assert resp.status_code == 200
+    assert resp.json()["status"] == "archived"
+
+
+def test_archive_question_404():
+    client, _ = _make_client()
+    resp = client.post("/api/research/questions/9999/archive")
+    assert resp.status_code == 404
+
+
+# ---------------------------------------------------------------------------
+# POST /api/research/claims/{id}/approve and /reject
+# ---------------------------------------------------------------------------
+
+def test_approve_claim_sets_status():
+    client, engine = _make_client()
+    paper_id = _insert_paper(engine)
+    claim_id = _insert_claim(engine, paper_id, status="candidate")
+    resp = client.post(f"/api/research/claims/{claim_id}/approve")
+    assert resp.status_code == 200
+    assert resp.json()["status"] == "approved"
+
+
+def test_reject_claim_sets_status():
+    client, engine = _make_client()
+    paper_id = _insert_paper(engine)
+    claim_id = _insert_claim(engine, paper_id, status="candidate")
+    resp = client.post(f"/api/research/claims/{claim_id}/reject")
+    assert resp.status_code == 200
+    assert resp.json()["status"] == "rejected"
+
+
+def test_approve_claim_404():
+    client, _ = _make_client()
+    resp = client.post("/api/research/claims/9999/approve")
+    assert resp.status_code == 404
+
+
+# ---------------------------------------------------------------------------
+# POST /api/research/gaps/{id}/resolve and /archive
+# ---------------------------------------------------------------------------
+
+def test_resolve_gap_sets_status():
+    client, engine = _make_client()
+    hyp_id = _insert_hypothesis(engine)
+    gap_id = _insert_gap(engine, hyp_id, status="open")
+    resp = client.post(f"/api/research/gaps/{gap_id}/resolve")
+    assert resp.status_code == 200
+    assert resp.json()["status"] == "resolved"
+
+
+def test_archive_gap_sets_status():
+    client, engine = _make_client()
+    hyp_id = _insert_hypothesis(engine)
+    gap_id = _insert_gap(engine, hyp_id, status="open")
+    resp = client.post(f"/api/research/gaps/{gap_id}/archive")
+    assert resp.status_code == 200
+    assert resp.json()["status"] == "archived"
+
+
+def test_resolve_gap_404():
+    client, _ = _make_client()
+    resp = client.post("/api/research/gaps/9999/resolve")
+    assert resp.status_code == 404

@@ -12,3 +12,5 @@ class DatasetItem(BaseModel):
     title: str | None = None
     modality: str | None = None
     n_subjects: int | None = None
+    usefulness_state: str | None = None
+    missing_context: str | None = None

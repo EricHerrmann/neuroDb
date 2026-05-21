@@ -148,6 +148,25 @@ function MarkdownContent({ text }: { text: string }) {
   return <>{blocks}</>
 }
 
+function EvidenceLens({ message }: { message: Message }) {
+  const s = message.evidenceSummary
+  if (!s) return null
+  const summary = `Evidence: ${s.mode} · ${s.papers}p · ${s.notes}n · ${s.claims}c · ${s.datasets}d`
+  const gapWarning = s.gaps > 0 ? ` · ⚠ ${s.gaps} gap` : ''
+  return (
+    <details style={{ marginTop: 6, fontSize: 11, color: '#475569' }}>
+      <summary style={{ cursor: 'pointer' }}>{summary}{gapWarning}</summary>
+      <div style={{ marginTop: 4, paddingLeft: 8, display: 'flex', flexDirection: 'column', gap: 2 }}>
+        <span>Mode: {s.mode}</span>
+        <span>Papers: {s.papers} · Notes: {s.notes} · Claims: {s.claims} · Datasets: {s.datasets}</span>
+        {s.gaps > 0 && (
+          <span style={{ color: '#d97706' }}>Gaps: {s.gaps}</span>
+        )}
+      </div>
+    </details>
+  )
+}
+
 function ActivityLog({ message }: { message: Message }) {
   if (!message.activity?.length) return null
   return (
@@ -197,6 +216,7 @@ export default function MessageBubble({ message }: { message: Message }) {
         <MarkdownContent text={message.content} />
         {message.streaming && <span style={{ opacity: 0.5 }}>▋</span>}
         <ActivityLog message={message} />
+        <EvidenceLens message={message} />
       </div>
     </div>
   )

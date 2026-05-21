@@ -2,6 +2,7 @@ import { render, screen } from '@testing-library/react'
 import { describe, expect, it } from 'vitest'
 
 import MessageBubble from './MessageBubble'
+import type { Message } from '../hooks/useChat'
 
 describe('MessageBubble', () => {
   it('renders markdown tables as tables', () => {
@@ -106,5 +107,34 @@ describe('MessageBubble', () => {
 
     expect(screen.getByText('Answer text')).toBeTruthy()
     expect(screen.getByText('1 tool call(s)')).toBeTruthy()
+  })
+})
+
+describe('EvidenceLens', () => {
+  it('renders evidence details when evidenceSummary present', () => {
+    const msg: Message = {
+      role: 'assistant',
+      content: 'test response',
+      evidenceSummary: { mode: 'contextual', papers: 3, notes: 2, claims: 1, datasets: 0, gaps: 0 },
+    }
+    render(<MessageBubble message={msg} />)
+    expect(screen.getByText(/Evidence:/)).toBeTruthy()
+    expect(screen.getByText(/3p/)).toBeTruthy()
+  })
+
+  it('shows gap warning when gaps > 0', () => {
+    const msg: Message = {
+      role: 'assistant',
+      content: 'test',
+      evidenceSummary: { mode: 'grounded', papers: 1, notes: 0, claims: 0, datasets: 0, gaps: 2 },
+    }
+    render(<MessageBubble message={msg} />)
+    expect(screen.getByText(/⚠ 2 gap/)).toBeTruthy()
+  })
+
+  it('does not render evidence details when evidenceSummary absent', () => {
+    const msg: Message = { role: 'assistant', content: 'test' }
+    render(<MessageBubble message={msg} />)
+    expect(screen.queryByText(/Evidence:/)).toBeNull()
   })
 })

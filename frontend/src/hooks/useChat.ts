@@ -1,5 +1,6 @@
 import { useCallback, useRef, useState } from 'react'
 import { useQueryClient } from '@tanstack/react-query'
+import type { EvidenceSummary } from '../api/types'
 
 export interface Message {
   role: 'user' | 'assistant'
@@ -7,6 +8,7 @@ export interface Message {
   streaming?: boolean
   error?: boolean
   activity?: ToolActivity[]
+  evidenceSummary?: EvidenceSummary | null
 }
 
 export interface ToolActivity {
@@ -79,6 +81,12 @@ export function useChat(agentMode: string) {
             tool_name?: string
             tool_input?: unknown
             result?: string
+            context_mode?: string
+            papers_count?: number
+            notes_count?: number
+            claims_count?: number
+            datasets_count?: number
+            gaps_count?: number
           }
           if (event.type === 'text_delta') {
             setThinkingState('streaming')
@@ -127,6 +135,21 @@ export function useChat(agentMode: string) {
                 }
               }
               last.activity = activity
+              next[next.length - 1] = last
+              return next
+            })
+          } else if (event.type === 'context_summary') {
+            setMessages(prev => {
+              const next = [...prev]
+              const last = { ...next[next.length - 1] }
+              last.evidenceSummary = {
+                mode: event.context_mode ?? 'unknown',
+                papers: event.papers_count ?? 0,
+                notes: event.notes_count ?? 0,
+                claims: event.claims_count ?? 0,
+                datasets: event.datasets_count ?? 0,
+                gaps: event.gaps_count ?? 0,
+              }
               next[next.length - 1] = last
               return next
             })

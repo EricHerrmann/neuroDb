@@ -162,3 +162,56 @@ describe('useChat', () => {
     expect(result.current.messages).toHaveLength(0)
   })
 })
+
+describe('useChat evidenceSummary', () => {
+  beforeEach(() => { vi.restoreAllMocks() })
+
+  it('attaches evidenceSummary to message when context_summary event arrives', async () => {
+    const sseLines = [
+      'data: {"type":"context_summary","context_mode":"contextual","papers_count":3,"notes_count":2,"claims_count":1,"datasets_count":0,"gaps_count":1}',
+      'data: {"type":"done","text":"Here is my answer."}',
+    ].join('\n') + '\n'
+
+    vi.stubGlobal('fetch', vi.fn().mockResolvedValue(
+      new Response(sseLines, {
+        status: 200,
+        headers: { 'Content-Type': 'text/event-stream' },
+      }),
+    ))
+
+    const { result } = renderHook(() => useChat('neuro_tutor'), { wrapper: makeWrapper() })
+
+    await act(async () => {
+      await result.current.sendMessage('What is LTP?')
+    })
+
+    const assistantMsg = result.current.messages.find(m => m.role === 'assistant')
+    expect(assistantMsg?.evidenceSummary).toEqual({
+      mode: 'contextual',
+      papers: 3,
+      notes: 2,
+      claims: 1,
+      datasets: 0,
+      gaps: 1,
+    })
+  })
+
+  it('evidenceSummary is null when no context_summary event', async () => {
+    const sseLines = 'data: {"type":"done","text":"answer"}\n'
+    vi.stubGlobal('fetch', vi.fn().mockResolvedValue(
+      new Response(sseLines, {
+        status: 200,
+        headers: { 'Content-Type': 'text/event-stream' },
+      }),
+    ))
+
+    const { result } = renderHook(() => useChat('neuro_tutor'), { wrapper: makeWrapper() })
+
+    await act(async () => {
+      await result.current.sendMessage('test')
+    })
+
+    const assistantMsg = result.current.messages.find(m => m.role === 'assistant')
+    expect(assistantMsg?.evidenceSummary ?? null).toBeNull()
+  })
+})

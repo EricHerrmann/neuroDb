@@ -3,7 +3,7 @@
 **Date:** 2026-05-21
 **Status:** Implementation ready
 **Design source:** `docs/superpowers/specs/2026-05-21-phase5a-focus-controls-design.md`
-**Manual test plan:** `docs/testsPlans/manualTestPlan_phase5a_focus_controls.md`
+**Manual test plan:** `docs/testsPlans/completedAndPassedTestPlans/manualTestPlan_phase5a_focus_controls.md`
 **Epoch:** UI
 
 ---

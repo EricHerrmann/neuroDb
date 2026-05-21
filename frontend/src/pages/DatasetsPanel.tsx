@@ -5,6 +5,23 @@ import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { api } from '../api/client'
 import type { CreateStudyNoteRequest, DatasetItem } from '../api/types'
 
+function usefulnessBorderColor(state: string | null | undefined): string {
+  if (state === 'sparse') return '#ef4444'
+  if (state === 'partial') return '#f59e0b'
+  if (state === 'research_context_ready' || state === 'analysis_ready') return '#22c55e'
+  return 'transparent'
+}
+
+function usefulnessLabel(state: string | null | undefined, missing: string | null | undefined): string | null {
+  if (!state) return null
+  if (state === 'sparse' || state === 'partial') {
+    return missing ? `${state} — ${missing}` : state
+  }
+  if (state === 'research_context_ready') return 'research context ready'
+  if (state === 'analysis_ready') return 'analysis ready'
+  return null
+}
+
 export default function DatasetsPanel() {
   const queryClient = useQueryClient()
   const [keyword, setKeyword] = useState('')
@@ -124,9 +141,14 @@ export default function DatasetsPanel() {
                     <div style={{ fontWeight: 600 }}>{row.title || row.source_id}</div>
                     <div style={{ color: '#64748b', fontSize: 11 }}>{row.source}:{row.source_id}</div>
                   </td>
-                  <td style={{ padding: '4px 8px', color: '#475569' }}>
+                  <td style={{ padding: '4px 8px', color: '#475569', borderLeft: `3px solid ${usefulnessBorderColor(row.usefulness_state)}` }}>
                     <span>{row.modality || 'unknown modality'}</span>
                     <span style={{ marginLeft: 8 }}>{row.n_subjects ?? '-'} subjects</span>
+                    {usefulnessLabel(row.usefulness_state, row.missing_context) && (
+                      <span style={{ marginLeft: 8, fontSize: 10, color: usefulnessBorderColor(row.usefulness_state) }}>
+                        {usefulnessLabel(row.usefulness_state, row.missing_context)}
+                      </span>
+                    )}
                   </td>
                   <td style={{ padding: '4px 8px', minWidth: 180 }}>
                     {taggingId === row.id ? (

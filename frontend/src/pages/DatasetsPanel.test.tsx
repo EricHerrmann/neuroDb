@@ -1,7 +1,7 @@
 import React from 'react'
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
 import { fireEvent, render, screen, waitFor } from '@testing-library/react'
-import { afterEach, describe, expect, it, vi } from 'vitest'
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 
 import DatasetsPanel from './DatasetsPanel'
 
@@ -88,6 +88,61 @@ describe('DatasetsPanel', () => {
         source_id: 'ds001',
         concept_tag: 'LTP',
       })
+    })
+  })
+})
+
+function makeFetchWrapper() {
+  const qc = new QueryClient({ defaultOptions: { queries: { retry: false } } })
+  return ({ children }: { children: React.ReactNode }) =>
+    React.createElement(QueryClientProvider, { client: qc }, children)
+}
+
+describe('DatasetsPanel usefulness badge', () => {
+  beforeEach(() => {
+    vi.restoreAllMocks()
+    Element.prototype.scrollIntoView = vi.fn()
+  })
+
+  it('shows sparse label for sparse dataset', async () => {
+    const mockDataset = {
+      id: 1, source: 'openneuro', source_id: 'ds001',
+      title: 'Stroke fMRI', modality: 'fMRI', n_subjects: 42,
+      usefulness_state: 'sparse', missing_context: 'no linked paper',
+    }
+    vi.stubGlobal('fetch', vi.fn().mockResolvedValue(
+      new Response(JSON.stringify([mockDataset]), {
+        status: 200,
+        headers: { 'Content-Type': 'application/json' },
+      }),
+    ))
+    render(<DatasetsPanel />, { wrapper: makeFetchWrapper() })
+    const searchBtn = await screen.findByRole('button', { name: /Search/i })
+    searchBtn.click()
+    await waitFor(() => {
+      expect(screen.getByText(/sparse/)).toBeTruthy()
+      expect(screen.getByText(/no linked paper/)).toBeTruthy()
+    })
+  })
+
+  it('shows no badge for dataset without usefulness_state', async () => {
+    const mockDataset = {
+      id: 2, source: 'openneuro', source_id: 'ds002',
+      title: 'Motor fMRI', modality: 'fMRI', n_subjects: 10,
+      usefulness_state: null, missing_context: null,
+    }
+    vi.stubGlobal('fetch', vi.fn().mockResolvedValue(
+      new Response(JSON.stringify([mockDataset]), {
+        status: 200,
+        headers: { 'Content-Type': 'application/json' },
+      }),
+    ))
+    render(<DatasetsPanel />, { wrapper: makeFetchWrapper() })
+    const searchBtn = await screen.findByRole('button', { name: /Search/i })
+    searchBtn.click()
+    await waitFor(() => {
+      expect(screen.queryByText(/sparse/)).toBeNull()
+      expect(screen.queryByText(/partial/)).toBeNull()
     })
   })
 })

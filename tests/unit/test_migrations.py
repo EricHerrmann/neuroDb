@@ -74,11 +74,10 @@ def test_migration_008_adds_evidence_links_status():
     apply_migrations(engine, {8: _MIGRATIONS[8]})
     apply_migrations(engine, {8: _MIGRATIONS[8]})  # idempotent — must not raise
 
-    with engine.connect() as conn:
-        result = conn.execute(text(
-            "SELECT status FROM evidence_links LIMIT 1"
-        ))
-        assert result is not None
+    # Verify the status column was added to evidence_links
+    inspector = inspect(engine)
+    columns = {col["name"]: col for col in inspector.get_columns("evidence_links")}
+    assert "status" in columns, "status column should exist on evidence_links"
 
 
 def test_migration_009_research_questions_archived_guard_is_idempotent():
@@ -94,3 +93,8 @@ def test_migration_009_research_questions_archived_guard_is_idempotent():
     Base.metadata.create_all(engine)
     apply_migrations(engine, {9: _MIGRATIONS[9]})
     apply_migrations(engine, {9: _MIGRATIONS[9]})  # idempotent — must not raise
+
+    # Verify the status column exists on research_questions
+    inspector = inspect(engine)
+    columns = {col["name"]: col for col in inspector.get_columns("research_questions")}
+    assert "status" in columns, "status column should exist on research_questions"

@@ -40,7 +40,7 @@ describe('ChatPanel', () => {
 
   it('renders agent mode select with current mode selected', () => {
     render(<ChatPanel agentMode="neuro_tutor" />, { wrapper: makeWrapper() })
-    const select = screen.getByRole('combobox')
+    const select = screen.getByLabelText('Agent Mode')
     expect((select as HTMLSelectElement).value).toBe('neuro_tutor')
   })
 
@@ -66,7 +66,7 @@ describe('ChatPanel', () => {
     })
   })
 
-  it('renders low mid high model labels before clear with stronger contrast', async () => {
+  it('renders low mid high model rows in a read-only models dropdown', async () => {
     const fetchMock = vi.fn().mockImplementation((path: string) => {
       if (path === '/api/model-info') {
         return Promise.resolve(new Response(JSON.stringify({
@@ -83,6 +83,16 @@ describe('ChatPanel', () => {
           headers: { 'Content-Type': 'application/json' },
         }))
       }
+      if (path === '/api/preferences') {
+        return Promise.resolve(new Response(JSON.stringify({
+          agent_mode: 'neuro_tutor',
+          context_mode: 'contextual',
+          relevance_threshold: 0.5,
+        }), {
+          status: 200,
+          headers: { 'Content-Type': 'application/json' },
+        }))
+      }
       return Promise.resolve(new Response(JSON.stringify({ active_prior_topic: null }), {
         status: 200,
         headers: { 'Content-Type': 'application/json' },
@@ -92,15 +102,16 @@ describe('ChatPanel', () => {
 
     render(<ChatPanel agentMode="neuro_tutor" />, { wrapper: makeWrapper() })
 
-    const lowLabel = await screen.findByText('Low: low-model')
-    const midLabel = screen.getByText('Mid: mid-model')
-    const highLabel = screen.getByText('High: high-model')
+    const models = await screen.findByLabelText('Models')
+    const lowLabel = screen.getByText('Low → low-model')
+    const midLabel = screen.getByText('Mid → mid-model')
+    const highLabel = screen.getByText('High → high-model')
     const clearButton = screen.getByRole('button', { name: 'Clear' })
 
+    expect((models as HTMLSelectElement).value).toBe('models')
     for (const label of [lowLabel, midLabel, highLabel]) {
       expect(label.compareDocumentPosition(clearButton) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy()
-      expect((label as HTMLElement).style.color).toBe('rgb(15, 23, 42)')
-      expect((label as HTMLElement).style.fontWeight).toBe('600')
+      expect((label as HTMLOptionElement).disabled).toBe(true)
     }
   })
 
@@ -114,7 +125,7 @@ describe('ChatPanel', () => {
     vi.stubGlobal('fetch', fetchMock)
 
     render(<ChatPanel agentMode="neuro_tutor" />, { wrapper: makeWrapper() })
-    fireEvent.change(screen.getByRole('combobox'), { target: { value: 'local_db' } })
+    fireEvent.change(screen.getByLabelText('Agent Mode'), { target: { value: 'local_db' } })
 
     await waitFor(() => {
       expect(fetchMock).toHaveBeenCalledWith(
@@ -125,12 +136,26 @@ describe('ChatPanel', () => {
   })
 
   it('changing agent mode updates preferences cache immediately', async () => {
+    let savedAgentMode = 'local_db'
     const fetchMock = vi.fn().mockImplementation((path: string) => {
       if (path === '/api/sessions/active-context') {
         return Promise.resolve(new Response(JSON.stringify({ active_prior_topic: null }), {
           status: 200,
           headers: { 'Content-Type': 'application/json' },
         }))
+      }
+      if (path === '/api/preferences') {
+        return Promise.resolve(new Response(JSON.stringify({
+          agent_mode: savedAgentMode,
+          context_mode: 'grounded',
+          relevance_threshold: 0.75,
+        }), {
+          status: 200,
+          headers: { 'Content-Type': 'application/json' },
+        }))
+      }
+      if (path === '/api/preferences/agent-mode') {
+        savedAgentMode = 'external_db'
       }
       return Promise.resolve(new Response(JSON.stringify({ agent_mode: 'external_db' }), {
         status: 200,
@@ -146,7 +171,7 @@ describe('ChatPanel', () => {
     })
 
     render(<ChatPanel agentMode="local_db" />, { wrapper })
-    fireEvent.change(screen.getByRole('combobox'), { target: { value: 'external_db' } })
+    fireEvent.change(screen.getByLabelText('Agent Mode'), { target: { value: 'external_db' } })
 
     await waitFor(() => {
       expect(qc.getQueryData(['preferences'])).toEqual({
@@ -165,7 +190,7 @@ describe('ChatPanel', () => {
     vi.stubGlobal('fetch', vi.fn().mockReturnValue(pendingFetch))
 
     render(<ChatPanel agentMode="neuro_tutor" />, { wrapper: makeWrapper() })
-    const select = screen.getByRole('combobox')
+    const select = screen.getByLabelText('Agent Mode')
 
     fireEvent.change(select, { target: { value: 'local_db' } })
 
@@ -177,5 +202,108 @@ describe('ChatPanel', () => {
       status: 200,
       headers: { 'Content-Type': 'application/json' },
     }))
+  })
+
+  it('renders context mode select for neuro agents only', async () => {
+    const fetchMock = vi.fn().mockImplementation((path: string) => {
+      if (path === '/api/preferences') {
+        return Promise.resolve(new Response(JSON.stringify({
+          agent_mode: 'neuro_tutor',
+          context_mode: 'grounded',
+          relevance_threshold: 0.5,
+        }), {
+          status: 200,
+          headers: { 'Content-Type': 'application/json' },
+        }))
+      }
+      return Promise.resolve(new Response(JSON.stringify({ active_prior_topic: null }), {
+        status: 200,
+        headers: { 'Content-Type': 'application/json' },
+      }))
+    })
+    vi.stubGlobal('fetch', fetchMock)
+
+    const { rerender } = render(<ChatPanel agentMode="neuro_tutor" />, { wrapper: makeWrapper() })
+
+    const contextSelect = await screen.findByLabelText('Context Mode')
+    await waitFor(() => {
+      expect((contextSelect as HTMLSelectElement).value).toBe('grounded')
+    })
+
+    rerender(<ChatPanel agentMode="local_db" />)
+    expect(screen.queryByLabelText('Context Mode')).toBeNull()
+  })
+
+  it('changing context mode fires PUT and updates preferences cache', async () => {
+    let contextMode = 'contextual'
+    const fetchMock = vi.fn().mockImplementation((path: string) => {
+      if (path === '/api/preferences/context-mode') {
+        contextMode = 'grounded'
+        return Promise.resolve(new Response(JSON.stringify({ context_mode: 'grounded' }), {
+          status: 200,
+          headers: { 'Content-Type': 'application/json' },
+        }))
+      }
+      if (path === '/api/preferences') {
+        return Promise.resolve(new Response(JSON.stringify({
+          agent_mode: 'neuro_tutor',
+          context_mode: contextMode,
+          relevance_threshold: 0.5,
+        }), {
+          status: 200,
+          headers: { 'Content-Type': 'application/json' },
+        }))
+      }
+      return Promise.resolve(new Response(JSON.stringify({ active_prior_topic: null }), {
+        status: 200,
+        headers: { 'Content-Type': 'application/json' },
+      }))
+    })
+    vi.stubGlobal('fetch', fetchMock)
+    const { qc, wrapper } = makeWrapperWithClient()
+
+    render(<ChatPanel agentMode="neuro_tutor" />, { wrapper })
+    fireEvent.change(await screen.findByLabelText('Context Mode'), { target: { value: 'grounded' } })
+
+    await waitFor(() => {
+      expect(fetchMock).toHaveBeenCalledWith(
+        '/api/preferences/context-mode',
+        expect.objectContaining({
+          method: 'PUT',
+          body: JSON.stringify({ mode: 'grounded' }),
+        }),
+      )
+      expect(qc.getQueryData(['preferences'])).toEqual({
+        agent_mode: 'neuro_tutor',
+        context_mode: 'grounded',
+        relevance_threshold: 0.5,
+      })
+    })
+  })
+
+  it('shows selected context mode tooltip on hover', async () => {
+    vi.stubGlobal('fetch', vi.fn().mockImplementation((path: string) => {
+      if (path === '/api/preferences') {
+        return Promise.resolve(new Response(JSON.stringify({
+          agent_mode: 'neuro_tutor',
+          context_mode: 'general',
+          relevance_threshold: 0.5,
+        }), {
+          status: 200,
+          headers: { 'Content-Type': 'application/json' },
+        }))
+      }
+      return Promise.resolve(new Response(JSON.stringify({ active_prior_topic: null }), {
+        status: 200,
+        headers: { 'Content-Type': 'application/json' },
+      }))
+    }))
+
+    render(<ChatPanel agentMode="neuro_tutor" />, { wrapper: makeWrapper() })
+    fireEvent.mouseEnter(await screen.findByLabelText('Context Mode'))
+
+    expect(await screen.findByRole('tooltip')).toHaveTextContent(
+      'Model knowledge only. Use before you have local data on a topic.',
+    )
   })
 })

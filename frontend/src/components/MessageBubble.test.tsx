@@ -52,6 +52,41 @@ describe('MessageBubble', () => {
     expect(screen.getByRole('link', { name: 'Unsafe' })).toHaveAttribute('href', '#')
   })
 
+  it('renders incomplete streamed headings as plain text instead of hanging', () => {
+    render(
+      <MessageBubble
+        message={{
+          role: 'assistant',
+          content: 'Intro\n\n---\n\n## ',
+          streaming: true,
+        }}
+      />,
+    )
+
+    expect(screen.getByText('Intro')).toBeTruthy()
+    expect(screen.getByText('---')).toBeTruthy()
+    expect(screen.getByText('##')).toBeTruthy()
+  })
+
+  it('renders standalone partial markdown constructs without hanging', () => {
+    const partials = ['# ', '## ', '### ', '#### ', '```', '| Topic |\n|---']
+
+    for (const partial of partials) {
+      const { unmount } = render(
+        <MessageBubble
+          message={{
+            role: 'assistant',
+            content: partial,
+            streaming: true,
+          }}
+        />,
+      )
+
+      expect(document.body.textContent).toBeTruthy()
+      unmount()
+    }
+  })
+
   it('renders tool activity separately from answer text', () => {
     render(
       <MessageBubble

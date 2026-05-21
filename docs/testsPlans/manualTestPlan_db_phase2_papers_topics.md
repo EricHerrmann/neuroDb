@@ -3,7 +3,7 @@
 **Epoch scope:** DB epoch (schema, migration, topic_store helper); Tutor epoch (agent tools, queue_source extension).
 **Phases covered:** Learning and Research Memory Refocus Phase 2.
 **Design source:** `docs/superpowers/specs/2026-05-18-phase2-papers-topics-concepts-design.md`
-**Status:** T1-T6 passed; T7-T8 pending sign-off.
+**Status:** Signed off — 2026-05-21. T7-T8 verified as carry-forward in Phase 4 manual plan (T6 and T7).
 **Date:** 2026-05-19
 
 All commands run from the repo root (`/home/oldha/projects/neuroDb`) unless noted.
@@ -324,7 +324,7 @@ All of the following must be true before signing off:
 - [x] T4: search_topics returns empty for non-matching query
 - [x] T5: StudyNote with topic-only anchor persists without constraint violation
 - [x] T6: Topic-anchored StudyNote appears in get_topic_bundle result
-- [ ] T7: Tutor agent dispatches search_topics and get_topic_bundle; queue_source links topics
-- [ ] T8: Knowledge Library panel renders; PaperItem rename causes no frontend errors
+- [x] T7: Tutor agent dispatches search_topics and get_topic_bundle; queue_source links topics
+- [x] T8: Knowledge Library panel renders; PaperItem rename causes no frontend errors
 
-**Sign-off:** _____________________________ Date: ___________
+**Sign-off:** Eric Herrmann Date: 2026-05-21

@@ -38,7 +38,7 @@ function isBlockStart(lines: string[], index: number) {
   const line = lines[index] ?? ''
   return (
     line.startsWith('```') ||
-    /^#{1,4}\s+/.test(line) ||
+    /^#{1,4}\s+.+$/.test(line) ||
     /^\s*[-*]\s+/.test(line) ||
     /^\s*\d+\.\s+/.test(line) ||
     isTableStart(lines, index)
@@ -50,6 +50,7 @@ function MarkdownContent({ text }: { text: string }) {
   const blocks = []
   let index = 0
   while (index < lines.length) {
+    const startIndex = index
     const line = lines[index]
     if (!line.trim()) {
       index += 1
@@ -136,7 +137,13 @@ function MarkdownContent({ text }: { text: string }) {
       paragraph.push(lines[index])
       index += 1
     }
-    blocks.push(<p key={blocks.length} style={{ margin: '4px 0' }}>{renderInline(paragraph.join(' '))}</p>)
+    if (paragraph.length > 0) {
+      blocks.push(<p key={blocks.length} style={{ margin: '4px 0' }}>{renderInline(paragraph.join(' '))}</p>)
+    }
+    if (index === startIndex) {
+      blocks.push(<p key={blocks.length} style={{ margin: '4px 0' }}>{renderInline(line)}</p>)
+      index += 1
+    }
   }
   return <>{blocks}</>
 }

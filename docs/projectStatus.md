@@ -1,8 +1,8 @@
 # NeuroDb — Project Status
 
 **Last updated:** 2026-05-21
-**Active focus:** Phase 4 context modes/evidence boundaries — manual verification signed off 2026-05-21; Phase 2/3 manual verification pending; LOG-060 (chat-turn hang) open
-**Next:** Phase 2/3 manual sign-off; UI-5 common manual verification; investigate LOG-060 chat hang
+**Active focus:** Phase 5a — Focus Controls and Agent In-Progress Feedback; implementation complete, manual verification pending
+**Next:** Phase 5a manual verification; UI-5 common manual verification
 **Goal alignment:** Two co-equal goals in a feedback loop — accumulate neuroscience understanding grounded in real data (Goal 1), and conduct structured neuroscience investigations using existing public datasets and good scientific method (Goal 2). See `NeuroDbGoals.md`.
 
 ---
@@ -11,11 +11,11 @@
 
 | Epoch | Source | Maturity | Next |
 |---|---|---|---|
-| DB | `src/neurodb/db/`, `src/neurodb/connectors/` | MVP complete (phases 0–3, 9); Phase 3 (claims/evidence/gaps) complete — 5 integration tests pass; 9 Phase 3 migration tests pass; full suite 641 passed / 15 pre-existing failures; Phase 9 T1-T4 manual passed; Phase 3 manual verification pending | Phase 3 manual verification and sign-off; entity resolution (7); broader Phase 9 source-aware enrichment |
-| Agent Core | `src/neurodb/agents/` | Stable; Phase 4 context-mode mechanics implemented and signed off 2026-05-21; provider live-tool reliability gap identified | Coordinate provider capability validation with Config Control; investigate LOG-060 chat hang |
+| DB | `src/neurodb/db/`, `src/neurodb/connectors/` | MVP complete (phases 0–3, 9); Phase 2 manual signed off 2026-05-21; Phase 3 manual signed off 2026-05-21; full suite 641 passed / 15 pre-existing failures; Phase 9 T1-T4 manual passed | Entity resolution (7); broader Phase 9 source-aware enrichment |
+| Agent Core | `src/neurodb/agents/` | Stable; Phase 4 context-mode mechanics implemented and signed off 2026-05-21; provider live-tool reliability gap identified | Coordinate provider capability validation with Config Control |
 | Tutor | `src/neurodb/tutor/` | MVP complete (LT-1/2/3); Phase 4 context-mode prompt and bundle behavior signed off 2026-05-21 | Open backlog: LOG-001, LOG-006, LOG-030; Phase 2/3 manual verification |
-| Research | `src/neurodb/research/` | Scaffolded (LT-3); Phase 3 claims/evidence/gaps complete; Phase 4 grounded/contextual behavior signed off 2026-05-21 | Phase 2/3 manual verification |
-| UI | `src/neurodb/ui/`, `src/neurodb/api/`, `frontend/` | UI-3 signed off 2026-05-13; UI-5 P1/P2/P3 implementation complete; Phase 4 API preference and stream contract signed off 2026-05-21 | Common UI-5 manual verification; Phase 5 context mode-selector brainstorm; investigate LOG-060 chat hang |
+| Research | `src/neurodb/research/` | Scaffolded (LT-3); Phase 3 claims/evidence/gaps complete; Phase 2/3 manual signed off 2026-05-21; Phase 4 grounded/contextual behavior signed off 2026-05-21 | Open backlog: LOG-037, LOG-045, LOG-048, LOG-053, LOG-061 |
+| UI | `src/neurodb/ui/`, `src/neurodb/api/`, `frontend/` | UI-3 signed off 2026-05-13; UI-5 P1/P2/P3 implementation complete; Phase 4 API preference and stream contract signed off 2026-05-21; Phase 5a implementation complete with focused frontend tests/build passing; LOG-060 moved to monitor after likely renderer fix | Phase 5a manual verification; Common UI-5 manual verification; monitor LOG-060 recurrence |
 | Config Control | `src/neurodb/config/` | Phase 5B complete; live validation found OpenAI Chat Completions + tools fails for `gpt-5.4`, Anthropic full Tutor tool path succeeds | Provider-by-provider live tool-call matrix; OpenAI Responses adapter design; then Phase 6 fallback/telemetry |
 | Tech Debt | Cross-cutting | Planned — TD-1 CLI argument normalization started from LOG-057; TD-5 abstraction/extensibility review logged | TD-1 parser coverage, TD-2 keyword-only helper APIs, TD-5 reusable abstractions |
 
@@ -39,7 +39,7 @@ Source of truth for model IDs: `neurodb_models.toml`.
 
 ## Open Issues
 
-See `docs/testLog.md`. Current open items: LOG-001 (textbook dropdown ambiguity), LOG-006 (model visibility), LOG-013 (UI shell rearchitecture), LOG-030 (header/title sizing), LOG-037 (research-question actions), LOG-041 (session summary visibility), LOG-045 (research-to-knowledge-library bridge), LOG-047 (telemetry timestamp format), LOG-048 (dismiss draft hypothesis), LOG-050 (Gemini premium testing deferred), LOG-059 (study log inner join drops anchors), LOG-060 (chat-turn hang — no server error), LOG-061 (no retract/remove lifecycle for evidence links, questions, papers, claims).
+See `docs/testLog.md`. Current open items: LOG-001 (textbook dropdown ambiguity), LOG-006 (model visibility), LOG-013 (UI shell rearchitecture), LOG-037 (research-question actions), LOG-041 (session summary visibility), LOG-045 (research-to-knowledge-library bridge), LOG-047 (telemetry timestamp format), LOG-048 (dismiss draft hypothesis), LOG-050 (Gemini premium testing deferred), LOG-059 (study log inner join drops anchors), LOG-061 (no retract/remove lifecycle for evidence links, questions, papers, claims). Monitor item: LOG-060 (chat-turn hang, likely frontend streamed-Markdown renderer loop fixed; watch for recurrence).
 
 ---
 
@@ -67,9 +67,12 @@ See `docs/testLog.md`. Current open items: LOG-001 (textbook dropdown ambiguity)
 | `docs/superpowers/specs/2026-05-19-phase3-claims-evidence-design.md` | Phase 3 design spec — claims, evidence_links, research_gaps tables, claim_store helper, research agent tools |
 | `docs/superpowers/specs/2026-05-19-phase4-context-modes-evidence-boundaries-design.md` | Phase 4 design spec — context modes, shared context orchestrator, evidence-boundary prompts, context metadata |
 | `docs/superpowers/plans/2026-05-19-phase3-claims-evidence.md` | Phase 3 implementation plan — 5 tasks: schema, migration, claim_store, agent tools, integration test |
-| `docs/testsPlans/manualTestPlan_db_phase2_papers_topics.md` | DB Phase 2 manual test plan — T1-T8 covering migration, topic_store, StudyNote anchors, Tutor agent tools; pending sign-off |
-| `docs/testsPlans/manualTestPlan_db_phase3_claims_evidence.md` | DB Phase 3 manual test plan — T1-T8 covering migration, claim_store, evidence links, gaps, question bundle, research agent tools; pending sign-off |
+| `docs/testsPlans/manualTestPlan_db_phase2_papers_topics.md` | DB Phase 2 manual test plan — T1-T8 passed; signed off 2026-05-21 (T7-T8 verified as Phase 4 carry-forward) |
+| `docs/testsPlans/manualTestPlan_db_phase3_claims_evidence.md` | DB Phase 3 manual test plan — T1-T8 passed; signed off 2026-05-21 (T8 verified as Phase 4 carry-forward) |
 | `docs/testsPlans/manualTestPlan_phase4_context_modes.md` | Phase 4 manual test plan — context-mode preferences, SSE context summaries, Tutor/Research evidence-boundary behavior; T1-T8 passed, signed off 2026-05-21 |
+| `docs/testsPlans/manualTestPlan_phase5a_focus_controls.md` | Phase 5a manual test plan — Models dropdown, context mode selector, tooltip, in-progress feedback (T1-T10); active |
+| `docs/superpowers/specs/2026-05-21-phase5a-focus-controls-design.md` | Phase 5a design spec — three-dropdown header, ThinkingBubble, Tooltip, useChat thinkingState/activeTool |
+| `docs/superpowers/plans/2026-05-21-phase5a-focus-controls.md` | Phase 5a implementation spec — phased frontend plan for header controls, in-progress feedback, and verification |
 | `docs/testsPlans/manualTestPlan_ui5_common_parity.md` | UI-5 common manual test plan — 8 evals covering P1/P2/P3; pending sign-off |
 | **History** | |
 | `docs/archive/completedPhases.md` | Completed phases and tech debt sprints — full history |

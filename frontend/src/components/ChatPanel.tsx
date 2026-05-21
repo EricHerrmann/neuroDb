@@ -6,6 +6,8 @@ import { api } from '../api/client'
 import type { ModelInfo, Preferences } from '../api/types'
 import { useChat } from '../hooks/useChat'
 import MessageBubble from './MessageBubble'
+import ThinkingBubble from './ThinkingBubble'
+import Tooltip from './Tooltip'
 
 const MODES = [
   { value: 'local_db', label: 'Local DB' },
@@ -20,11 +22,37 @@ const MODEL_TIERS = [
   { key: 'high', label: 'High' },
 ] as const
 
+const CONTEXT_MODES = [
+  {
+    value: 'general',
+    label: 'General',
+    tooltip: 'Model knowledge only. Use before you have local data on a topic.',
+  },
+  {
+    value: 'contextual',
+    label: 'Contextual',
+    tooltip: 'NeuroDb context prepended. Use when working with ingested data.',
+  },
+  {
+    value: 'grounded',
+    label: 'Grounded',
+    tooltip: 'Local evidence only. Names missing sources instead of filling gaps. Use for hypothesis work.',
+  },
+] as const
+
 type AgentModeValue = typeof MODES[number]['value']
+type ContextModeValue = typeof CONTEXT_MODES[number]['value']
 
 export default function ChatPanel({ agentMode }: { agentMode: AgentModeValue }) {
   const queryClient = useQueryClient()
-  const { messages, isStreaming, sendMessage, clearChat } = useChat(agentMode)
+  const {
+    messages,
+    isStreaming,
+    thinkingState,
+    activeTool,
+    sendMessage,
+    clearChat,
+  } = useChat(agentMode)
   const { data: activeContext } = useQuery({
     queryKey: ['active-context'],
     queryFn: api.getActiveContext,
@@ -34,9 +62,16 @@ export default function ChatPanel({ agentMode }: { agentMode: AgentModeValue }) 
     queryFn: api.getModelInfo,
     staleTime: Infinity,
   })
+  const { data: preferences } = useQuery<Preferences>({
+    queryKey: ['preferences'],
+    queryFn: api.getPreferences,
+  })
   const [input, setInput] = useState('')
   const [clearError, setClearError] = useState<string | null>(null)
   const bottomRef = useRef<HTMLDivElement>(null)
+  const selectedContextMode = preferences?.context_mode ?? 'contextual'
+  const selectedContext = CONTEXT_MODES.find(mode => mode.value === selectedContextMode) ?? CONTEXT_MODES[1]
+  const showContextMode = agentMode === 'neuro_tutor' || agentMode === 'neuro_research'
 
   const setMode = useMutation({
     mutationFn: (mode: string) => api.setAgentMode(mode),
@@ -45,6 +80,18 @@ export default function ChatPanel({ agentMode }: { agentMode: AgentModeValue }) 
         relevance_threshold: old?.relevance_threshold ?? 0.5,
         context_mode: old?.context_mode ?? 'contextual',
         agent_mode: data.agent_mode as Preferences['agent_mode'],
+      }))
+      queryClient.invalidateQueries({ queryKey: ['preferences'] })
+    },
+  })
+
+  const setContextMode = useMutation({
+    mutationFn: (mode: ContextModeValue) => api.setContextMode(mode),
+    onSuccess: data => {
+      queryClient.setQueryData<Preferences>(['preferences'], old => ({
+        relevance_threshold: old?.relevance_threshold ?? 0.5,
+        agent_mode: old?.agent_mode ?? agentMode,
+        context_mode: data.context_mode as Preferences['context_mode'],
       }))
       queryClient.invalidateQueries({ queryKey: ['preferences'] })
     },
@@ -85,25 +132,31 @@ export default function ChatPanel({ agentMode }: { agentMode: AgentModeValue }) 
         </span>
         <div style={{ display: 'flex', gap: 6, alignItems: 'center' }}>
           {modelInfo?.tiers && (
-            <div
-              aria-label="Active model tiers"
+            <select
+              aria-label="Models"
+              value="models"
+              onChange={event => {
+                event.currentTarget.value = 'models'
+              }}
               style={{
-                display: 'flex',
-                gap: 6,
-                alignItems: 'center',
-                flexWrap: 'wrap',
-                justifyContent: 'flex-end',
+                padding: '3px 6px',
+                fontSize: 11,
+                border: '1px solid #cbd5e1',
+                borderRadius: 4,
+                background: '#fff',
               }}
             >
+              <option value="models">Models</option>
               {MODEL_TIERS.map(tier => (
-                <span
+                <option
                   key={tier.key}
-                  style={{ fontSize: 10, color: '#0f172a', fontWeight: 600, whiteSpace: 'nowrap' }}
+                  value={tier.key}
+                  disabled
                 >
-                  {tier.label}: {modelInfo.tiers[tier.key].model}
-                </span>
+                  {tier.label} → {modelInfo.tiers[tier.key].model}
+                </option>
               ))}
-            </div>
+            </select>
           )}
           <button
             type="button"
@@ -114,6 +167,7 @@ export default function ChatPanel({ agentMode }: { agentMode: AgentModeValue }) 
             Clear
           </button>
           <select
+            aria-label="Agent Mode"
             value={agentMode}
             onChange={event => setMode.mutate(event.target.value)}
             disabled={setMode.isPending}
@@ -128,6 +182,31 @@ export default function ChatPanel({ agentMode }: { agentMode: AgentModeValue }) 
               <option key={mode.value} value={mode.value}>{mode.label}</option>
             ))}
           </select>
+          {showContextMode && (
+            <Tooltip text={selectedContext.tooltip}>
+              <select
+                aria-label="Context Mode"
+                value={selectedContext.value}
+                onChange={event => setContextMode.mutate(event.target.value as ContextModeValue)}
+                disabled={setContextMode.isPending}
+                style={{
+                  padding: '3px 6px',
+                  fontSize: 11,
+                  border: '1px solid #60a5fa',
+                  borderRadius: 4,
+                  background: '#eff6ff',
+                  color: '#1e3a8a',
+                  fontWeight: 600,
+                }}
+              >
+                {CONTEXT_MODES.map(mode => (
+                  <option key={mode.value} value={mode.value} title={mode.tooltip}>
+                    {mode.label}
+                  </option>
+                ))}
+              </select>
+            </Tooltip>
+          )}
         </div>
       </div>
       {clearError && (
@@ -152,7 +231,18 @@ export default function ChatPanel({ agentMode }: { agentMode: AgentModeValue }) 
             Start a conversation...
           </p>
         )}
-        {messages.map((message, index) => <MessageBubble key={index} message={message} />)}
+        {messages.map((message, index) => {
+          if (
+            message.role === 'assistant' &&
+            message.streaming &&
+            !message.content &&
+            (thinkingState === 'thinking' || thinkingState === 'tool')
+          ) {
+            return null
+          }
+          return <MessageBubble key={index} message={message} />
+        })}
+        <ThinkingBubble state={thinkingState} activeTool={activeTool} />
         <div ref={bottomRef} />
       </div>
       <form

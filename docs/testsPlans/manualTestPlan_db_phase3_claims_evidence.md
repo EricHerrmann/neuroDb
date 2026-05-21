@@ -3,7 +3,7 @@
 **Epoch scope:** DB epoch (schema, migration, claim_store helper); Research epoch (agent tools).
 **Phases covered:** Learning and Research Memory Refocus Phase 3.
 **Design source:** `docs/superpowers/specs/2026-05-19-phase3-claims-evidence-design.md`
-**Status:** T1-T7 passed; T8 pending sign-off.
+**Status:** Signed off — 2026-05-21. T8 verified as carry-forward in Phase 4 manual plan (T8).
 **Date:** 2026-05-19
 
 All commands run from the repo root (`/home/oldha/projects/neuroDb`) unless noted.
@@ -429,6 +429,6 @@ All of the following must be true before signing off:
 - [x] T5: add_evidence_link and get_evidence_links work for all source types
 - [x] T6: add_gap, resolve_gap, get_gaps work correctly
 - [x] T7: get_question_bundle returns correct shape with all linked content
-- [ ] T8: All six research agent tools dispatch through real server without errors
+- [x] T8: All six research agent tools dispatch through real server without errors
 
-**Sign-off:** _____________________________ Date: ___________
+**Sign-off:** Eric Herrmann Date: 2026-05-21

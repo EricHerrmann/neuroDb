@@ -17,9 +17,13 @@ export interface ToolActivity {
   status: 'running' | 'done'
 }
 
+export type ThinkingState = 'idle' | 'thinking' | 'tool' | 'streaming'
+
 export function useChat(agentMode: string) {
   const [messages, setMessages] = useState<Message[]>([])
   const [isStreaming, setIsStreaming] = useState(false)
+  const [thinkingState, setThinkingState] = useState<ThinkingState>('idle')
+  const [activeTool, setActiveTool] = useState<string | null>(null)
   const [sessionId, setSessionId] = useState(() => crypto.randomUUID())
   const queryClient = useQueryClient()
   const abortRef = useRef<AbortController | null>(null)
@@ -39,6 +43,8 @@ export function useChat(agentMode: string) {
       { role: 'assistant', content: '', streaming: true },
     ])
     setIsStreaming(true)
+    setThinkingState('thinking')
+    setActiveTool(null)
     abortRef.current = new AbortController()
 
     try {
@@ -75,6 +81,8 @@ export function useChat(agentMode: string) {
             result?: string
           }
           if (event.type === 'text_delta') {
+            setThinkingState('streaming')
+            setActiveTool(null)
             setMessages(prev => {
               const next = [...prev]
               const last = { ...next[next.length - 1] }
@@ -83,6 +91,8 @@ export function useChat(agentMode: string) {
               return next
             })
           } else if (event.type === 'tool_start') {
+            setThinkingState('tool')
+            setActiveTool(event.tool_name ?? 'tool')
             setMessages(prev => {
               const next = [...prev]
               const last = { ...next[next.length - 1] }
@@ -121,6 +131,8 @@ export function useChat(agentMode: string) {
               return next
             })
           } else if (event.type === 'done') {
+            setThinkingState('idle')
+            setActiveTool(null)
             setMessages(prev => {
               const next = [...prev]
               if (event.text) {
@@ -132,6 +144,8 @@ export function useChat(agentMode: string) {
             queryClient.invalidateQueries({ queryKey: ['sessions'] })
             queryClient.invalidateQueries({ queryKey: ['active-context'] })
           } else if (event.type === 'error') {
+            setThinkingState('idle')
+            setActiveTool(null)
             throw new Error(event.text ?? 'Chat stream error')
           }
         }
@@ -142,8 +156,16 @@ export function useChat(agentMode: string) {
         next[next.length - 1] = { ...next[next.length - 1], streaming: false }
         return next
       })
+      setThinkingState('idle')
+      setActiveTool(null)
     } catch (err: unknown) {
-      if (err instanceof Error && err.name === 'AbortError') return
+      if (err instanceof Error && err.name === 'AbortError') {
+        setThinkingState('idle')
+        setActiveTool(null)
+        return
+      }
+      setThinkingState('idle')
+      setActiveTool(null)
       setMessages(prev => {
         const next = [...prev]
         next[next.length - 1] = {
@@ -175,10 +197,12 @@ export function useChat(agentMode: string) {
       if (!res.ok) throw new Error(await res.text() || `${res.status}`)
     })
     setMessages([])
+    setThinkingState('idle')
+    setActiveTool(null)
     setSessionId(crypto.randomUUID())
     queryClient.invalidateQueries({ queryKey: ['sessions'] })
     queryClient.invalidateQueries({ queryKey: ['active-context'] })
   }, [agentMode, isStreaming, messages, queryClient, sessionId])
 
-  return { messages, isStreaming, sendMessage, clearChat }
+  return { messages, isStreaming, thinkingState, activeTool, sendMessage, clearChat }
 }

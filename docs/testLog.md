@@ -26,9 +26,7 @@ Use `Log ID` for cross-references across Open, Resolved, triage, sprint planning
 | Log ID | Issue ID | Description | Priority |
 |--------|----------|-------------|----------|
 | LOG-013 | UI-shell-rearchitecture | Streamlit cannot support fixed-pane app-shell behavior; reassess UI stack after LT-3 | Deferred post-LT-3 |
-| LOG-030 | lt3-t2-pass-header-size | LT-3 T2 passed, but titles/headers render too large | UI polish |
 | LOG-051 | ui-icon-pane-association | UI epoch feature: hard to associate activity-rail icons with right pane content; needs stronger tooltips/associations and icon reorder with Research first, then Study Log | UI polish |
-| LOG-060 | chat-turn-hang | Chat hangs periodically and causes a page error; appears to occur during chat/turn; no server-side errors logged | UI / Agent Core |
 
 ### Research
 | Log ID | Issue ID | Description | Priority |
@@ -62,8 +60,15 @@ Use `Log ID` for cross-references across Open, Resolved, triage, sprint planning
 | LOG-057 | 2026-05-13 | args-position-dependent | Tech Debt | CLI and Python function arguments should not be brittle or position-dependent; review the codebase for positional CLI globals and multi-argument function calls, then determine options to fix with keyword-only APIs, structured request objects, shared parser helpers, and inheritable patterns. | User logged during CLI/manual-test review |
 | LOG-058 | 2026-05-13 | ui5-common-t1-pass | UI | UI-5 common manual test T1 passed. | User logged during UI-5 common manual verification |
 | LOG-059 | 2026-05-18 | study-inner-join-drops-anchors | Study Log | `list_tags()` and `search_tags()` in study.py use INNER JOIN on DatasetIndex; topic/concept/paper-anchored notes are invisible to the study log API. After Phase 2 Task 4, StudyNote.index_id became nullable but the JOIN silently filters non-dataset notes. Fix deferred to Phase 5 / study log API update. | Code review / technical debt |
-| LOG-060 | 2026-05-21 | chat-turn-hang | UI / Agent Core | Chat hangs periodically and causes a page error; appears to occur during `POST /api/chat/turn`; no server-side errors logged at time of failure. | Phase 4 manual verification — T3/T6/T8 ad hoc observation |
 | LOG-061 | 2026-05-21 | no-retract-lifecycle | Research / DB | No way to remove or retract evidence links, research questions, approved papers, or claims once created. Evidence links have no status field at all — no soft-delete path exists. Claims and gaps have status transitions (reject/resolve) but no UI exposes them. Research questions have no rejection or archive status. The no-hard-delete posture is intentional for audit trail; the gaps are: (1) EvidenceLink needs a status field and retract operation; (2) ResearchQuestion needs an archived/withdrawn status; (3) UI needs reject/archive/retract surfaces for claims, gaps, links, and questions wherever the DB supports it. | Phase 4 T8 manual testing — ad hoc observation |
+
+---
+
+## Monitor
+
+| Log ID | Date | Issue ID | Epoch | Description | Monitor note |
+|---|---|---|---|---|---|
+| LOG-060 | 2026-05-21 | chat-turn-hang | UI / Agent Core | Chat hung periodically and caused a page error during `POST /api/chat/turn`, with no server-side errors logged at time of failure. | Monitor after renderer fix. Likely cause found during Phase 5a T10: frontend `MessageBubble` Markdown parser could infinite-loop during streaming when a partial block marker such as `## ` was present. The parser recognized it as a block start but no block handler consumed it, so `index` did not advance and the browser paused before a potential out-of-memory crash. Fixed by making `isBlockStart()` require complete heading text and adding a progress guard that renders unconsumed lines as plain text and increments `index`. Covered by `frontend/src/components/MessageBubble.test.tsx` cases for partial streamed headings and incomplete Markdown constructs. If LOG-060 recurs, first inspect `MessageBubble.tsx` parser progress, streamed partial Markdown content, and browser DevTools pause location before assuming backend/agent failure. |
 
 ---
 
@@ -71,6 +76,7 @@ Use `Log ID` for cross-references across Open, Resolved, triage, sprint planning
 
 | Log ID | Date | Issue ID | Description | Resolution |
 |---|---|---|---|---|
+| LOG-030 | 2026-05-21 | lt3-t2-pass-header-size | Titles/headers rendered too large in Streamlit | Resolved by React migration — React UI uses standard CSS sizing with no Streamlit rendering quirks |
 | LOG-002 | 2026-05-05 | LT1-scroll-sync | Right workspace pane remains at top while left agent conversation scrolls | Resolved in LT-2: workspace/chat layout redesigned; accepted as current behavior pending post-LT-3 UI shell work |
 | LOG-003 | 2026-05-05 | LT1-mode-scroll | Mode controls require scrolling to top as conversation grows | Resolved in LT-2: mode radio always visible in sidebar; deeper layout work deferred to UI shell phase |
 | LOG-004 | 2026-05-05 | LT1-pending-source-visibility | Pending source cards lacked clear title/source/topic and selectable links | Resolved in LT-2: Knowledge Library polish — T7 passed |

@@ -1,6 +1,7 @@
 """GET /api/datasets and dataset import routes."""
 from __future__ import annotations
 
+import json as _json
 import logging
 import threading
 import uuid
@@ -14,11 +15,28 @@ from neurodb.api.schemas.datasets import DatasetItem
 from neurodb.api.tasks import TaskRecord
 from neurodb.db import get_session
 from neurodb.query import search_datasets
-from neurodb.schema import DatasetIndex, ImportQueue
+from neurodb.schema import DatasetIndex, DatasetResearchPacket, ImportQueue
 
 logger = logging.getLogger(__name__)
 
 router = APIRouter()
+
+
+def _packet_fields(session, dataset_id: int) -> tuple[str | None, str | None]:
+    """Return (usefulness_state, missing_context) for a dataset, or (None, None) if no packet."""
+    packet = session.execute(
+        select(DatasetResearchPacket).where(
+            DatasetResearchPacket.index_id == dataset_id
+        )
+    ).scalar_one_or_none()
+    if packet is None:
+        return None, None
+    missing_list: list[str] = []
+    try:
+        missing_list = _json.loads(packet.missing_context_json or "[]")
+    except Exception:
+        pass
+    return packet.usefulness_state, ", ".join(missing_list)
 
 
 @router.get("", response_model=list[DatasetItem])
@@ -34,15 +52,31 @@ def get_datasets(
                 keyword=keyword,
                 modality=None if modality in {None, "", "all"} else modality,
             )
-            return [DatasetItem(**dict(row)) for row in rows]
+            items = []
+            for row in rows:
+                usefulness_state, missing_context = _packet_fields(session, row["id"])
+                items.append(
+                    DatasetItem(
+                        **dict(row),
+                        usefulness_state=usefulness_state,
+                        missing_context=missing_context,
+                    )
+                )
+            return items
         except Exception:
             query = session.query(DatasetIndex)
             if keyword:
                 query = query.filter(DatasetIndex.source_id.ilike(f"%{keyword}%"))
             rows = query.order_by(DatasetIndex.source, DatasetIndex.source_id).limit(200).all()
-            items = [DatasetItem.model_validate(row) for row in rows]
             if modality not in {None, "", "all"}:
                 return []
+            items = []
+            for row in rows:
+                usefulness_state, missing_context = _packet_fields(session, row.id)
+                item = DatasetItem.model_validate(row)
+                item.usefulness_state = usefulness_state
+                item.missing_context = missing_context
+                items.append(item)
             return items
 
 

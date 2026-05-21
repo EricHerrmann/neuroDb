@@ -263,6 +263,21 @@ def test_approve_claim_404():
     assert resp.status_code == 404
 
 
+def test_archive_claim_sets_status():
+    client, engine = _make_client()
+    paper_id = _insert_paper(engine)
+    claim_id = _insert_claim(engine, paper_id, status="rejected")
+    resp = client.post(f"/api/research/claims/{claim_id}/archive")
+    assert resp.status_code == 200
+    assert resp.json()["status"] == "archived"
+
+
+def test_archive_claim_404():
+    client, _ = _make_client()
+    resp = client.post("/api/research/claims/9999/archive")
+    assert resp.status_code == 404
+
+
 # ---------------------------------------------------------------------------
 # POST /api/research/gaps/{id}/resolve and /archive
 # ---------------------------------------------------------------------------

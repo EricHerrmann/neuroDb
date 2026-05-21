@@ -262,6 +262,10 @@ function ClaimsSection() {
       mutationFn: () => api.rejectClaim(claim.id),
       onSuccess: () => queryClient.invalidateQueries({ queryKey: ['research-claims'] }),
     })
+    const archive = useMutation({
+      mutationFn: () => api.archiveClaim(claim.id),
+      onSuccess: () => queryClient.invalidateQueries({ queryKey: ['research-claims'] }),
+    })
     const transitions: { label: string; onSelect: () => void }[] = []
     if (claim.status === 'candidate' || claim.status === 'rejected') {
       transitions.push({ label: 'Approve', onSelect: () => approve.mutate() })
@@ -269,11 +273,14 @@ function ClaimsSection() {
     if (claim.status === 'candidate' || claim.status === 'approved') {
       transitions.push({ label: 'Reject', onSelect: () => reject.mutate() })
     }
+    if (claim.status !== 'archived') {
+      transitions.push({ label: 'Archive', onSelect: () => archive.mutate() })
+    }
     return (
       <StatusChip
         status={claim.status}
         transitions={transitions}
-        isPending={approve.isPending || reject.isPending}
+        isPending={approve.isPending || reject.isPending || archive.isPending}
       />
     )
   }

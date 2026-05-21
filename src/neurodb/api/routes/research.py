@@ -287,6 +287,14 @@ def reject_claim(
     return _update_status(engine, Claim, claim_id, "rejected", ClaimItem)
 
 
+@router.post("/claims/{claim_id}/archive", response_model=ClaimItem)
+def archive_claim(
+    claim_id: int,
+    engine: Engine = Depends(get_engine),
+) -> ClaimItem:
+    return _update_status(engine, Claim, claim_id, "archived", ClaimItem)
+
+
 @router.post("/gaps/{gap_id}/resolve", response_model=ResearchGapItem)
 def resolve_gap(
     gap_id: int,

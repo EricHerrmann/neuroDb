@@ -164,6 +164,8 @@ export const api = {
     post<ClaimItem>(`/api/research/claims/${id}/approve`),
   rejectClaim: (id: number) =>
     post<ClaimItem>(`/api/research/claims/${id}/reject`),
+  archiveClaim: (id: number) =>
+    post<ClaimItem>(`/api/research/claims/${id}/archive`),
   resolveGap: (id: number) =>
     post<ResearchGapItem>(`/api/research/gaps/${id}/resolve`),
   archiveGap: (id: number) =>

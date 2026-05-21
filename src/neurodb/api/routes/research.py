@@ -10,7 +10,14 @@ from fastapi import APIRouter, Depends, HTTPException, Query, Request
 from sqlalchemy import Engine
 
 from neurodb.api.deps import get_engine, get_research_stores, get_task_store
-from neurodb.api.schemas.research import Hypothesis, HypothesisReviewItem, ResearchQuestion
+from neurodb.api.schemas.research import (
+    ClaimItem,
+    EvidenceLinkItem,
+    Hypothesis,
+    HypothesisReviewItem,
+    ResearchGapItem,
+    ResearchQuestion,
+)
 from neurodb.api.tasks import TaskRecord
 from neurodb.db import get_session
 from neurodb.research_tools import (
@@ -20,7 +27,7 @@ from neurodb.research_tools import (
     list_research_questions,
     update_hypothesis_review_status,
 )
-from neurodb.schema import HypothesisReview, ResearchHypothesis
+from neurodb.schema import Claim, EvidenceLink, HypothesisReview, ResearchGap, ResearchHypothesis
 
 router = APIRouter()
 
@@ -67,6 +74,26 @@ def get_questions(
     return [ResearchQuestion.model_validate(q) for q in questions]
 
 
+@router.get("/claims", response_model=list[ClaimItem])
+def get_claims(
+    engine: Engine = Depends(get_engine),
+) -> list[ClaimItem]:
+    """Return all claims."""
+    with get_session(engine) as session:
+        rows = session.query(Claim).order_by(Claim.created_at.desc()).all()
+        return [ClaimItem.model_validate(row) for row in rows]
+
+
+@router.get("/gaps", response_model=list[ResearchGapItem])
+def get_gaps(
+    engine: Engine = Depends(get_engine),
+) -> list[ResearchGapItem]:
+    """Return all research gaps."""
+    with get_session(engine) as session:
+        rows = session.query(ResearchGap).order_by(ResearchGap.created_at.desc()).all()
+        return [ResearchGapItem.model_validate(row) for row in rows]
+
+
 @router.get("/hypotheses")
 def get_hypotheses(
     engine: Engine = Depends(get_engine),
@@ -75,6 +102,28 @@ def get_hypotheses(
     """Return research hypotheses, optionally filtered by status."""
     hypotheses = list_hypotheses(engine, status or "all")
     return [_hypothesis_item(h) for h in hypotheses]
+
+
+@router.get("/hypotheses/{hypothesis_id}/evidence-links", response_model=list[EvidenceLinkItem])
+def get_evidence_links(
+    hypothesis_id: int,
+    engine: Engine = Depends(get_engine),
+) -> list[EvidenceLinkItem]:
+    """Return evidence links for a hypothesis."""
+    with get_session(engine) as session:
+        hypothesis = session.get(ResearchHypothesis, hypothesis_id)
+        if hypothesis is None:
+            raise HTTPException(
+                status_code=404,
+                detail=f"Hypothesis {hypothesis_id} not found",
+            )
+        rows = (
+            session.query(EvidenceLink)
+            .filter(EvidenceLink.hypothesis_id == hypothesis_id)
+            .order_by(EvidenceLink.created_at.desc())
+            .all()
+        )
+        return [EvidenceLinkItem.model_validate(row) for row in rows]
 
 
 @router.get("/hypotheses/{hypothesis_id}/reviews", response_model=list[HypothesisReviewItem])

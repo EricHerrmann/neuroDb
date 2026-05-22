@@ -24,16 +24,16 @@ def test_load_model_config_has_tasks():
 
 def test_get_model_for_task_economy_tier():
     provider, model_id, max_tokens = get_model_for_task("summary.session")
-    assert provider == "openai"
-    assert "mini" in model_id.lower()
+    assert provider == "anthropic"
+    assert "haiku" in model_id.lower()
     assert max_tokens == 512
 
 
 def test_get_model_for_task_standard_tier():
     provider, model_id, max_tokens = get_model_for_task("agent.loop.research")
-    assert provider == "openai"
-    assert "gpt" in model_id.lower()
-    assert max_tokens == 2048
+    assert provider == "anthropic"
+    assert "claude" in model_id.lower()
+    assert max_tokens == 4096
 
 
 def test_get_model_for_task_routing_section_selects_openai(monkeypatch):
@@ -48,7 +48,7 @@ def test_get_model_for_task_routing_section_selects_openai(monkeypatch):
 
     assert provider == "openai"
     assert model_id == "gpt-5.4"
-    assert max_tokens == 2048
+    assert max_tokens == 4096
 
 
 def test_get_model_for_task_routing_section_selects_gemini(monkeypatch):
@@ -63,7 +63,7 @@ def test_get_model_for_task_routing_section_selects_gemini(monkeypatch):
 
     assert provider == "gemini"
     assert model_id == "gemini-2.5-flash"
-    assert max_tokens == 2048
+    assert max_tokens == 4096
 
 
 def test_get_model_for_task_routing_section_unknown_provider_raises(monkeypatch):
@@ -80,17 +80,17 @@ def test_get_model_for_task_routing_section_unknown_provider_raises(monkeypatch)
 
 def test_get_model_for_task_tier_env_var_has_no_effect(monkeypatch):
     """NEURODB_STANDARD_PROVIDER env var is ignored — provider comes from [routing] only."""
-    monkeypatch.setenv("NEURODB_STANDARD_PROVIDER", "anthropic")
+    monkeypatch.setenv("NEURODB_STANDARD_PROVIDER", "openai")
 
     provider, _, _ = get_model_for_task("agent.loop.research")
 
-    assert provider == "openai"
+    assert provider == "anthropic"
 
 
 def test_get_model_for_task_premium_tier():
     provider, model_id, max_tokens = get_model_for_task("research.hypothesis_review")
-    assert provider == "openai"
-    assert "gpt" in model_id.lower()
+    assert provider == "anthropic"
+    assert "claude" in model_id.lower()
     assert max_tokens == 4096
 
 

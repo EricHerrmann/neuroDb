@@ -94,14 +94,14 @@ def test_generate_summary_default_model_is_haiku():
 
     with patch(
         "neurodb.config.provider_factory.build_provider_clients",
-        return_value={"openai": model_client},
+        return_value={"anthropic": model_client},
     ):
         with patch.dict("os.environ", {}, clear=True):
             summary, telemetry = knowledge_library._generate_summary(_make_knowledge_source())
 
     assert summary == "summary text"
     assert telemetry is not None
-    assert telemetry["provider"] == "openai"
+    assert telemetry["provider"] == "anthropic"
     assert telemetry["task_type"] == "summary.knowledge_source"
 
 

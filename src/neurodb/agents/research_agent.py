@@ -235,7 +235,11 @@ _RESEARCH_TOOLS = [
     },
     {
         "name": "add_gap",
-        "description": "Record a named evidence gap for a research question or hypothesis.",
+        "description": (
+            "Record a named evidence gap for a research question or hypothesis. "
+            "You MUST supply at least one of question_id or hypothesis_id — "
+            "the call will fail if both are omitted."
+        ),
         "input_schema": {
             "type": "object",
             "properties": {
@@ -413,15 +417,18 @@ class NeuroResearchAgent(BaseAgent):
         if block.tool_name == "add_gap":
             from neurodb.db import get_session
             from neurodb.db.claim_store import add_gap as _add_gap
-            with get_session(self._engine) as session:
-                gap = _add_gap(
-                    session,
-                    block.tool_input["description"],
-                    block.tool_input["gap_type"],
-                    question_id=block.tool_input.get("question_id"),
-                    hypothesis_id=block.tool_input.get("hypothesis_id"),
-                )
-                return json.dumps({"id": gap.id, "status": gap.status, "gap_type": gap.gap_type})
+            try:
+                with get_session(self._engine) as session:
+                    gap = _add_gap(
+                        session,
+                        block.tool_input["description"],
+                        block.tool_input["gap_type"],
+                        question_id=block.tool_input.get("question_id"),
+                        hypothesis_id=block.tool_input.get("hypothesis_id"),
+                    )
+                    return json.dumps({"id": gap.id, "status": gap.status, "gap_type": gap.gap_type})
+            except ValueError as exc:
+                return json.dumps({"error": str(exc)})
         if block.tool_name == "resolve_gap":
             from neurodb.db import get_session
             from neurodb.db.claim_store import resolve_gap as _resolve_gap

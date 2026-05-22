@@ -134,6 +134,7 @@ def build_context_bundle(
     if mode in {"contextual", "grounded"} or _message_requests_local_context(user_message):
         knowledge_hits = _safe_store_search(knowledge_store, user_message, n=3)
         semantic_hits = _safe_store_search(vector_store, user_message, n=3)
+        counts["papers"] += len(knowledge_hits)
         counts["semantic_hits"] = len(knowledge_hits) + len(semantic_hits)
 
     if mode == "grounded" and not _has_local_support(counts):
@@ -159,11 +160,17 @@ def context_summary_event(bundle: dict | None) -> dict | None:
     """Return the SSE context_summary event for a context bundle."""
     if not bundle:
         return None
+    sc = bundle.get("source_counts", empty_source_counts())
     return {
         "type": "context_summary",
         "context_mode": bundle.get("mode", DEFAULT_CONTEXT_MODE),
         "active_focus": bundle.get("active_focus"),
-        "source_counts": bundle.get("source_counts", empty_source_counts()),
+        "source_counts": sc,
+        "papers_count": sc.get("papers", 0),
+        "notes_count": sc.get("study_notes", 0),
+        "claims_count": sc.get("claims", 0),
+        "datasets_count": sc.get("dataset_packets", 0),
+        "gaps_count": sc.get("gaps", 0),
         "warnings": bundle.get("warnings", []),
     }
 

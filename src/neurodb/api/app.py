@@ -130,3 +130,6 @@ def app_factory() -> FastAPI:
     create_views(engine)
     stores = _build_runtime_stores(db_path, engine)
     return create_app(engine, **stores)
+
+
+app = app_factory()

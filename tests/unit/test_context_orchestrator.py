@@ -240,3 +240,9 @@ def test_context_summary_event_shape(engine):
     assert event["type"] == "context_summary"
     assert event["context_mode"] == "contextual"
     assert event["source_counts"]["papers"] == 1
+    # Flat fields consumed by the frontend — field names are the contract.
+    assert event["papers_count"] == 1
+    assert event["notes_count"] == 1
+    assert event["claims_count"] == 0
+    assert event["datasets_count"] == 0
+    assert event["gaps_count"] == 0

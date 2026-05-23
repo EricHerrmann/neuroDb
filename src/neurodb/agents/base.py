@@ -320,6 +320,7 @@ class BaseAgent(ABC):
 
     def _record_model_call(self, response, iteration: int, elapsed_ms: int) -> None:
         try:
+            sc = (self._context_bundle or {}).get("source_counts") or {}
             record_model_call(
                 self._engine,
                 task_type=self._telemetry_task_type,
@@ -329,6 +330,11 @@ class BaseAgent(ABC):
                 response=response,
                 iteration=iteration,
                 elapsed_ms=elapsed_ms,
+                context_papers_count=sc.get("papers") or None,
+                context_notes_count=sc.get("study_notes") or None,
+                context_claims_count=sc.get("claims") or None,
+                context_datasets_count=sc.get("dataset_packets") or None,
+                context_gap_count=sc.get("gaps") or None,
             )
         except Exception:
             return

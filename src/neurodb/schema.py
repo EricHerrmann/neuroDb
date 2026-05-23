@@ -380,6 +380,11 @@ class ModelCallLog(Base):
     stop_reason: Mapped[str | None] = mapped_column(String(64), nullable=True)
     elapsed_ms: Mapped[int | None] = mapped_column(Integer, nullable=True)
     estimated_cost_usd: Mapped[float | None] = mapped_column(Float, nullable=True)
+    context_papers_count: Mapped[int | None] = mapped_column(Integer, nullable=True)
+    context_notes_count: Mapped[int | None] = mapped_column(Integer, nullable=True)
+    context_claims_count: Mapped[int | None] = mapped_column(Integer, nullable=True)
+    context_datasets_count: Mapped[int | None] = mapped_column(Integer, nullable=True)
+    context_gap_count: Mapped[int | None] = mapped_column(Integer, nullable=True)
 
 
 class SystemWarning(Base):

@@ -243,3 +243,89 @@ def test_session_summary_logs_model_call():
         assert row.mode == "summary"
         assert row.input_tokens == 50
         assert row.output_tokens == 20
+
+
+def test_model_call_log_has_context_count_columns():
+    engine = create_engine("sqlite:///:memory:")
+    Base.metadata.create_all(engine)
+    col_names = {c["name"] for c in inspect(engine).get_columns("model_call_log")}
+    assert "context_papers_count" in col_names
+    assert "context_notes_count" in col_names
+    assert "context_claims_count" in col_names
+    assert "context_datasets_count" in col_names
+    assert "context_gap_count" in col_names
+
+
+def test_model_call_log_context_counts_nullable():
+    engine = create_engine("sqlite:///:memory:")
+    Base.metadata.create_all(engine)
+    with Session(engine) as session:
+        row = ModelCallLog(
+            recorded_at="2026-05-23T00:00:00+00:00",
+            task_type="agent.loop.neuro_tutor",
+            provider="anthropic",
+            model="claude-sonnet-4-6",
+        )
+        session.add(row)
+        session.commit()
+    with Session(engine) as session:
+        row = session.query(ModelCallLog).first()
+        assert row.context_papers_count is None
+        assert row.context_notes_count is None
+        assert row.context_claims_count is None
+        assert row.context_datasets_count is None
+        assert row.context_gap_count is None
+
+
+def test_model_call_log_context_counts_persist_when_set():
+    engine = create_engine("sqlite:///:memory:")
+    Base.metadata.create_all(engine)
+    with Session(engine) as session:
+        row = ModelCallLog(
+            recorded_at="2026-05-23T00:00:00+00:00",
+            task_type="agent.loop.neuro_research",
+            provider="anthropic",
+            model="claude-sonnet-4-6",
+            context_papers_count=5,
+            context_notes_count=8,
+            context_claims_count=4,
+            context_datasets_count=2,
+            context_gap_count=1,
+        )
+        session.add(row)
+        session.commit()
+    with Session(engine) as session:
+        row = session.query(ModelCallLog).first()
+        assert row.context_papers_count == 5
+        assert row.context_notes_count == 8
+        assert row.context_claims_count == 4
+        assert row.context_datasets_count == 2
+        assert row.context_gap_count == 1
+
+
+def test_build_model_call_log_accepts_context_counts():
+    row = build_model_call_log(
+        task_type="agent.loop.neuro_research",
+        provider="anthropic",
+        model="claude-sonnet-4-6",
+        context_papers_count=9,
+        context_notes_count=12,
+        context_claims_count=8,
+        context_datasets_count=3,
+        context_gap_count=2,
+    )
+    assert row.context_papers_count == 9
+    assert row.context_notes_count == 12
+    assert row.context_claims_count == 8
+    assert row.context_datasets_count == 3
+    assert row.context_gap_count == 2
+
+
+def test_build_model_call_log_context_counts_default_none():
+    row = build_model_call_log(
+        task_type="agent.loop.neuro_tutor",
+        provider="anthropic",
+        model="claude-sonnet-4-6",
+    )
+    assert row.context_papers_count is None
+    assert row.context_gap_count is None

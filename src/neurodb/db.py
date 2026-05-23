@@ -350,6 +350,21 @@ def _migration_014_chat_session_topic_category(conn) -> None:
         pass  # column already exists
 
 
+def _migration_015_model_call_log_context_counts(conn) -> None:
+    """Add retrieval telemetry columns to model_call_log."""
+    for col in (
+        "context_papers_count",
+        "context_notes_count",
+        "context_claims_count",
+        "context_datasets_count",
+        "context_gap_count",
+    ):
+        try:
+            conn.execute(text(f"ALTER TABLE model_call_log ADD COLUMN {col} INTEGER"))
+        except Exception:
+            pass  # column already exists
+
+
 _MIGRATIONS: dict[int, callable] = {
     1: _migration_001_study_note_unique,
     2: _migration_002_model_call_log,
@@ -365,6 +380,7 @@ _MIGRATIONS: dict[int, callable] = {
     12: _migration_012_rebuild_tables_without_fk,
     13: _migration_013_system_warnings,
     14: _migration_014_chat_session_topic_category,
+    15: _migration_015_model_call_log_context_counts,
 }
 
 

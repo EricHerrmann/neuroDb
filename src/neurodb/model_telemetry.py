@@ -19,6 +19,11 @@ def build_model_call_log(
     response=None,
     iteration: int | None = None,
     elapsed_ms: int | None = None,
+    context_papers_count: int | None = None,
+    context_notes_count: int | None = None,
+    context_claims_count: int | None = None,
+    context_datasets_count: int | None = None,
+    context_gap_count: int | None = None,
 ) -> ModelCallLog:
     """Build a ModelCallLog row from a provider response."""
     input_tokens, output_tokens = _extract_usage(response)
@@ -37,6 +42,11 @@ def build_model_call_log(
         stop_reason=_get_value(response, "stop_reason"),
         elapsed_ms=elapsed_ms,
         estimated_cost_usd=_estimate_cost_usd(model, input_tokens, output_tokens),
+        context_papers_count=context_papers_count,
+        context_notes_count=context_notes_count,
+        context_claims_count=context_claims_count,
+        context_datasets_count=context_datasets_count,
+        context_gap_count=context_gap_count,
     )
 
 

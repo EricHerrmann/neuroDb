@@ -64,7 +64,11 @@ _RESEARCH_SYSTEM_PROMPT = (
     "it for Knowledge Library approval — do not just mention it in the answer. "
     "When the user asks for dataset suggestions or you identify a relevant external dataset "
     "via search_external or inspect_external_dataset, call suggest_dataset_import to add it "
-    "to the import queue."
+    "to the import queue. "
+    "When local context includes datasets, treat only 'research_context_ready' or "
+    "'analysis_ready' datasets as supporting evidence for claims. Label 'sparse' and "
+    "'partial' datasets as insufficient for claims and record them as evidence gaps "
+    "using add_gap rather than citing them as support."
 )
 
 _RESEARCH_TOOLS = [

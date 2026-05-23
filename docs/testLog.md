@@ -13,8 +13,7 @@ Use `Log ID` for cross-references across Open, Resolved, triage, sprint planning
 
 | Log ID | Issue ID | Epoch | Severity | Description | Priority |
 |--------|----------|-------|----------|-------------|----------|
-| LOG-059 | study-inner-join-drops-anchors | DB | High | `list_tags()` and `search_tags()` use INNER JOIN on DatasetIndex; topic/concept/paper-anchored notes are silently filtered out | Phase 5 / study log API update |
-| LOG-054 | dataset-minimal-research-value | Research | Medium | Datasets have minimal information; need to determine the right amount of dataset metadata for local research | Backlog |
+| LOG-054 | dataset-minimal-research-value | Research | Medium | Datasets have minimal information; partially resolved — usefulness_state surfaced in agents; deeper enrichment deferred | Backlog |
 | LOG-057 | args-position-dependent | Tech Debt | Medium | CLI and Python function arguments are position-dependent; review for keyword-only APIs, structured request objects, and shared parser helpers | TD-1 / Tech Debt sprint |
 | LOG-001 | P6-selector | Tutor | Low | Textbook dropdown appears pre-selected without explicit user action — agent context state is ambiguous | Deferred post-LT-3 |
 | LOG-013 | UI-shell-rearchitecture | UI | Low | Streamlit cannot support fixed-pane app-shell behavior; reassess UI stack after LT-3 | Deferred post-LT-3 |
@@ -33,7 +32,6 @@ Use `Log ID` for cross-references across Open, Resolved, triage, sprint planning
 | LOG-051 | 2026-05-12 | ui-icon-pane-association | UI | Low | UI epoch feature: hard to associate activity-rail icons with the related right pane and know what is available in each pane; increase tooltips or associations, and reorganize icons with Research at top, then Study Log. | User logged during UI-3 manual/ad hoc review |
 | LOG-054 | 2026-05-13 | dataset-minimal-research-value | Research | Medium | Datasets have minimal information; need to explore the right amount of dataset metadata for local research because current dataset value is unclear. | User logged during external dataset/agent-mode review |
 | LOG-057 | 2026-05-13 | args-position-dependent | Tech Debt | Medium | CLI and Python function arguments should not be brittle or position-dependent; review the codebase for positional CLI globals and multi-argument function calls, then determine options to fix with keyword-only APIs, structured request objects, shared parser helpers, and inheritable patterns. | User logged during CLI/manual-test review |
-| LOG-059 | 2026-05-18 | study-inner-join-drops-anchors | DB | High | `list_tags()` and `search_tags()` in study.py use INNER JOIN on DatasetIndex; topic/concept/paper-anchored notes are invisible to the study log API. After Phase 2 Task 4, StudyNote.index_id became nullable but the JOIN silently filters non-dataset notes. Fix deferred to Phase 5 / study log API update. | Code review / technical debt |
 
 ---
 
@@ -49,6 +47,7 @@ Use `Log ID` for cross-references across Open, Resolved, triage, sprint planning
 
 | Log ID | Date | Issue ID | Epoch | Severity | Description | Resolution |
 |--------|------|----------|-------|----------|-------------|------------|
+| LOG-059 | 2026-05-18 | study-inner-join-drops-anchors | DB | High | `list_tags()` and `search_tags()` used INNER JOIN on DatasetIndex; topic/concept/paper-anchored notes were silently excluded | Fixed in memory refocus completion phase: converted both functions to outerjoin with anchor resolution; 5 new tests added; committed 2026-05-23 |
 | LOG-006 | 2026-05-05 | LT1-model-visibility | Config | Low | User cannot tell which agent/LLM/model is active; later work should add model selection and persistent model/user-preference prompt rules | Resolved in Config Control Phase 6: React Chat header shows a read-only active provider/model chip from `/api/model-info`; manual T4 passed 2026-05-23 |
 | LOG-041 | 2026-05-07 | config-session-summary-visibility | Config | Medium | T4 has explicit checks for date, topic, and key concepts, so there needs to be a way to view the generated session summary in the app. | Resolved in Config Control Phase 6: Study Log chat history renders session summaries behind an expandable `Session summary` affordance; manual T5 passed 2026-05-23 |
 | LOG-047 | 2026-05-09 | telemetry-timestamp-format | Config | Low | Telemetry log timestamps display as raw ISO 8601; should display as HH:MM:SS DD/MM/YY for user readability. Likely addressed in Phase 6 alongside the system_warnings CLI surface. | Resolved in Config Control Phase 6: `neurodb-telemetry` uses shared `format_recorded_at()` with `HH:MM:SS DD/MM/YY`; manual T3 passed 2026-05-23 |

@@ -1,8 +1,8 @@
 # NeuroDb — Project Status
 
 **Last updated:** 2026-05-23
-**Active focus:** Learning and Research Memory Refocus
-**Next:** Continue the Learning and Research Memory Refocus work now that Config Control Phase 6 is complete
+**Active focus:** Learning and Research Memory Refocus — Completion Phase (LOG-059, context budgets, retrieval telemetry, dataset usefulness)
+**Next:** Tech Debt epoch (TD-1 CLI argument normalization, TD-2 keyword-only helper APIs)
 **Goal alignment:** Two co-equal goals in a feedback loop — accumulate neuroscience understanding grounded in real data (Goal 1), and conduct structured neuroscience investigations using existing public datasets and good scientific method (Goal 2). See `NeuroDbGoals.md`.
 
 ---
@@ -39,7 +39,7 @@ Source of truth for model IDs: `neurodb_models.toml`.
 
 ## Open Issues
 
-See `docs/testLog.md`. Current open items: LOG-001 (textbook dropdown ambiguity), LOG-013 (UI shell rearchitecture), LOG-050 (Gemini premium testing deferred), LOG-051 (UI icon pane association), LOG-054 (dataset minimal research value), LOG-057 (argument order tech debt), LOG-059 (study log inner join drops anchors). Monitor item: LOG-060 (chat-turn hang, likely frontend streamed-Markdown renderer loop fixed; watch for recurrence).
+See `docs/testLog.md`. Current open items: LOG-001 (textbook dropdown ambiguity), LOG-013 (UI shell rearchitecture), LOG-050 (Gemini premium testing deferred), LOG-051 (UI icon pane association), LOG-054 (dataset minimal research value — partially resolved in completion phase; deeper enrichment deferred), LOG-057 (argument order tech debt), LOG-059 (study log inner join drops anchors — being resolved in completion phase). Monitor item: LOG-060 (chat-turn hang, likely frontend streamed-Markdown renderer loop fixed; watch for recurrence).
 
 ---
 
@@ -80,4 +80,7 @@ See `docs/testLog.md`. Current open items: LOG-001 (textbook dropdown ambiguity)
 | `docs/superpowers/specs/2026-05-23-phase6-fallback-telemetry-design.md` | Config Control Phase 6 design spec — provider fallback, system warnings, telemetry CLI, UI visibility |
 | `docs/superpowers/plans/2026-05-23-phase6-fallback-telemetry.md` | Config Control Phase 6 implementation plan — complete and signed off 2026-05-23 |
 | `docs/testsPlans/completedAndPassedTestPlans/manualTestPlan_phase6_fallback_telemetry.md` | Config Control Phase 6 manual test plan — T1-T5 passed and signed off 2026-05-23 |
+| `docs/superpowers/specs/2026-05-23-memory-refocus-completion-design.md` | Completion phase spec — context budgets, retrieval telemetry, task-type defaults, LOG-059 study log outer join, LOG-054 dataset usefulness |
+| `docs/superpowers/plans/2026-05-23-memory-refocus-completion.md` | Completion phase implementation plan — in progress |
+| `docs/testsPlans/manualTestPlan_memory_refocus_completion.md` | Completion phase manual test plan — T1-T5 pending |
 | `docs/testsPlans/completedAndPassedTestPlans/manualTestPlan_db_phase9_dataset_research_packets.md` | DB Phase 9 manual test plan — T1-T4 passed and signed off 2026-05-18 |

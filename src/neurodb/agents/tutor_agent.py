@@ -45,7 +45,12 @@ _TUTOR_SYSTEM_PROMPT = (
     "section headings, bold emphasis, bullet or numbered lists, Markdown links, inline "
     "code, fenced code blocks, and simple Markdown tables when they improve scanning "
     "or comparison. Keep formatting restrained and readable. Do not put raw tool JSON "
-    "or debug traces in the final answer."
+    "or debug traces in the final answer. "
+    "When local context includes datasets, check each dataset's usefulness state. "
+    "If a dataset is 'sparse', note the evidence gap rather than presenting the record "
+    "as a learning resource; suggest the user request enrichment if the topic is relevant. "
+    "Treat 'research_context_ready' and 'analysis_ready' datasets as suitable learning "
+    "resources and cite them with appropriate confidence."
 )
 
 _TUTOR_TOOLS = [

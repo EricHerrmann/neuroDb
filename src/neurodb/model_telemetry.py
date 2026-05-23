@@ -2,11 +2,10 @@
 from __future__ import annotations
 
 import json
-from datetime import datetime, timezone
+from datetime import UTC, datetime
 
 from neurodb.db import get_session
-from neurodb.schema import ModelCallLog
-
+from neurodb.schema import ModelCallLog, SystemWarning
 
 _PRICE_PER_MILLION_TOKENS_USD: dict[str, tuple[float, float]] = {}
 
@@ -25,7 +24,7 @@ def build_model_call_log(
     input_tokens, output_tokens = _extract_usage(response)
     tool_names = _extract_tool_names(response)
     return ModelCallLog(
-        recorded_at=datetime.now(timezone.utc).isoformat(),
+        recorded_at=datetime.now(UTC).isoformat(),
         task_type=task_type,
         provider=provider,
         model=model,
@@ -59,6 +58,39 @@ def add_model_call_log(session, **kwargs) -> None:
         return
     try:
         session.add(build_model_call_log(**kwargs))
+    except Exception:
+        return
+
+
+def build_system_warning(
+    *,
+    warning_type: str,
+    severity: str,
+    task_type: str,
+    message: str,
+    requested_provider: str | None = None,
+    selected_provider: str | None = None,
+) -> SystemWarning:
+    """Build a SystemWarning row for provider routing and runtime anomalies."""
+    return SystemWarning(
+        recorded_at=datetime.now(UTC).isoformat(),
+        warning_type=warning_type,
+        severity=severity,
+        task_type=task_type,
+        requested_provider=requested_provider,
+        selected_provider=selected_provider,
+        message=message,
+    )
+
+
+def record_system_warning(engine, **kwargs) -> None:
+    """Write one system warning row; never let warning persistence break runtime flow."""
+    if engine is None:
+        return
+    try:
+        row = build_system_warning(**kwargs)
+        with get_session(engine) as session:
+            session.add(row)
     except Exception:
         return
 

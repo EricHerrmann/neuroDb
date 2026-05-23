@@ -212,7 +212,7 @@ describe('ResearchPanel retract UI', () => {
     render(<ResearchPanel />, { wrapper: makeFetchWrapper() })
     await screen.findByText('Synaptic density decreases')
 
-    fireEvent.click(screen.getByRole('button', { name: /candidate/ }))
+    fireEvent.click(screen.getByLabelText(/candidate: This item was proposed/))
 
     expect(screen.getByText('Accept this item as usable project evidence.')).toBeTruthy()
     expect(screen.getByText('Mark this item as not accepted so it should not support claims or hypotheses.')).toBeTruthy()

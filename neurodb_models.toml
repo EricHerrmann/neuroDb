@@ -6,7 +6,10 @@
 [routing]
 economy  = "anthropic"
 standard = "anthropic"
-premium  = "anthropic"
+premium  = "openai"
+economy_fallback  = ["anthropic", "openai", "gemini", "deepseek", "groq"]
+standard_fallback = ["openai", "anthropic", "gemini", "deepseek", "groq"]
+premium_fallback  = ["openai", "anthropic", "gemini", "deepseek", "groq"]
 
 [tiers.economy]
 
@@ -24,6 +27,7 @@ last_verified_at = "2026-05-08"
 model = "gemini-2.5-flash-lite"
 eval_status = "degraded"
 last_verified_at = "2026-05-20"
+tool_loop_reliable = false
 
 [tiers.economy.providers.groq]
 model = "llama-3.1-8b-instant"
@@ -83,6 +87,8 @@ last_verified_at = "2026-05-08"
 model = "openai/gpt-oss-120b"
 eval_status = "degraded"
 last_verified_at = "2026-05-20"
+requires_tools = true
+tool_loop_reliable = false
 
 [tiers.premium.providers.deepseek]
 model = "deepseek-reasoner"

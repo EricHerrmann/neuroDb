@@ -192,7 +192,7 @@ def test_build_agent_passes_chroma_stores_to_research_agent():
             context_bundle={"mode": "grounded"},
         )
 
-    router_cls.return_value.route.assert_called_once_with("agent.loop.neuro_research")
+    router_cls.return_value.route.assert_called_once_with("agent.loop.neuro_research", engine="engine")
     agent_cls.assert_called_once_with(
         model_client=route.model_client,
         model="research-model",
@@ -236,7 +236,7 @@ def test_build_agent_preserves_external_db_mode():
             context_bundle={"mode": "general"},
         )
 
-    router_cls.return_value.route.assert_called_once_with("agent.loop.external_db")
+    router_cls.return_value.route.assert_called_once_with("agent.loop.external_db", engine="engine")
     agent_cls.assert_called_once_with(
         model_client=route.model_client,
         model="db-model",

@@ -15,12 +15,49 @@ const EMPTY_FORM = {
   note_text: '',
 }
 
+function CollapseHeader({
+  label,
+  collapsed,
+  onToggle,
+}: {
+  label: string
+  collapsed: boolean
+  onToggle: () => void
+}) {
+  return (
+    <button
+      type="button"
+      onClick={onToggle}
+      style={{
+        display: 'flex',
+        alignItems: 'center',
+        gap: 4,
+        background: 'none',
+        border: 'none',
+        padding: '2px 0',
+        cursor: 'pointer',
+        fontSize: 11,
+        fontWeight: 600,
+        color: '#64748b',
+        letterSpacing: '0.04em',
+        marginBottom: collapsed ? 0 : 8,
+        width: '100%',
+        textAlign: 'left',
+      }}
+    >
+      <span style={{ fontSize: 10 }}>{collapsed ? '▸' : '▾'}</span>
+      {label}
+    </button>
+  )
+}
+
 function StudyTagsView() {
   const queryClient = useQueryClient()
   const { data = [], isLoading, isError, error } = useQuery<StudyNote[]>({
     queryKey: ['study-log'],
     queryFn: api.getStudyLog,
   })
+  const [collapsed, setCollapsed] = useState(false)
   const [showForm, setShowForm] = useState(false)
   const [selectedNoteId, setSelectedNoteId] = useState<number | null>(null)
   const [conceptFilter, setConceptFilter] = useState('')
@@ -112,7 +149,12 @@ function StudyTagsView() {
 
   return (
     <div>
-      {data.length === 0 ? (
+      <CollapseHeader
+        label={`STUDY TAGS${data.length > 0 ? ` (${data.length})` : ''}`}
+        collapsed={collapsed}
+        onToggle={() => setCollapsed(c => !c)}
+      />
+      {collapsed ? null : data.length === 0 ? (
         <p style={{ color: '#94a3b8', fontSize: 13 }}>No study tags yet.</p>
       ) : (
         <>
@@ -179,7 +221,7 @@ function StudyTagsView() {
           )}
         </>
       )}
-      <button
+      {!collapsed && <button
         onClick={() => {
           if (showForm) {
             resetForm()
@@ -190,8 +232,8 @@ function StudyTagsView() {
         style={{ fontSize: 12, marginTop: 8, padding: '3px 10px', cursor: 'pointer' }}
       >
         {showForm ? 'Cancel' : 'Add Tag'}
-      </button>
-      {showForm && (
+      </button>}
+      {!collapsed && showForm && (
         <form
           onSubmit={handleSubmit}
           onKeyDown={event => {
@@ -253,7 +295,7 @@ function StudyTagsView() {
           </button>
         </form>
       )}
-      {warning && (
+      {!collapsed && warning && (
         <div style={{
           color: '#92400e',
           background: '#fef3c7',
@@ -270,36 +312,96 @@ function StudyTagsView() {
 }
 
 function ChatHistoryView() {
+  const queryClient = useQueryClient()
   const { data = [], isLoading, isError, error } = useQuery<ChatSession[]>({
     queryKey: ['sessions'],
     queryFn: api.getSessions,
+  })
+  const [collapsed, setCollapsed] = useState(false)
+  const remove = useMutation({
+    mutationFn: (sessionId: string) => api.deleteSession(sessionId),
+    onSuccess: () => queryClient.invalidateQueries({ queryKey: ['sessions'] }),
   })
 
   if (isLoading) return <div style={{ padding: 12 }}>Loading...</div>
   if (isError) {
     return <div style={{ padding: 12, color: '#dc2626' }}>Error: {(error as Error).message}</div>
   }
-  if (data.length === 0) {
-    return <p style={{ color: '#94a3b8', fontSize: 13 }}>No chat sessions yet.</p>
-  }
 
   return (
-    <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
-      {data.map(session => (
-        <div key={session.id} style={{ padding: '8px 10px', background: '#f8fafc', border: '1px solid #e2e8f0', borderRadius: 6 }}>
-          <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 4 }}>
-            <span style={{ fontSize: 12, fontWeight: 600, color: '#1e293b' }}>{session.inferred_topic}</span>
-            <span style={{ fontSize: 11, color: '#94a3b8' }}>{session.started_at.slice(0, 10)}</span>
+    <div>
+      <CollapseHeader
+        label={`CHAT HISTORY${data.length > 0 ? ` (${data.length})` : ''}`}
+        collapsed={collapsed}
+        onToggle={() => setCollapsed(c => !c)}
+      />
+      {collapsed ? null : data.length === 0 ? (
+        <p style={{ color: '#94a3b8', fontSize: 13 }}>No chat sessions yet.</p>
+      ) : (() => {
+        const groups = new Map<string, ChatSession[]>()
+        for (const session of data) {
+          const key = session.topic_category ?? 'Uncategorized'
+          const group = groups.get(key) ?? []
+          group.push(session)
+          groups.set(key, group)
+        }
+        const sorted = [...groups.entries()].sort(([a], [b]) => {
+          if (a === 'Uncategorized') return 1
+          if (b === 'Uncategorized') return -1
+          return a.localeCompare(b)
+        })
+        return (
+          <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
+            {sorted.map(([category, sessions]) => (
+              <div key={category}>
+                <div style={{
+                  fontSize: 10,
+                  fontWeight: 700,
+                  color: '#94a3b8',
+                  letterSpacing: '0.06em',
+                  textTransform: 'uppercase',
+                  marginBottom: 4,
+                }}>
+                  {category}
+                </div>
+                <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
+                  {sessions.map(session => (
+                    <div key={session.id} style={{ padding: '8px 10px', background: '#f8fafc', border: '1px solid #e2e8f0', borderRadius: 6 }}>
+                      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: 4 }}>
+                        <span style={{ fontSize: 12, fontWeight: 600, color: '#1e293b' }}>{session.inferred_topic}</span>
+                        <div style={{ display: 'flex', gap: 6, alignItems: 'center', flexShrink: 0, marginLeft: 8 }}>
+                          <span style={{ fontSize: 11, color: '#94a3b8' }}>{session.started_at.slice(0, 10)}</span>
+                          <button
+                            onClick={() => remove.mutate(session.session_id)}
+                            disabled={remove.isPending}
+                            style={{ fontSize: 11, padding: '1px 6px', cursor: 'pointer' }}
+                          >
+                            Delete
+                          </button>
+                        </div>
+                      </div>
+                      <div style={{ fontSize: 11, color: '#64748b', display: 'flex', gap: 12 }}>
+                        <span>{session.agent_mode}</span>
+                        <span>{session.message_count} messages</span>
+                      </div>
+                      {session.summary_preview && (
+                        <details style={{ marginTop: 6 }}>
+                          <summary style={{ fontSize: 11, color: '#2563eb', cursor: 'pointer' }}>
+                            Session summary
+                          </summary>
+                          <p style={{ fontSize: 11, color: '#475569', marginTop: 4, marginBottom: 0 }}>
+                            {session.summary_preview}
+                          </p>
+                        </details>
+                      )}
+                    </div>
+                  ))}
+                </div>
+              </div>
+            ))}
           </div>
-          <div style={{ fontSize: 11, color: '#64748b', display: 'flex', gap: 12 }}>
-            <span>{session.agent_mode}</span>
-            <span>{session.message_count} messages</span>
-          </div>
-          {session.summary_preview && (
-            <p style={{ fontSize: 11, color: '#475569', marginTop: 4, marginBottom: 0 }}>{session.summary_preview}</p>
-          )}
-        </div>
-      ))}
+        )
+      })()}
     </div>
   )
 }

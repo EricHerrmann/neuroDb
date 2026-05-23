@@ -203,7 +203,7 @@ def _approve_with_summary(source_id: int, engine: Engine, knowledge_store) -> di
         row = session.get(Paper, source_id)
         if row is None:
             raise ValueError(f"Paper {source_id} not found")
-        summary = _generate_summary(row)
+        summary = _generate_summary(row, engine)
     item = _update_paper_fields(
         source_id,
         engine,
@@ -431,7 +431,7 @@ def _table_has_columns(session, table_name: str, column_names: list[str]) -> boo
     return set(column_names).issubset(actual)
 
 
-def _generate_summary(row: Paper) -> str:
+def _generate_summary(row: Paper, engine: Engine | None = None) -> str:
     try:
         from neurodb.config.provider_factory import build_provider_clients
         from neurodb.config.task_router import TaskRouter
@@ -439,7 +439,7 @@ def _generate_summary(row: Paper) -> str:
         providers = build_provider_clients()
         if not providers:
             return _fallback_summary(row)
-        route = TaskRouter(providers).route("summary.knowledge_source")
+        route = TaskRouter(providers).route("summary.knowledge_source", engine=engine)
         response = route.model_client.create_message(
             model=route.model_id,
             max_tokens=route.max_tokens,

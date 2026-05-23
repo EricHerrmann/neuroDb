@@ -75,7 +75,7 @@ def _chroma_path_for_db(db_path: str) -> str:
 def _build_runtime_stores(db_path: str, engine: Engine) -> dict:
     """Build the same Chroma-backed runtime stores used by the Streamlit app."""
     from neurodb.config.provider_factory import build_provider_clients
-    from neurodb.config.task_router import TaskRouter
+    from neurodb.config.task_router import RoutingError, TaskRouter
     from neurodb.embedder import Embedder
     from neurodb.knowledge_store import KnowledgeLibraryStore
     from neurodb.session_manager import AgentContextStore, SessionManager
@@ -91,8 +91,8 @@ def _build_runtime_stores(db_path: str, engine: Engine) -> dict:
     providers = build_provider_clients()
     if providers:
         try:
-            route = TaskRouter(providers).route("summary.session")
-        except KeyError:
+            route = TaskRouter(providers).route("summary.session", engine=engine)
+        except (KeyError, RoutingError):
             route = None
 
     session_kwargs = {"engine": engine}

@@ -2,7 +2,7 @@
 
 **Date:** 2026-05-23
 **Epoch:** Config Control
-**Status:** Design approved — pending implementation plan
+**Status:** Complete - implemented and signed off 2026-05-23
 **Resolves:** LOG-006 (model visibility), LOG-041 (session summary visibility), LOG-047 (telemetry timestamp format)
 **Promotes to first-class:** Design Choice 2 (per-provider capability flags)
 
@@ -227,7 +227,7 @@ In the chat history sidebar, each session entry gains an expandable detail: clic
 
 ### Manual
 
-A manual test plan (`docs/testsPlans/manualTestPlan_phase6_fallback_telemetry.md`) will be written before implementation begins, covering:
+A manual test plan (`docs/testsPlans/completedAndPassedTestPlans/manualTestPlan_phase6_fallback_telemetry.md`) was written before implementation began and signed off 2026-05-23, covering:
 - Provider fallback visible in `system_warnings` table when a key is removed
 - `neurodb telemetry` output with correct timestamp format
 - Active provider chip in UI header matches TOML routing config
@@ -257,4 +257,4 @@ A manual test plan (`docs/testsPlans/manualTestPlan_phase6_fallback_telemetry.md
 | `pyproject.toml` | Register `neurodb-telemetry` script |
 | `frontend/src/components/` | New — `ProviderChip` component |
 | `frontend/src/pages/` | Update header layout, session history sidebar |
-| `docs/testsPlans/manualTestPlan_phase6_fallback_telemetry.md` | New — manual test plan (written before implementation) |
+| `docs/testsPlans/completedAndPassedTestPlans/manualTestPlan_phase6_fallback_telemetry.md` | Manual test plan — T1-T5 passed and signed off 2026-05-23 |

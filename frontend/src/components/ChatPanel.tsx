@@ -6,6 +6,7 @@ import { api } from '../api/client'
 import type { ModelInfo, Preferences } from '../api/types'
 import { useChat } from '../hooks/useChat'
 import MessageBubble from './MessageBubble'
+import ProviderChip from './ProviderChip'
 import ThinkingBubble from './ThinkingBubble'
 import Tooltip from './Tooltip'
 
@@ -131,6 +132,7 @@ export default function ChatPanel({ agentMode }: { agentMode: AgentModeValue }) 
           CHAT
         </span>
         <div style={{ display: 'flex', gap: 6, alignItems: 'center' }}>
+          <ProviderChip modelInfo={modelInfo} />
           {modelInfo?.tiers && (
             <select
               aria-label="Models"

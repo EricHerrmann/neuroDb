@@ -2,9 +2,12 @@
 from unittest.mock import MagicMock
 
 import pytest
+from sqlalchemy import create_engine, select
+from sqlalchemy.orm import Session
 
 from neurodb.config.model_client import ModelClient
-from neurodb.config.task_router import ModelRoute, TaskRouter
+from neurodb.config.task_router import ModelRoute, RoutingError, TaskRouter
+from neurodb.schema import Base, SystemWarning
 
 
 def _mock_client() -> ModelClient:
@@ -56,5 +59,116 @@ def test_task_router_unknown_task_raises():
 
 def test_task_router_missing_provider_raises():
     router = TaskRouter({})  # no providers registered
-    with pytest.raises(KeyError):
+    with pytest.raises(RoutingError):
         router.route("agent.loop.research")
+
+
+def test_task_router_primary_selected_writes_no_warning():
+    engine = create_engine("sqlite:///:memory:")
+    Base.metadata.create_all(engine)
+    anthropic_client = _mock_client()
+    router = TaskRouter({"anthropic": anthropic_client})
+
+    route = router.route("agent.loop.research", engine=engine)
+
+    assert route.provider == "anthropic"
+    with Session(engine) as session:
+        warnings = session.execute(select(SystemWarning)).scalars().all()
+    assert warnings == []
+
+
+def test_task_router_falls_back_when_primary_provider_missing():
+    engine = create_engine("sqlite:///:memory:")
+    Base.metadata.create_all(engine)
+    openai_client = _mock_client()
+    router = TaskRouter({"openai": openai_client})
+
+    route = router.route("agent.loop.research", engine=engine)
+
+    assert route.provider == "openai"
+    assert route.model_client is openai_client
+    with Session(engine) as session:
+        warnings = session.execute(select(SystemWarning)).scalars().all()
+    assert [row.warning_type for row in warnings] == ["provider_missing", "routing_fallback"]
+    assert warnings[0].requested_provider == "anthropic"
+    assert warnings[1].selected_provider == "openai"
+
+
+def test_task_router_falls_back_when_primary_degraded(monkeypatch):
+    import neurodb.config.model_config as mc
+
+    base = mc.load_model_config()
+    standard = base["tiers"]["standard"]
+    patched_standard = {
+        **standard,
+        "providers": {
+            **standard["providers"],
+            "openai": {**standard["providers"]["openai"], "eval_status": "degraded"},
+        },
+    }
+    patched = {
+        **base,
+        "routing": {**base["routing"], "standard": "openai"},
+        "tiers": {**base["tiers"], "standard": patched_standard},
+    }
+    monkeypatch.setattr(mc, "_cache", patched)
+    engine = create_engine("sqlite:///:memory:")
+    Base.metadata.create_all(engine)
+    router = TaskRouter({"openai": _mock_client(), "deepseek": _mock_client()})
+
+    route = router.route("agent.loop.research", engine=engine)
+
+    assert route.provider == "deepseek"
+    with Session(engine) as session:
+        warnings = session.execute(select(SystemWarning)).scalars().all()
+    assert warnings[0].warning_type == "provider_degraded"
+    assert warnings[-1].warning_type == "routing_fallback"
+
+
+def test_task_router_falls_back_on_capability_mismatch(monkeypatch):
+    import neurodb.config.model_config as mc
+
+    base = mc.load_model_config()
+    economy = base["tiers"]["economy"]
+    patched_economy = {
+        **economy,
+        "providers": {
+            **economy["providers"],
+            "groq": {
+                **economy["providers"]["groq"],
+                "requires_tools": True,
+                "eval_status": "baseline",
+            },
+        },
+    }
+    patched = {
+        **base,
+        "routing": {**base["routing"], "economy": "groq"},
+        "tiers": {**base["tiers"], "economy": patched_economy},
+    }
+    monkeypatch.setattr(mc, "_cache", patched)
+    engine = create_engine("sqlite:///:memory:")
+    Base.metadata.create_all(engine)
+    router = TaskRouter({"groq": _mock_client(), "openai": _mock_client()})
+
+    route = router.route("summary.session", engine=engine)
+
+    assert route.provider == "openai"
+    with Session(engine) as session:
+        warnings = session.execute(select(SystemWarning)).scalars().all()
+    assert warnings[0].warning_type == "capability_mismatch"
+    assert warnings[0].requested_provider == "groq"
+
+
+def test_task_router_exhausted_fallback_chain_records_failure():
+    engine = create_engine("sqlite:///:memory:")
+    Base.metadata.create_all(engine)
+    router = TaskRouter({})
+
+    with pytest.raises(RoutingError, match="no viable provider"):
+        router.route("agent.loop.research", engine=engine)
+
+    with Session(engine) as session:
+        warnings = session.execute(select(SystemWarning)).scalars().all()
+    assert warnings[-1].warning_type == "routing_failed"
+    assert warnings[-1].severity == "error"

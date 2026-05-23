@@ -174,7 +174,10 @@ def review_hypothesis(
             from neurodb.config.task_router import TaskRouter
             from neurodb.research.hypothesis_review import run_hypothesis_review
 
-            route = TaskRouter(build_provider_clients()).route("research.hypothesis_review")
+            route = TaskRouter(build_provider_clients()).route(
+                "research.hypothesis_review",
+                engine=engine,
+            )
             result = run_hypothesis_review(
                 hypothesis_id=hypothesis_id,
                 engine=engine,

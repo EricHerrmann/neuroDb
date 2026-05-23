@@ -133,7 +133,7 @@ if "vector_store" not in st.session_state:
 
 if "session_manager" not in st.session_state:
     from neurodb.config.provider_factory import build_provider_clients
-    from neurodb.config.task_router import TaskRouter
+    from neurodb.config.task_router import RoutingError, TaskRouter
     from neurodb.session_manager import AgentContextStore, SessionManager
 
     chroma_path = db_path.replace(".duckdb", "_chroma")
@@ -142,8 +142,8 @@ if "session_manager" not in st.session_state:
     providers = build_provider_clients()
     if providers:
         try:
-            route = TaskRouter(providers).route("summary.session")
-        except KeyError:
+            route = TaskRouter(providers).route("summary.session", engine=engine)
+        except (KeyError, RoutingError):
             route = None
     session_kwargs = {"engine": engine}
     if route is not None:

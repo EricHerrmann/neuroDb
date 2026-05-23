@@ -60,7 +60,23 @@ describe('StudyLogPanel', () => {
     fireEvent.change(screen.getByRole('combobox'), { target: { value: 'chat-history' } })
     expect(screen.getByText('Synaptic plasticity')).toBeTruthy()
     expect(screen.getByText('5 messages')).toBeTruthy()
+    expect(screen.getByText('Session summary')).toBeTruthy()
     expect(screen.getByText('Discussed LTP mechanisms')).toBeTruthy()
+  })
+
+  it('hides session summary expander when no summary exists', () => {
+    const session = {
+      id: 1,
+      session_id: 'abc',
+      inferred_topic: 'Synaptic plasticity',
+      agent_mode: 'neuro_tutor',
+      started_at: '2026-05-01T10:00:00',
+      message_count: 5,
+      summary_preview: null,
+    }
+    render(<StudyLogPanel />, { wrapper: makeWrapper([], [session]) })
+    fireEvent.change(screen.getByRole('combobox'), { target: { value: 'chat-history' } })
+    expect(screen.queryByText('Session summary')).toBeNull()
   })
 
   it('shows empty state in Chat History view', () => {

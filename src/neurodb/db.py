@@ -310,6 +310,45 @@ def _migration_012_rebuild_tables_without_fk(conn) -> None:
         raw.execute(sql)
 
 
+def _migration_013_system_warnings(conn) -> None:
+    """Create system_warnings for provider routing and operational warnings."""
+    conn.execute(text("""
+        CREATE TABLE IF NOT EXISTS system_warnings (
+            id INTEGER PRIMARY KEY,
+            recorded_at VARCHAR(32) NOT NULL,
+            warning_type VARCHAR(32) NOT NULL,
+            severity VARCHAR(8) NOT NULL,
+            task_type VARCHAR(128) NOT NULL,
+            requested_provider VARCHAR(64),
+            selected_provider VARCHAR(64),
+            message TEXT NOT NULL
+        )
+    """))
+    conn.execute(text(
+        "CREATE INDEX IF NOT EXISTS ix_system_warnings_recorded_at "
+        "ON system_warnings (recorded_at)"
+    ))
+    conn.execute(text(
+        "CREATE INDEX IF NOT EXISTS ix_system_warnings_warning_type "
+        "ON system_warnings (warning_type)"
+    ))
+    conn.execute(text(
+        "CREATE INDEX IF NOT EXISTS ix_system_warnings_severity "
+        "ON system_warnings (severity)"
+    ))
+    conn.execute(text(
+        "CREATE INDEX IF NOT EXISTS ix_system_warnings_task_type "
+        "ON system_warnings (task_type)"
+    ))
+
+
+def _migration_014_chat_session_topic_category(conn) -> None:
+    """Add topic_category to chat_sessions for LLM-assigned grouping."""
+    conn.execute(text(
+        "ALTER TABLE chat_sessions ADD COLUMN IF NOT EXISTS topic_category VARCHAR(64)"
+    ))
+
+
 _MIGRATIONS: dict[int, callable] = {
     1: _migration_001_study_note_unique,
     2: _migration_002_model_call_log,
@@ -323,6 +362,8 @@ _MIGRATIONS: dict[int, callable] = {
     10: _migration_010_drop_question_fk_constraints,
     11: _migration_011_drop_hypothesis_reviews_fk,
     12: _migration_012_rebuild_tables_without_fk,
+    13: _migration_013_system_warnings,
+    14: _migration_014_chat_session_topic_category,
 }
 
 

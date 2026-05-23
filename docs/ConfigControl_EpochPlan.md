@@ -1,7 +1,7 @@
 # NeuroDb — Config Control Epoch Plan
 
-**Status:** Phase 5B complete — 398 automated tests; Phase 4 signed off 2026-05-09
-**Last updated:** 2026-05-19
+**Status:** Phase 6 complete and signed off 2026-05-23
+**Last updated:** 2026-05-23
 **Epoch directory:** `src/neurodb/config/`
 **Architecture reference:** `docs/superpowers/specs/2026-05-07-epoch-architecture-design.md`
 
@@ -11,7 +11,7 @@
 
 Own model and provider selection, capability tier routing, provider adapters, API key management, cost and capability gating, and telemetry-informed routing. Keep the cost envelope stable as the feedback loop matures — more capable, not more expensive.
 
-**Active work:** Phase 4 signed off. Provider-by-provider live model/tool-call validation is required before further routing expansion; Phase 6 (constructor fallback chain, SystemWarning table, CLI telemetry surface) remains planned.
+**Active work:** No active Config Control phase. Provider-by-provider live model/tool-call validation remains required for future routing expansion.
 
 ---
 
@@ -25,7 +25,7 @@ Own model and provider selection, capability tier routing, provider adapters, AP
 | Phase 4 | `ModelClient` abstraction, `AnthropicModelClient`, `OpenAIModelClient`, `TaskRouter`, config-driven provider selection, `BaseAgent` refactor | Complete | 389 + 7 manual | 2026-05-09 | `docs/testsPlans/manualTestPlan_config_phase4.md` |
 | Phase 5A | TOML corrected; 4-provider × 3-tier model table; Gemini wired; tool schemas fixed for OpenAI strict validation | Complete | 397 | 2026-05-08 | — |
 | Phase 5B | TOML routing refactor — single `[routing]` section replaces env-var tier overrides | Complete | 398 | 2026-05-08 | — |
-| Phase 6 | Constructor fallback chain, `SystemWarning` table, CLI telemetry surface | Planned | — | — | — |
+| Phase 6 | Provider fallback chain, `SystemWarning` table, CLI telemetry surface, active provider chip, session-summary visibility | Complete | 43 focused backend + 95 call-site regression + 91 frontend + manual T1-T5 | 2026-05-23 | `docs/testsPlans/completedAndPassedTestPlans/manualTestPlan_phase6_fallback_telemetry.md` |
 
 Active test plan: none
 
@@ -38,7 +38,6 @@ Active test plan: none
 | LOG-050 | Gemini premium model testing deferred — API account set up; further Gemini premium testing deferred |
 | — | DeepSeek wired as future-feature provider — `eval_status = "unverified"` for all tiers; routing and manual eval deferred |
 | — | Provider-by-provider live tool-call validation required — mocks do not catch actual model/API tool behavior |
-| — | **Design Choice 2 (deferred):** Per-provider capability flags in TOML — prevent routing `degraded` models to incompatible task types at the `TaskRouter` level; see evidence section below |
 
 ---
 
@@ -142,9 +141,9 @@ tool_loop_reliable = false     # model loops tool calls without concluding
 | `summary.*` | yes — summary calls use no tools | no |
 | `agent.loop.*` | no — agents always supply tools | yes — agent loop depends on a concluding response |
 
-### Deferred until
+### Resolution
 
-Not scheduled. Address when routing a non-Anthropic provider to a production task type, or when adding provider fallback logic in Config Control Phase 6.
+Implemented in Config Control Phase 6. `neurodb_models.toml` now stores per-provider capability flags and fallback lists, and `TaskRouter.route()` skips incompatible providers before falling back to the next viable provider.
 
 ---
 
@@ -155,6 +154,9 @@ Not scheduled. Address when routing a non-Anthropic provider to a production tas
 | `docs/superpowers/plans/claudeTaskArch.md` | Capability tiers, per-agent env vars, provider abstraction design |
 | `docs/superpowers/plans/2026-05-07-model-routing-impl.md` | Phased implementation plan — task checklists for Phases 1–4 |
 | `docs/superpowers/plans/2026-05-08-config-phase5-provider-model-table.md` | Phase 5 design — 4-provider model table, Gemini wiring |
+| `docs/superpowers/specs/2026-05-23-phase6-fallback-telemetry-design.md` | Phase 6 design — provider fallback, system warnings, telemetry CLI, UI visibility |
+| `docs/superpowers/plans/2026-05-23-phase6-fallback-telemetry.md` | Phase 6 implementation plan |
+| `docs/testsPlans/completedAndPassedTestPlans/manualTestPlan_phase6_fallback_telemetry.md` | Phase 6 manual test plan — T1-T5 passed and signed off 2026-05-23 |
 | `neurodb_models.toml` | Live config — tier/provider/task routing table and model IDs |
 
 ---

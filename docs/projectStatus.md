@@ -1,8 +1,8 @@
 # NeuroDb — Project Status
 
 **Last updated:** 2026-05-23
-**Active focus:** Learning and Research Memory Refocus — cross-epoch learning/research memory system and dataset research packet work
-**Next:** Continue Learning and Research Memory Refocus implementation and verification; Config Control Phase 6 after provider validation
+**Active focus:** Learning and Research Memory Refocus
+**Next:** Continue the Learning and Research Memory Refocus work now that Config Control Phase 6 is complete
 **Goal alignment:** Two co-equal goals in a feedback loop — accumulate neuroscience understanding grounded in real data (Goal 1), and conduct structured neuroscience investigations using existing public datasets and good scientific method (Goal 2). See `NeuroDbGoals.md`.
 
 ---
@@ -16,7 +16,7 @@
 | Tutor | `src/neurodb/tutor/` | MVP complete (LT-1/2/3); Phase 4 context-mode prompt and bundle behavior signed off 2026-05-21 | Open backlog: LOG-001, LOG-006; Phase 2/3 manual verification |
 | Research | `src/neurodb/research/` | Scaffolded (LT-3); Phase 3 claims/evidence/gaps complete; Phase 2/3 manual signed off 2026-05-21; Phase 4 grounded/contextual behavior signed off 2026-05-21; lifecycle UI gaps from LOG-037, LOG-048, and LOG-061 resolved in Phase 5b | Open backlog: LOG-045, LOG-053 |
 | UI | `src/neurodb/ui/`, `src/neurodb/api/`, `frontend/` | UI-3 signed off 2026-05-13; UI-5 P1/P2/P3 complete and common manual testing passed 2026-05-23; Phase 4 API preference and stream contract signed off 2026-05-21; Phase 5a signed off 2026-05-21; Phase 5b signed off 2026-05-23 (T1-T7 passed); DuckDB FK update limitation resolved via migration 012; LOG-060 moved to monitor after likely renderer fix | No active UI phase; monitor LOG-060 recurrence |
-| Config Control | `src/neurodb/config/` | Phase 5B complete; live validation found OpenAI Chat Completions + tools fails for `gpt-5.4`, Anthropic full Tutor tool path succeeds | Provider-by-provider live tool-call matrix; OpenAI Responses adapter design; then Phase 6 fallback/telemetry |
+| Config Control | `src/neurodb/config/` | Phase 5B complete; Phase 6 complete and signed off 2026-05-23 with focused backend, call-site, frontend, ruff, compile, and manual T1-T5 checks passing | No active Config Control phase |
 | Tech Debt | Cross-cutting | Planned — TD-1 CLI argument normalization started from LOG-057; TD-5 abstraction/extensibility review logged | TD-1 parser coverage, TD-2 keyword-only helper APIs, TD-5 reusable abstractions |
 
 ---
@@ -57,7 +57,7 @@ See `docs/testLog.md`. Current open items: LOG-001 (textbook dropdown ambiguity)
 | `docs/AgentCore_EpochPlan.md` | Agent Core epoch plan — BaseAgent architecture, three-method contract, configuration injection |
 | `docs/Tutor_EpochPlan.md` | Tutor epoch plan — NeuroTutorAgent, Knowledge Library, session management, open backlog |
 | `docs/Research_EpochPlan.md` | Research epoch plan — NeuroResearchAgent, hypothesis tools, hypothesis review, open backlog |
-| `docs/ConfigControl_EpochPlan.md` | Config Control epoch plan — routing phases, provider adapters, telemetry, Phase 6 next |
+| `docs/ConfigControl_EpochPlan.md` | Config Control epoch plan — routing phases, provider adapters, telemetry |
 | `docs/DB_EpochPlan.md` | DB epoch plan — connectors, schema ownership, phases 0–9 |
 | `docs/UI_EpochPlan.md` | UI epoch plan — Streamlit MVP, FastAPI/React migration path, phases UI-0–5 |
 | `docs/TechDebt_EpochPlan.md` | Tech Debt epoch plan — argument-order safety, keyword-only APIs, parser helpers, request/config objects, reusable abstractions |
@@ -77,4 +77,7 @@ See `docs/testLog.md`. Current open items: LOG-001 (textbook dropdown ambiguity)
 | `docs/superpowers/plans/2026-05-21-phase5a-focus-controls.md` | Phase 5a implementation spec — phased frontend plan for header controls, in-progress feedback, and verification |
 | `docs/testsPlans/completedAndPassedTestPlans/manualTestPlan_phase5a_focus_controls.md` | Phase 5a manual test plan — T1-T10 passed and signed off 2026-05-21 |
 | `docs/testsPlans/completedAndPassedTestPlans/manualTestPlan_phase5b_evidence_retract.md` | Phase 5b manual test plan — T1-T7 passed and signed off 2026-05-23 |
+| `docs/superpowers/specs/2026-05-23-phase6-fallback-telemetry-design.md` | Config Control Phase 6 design spec — provider fallback, system warnings, telemetry CLI, UI visibility |
+| `docs/superpowers/plans/2026-05-23-phase6-fallback-telemetry.md` | Config Control Phase 6 implementation plan — complete and signed off 2026-05-23 |
+| `docs/testsPlans/completedAndPassedTestPlans/manualTestPlan_phase6_fallback_telemetry.md` | Config Control Phase 6 manual test plan — T1-T5 passed and signed off 2026-05-23 |
 | `docs/testsPlans/completedAndPassedTestPlans/manualTestPlan_db_phase9_dataset_research_packets.md` | DB Phase 9 manual test plan — T1-T4 passed and signed off 2026-05-18 |

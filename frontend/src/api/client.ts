@@ -88,6 +88,7 @@ export const api = {
   setContextMode: (mode: string) =>
     put<{ context_mode: string }>('/api/preferences/context-mode', { mode }),
   getSessions: () => get<ChatSession[]>('/api/sessions'),
+  deleteSession: (sessionId: string) => del<void>(`/api/sessions/${sessionId}`),
   getActiveContext: () => get<ActiveContext>('/api/sessions/active-context'),
   getStudyLog: () => get<StudyNote[]>('/api/study-log'),
   createStudyNote: (body: CreateStudyNoteRequest) =>

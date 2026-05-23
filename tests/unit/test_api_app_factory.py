@@ -55,8 +55,9 @@ def test_build_runtime_stores_passes_summary_route_to_session_manager():
         def __init__(self, providers):
             self.providers = providers
 
-        def route(self, task_type):
+        def route(self, task_type, *, engine=None):
             assert task_type == "summary.session"
+            assert engine is not None
             return route
 
     with (

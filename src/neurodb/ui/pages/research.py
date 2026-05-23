@@ -108,7 +108,7 @@ def _run_review_action(engine: Engine, hypothesis_id: int) -> None:
         st.error("A configured model provider API key is required to review a hypothesis.")
         return
     try:
-        route = TaskRouter(providers).route("research.hypothesis_review")
+        route = TaskRouter(providers).route("research.hypothesis_review", engine=engine)
         result = run_hypothesis_review(
             hypothesis_id,
             engine,

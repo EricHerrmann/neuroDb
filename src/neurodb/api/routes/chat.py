@@ -40,9 +40,9 @@ def _build_agent(
     prior_context: str = "",
     context_mode: str = DEFAULT_CONTEXT_MODE,
     context_bundle: dict | None = None,
-):
+    ):
     router_obj = TaskRouter(providers)
-    route = router_obj.route(f"agent.loop.{agent_mode}")
+    route = router_obj.route(f"agent.loop.{agent_mode}", engine=engine)
     if agent_mode == "neuro_research":
         return NeuroResearchAgent(
             model_client=route.model_client,

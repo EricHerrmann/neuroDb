@@ -90,7 +90,7 @@ def _list_sources(engine: Engine, status: str) -> list[Paper]:
 def _approve_source(engine: Engine, source_id: int) -> None:
     with get_session(engine) as session:
         row = session.query(Paper).filter_by(id=source_id).one()
-        summary, telemetry = _generate_summary(row)
+        summary, telemetry = _generate_summary(row, engine)
         row.summary = summary
         row.status = "approved"
         row.reviewed_at = datetime.now(timezone.utc).isoformat()
@@ -144,7 +144,7 @@ def _dedup_threshold() -> float:
         return 0.15
 
 
-def _generate_summary(row: Paper) -> tuple[str, dict | None]:
+def _generate_summary(row: Paper, engine: Engine | None = None) -> tuple[str, dict | None]:
     api_key = os.environ.get("ANTHROPIC_API_KEY")
     legacy_model = os.environ.get("NEURODB_KNOWLEDGE_SUMMARY_MODEL")
     if not api_key and legacy_model:
@@ -166,7 +166,7 @@ def _generate_summary(row: Paper) -> tuple[str, dict | None]:
             providers = build_provider_clients()
             if not providers:
                 return _fallback_summary(row), None
-            route = TaskRouter(providers).route("summary.knowledge_source")
+            route = TaskRouter(providers).route("summary.knowledge_source", engine=engine)
             model_client = route.model_client
             provider = route.provider
             model = route.model_id

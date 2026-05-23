@@ -13,3 +13,4 @@ class ChatSessionItem(BaseModel):
     started_at: str
     message_count: int
     summary_preview: str | None = None
+    topic_category: str | None = None

@@ -103,12 +103,14 @@ describe('ChatPanel', () => {
     render(<ChatPanel agentMode="neuro_tutor" />, { wrapper: makeWrapper() })
 
     const models = await screen.findByLabelText('Models')
+    const providerChip = screen.getByLabelText('Active provider')
     const lowLabel = screen.getByText('Low → low-model')
     const midLabel = screen.getByText('Mid → mid-model')
     const highLabel = screen.getByText('High → high-model')
     const clearButton = screen.getByRole('button', { name: 'Clear' })
 
     expect((models as HTMLSelectElement).value).toBe('models')
+    expect(providerChip.textContent).toContain('anthropic · mid-model')
     for (const label of [lowLabel, midLabel, highLabel]) {
       expect(label.compareDocumentPosition(clearButton) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy()
       expect((label as HTMLOptionElement).disabled).toBe(true)

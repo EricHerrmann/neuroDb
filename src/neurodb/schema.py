@@ -279,6 +279,7 @@ class ChatSession(Base):
     ended_at: Mapped[str | None] = mapped_column(String(32), nullable=True)
     summary_preview: Mapped[str | None] = mapped_column(String(200), nullable=True)
     message_count: Mapped[int] = mapped_column(Integer, nullable=False)
+    topic_category: Mapped[str | None] = mapped_column(String(64), nullable=True)
 
 
 class LiteratureSearch(Base):
@@ -379,6 +380,23 @@ class ModelCallLog(Base):
     stop_reason: Mapped[str | None] = mapped_column(String(64), nullable=True)
     elapsed_ms: Mapped[int | None] = mapped_column(Integer, nullable=True)
     estimated_cost_usd: Mapped[float | None] = mapped_column(Float, nullable=True)
+
+
+class SystemWarning(Base):
+    """Structured operational warnings for routing and model-provider anomalies."""
+    __tablename__ = "system_warnings"
+    __table_args__ = (
+        Index("ix_system_warnings_recorded_type", "recorded_at", "warning_type"),
+    )
+
+    id: Mapped[int] = mapped_column(Integer, Sequence("system_warnings_id_seq"), primary_key=True)
+    recorded_at: Mapped[str] = mapped_column(String(32), nullable=False, index=True)
+    warning_type: Mapped[str] = mapped_column(String(32), nullable=False, index=True)
+    severity: Mapped[str] = mapped_column(String(8), nullable=False, index=True)
+    task_type: Mapped[str] = mapped_column(String(128), nullable=False, index=True)
+    requested_provider: Mapped[str | None] = mapped_column(String(64), nullable=True)
+    selected_provider: Mapped[str | None] = mapped_column(String(64), nullable=True)
+    message: Mapped[str] = mapped_column(Text, nullable=False)
 
 
 class AppPreference(Base):

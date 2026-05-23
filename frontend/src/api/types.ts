@@ -17,6 +17,7 @@ export interface ChatSession {
   started_at: string
   message_count: number
   summary_preview: string | null
+  topic_category: string | null
 }
 
 export interface ImportQueueItem {

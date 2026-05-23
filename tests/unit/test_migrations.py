@@ -1,8 +1,8 @@
-import pytest
-from sqlalchemy import create_engine, inspect, text
+from sqlalchemy import create_engine, inspect
 from sqlalchemy.pool import StaticPool
+
+from neurodb.db import _MIGRATIONS, init_db
 from neurodb.migrations import apply_migrations, get_schema_version
-from neurodb.db import init_db
 from neurodb.schema import Base
 
 
@@ -60,16 +60,12 @@ def test_init_db_creates_schema_migrations_table():
 
 def test_migration_008_adds_evidence_links_status():
     """Migration 8 adds status column to evidence_links; idempotent on re-run."""
-    from neurodb.migrations import apply_migrations
-
     engine = create_engine(
         "sqlite:///:memory:",
         connect_args={"check_same_thread": False},
         poolclass=StaticPool,
     )
     Base.metadata.create_all(engine)
-
-    from neurodb.db import _MIGRATIONS
 
     apply_migrations(engine, {8: _MIGRATIONS[8]})
     apply_migrations(engine, {8: _MIGRATIONS[8]})  # idempotent — must not raise
@@ -82,9 +78,6 @@ def test_migration_008_adds_evidence_links_status():
 
 def test_migration_009_research_questions_archived_guard_is_idempotent():
     """Migration 9 runs without error on a fresh DB (column already present)."""
-    from neurodb.migrations import apply_migrations
-    from neurodb.db import _MIGRATIONS
-
     engine = create_engine(
         "sqlite:///:memory:",
         connect_args={"check_same_thread": False},
@@ -98,3 +91,25 @@ def test_migration_009_research_questions_archived_guard_is_idempotent():
     inspector = inspect(engine)
     columns = {col["name"]: col for col in inspector.get_columns("research_questions")}
     assert "status" in columns, "status column should exist on research_questions"
+
+
+def test_migration_013_creates_system_warnings_table():
+    """Migration 13 creates system_warnings and is idempotent."""
+    engine = create_engine("sqlite:///:memory:")
+
+    apply_migrations(engine, {13: _MIGRATIONS[13]})
+    apply_migrations(engine, {13: _MIGRATIONS[13]})
+
+    inspector = inspect(engine)
+    assert "system_warnings" in inspector.get_table_names()
+    columns = {col["name"] for col in inspector.get_columns("system_warnings")}
+    assert {
+        "id",
+        "recorded_at",
+        "warning_type",
+        "severity",
+        "task_type",
+        "requested_provider",
+        "selected_provider",
+        "message",
+    }.issubset(columns)

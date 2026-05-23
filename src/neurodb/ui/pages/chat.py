@@ -43,7 +43,7 @@ def _init_agent(engine: Engine) -> None:
         return
 
     from neurodb.config.provider_factory import build_provider_clients
-    from neurodb.config.task_router import TaskRouter
+    from neurodb.config.task_router import RoutingError, TaskRouter
 
     providers = build_provider_clients()
     if not providers:
@@ -62,8 +62,8 @@ def _init_agent(engine: Engine) -> None:
         from neurodb.agents.tutor_agent import NeuroTutorAgent
 
         try:
-            route = router.route("agent.loop.neuro_tutor")
-        except KeyError as exc:
+            route = router.route("agent.loop.neuro_tutor", engine=engine)
+        except (KeyError, RoutingError) as exc:
             st.session_state["agent_init_error"] = f"Model routing failed: {exc}"
             return
         st.session_state["neuro_agent"] = NeuroTutorAgent(
@@ -82,8 +82,8 @@ def _init_agent(engine: Engine) -> None:
 
         manager = st.session_state.get("session_manager")
         try:
-            route = router.route("agent.loop.neuro_research")
-        except KeyError as exc:
+            route = router.route("agent.loop.neuro_research", engine=engine)
+        except (KeyError, RoutingError) as exc:
             st.session_state["agent_init_error"] = f"Model routing failed: {exc}"
             return
         st.session_state["neuro_agent"] = NeuroResearchAgent(
@@ -104,8 +104,8 @@ def _init_agent(engine: Engine) -> None:
 
     task_type = f"agent.loop.{mode}" if mode in {"local_db", "external_db"} else "agent.loop.local_db"
     try:
-        route = router.route(task_type)
-    except KeyError as exc:
+        route = router.route(task_type, engine=engine)
+    except (KeyError, RoutingError) as exc:
         st.session_state["agent_init_error"] = f"Model routing failed: {exc}"
         return
     st.session_state["neuro_agent"] = NeuroDbAgent(

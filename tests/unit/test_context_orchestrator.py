@@ -15,10 +15,13 @@ from neurodb.db.claim_store import add_gap, create_claim, update_claim_status
 from neurodb.db.topic_store import (
     get_or_create_concept,
     get_or_create_topic,
+    link_packet_topic,
     link_paper_topic,
     link_topic_concept,
 )
-from neurodb.schema import Base, Paper, ResearchQuestion, StudyNote
+from neurodb.schema import (
+    Base, DatasetIndex, DatasetResearchPacket, IngestRun, Paper, ResearchQuestion, StudyNote,
+)
 
 
 class _SearchStore:
@@ -246,3 +249,125 @@ def test_context_summary_event_shape(engine):
     assert event["claims_count"] == 0
     assert event["datasets_count"] == 0
     assert event["gaps_count"] == 0
+
+
+def _seed_topic_with_packets(engine, n: int, usefulness_state: str = "sparse") -> int:
+    with Session(engine) as session:
+        now = datetime.now(UTC).isoformat()
+        topic = get_or_create_topic(session, "multi packet topic", "test")
+        for i in range(n):
+            run = IngestRun(source="openneuro", run_at=now, version="1")
+            session.add(run)
+            session.flush()
+            idx = DatasetIndex(source="openneuro", source_id=f"ds_pkt_{i}", run_id=run.id)
+            session.add(idx)
+            session.flush()
+            pkt = DatasetResearchPacket(
+                index_id=idx.id, source="openneuro", source_id=f"ds_pkt_{i}",
+                usefulness_state=usefulness_state,
+                supported_workflows_json="[]", unsupported_workflows_json="[]",
+                missing_context_json="[]", provenance_json="{}", confidence_json="{}",
+                harvested_at=now, run_id=run.id,
+            )
+            session.add(pkt)
+            session.flush()
+            link_packet_topic(session, pkt.id, topic.id)
+        session.commit()
+        return topic.id
+
+
+def test_build_context_bundle_respects_max_datasets(engine):
+    topic_id = _seed_topic_with_packets(engine, n=3)
+    request = {
+        "mode": "grounded",
+        "agent_mode": "neuro_tutor",
+        "user_message": "multi packet topic",
+        "active_focus": {"focus_type": "topic", "focus_id": topic_id},
+        "max_datasets": 1,
+    }
+    bundle = build_context_bundle(engine, request=request)
+    tb = bundle.get("topic_bundle") or {}
+    assert len(tb.get("dataset_packets", [])) <= 1
+
+
+def test_build_context_bundle_applies_toml_budget_when_no_explicit_max(engine):
+    # Seed 3 dataset packets; TOML grounded budget caps datasets at 5 — all 3 should pass through
+    topic_id = _seed_topic_with_packets(engine, n=3)
+    request = {
+        "mode": "grounded",
+        "agent_mode": "neuro_tutor",
+        "user_message": "multi packet topic",
+        "active_focus": {"focus_type": "topic", "focus_id": topic_id},
+    }
+    bundle = build_context_bundle(engine, request=request)
+    tb = bundle.get("topic_bundle") or {}
+    # 3 packets <= budget of 5 — all returned
+    assert len(tb.get("dataset_packets", [])) == 3
+
+
+def test_context_summary_event_includes_dataset_usefulness_breakdown(engine):
+    topic_id = _seed_topic_with_packets(engine, n=2, usefulness_state="sparse")
+    with Session(engine) as session:
+        now = datetime.now(UTC).isoformat()
+        run = IngestRun(source="openneuro", run_at=now, version="1")
+        session.add(run)
+        session.flush()
+        idx = DatasetIndex(source="openneuro", source_id="ds_partial_unique", run_id=run.id)
+        session.add(idx)
+        session.flush()
+        pkt = DatasetResearchPacket(
+            index_id=idx.id, source="openneuro", source_id="ds_partial_unique",
+            usefulness_state="partial",
+            supported_workflows_json="[]", unsupported_workflows_json="[]",
+            missing_context_json="[]", provenance_json="{}", confidence_json="{}",
+            harvested_at=now, run_id=run.id,
+        )
+        session.add(pkt)
+        session.flush()
+        link_packet_topic(session, pkt.id, topic_id)
+
+        run2 = IngestRun(source="openneuro", run_at=now, version="1")
+        session.add(run2)
+        session.flush()
+        idx2 = DatasetIndex(source="openneuro", source_id="ds_rcr_unique", run_id=run2.id)
+        session.add(idx2)
+        session.flush()
+        pkt2 = DatasetResearchPacket(
+            index_id=idx2.id, source="openneuro", source_id="ds_rcr_unique",
+            usefulness_state="research_context_ready",
+            supported_workflows_json="[]", unsupported_workflows_json="[]",
+            missing_context_json="[]", provenance_json="{}", confidence_json="{}",
+            harvested_at=now, run_id=run2.id,
+        )
+        session.add(pkt2)
+        session.flush()
+        link_packet_topic(session, pkt2.id, topic_id)
+        session.commit()
+
+    request = {
+        "mode": "grounded",
+        "agent_mode": "neuro_research",
+        "user_message": "multi packet topic",
+        "active_focus": {"focus_type": "topic", "focus_id": topic_id},
+    }
+    bundle = build_context_bundle(engine, request=request)
+    event = context_summary_event(bundle)
+
+    assert event is not None
+    assert "dataset_usefulness" in event
+    du = event["dataset_usefulness"]
+    assert du["sparse"] == 2
+    assert du["partial"] == 1
+    assert du["research_context_ready"] == 1
+    assert du.get("analysis_ready", 0) == 0
+
+
+def test_context_summary_event_omits_dataset_usefulness_when_no_datasets(engine):
+    bundle = build_context_bundle(engine, request={
+        "mode": "general",
+        "agent_mode": "neuro_tutor",
+        "user_message": "hello",
+    })
+    event = context_summary_event(bundle)
+    if event is not None:
+        assert "dataset_usefulness" not in event

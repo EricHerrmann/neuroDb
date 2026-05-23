@@ -7,6 +7,7 @@ from sqlalchemy import select
 from sqlalchemy.exc import SQLAlchemyError
 from sqlalchemy.orm import Session
 
+from neurodb.config.model_config import get_context_budget
 from neurodb.schema import ResearchQuestion, Topic
 
 ContextMode = Literal["general", "contextual", "grounded"]
@@ -96,6 +97,13 @@ def build_context_bundle(
     agent_mode = request.get("agent_mode", "neuro_tutor")
     user_message = request.get("user_message", "")
     active_focus = request.get("active_focus")
+
+    # Apply context budget: explicit request fields win; fall back to TOML budget.
+    _budget = get_context_budget(mode) or {}
+    max_papers = request.get("max_papers") or _budget.get("papers")
+    max_notes = request.get("max_notes") or _budget.get("notes")
+    max_claims = request.get("max_claims") or _budget.get("claims")
+    max_datasets = request.get("max_datasets") or _budget.get("datasets")
     counts = empty_source_counts()
     warnings: list[str] = []
     topic_bundle: dict | None = None
@@ -111,6 +119,7 @@ def build_context_bundle(
 
                 try:
                     question_bundle = get_question_bundle(session, int(active_focus["focus_id"]))
+                    question_bundle = _apply_question_budget(question_bundle, max_claims)
                     _merge_question_counts(counts, question_bundle)
                 except SQLAlchemyError as exc:
                     session.rollback()
@@ -123,6 +132,9 @@ def build_context_bundle(
 
                 try:
                     topic_bundle = get_topic_bundle(session, int(active_focus["focus_id"]))
+                    topic_bundle = _apply_topic_budget(
+                        topic_bundle, max_papers, max_notes, max_datasets
+                    )
                     _merge_topic_counts(counts, topic_bundle)
                 except SQLAlchemyError as exc:
                     session.rollback()
@@ -161,7 +173,7 @@ def context_summary_event(bundle: dict | None) -> dict | None:
     if not bundle:
         return None
     sc = bundle.get("source_counts", empty_source_counts())
-    return {
+    event: dict = {
         "type": "context_summary",
         "context_mode": bundle.get("mode", DEFAULT_CONTEXT_MODE),
         "active_focus": bundle.get("active_focus"),
@@ -173,6 +185,59 @@ def context_summary_event(bundle: dict | None) -> dict | None:
         "gaps_count": sc.get("gaps", 0),
         "warnings": bundle.get("warnings", []),
     }
+    if sc.get("dataset_packets", 0) > 0:
+        event["dataset_usefulness"] = _dataset_usefulness_breakdown(bundle)
+    return event
+
+
+def _dataset_usefulness_breakdown(bundle: dict) -> dict:
+    """Count dataset packets by usefulness_state from the bundle."""
+    counts: dict[str, int] = {
+        "sparse": 0,
+        "partial": 0,
+        "research_context_ready": 0,
+        "analysis_ready": 0,
+    }
+    topic_bundle = bundle.get("topic_bundle") or {}
+    question_bundle = bundle.get("question_bundle") or {}
+    packets = (
+        topic_bundle.get("dataset_packets", [])
+        + question_bundle.get("dataset_packets", [])
+    )
+    for pkt in packets:
+        state = (
+            pkt.get("usefulness_state") if isinstance(pkt, dict)
+            else getattr(pkt, "usefulness_state", None)
+        )
+        if state is not None:
+            counts[state] = counts.get(state, 0) + 1
+    return counts
+
+
+def _apply_topic_budget(
+    bundle: dict,
+    max_papers: int | None,
+    max_notes: int | None,
+    max_datasets: int | None,
+) -> dict:
+    if not bundle:
+        return bundle
+    result = dict(bundle)
+    if max_papers is not None:
+        result["papers"] = result.get("papers", [])[:max_papers]
+    if max_notes is not None:
+        result["study_notes"] = result.get("study_notes", [])[:max_notes]
+    if max_datasets is not None:
+        result["dataset_packets"] = result.get("dataset_packets", [])[:max_datasets]
+    return result
+
+
+def _apply_question_budget(bundle: dict, max_claims: int | None) -> dict:
+    if not bundle or max_claims is None:
+        return bundle
+    result = dict(bundle)
+    result["claims"] = result.get("claims", [])[:max_claims]
+    return result
 
 
 def _should_retrieve_local_context(

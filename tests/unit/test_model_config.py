@@ -144,6 +144,30 @@ def test_get_model_for_task_unknown_raises():
         get_model_for_task("unknown.task.xyz")
 
 
+def test_get_task_config_returns_agent_extract():
+    tier, max_tokens = get_task_config("agent.extract")
+    assert tier == "economy"
+    assert max_tokens == 1024
+
+
+def test_get_task_config_returns_agent_claim_review():
+    tier, max_tokens = get_task_config("agent.claim_review")
+    assert tier == "premium"
+    assert max_tokens == 2048
+
+
+def test_get_task_config_returns_agent_synthesis():
+    tier, max_tokens = get_task_config("agent.synthesis")
+    assert tier == "premium"
+    assert max_tokens == 4096
+
+
+def test_get_task_config_returns_agent_grounded_review():
+    tier, max_tokens = get_task_config("agent.grounded_review")
+    assert tier == "premium"
+    assert max_tokens == 2048
+
+
 def test_get_context_budget_returns_grounded_limits(tmp_path, monkeypatch):
     toml_content = b"""
 [context_budgets.grounded]

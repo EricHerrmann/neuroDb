@@ -138,6 +138,22 @@ max_tokens = 2048
 tier = "premium"
 max_tokens = 4096
 
+[tasks."agent.extract"]
+tier = "economy"
+max_tokens = 1024
+
+[tasks."agent.claim_review"]
+tier = "premium"
+max_tokens = 2048
+
+[tasks."agent.synthesis"]
+tier = "premium"
+max_tokens = 4096
+
+[tasks."agent.grounded_review"]
+tier = "premium"
+max_tokens = 2048
+
 [context_budgets.general]
 papers = 2
 notes = 3

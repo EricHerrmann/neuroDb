@@ -150,6 +150,41 @@ describe('ResearchPanel retract UI', () => {
     expect(screen.getAllByText(/open/).length).toBeGreaterThan(0)
   })
 
+  it('places the status chip before the research question text', async () => {
+    vi.stubGlobal('fetch', vi.fn().mockImplementation((path: string) => {
+      if (typeof path === 'string' && path.includes('/api/research/questions')) {
+        return Promise.resolve(new Response(JSON.stringify([
+          { id: 1, question: 'Does LTP correlate with recovery?', status: 'open', topic_context: 'ctx', created_at: '2026-01-01T00:00:00', updated_at: '2026-01-01T00:00:00' }
+        ]), { status: 200, headers: { 'Content-Type': 'application/json' } }))
+      }
+      return Promise.resolve(new Response(JSON.stringify([]), { status: 200, headers: { 'Content-Type': 'application/json' } }))
+    }))
+    render(<ResearchPanel />, { wrapper: makeFetchWrapper() })
+    const question = await screen.findByText('Does LTP correlate with recovery?')
+    const row = question.parentElement?.parentElement
+    expect(row?.textContent?.startsWith('open')).toBe(true)
+  })
+
+  it('collapses and expands research panel sections', async () => {
+    vi.stubGlobal('fetch', vi.fn().mockImplementation((path: string) => {
+      if (typeof path === 'string' && path.includes('/api/research/questions')) {
+        return Promise.resolve(new Response(JSON.stringify([
+          { id: 1, question: 'Does LTP correlate with recovery?', status: 'open', topic_context: 'ctx', created_at: '2026-01-01T00:00:00', updated_at: '2026-01-01T00:00:00' }
+        ]), { status: 200, headers: { 'Content-Type': 'application/json' } }))
+      }
+      return Promise.resolve(new Response(JSON.stringify([]), { status: 200, headers: { 'Content-Type': 'application/json' } }))
+    }))
+    render(<ResearchPanel />, { wrapper: makeFetchWrapper() })
+    await screen.findByText('Does LTP correlate with recovery?')
+    const sectionToggle = screen.getByRole('button', { name: /Research Questions/ })
+
+    fireEvent.click(sectionToggle)
+    expect(screen.queryByText('Does LTP correlate with recovery?')).toBeNull()
+
+    fireEvent.click(sectionToggle)
+    expect(await screen.findByText('Does LTP correlate with recovery?')).toBeTruthy()
+  })
+
   it('renders Claims section heading', async () => {
     vi.stubGlobal('fetch', vi.fn().mockImplementation((path: string) => {
       if (typeof path === 'string' && path.includes('/api/research/claims')) {
@@ -163,6 +198,25 @@ describe('ResearchPanel retract UI', () => {
     await waitFor(() => {
       expect(screen.getByText(/Claims/)).toBeTruthy()
     })
+  })
+
+  it('explains claim status actions before the user selects them', async () => {
+    vi.stubGlobal('fetch', vi.fn().mockImplementation((path: string) => {
+      if (typeof path === 'string' && path.includes('/api/research/claims')) {
+        return Promise.resolve(new Response(JSON.stringify([
+          { id: 1, paper_id: 1, text: 'Synaptic density decreases', claim_type: 'finding', status: 'candidate', created_at: '2026-01-01', updated_at: '2026-01-01' }
+        ]), { status: 200, headers: { 'Content-Type': 'application/json' } }))
+      }
+      return Promise.resolve(new Response(JSON.stringify([]), { status: 200, headers: { 'Content-Type': 'application/json' } }))
+    }))
+    render(<ResearchPanel />, { wrapper: makeFetchWrapper() })
+    await screen.findByText('Synaptic density decreases')
+
+    fireEvent.click(screen.getByRole('button', { name: /candidate/ }))
+
+    expect(screen.getByText('Accept this item as usable project evidence.')).toBeTruthy()
+    expect(screen.getByText('Mark this item as not accepted so it should not support claims or hypotheses.')).toBeTruthy()
+    expect(screen.getByText('Remove this item from the active workflow while keeping it in the audit trail.')).toBeTruthy()
   })
 
   it('renders Gaps section heading', async () => {

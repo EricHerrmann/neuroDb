@@ -158,6 +158,8 @@ export const api = {
     get<EvidenceLinkItem[]>(`/api/research/hypotheses/${hypothesisId}/evidence-links`),
   retractEvidenceLink: (id: number) =>
     post<EvidenceLinkItem>(`/api/research/evidence-links/${id}/retract`),
+  archiveHypothesis: (id: number) =>
+    post<Hypothesis>(`/api/research/hypotheses/${id}/archive`),
   archiveQuestion: (id: number) =>
     post<ResearchQuestion>(`/api/research/questions/${id}/archive`),
   approveClaim: (id: number) =>

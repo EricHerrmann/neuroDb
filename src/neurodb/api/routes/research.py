@@ -262,6 +262,20 @@ def retract_evidence_link(
     return _update_status(engine, EvidenceLink, link_id, "retracted", EvidenceLinkItem)
 
 
+@router.post("/hypotheses/{hypothesis_id}/archive", response_model=Hypothesis)
+def archive_hypothesis(
+    hypothesis_id: int,
+    engine: Engine = Depends(get_engine),
+) -> Hypothesis:
+    with get_session(engine) as session:
+        row = session.get(ResearchHypothesis, hypothesis_id)
+        if row is None:
+            raise HTTPException(status_code=404, detail=f"Hypothesis {hypothesis_id} not found")
+        row.status = "archived"
+        session.flush()
+        return _hypothesis_item(row)
+
+
 @router.post("/questions/{question_id}/archive", response_model=ResearchQuestion)
 def archive_question(
     question_id: int,

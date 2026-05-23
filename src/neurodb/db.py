@@ -230,6 +230,86 @@ def _migration_009_research_questions_archived_guard(conn) -> None:
     ))
 
 
+def _migration_010_drop_question_fk_constraints(conn) -> None:
+    """Drop FK constraints that prevent updating rows referenced by child tables.
+
+    DuckDB rejects UPDATE on any column of a FK-referenced row, even when
+    the updated column is not the FK target. Dropping these constraints
+    allows status updates (e.g. archive) while preserving the data linkage.
+    """
+    for table, constraint in [
+        ("research_hypotheses", "research_hypotheses_question_id_id_fkey"),
+        ("research_gaps", "research_gaps_question_id_id_fkey"),
+        ("research_gaps", "research_gaps_hypothesis_id_id_fkey"),
+        ("hypothesis_reviews", "hypothesis_reviews_hypothesis_id_id_fkey"),
+    ]:
+        try:
+            conn.execute(text(f"ALTER TABLE {table} DROP CONSTRAINT {constraint}"))
+        except Exception:
+            pass
+
+
+def _migration_011_drop_hypothesis_reviews_fk(conn) -> None:
+    """Drop FK from hypothesis_reviews.hypothesis_id missed by migration 010."""
+    try:
+        conn.execute(text(
+            "ALTER TABLE hypothesis_reviews DROP CONSTRAINT hypothesis_reviews_hypothesis_id_id_fkey"
+        ))
+    except Exception:
+        pass
+
+
+def _migration_012_rebuild_tables_without_fk(conn) -> None:
+    """Rebuild research tables without FK constraints.
+
+    DuckDB blocks UPDATE on any column of a FK-referenced row even when
+    the updated column is not the FK target. ALTER TABLE DROP CONSTRAINT
+    is also unsupported in DuckDB. The only fix is to drop and recreate
+    the affected tables. Data is preserved via CTAS + INSERT INTO SELECT.
+
+    Drop order: children before parents so parent tables can be dropped.
+      1. hypothesis_reviews  (FK child of research_hypotheses)
+      2. evidence_links       (FK child of research_hypotheses)
+      3. research_gaps        (FK child of both)
+      4. research_hypotheses  (FK child of research_questions)
+    """
+    raw = conn.connection.dbapi_connection  # raw duckdb connection
+    steps = [
+        # --- hypothesis_reviews ---
+        "CREATE TABLE hypothesis_reviews_new AS SELECT * FROM hypothesis_reviews",
+        "DROP TABLE hypothesis_reviews",
+        "ALTER TABLE hypothesis_reviews_new RENAME TO hypothesis_reviews",
+        "CREATE INDEX ix_hypothesis_reviews_hypothesis_id ON hypothesis_reviews (hypothesis_id)",
+        "CREATE INDEX ix_hypothesis_reviews_hypothesis_status ON hypothesis_reviews (hypothesis_id, status)",
+        "CREATE INDEX ix_hypothesis_reviews_model ON hypothesis_reviews (model)",
+        "CREATE INDEX ix_hypothesis_reviews_status ON hypothesis_reviews (status)",
+
+        # --- evidence_links ---
+        "CREATE TABLE evidence_links_new AS SELECT * FROM evidence_links",
+        "DROP TABLE evidence_links",
+        "ALTER TABLE evidence_links_new RENAME TO evidence_links",
+        "CREATE INDEX ix_evidence_links_claim_id ON evidence_links (claim_id)",
+        "CREATE INDEX ix_evidence_links_hypothesis_id ON evidence_links (hypothesis_id)",
+        "CREATE INDEX ix_evidence_links_note_id ON evidence_links (note_id)",
+        "CREATE INDEX ix_evidence_links_packet_id ON evidence_links (packet_id)",
+        "CREATE INDEX ix_evidence_links_paper_id ON evidence_links (paper_id)",
+        "CREATE INDEX ix_evidence_links_status ON evidence_links (status)",
+
+        # --- research_gaps ---
+        "CREATE TABLE research_gaps_new AS SELECT * FROM research_gaps",
+        "DROP TABLE research_gaps",
+        "ALTER TABLE research_gaps_new RENAME TO research_gaps",
+
+        # --- research_hypotheses ---
+        "CREATE TABLE research_hypotheses_new AS SELECT * FROM research_hypotheses",
+        "DROP TABLE research_hypotheses",
+        "ALTER TABLE research_hypotheses_new RENAME TO research_hypotheses",
+        "CREATE INDEX ix_research_hypotheses_status ON research_hypotheses (status)",
+    ]
+    for sql in steps:
+        raw.execute(sql)
+
+
 _MIGRATIONS: dict[int, callable] = {
     1: _migration_001_study_note_unique,
     2: _migration_002_model_call_log,
@@ -240,6 +320,9 @@ _MIGRATIONS: dict[int, callable] = {
     7: _migration_007_research_questions_topic_id,
     8: _migration_008_evidence_links_status,
     9: _migration_009_research_questions_archived_guard,
+    10: _migration_010_drop_question_fk_constraints,
+    11: _migration_011_drop_hypothesis_reviews_fk,
+    12: _migration_012_rebuild_tables_without_fk,
 }
 
 

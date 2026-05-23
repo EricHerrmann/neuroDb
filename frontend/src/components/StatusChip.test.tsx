@@ -29,6 +29,31 @@ describe('StatusChip', () => {
     expect(screen.getByText('Reject')).toBeTruthy()
   })
 
+  it('shows action impact descriptions in the dropdown', () => {
+    render(
+      <StatusChip
+        status="candidate"
+        transitions={[
+          { label: 'Approve', description: 'Accept this item as usable project evidence.', onSelect: vi.fn() },
+        ]}
+      />
+    )
+    fireEvent.click(screen.getByRole('button', { name: /candidate/ }))
+    expect(screen.getByText('Accept this item as usable project evidence.')).toBeTruthy()
+  })
+
+  it('shows a tooltip for the current status', () => {
+    render(
+      <StatusChip
+        status="candidate"
+        statusDescription="This item needs review before it is trusted."
+        transitions={[{ label: 'Approve', onSelect: vi.fn() }]}
+      />
+    )
+    fireEvent.mouseEnter(screen.getByRole('button', { name: /candidate/ }))
+    expect(screen.getByRole('tooltip')).toHaveTextContent('This item needs review before it is trusted.')
+  })
+
   it('calls onSelect and closes dropdown when transition clicked', () => {
     const onApprove = vi.fn()
     render(

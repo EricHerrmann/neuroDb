@@ -1,7 +1,15 @@
 import { useState } from 'react'
 import type { ReactNode } from 'react'
 
-export default function Tooltip({ children, text }: { children: ReactNode; text: string }) {
+export default function Tooltip({
+  children,
+  text,
+  align = 'right',
+}: {
+  children: ReactNode
+  text: string
+  align?: 'left' | 'right'
+}) {
   const [visible, setVisible] = useState(false)
 
   return (
@@ -18,7 +26,7 @@ export default function Tooltip({ children, text }: { children: ReactNode; text:
           role="tooltip"
           style={{
             position: 'absolute',
-            right: 0,
+            ...(align === 'left' ? { left: 0 } : { right: 0 }),
             top: 'calc(100% + 6px)',
             zIndex: 20,
             width: 260,

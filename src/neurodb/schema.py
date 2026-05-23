@@ -311,10 +311,7 @@ class ResearchHypothesis(Base):
     __tablename__ = "research_hypotheses"
 
     id: Mapped[int] = mapped_column(Integer, Sequence("research_hypotheses_id_seq"), primary_key=True)
-    question_id: Mapped[int | None] = mapped_column(
-        ForeignKey("research_questions.id"),
-        nullable=True,
-    )
+    question_id: Mapped[int | None] = mapped_column(Integer, nullable=True)
     title: Mapped[str] = mapped_column(Text, nullable=False)
     mechanism: Mapped[str] = mapped_column(Text, nullable=False)
     evidence_json: Mapped[str | None] = mapped_column(Text, nullable=True)
@@ -335,11 +332,7 @@ class HypothesisReview(Base):
     )
 
     id: Mapped[int] = mapped_column(Integer, Sequence("hypothesis_reviews_id_seq"), primary_key=True)
-    hypothesis_id: Mapped[int] = mapped_column(
-        ForeignKey("research_hypotheses.id"),
-        nullable=False,
-        index=True,
-    )
+    hypothesis_id: Mapped[int] = mapped_column(Integer, nullable=False, index=True)
     created_at: Mapped[str] = mapped_column(String(32), nullable=False)
     model: Mapped[str] = mapped_column(String(128), nullable=False, index=True)
     critique_text: Mapped[str] = mapped_column(Text, nullable=False)
@@ -534,12 +527,8 @@ class ResearchGap(Base):
     )
 
     id: Mapped[int] = mapped_column(Integer, Sequence("research_gaps_id_seq"), primary_key=True)
-    question_id: Mapped[int | None] = mapped_column(
-        ForeignKey("research_questions.id"), nullable=True
-    )
-    hypothesis_id: Mapped[int | None] = mapped_column(
-        ForeignKey("research_hypotheses.id"), nullable=True
-    )
+    question_id: Mapped[int | None] = mapped_column(Integer, nullable=True)
+    hypothesis_id: Mapped[int | None] = mapped_column(Integer, nullable=True)
     description: Mapped[str] = mapped_column(Text, nullable=False)
     gap_type: Mapped[str] = mapped_column(String(32), nullable=False)
     status: Mapped[str] = mapped_column(String(16), nullable=False, default="open")

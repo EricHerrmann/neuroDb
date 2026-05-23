@@ -2,6 +2,7 @@
 import pytest
 
 from neurodb.config.model_config import (
+    get_context_budget,
     get_model_for_task,
     get_provider_fallback_order,
     get_task_config,
@@ -141,3 +142,60 @@ def test_provider_config_exposes_capability_flags():
 def test_get_model_for_task_unknown_raises():
     with pytest.raises(KeyError, match="unknown.task.xyz"):
         get_model_for_task("unknown.task.xyz")
+
+
+def test_get_context_budget_returns_grounded_limits(tmp_path, monkeypatch):
+    toml_content = b"""
+[context_budgets.grounded]
+papers = 10
+notes = 15
+claims = 12
+datasets = 5
+"""
+    toml_file = tmp_path / "neurodb_models.toml"
+    toml_file.write_bytes(toml_content)
+
+    import neurodb.config.model_config as mod
+    monkeypatch.setattr(mod, "_CONFIG_PATH", toml_file)
+    monkeypatch.setattr(mod, "_cache", None)
+
+    budget = get_context_budget("grounded")
+    assert budget["papers"] == 10
+    assert budget["notes"] == 15
+    assert budget["claims"] == 12
+    assert budget["datasets"] == 5
+
+
+def test_get_context_budget_returns_none_when_section_absent(tmp_path, monkeypatch):
+    toml_content = b"""
+[routing]
+economy = "anthropic"
+"""
+    toml_file = tmp_path / "neurodb_models.toml"
+    toml_file.write_bytes(toml_content)
+
+    import neurodb.config.model_config as mod
+    monkeypatch.setattr(mod, "_CONFIG_PATH", toml_file)
+    monkeypatch.setattr(mod, "_cache", None)
+
+    budget = get_context_budget("grounded")
+    assert budget is None
+
+
+def test_get_context_budget_returns_none_for_unconfigured_mode(tmp_path, monkeypatch):
+    toml_content = b"""
+[context_budgets.grounded]
+papers = 10
+notes = 15
+claims = 12
+datasets = 5
+"""
+    toml_file = tmp_path / "neurodb_models.toml"
+    toml_file.write_bytes(toml_content)
+
+    import neurodb.config.model_config as mod
+    monkeypatch.setattr(mod, "_CONFIG_PATH", toml_file)
+    monkeypatch.setattr(mod, "_cache", None)
+
+    budget = get_context_budget("general")
+    assert budget is None

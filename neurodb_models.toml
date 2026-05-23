@@ -137,3 +137,21 @@ max_tokens = 2048
 [tasks."research.hypothesis_review"]
 tier = "premium"
 max_tokens = 4096
+
+[context_budgets.general]
+papers = 2
+notes = 3
+claims = 3
+datasets = 1
+
+[context_budgets.contextual]
+papers = 5
+notes = 8
+claims = 6
+datasets = 3
+
+[context_budgets.grounded]
+papers = 10
+notes = 15
+claims = 12
+datasets = 5

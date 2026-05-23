@@ -2,6 +2,7 @@
 from __future__ import annotations
 
 from pathlib import Path
+from typing import TypedDict
 
 try:
     import tomllib
@@ -95,6 +96,27 @@ def get_provider_fallback_order(tier_name: str) -> list[str]:
         if provider not in ordered:
             ordered.append(provider)
     return ordered
+
+
+class ContextBudget(TypedDict):
+    papers: int
+    notes: int
+    claims: int
+    datasets: int
+
+
+def get_context_budget(mode: str) -> "ContextBudget | None":
+    """Return per-category item limits for the given context mode, or None if unconfigured."""
+    config = load_model_config()
+    mode_cfg = config.get("context_budgets", {}).get(mode)
+    if mode_cfg is None:
+        return None
+    return {
+        "papers": int(mode_cfg["papers"]),
+        "notes": int(mode_cfg["notes"]),
+        "claims": int(mode_cfg["claims"]),
+        "datasets": int(mode_cfg["datasets"]),
+    }
 
 
 def _provider_for_tier(tier_name: str, tier_cfg: dict) -> str:

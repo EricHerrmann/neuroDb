@@ -1,10 +1,28 @@
 import pytest
+from datetime import datetime, timezone
 from sqlalchemy import create_engine, inspect
 from sqlalchemy.exc import IntegrityError
 from sqlalchemy.orm import Session
+from sqlalchemy.pool import StaticPool
 
-from neurodb.schema import DatasetIndex, IngestRun, StudyNote
+from neurodb.schema import Base, Concept, DatasetIndex, IngestRun, Paper, StudyNote, Topic
 from neurodb.study import tag_dataset, list_tags, search_tags, delete_tag
+
+
+def _now():
+    return datetime.now(timezone.utc).isoformat()
+
+
+@pytest.fixture
+def full_engine():
+    eng = create_engine(
+        "sqlite:///:memory:",
+        connect_args={"check_same_thread": False},
+        poolclass=StaticPool,
+    )
+    Base.metadata.create_all(eng)
+    yield eng
+    eng.dispose()
 
 
 def test_schema_includes_study_notes_table():
@@ -223,3 +241,92 @@ def test_delete_tag_unknown_id_returns_false():
         result = delete_tag(session, 999999)
         session.commit()
     assert result is False
+
+
+# --- LOG-059: outer join tests for topic/concept/paper-anchored notes ---
+
+def test_list_tags_includes_topic_anchored_note(full_engine):
+    with Session(full_engine) as s:
+        topic = Topic(name="LTP", status="active", created_at=_now(), updated_at=_now())
+        s.add(topic)
+        s.flush()
+        s.add(StudyNote(topic_id=topic.id, concept_tag="potentiation", tagged_at=_now()))
+        s.commit()
+
+    with Session(full_engine) as s:
+        results = list_tags(s)
+    assert len(results) == 1
+    assert results[0]["source"] == "topic"
+    assert results[0]["source_id"] == "LTP"
+    assert results[0]["concept_tag"] == "potentiation"
+
+
+def test_list_tags_includes_concept_anchored_note(full_engine):
+    with Session(full_engine) as s:
+        concept = Concept(name="synaptic pruning", status="active",
+                          created_at=_now(), updated_at=_now())
+        s.add(concept)
+        s.flush()
+        s.add(StudyNote(concept_id=concept.id, concept_tag="pruning", tagged_at=_now()))
+        s.commit()
+
+    with Session(full_engine) as s:
+        results = list_tags(s)
+    assert len(results) == 1
+    assert results[0]["source"] == "concept"
+    assert results[0]["source_id"] == "synaptic pruning"
+
+
+def test_list_tags_includes_paper_anchored_note(full_engine):
+    with Session(full_engine) as s:
+        paper = Paper(title="LTP Review", normalized_title="ltp review",
+                      doi="10.test/ltp", source_type="paper",
+                      topic_context="plasticity", status="pending", queued_at=_now())
+        s.add(paper)
+        s.flush()
+        s.add(StudyNote(paper_id=paper.id, concept_tag="LTP", tagged_at=_now()))
+        s.commit()
+
+    with Session(full_engine) as s:
+        results = list_tags(s)
+    assert len(results) == 1
+    assert results[0]["source"] == "paper"
+    assert results[0]["source_id"] == "10.test/ltp"
+
+
+def test_list_tags_source_filter_excludes_topic_notes(full_engine):
+    with Session(full_engine) as s:
+        run = IngestRun(source="openneuro", run_at=_now(), version="1")
+        s.add(run)
+        s.flush()
+        idx = DatasetIndex(source="openneuro", source_id="ds1", run_id=run.id)
+        s.add(idx)
+        s.flush()
+        topic = Topic(name="LTP", status="active", created_at=_now(), updated_at=_now())
+        s.add(topic)
+        s.flush()
+        s.add(StudyNote(index_id=idx.id, concept_tag="ds_note", tagged_at=_now()))
+        s.add(StudyNote(topic_id=topic.id, concept_tag="topic_note", tagged_at=_now()))
+        s.commit()
+
+    with Session(full_engine) as s:
+        results = list_tags(s, source="openneuro")
+    assert len(results) == 1
+    assert results[0]["concept_tag"] == "ds_note"
+
+
+def test_search_tags_matches_topic_anchored_note(full_engine):
+    with Session(full_engine) as s:
+        topic = Topic(name="plasticity", status="active",
+                      created_at=_now(), updated_at=_now())
+        s.add(topic)
+        s.flush()
+        s.add(StudyNote(topic_id=topic.id, concept_tag="LTP",
+                        note_text="long-term potentiation", tagged_at=_now()))
+        s.commit()
+
+    with Session(full_engine) as s:
+        results = search_tags(s, "potentiation")
+    assert len(results) == 1
+    assert results[0]["source"] == "topic"
+    assert results[0]["source_id"] == "plasticity"

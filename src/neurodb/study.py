@@ -7,7 +7,7 @@ from datetime import datetime, timezone
 from sqlalchemy import select, text
 from sqlalchemy.orm import Session
 
-from neurodb.schema import DatasetIndex, StudyNote
+from neurodb.schema import Concept, DatasetIndex, Paper, StudyNote, Topic
 
 
 def tag_dataset(
@@ -43,33 +43,61 @@ def tag_dataset(
     return note
 
 
+def _resolve_anchor(
+    idx: DatasetIndex | None,
+    topic: Topic | None,
+    concept: Concept | None,
+    paper: Paper | None,
+) -> tuple[str, str]:
+    """Return (source, source_id) for a study note based on which FK anchor is set.
+
+    Precedence: index_id → topic_id → concept_id → paper_id.
+    """
+    if idx is not None:
+        return idx.source, idx.source_id
+    if topic is not None:
+        return "topic", topic.name
+    if concept is not None:
+        return "concept", concept.name
+    if paper is not None:
+        source_id = paper.doi if paper.doi else (paper.title or "")[:50]
+        return "paper", source_id
+    return "note", ""
+
+
 def list_tags(
     session: Session,
     concept: str | None = None,
     source: str | None = None,
 ) -> list[dict]:
-    """Return study notes with dataset info, optionally filtered.
+    """Return study notes with resolved anchor info, optionally filtered.
 
     concept: substring match against concept_tag (case-insensitive)
-    source: exact match against datasets_index.source
+    source: exact match against resolved source string; non-dataset notes pass
+            through only when source is None (i.e. "all sources")
     """
     rows = session.execute(
-        select(StudyNote, DatasetIndex)
-        # Phase 2: only returns dataset-anchored notes; topic/concept/paper-anchored notes are excluded (Phase 5)
-        .join(DatasetIndex, DatasetIndex.id == StudyNote.index_id)
+        select(StudyNote, DatasetIndex, Topic, Concept, Paper)
+        .outerjoin(DatasetIndex, DatasetIndex.id == StudyNote.index_id)
+        .outerjoin(Topic, Topic.id == StudyNote.topic_id)
+        .outerjoin(Concept, Concept.id == StudyNote.concept_id)
+        .outerjoin(Paper, Paper.id == StudyNote.paper_id)
         .order_by(StudyNote.tagged_at.desc())
     ).all()
     results = []
     for row in rows:
-        note, idx = row.StudyNote, row.DatasetIndex
+        note = row.StudyNote
+        resolved_source, resolved_source_id = _resolve_anchor(
+            row.DatasetIndex, row.Topic, row.Concept, row.Paper
+        )
         if concept and concept.lower() not in note.concept_tag.lower():
             continue
-        if source and source != idx.source:
+        if source and source != resolved_source:
             continue
         results.append({
             "id": note.id,
-            "source": idx.source,
-            "source_id": idx.source_id,
+            "source": resolved_source,
+            "source_id": resolved_source_id,
             "concept_tag": note.concept_tag,
             "section_ref": note.section_ref,
             "note_text": note.note_text,
@@ -110,21 +138,26 @@ def search_tags(session: Session, keyword: str) -> list[dict]:
     """Return notes where keyword appears in concept_tag, note_text, or section_ref."""
     kw = keyword.lower()
     rows = session.execute(
-        select(StudyNote, DatasetIndex)
-        # Phase 2: only returns dataset-anchored notes; topic/concept/paper-anchored notes are excluded (Phase 5)
-        .join(DatasetIndex, DatasetIndex.id == StudyNote.index_id)
+        select(StudyNote, DatasetIndex, Topic, Concept, Paper)
+        .outerjoin(DatasetIndex, DatasetIndex.id == StudyNote.index_id)
+        .outerjoin(Topic, Topic.id == StudyNote.topic_id)
+        .outerjoin(Concept, Concept.id == StudyNote.concept_id)
+        .outerjoin(Paper, Paper.id == StudyNote.paper_id)
         .order_by(StudyNote.tagged_at.desc())
     ).all()
     results = []
     for row in rows:
-        note, idx = row.StudyNote, row.DatasetIndex
+        note = row.StudyNote
         in_concept = kw in note.concept_tag.lower()
         in_note = note.note_text and kw in note.note_text.lower()
         in_section = note.section_ref and kw in note.section_ref.lower()
         if in_concept or in_note or in_section:
+            resolved_source, resolved_source_id = _resolve_anchor(
+                row.DatasetIndex, row.Topic, row.Concept, row.Paper
+            )
             results.append({
-                "source": idx.source,
-                "source_id": idx.source_id,
+                "source": resolved_source,
+                "source_id": resolved_source_id,
                 "concept_tag": note.concept_tag,
                 "section_ref": note.section_ref,
                 "note_text": note.note_text,

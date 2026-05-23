@@ -4,7 +4,7 @@ Migration target: src/neurodb/db/study.py
 """
 from datetime import datetime, timezone
 
-from sqlalchemy import select
+from sqlalchemy import select, text
 from sqlalchemy.orm import Session
 
 from neurodb.schema import DatasetIndex, StudyNote
@@ -78,12 +78,31 @@ def list_tags(
     return results
 
 
+_STUDY_NOTE_INDEX_COLS = {
+    "ix_study_notes_concept_id": "concept_id",
+    "ix_study_notes_concept_tag": "concept_tag",
+    "ix_study_notes_index_id": "index_id",
+    "ix_study_notes_paper_id": "paper_id",
+    "ix_study_notes_topic_id": "topic_id",
+}
+
+
 def delete_tag(session: Session, tag_id: int) -> bool:
     """Delete a study note by id. Returns True if deleted, False if not found."""
     note = session.get(StudyNote, tag_id)
     if note is None:
         return False
-    session.delete(note)
+    # DuckDB ART index bug: index entries become inconsistent for rows that
+    # predate column additions via ALTER TABLE. The FatalException on commit
+    # invalidates the whole connection, so there is no safe catch-and-retry.
+    # Drop all secondary indexes before DELETE so DuckDB has nothing to update,
+    # then recreate them. Cost is negligible for a small local table.
+    session.expunge(note)
+    for idx_name in _STUDY_NOTE_INDEX_COLS:
+        session.execute(text(f'DROP INDEX IF EXISTS "{idx_name}"'))
+    session.execute(text("DELETE FROM study_notes WHERE id = :id"), {"id": tag_id})
+    for idx_name, col in _STUDY_NOTE_INDEX_COLS.items():
+        session.execute(text(f'CREATE INDEX IF NOT EXISTS "{idx_name}" ON study_notes ({col})'))
     return True
 
 

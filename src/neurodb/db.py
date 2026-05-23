@@ -344,9 +344,10 @@ def _migration_013_system_warnings(conn) -> None:
 
 def _migration_014_chat_session_topic_category(conn) -> None:
     """Add topic_category to chat_sessions for LLM-assigned grouping."""
-    conn.execute(text(
-        "ALTER TABLE chat_sessions ADD COLUMN IF NOT EXISTS topic_category VARCHAR(64)"
-    ))
+    try:
+        conn.execute(text("ALTER TABLE chat_sessions ADD COLUMN topic_category VARCHAR(64)"))
+    except Exception:
+        pass  # column already exists
 
 
 _MIGRATIONS: dict[int, callable] = {

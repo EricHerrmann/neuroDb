@@ -12,9 +12,9 @@
 | Epoch | Source | Maturity | Next |
 |---|---|---|---|
 | DB | `src/neurodb/db/`, `src/neurodb/connectors/` | MVP complete (phases 0–3, 9); Phase 2 manual signed off 2026-05-21; Phase 3 manual signed off 2026-05-21; full suite 641 passed / 15 pre-existing failures; Phase 9 T1-T4 manual passed | Entity resolution (7); broader Phase 9 source-aware enrichment |
-| Agent Core | `src/neurodb/agents/` | Stable; Phase 4 context-mode mechanics implemented and signed off 2026-05-21; provider live-tool reliability gap identified | Coordinate provider capability validation with Config Control |
-| Tutor | `src/neurodb/tutor/` | MVP complete (LT-1/2/3); Phase 4 context-mode prompt and bundle behavior signed off 2026-05-21 | Open backlog: LOG-001, LOG-006; Phase 2/3 manual verification |
-| Research | `src/neurodb/research/` | Scaffolded (LT-3); Phase 3 claims/evidence/gaps complete; Phase 2/3 manual signed off 2026-05-21; Phase 4 grounded/contextual behavior signed off 2026-05-21; lifecycle UI gaps from LOG-037, LOG-048, and LOG-061 resolved in Phase 5b | Open backlog: LOG-045, LOG-053 |
+| Agent Core | `src/neurodb/agents/` | Stable; Phase 4 context-mode mechanics implemented and signed off 2026-05-21; Config Control Phase 6 added provider capability gating | Coordinate provider live-tool validation with Config Control |
+| Tutor | `src/neurodb/tutor/` | MVP complete (LT-1/2/3); Phase 4 context-mode prompt and bundle behavior signed off 2026-05-21; active model visibility resolved in Config Control Phase 6 | Open backlog: LOG-001; Phase 2/3 manual verification |
+| Research | `src/neurodb/research/` | Scaffolded (LT-3); Phase 3 claims/evidence/gaps complete; Phase 2/3 manual signed off 2026-05-21; Phase 4 grounded/contextual behavior signed off 2026-05-21; lifecycle UI gaps from LOG-037, LOG-048, and LOG-061 resolved in Phase 5b; queue/tool gaps from LOG-045 and LOG-053 resolved | Open backlog: LOG-054 |
 | UI | `src/neurodb/ui/`, `src/neurodb/api/`, `frontend/` | UI-3 signed off 2026-05-13; UI-5 P1/P2/P3 complete and common manual testing passed 2026-05-23; Phase 4 API preference and stream contract signed off 2026-05-21; Phase 5a signed off 2026-05-21; Phase 5b signed off 2026-05-23 (T1-T7 passed); DuckDB FK update limitation resolved via migration 012; LOG-060 moved to monitor after likely renderer fix | No active UI phase; monitor LOG-060 recurrence |
 | Config Control | `src/neurodb/config/` | Phase 5B complete; Phase 6 complete and signed off 2026-05-23 with focused backend, call-site, frontend, ruff, compile, and manual T1-T5 checks passing | No active Config Control phase |
 | Tech Debt | Cross-cutting | Planned — TD-1 CLI argument normalization started from LOG-057; TD-5 abstraction/extensibility review logged | TD-1 parser coverage, TD-2 keyword-only helper APIs, TD-5 reusable abstractions |
@@ -39,7 +39,7 @@ Source of truth for model IDs: `neurodb_models.toml`.
 
 ## Open Issues
 
-See `docs/testLog.md`. Current open items: LOG-001 (textbook dropdown ambiguity), LOG-006 (model visibility), LOG-013 (UI shell rearchitecture), LOG-041 (session summary visibility), LOG-045 (research-to-knowledge-library bridge), LOG-047 (telemetry timestamp format), LOG-050 (Gemini premium testing deferred), LOG-059 (study log inner join drops anchors). Monitor item: LOG-060 (chat-turn hang, likely frontend streamed-Markdown renderer loop fixed; watch for recurrence).
+See `docs/testLog.md`. Current open items: LOG-001 (textbook dropdown ambiguity), LOG-013 (UI shell rearchitecture), LOG-050 (Gemini premium testing deferred), LOG-051 (UI icon pane association), LOG-054 (dataset minimal research value), LOG-057 (argument order tech debt), LOG-059 (study log inner join drops anchors). Monitor item: LOG-060 (chat-turn hang, likely frontend streamed-Markdown renderer loop fixed; watch for recurrence).
 
 ---
 

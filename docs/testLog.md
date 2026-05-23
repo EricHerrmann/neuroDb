@@ -14,13 +14,10 @@ Use `Log ID` for cross-references across Open, Resolved, triage, sprint planning
 | Log ID | Issue ID | Epoch | Severity | Description | Priority |
 |--------|----------|-------|----------|-------------|----------|
 | LOG-059 | study-inner-join-drops-anchors | DB | High | `list_tags()` and `search_tags()` use INNER JOIN on DatasetIndex; topic/concept/paper-anchored notes are silently filtered out | Phase 5 / study log API update |
-| LOG-041 | config-session-summary-visibility | Config | Medium | No UI path to view the generated session summary; needed for T4 date/topic/key-concepts verification | Feature review |
 | LOG-054 | dataset-minimal-research-value | Research | Medium | Datasets have minimal information; need to determine the right amount of dataset metadata for local research | Backlog |
 | LOG-057 | args-position-dependent | Tech Debt | Medium | CLI and Python function arguments are position-dependent; review for keyword-only APIs, structured request objects, and shared parser helpers | TD-1 / Tech Debt sprint |
 | LOG-001 | P6-selector | Tutor | Low | Textbook dropdown appears pre-selected without explicit user action — agent context state is ambiguous | Deferred post-LT-3 |
-| LOG-006 | LT1-model-visibility | Config | Low | User cannot tell which agent/LLM/model is active; no model selection or persistent preference rules | Deferred post-LT-3 |
 | LOG-013 | UI-shell-rearchitecture | UI | Low | Streamlit cannot support fixed-pane app-shell behavior; reassess UI stack after LT-3 | Deferred post-LT-3 |
-| LOG-047 | telemetry-timestamp-format | Config | Low | Telemetry timestamps display as raw ISO 8601; should display as HH:MM:SS DD/MM/YY | Phase 6 |
 | LOG-050 | gemini-premium-testing-deferred | Config | Low | Further manual testing against premium Gemini models deferred | Deferred |
 | LOG-051 | ui-icon-pane-association | UI | Low | Hard to associate activity-rail icons with right pane content; needs stronger tooltips and icon reorder with Research first | UI polish |
 
@@ -31,10 +28,7 @@ Use `Log ID` for cross-references across Open, Resolved, triage, sprint planning
 | Log ID | Date | Issue ID | Epoch | Severity | Description | Context |
 |--------|------|----------|-------|----------|-------------|---------|
 | LOG-001 | 2026-05-04 | P6-selector | Tutor | Low | Textbook dropdown appears pre-selected without explicit user action — actual agent context is ambiguous | P6 manual test |
-| LOG-006 | 2026-05-05 | LT1-model-visibility | Config | Low | User cannot tell which agent/LLM/model is active; later work should add model selection and persistent model/user-preference prompt rules | LT-1 manual/ad hoc review |
 | LOG-013 | 2026-05-05 | UI-shell-rearchitecture | UI | Low | Pre-LT-2 fixed-pane layout failed in Streamlit even with a custom-component bridge; evaluate a UI tech-stack rearchitecture after LT-2/LT-3 once core learning capabilities mature to MVP | Pre-LT-2 manual test |
-| LOG-041 | 2026-05-07 | config-session-summary-visibility | Config | Medium | T4 has explicit checks for date, topic, and key concepts, so there needs to be a way to view the generated session summary in the app. | Config control Phase 1 manual testing |
-| LOG-047 | 2026-05-09 | telemetry-timestamp-format | Config | Low | Telemetry log timestamps display as raw ISO 8601; should display as HH:MM:SS DD/MM/YY for user readability. Likely addressed in Phase 6 alongside the system_warnings CLI surface. | Config Phase 4 manual testing |
 | LOG-050 | 2026-05-09 | gemini-premium-testing-deferred | Config | Low | Gemini/Google account is billing-enabled for premium tier; all wiring issues surfaced this session (GOOGLE_API_KEY rename, null streaming tokens) were fixed. Further testing against premium Gemini models deferred. | Config Phase 4 manual testing |
 | LOG-051 | 2026-05-12 | ui-icon-pane-association | UI | Low | UI epoch feature: hard to associate activity-rail icons with the related right pane and know what is available in each pane; increase tooltips or associations, and reorganize icons with Research at top, then Study Log. | User logged during UI-3 manual/ad hoc review |
 | LOG-054 | 2026-05-13 | dataset-minimal-research-value | Research | Medium | Datasets have minimal information; need to explore the right amount of dataset metadata for local research because current dataset value is unclear. | User logged during external dataset/agent-mode review |
@@ -55,6 +49,9 @@ Use `Log ID` for cross-references across Open, Resolved, triage, sprint planning
 
 | Log ID | Date | Issue ID | Epoch | Severity | Description | Resolution |
 |--------|------|----------|-------|----------|-------------|------------|
+| LOG-006 | 2026-05-05 | LT1-model-visibility | Config | Low | User cannot tell which agent/LLM/model is active; later work should add model selection and persistent model/user-preference prompt rules | Resolved in Config Control Phase 6: React Chat header shows a read-only active provider/model chip from `/api/model-info`; manual T4 passed 2026-05-23 |
+| LOG-041 | 2026-05-07 | config-session-summary-visibility | Config | Medium | T4 has explicit checks for date, topic, and key concepts, so there needs to be a way to view the generated session summary in the app. | Resolved in Config Control Phase 6: Study Log chat history renders session summaries behind an expandable `Session summary` affordance; manual T5 passed 2026-05-23 |
+| LOG-047 | 2026-05-09 | telemetry-timestamp-format | Config | Low | Telemetry log timestamps display as raw ISO 8601; should display as HH:MM:SS DD/MM/YY for user readability. Likely addressed in Phase 6 alongside the system_warnings CLI surface. | Resolved in Config Control Phase 6: `neurodb-telemetry` uses shared `format_recorded_at()` with `HH:MM:SS DD/MM/YY`; manual T3 passed 2026-05-23 |
 | LOG-045 | 2026-05-23 | research-agent-no-knowledge-queue | Research | Medium | Research agent had no write path to the knowledge library | Added `nominate_paper` tool to Research Agent: creates a pending `Paper` row via the existing Knowledge Library approval flow; deduplication by DOI or normalized title matches Tutor Agent behavior |
 | LOG-053 | 2026-05-23 | research-agent-no-dataimport-suggestions | Research | Medium | Research agent could not add datasets to the import queue | Added `suggest_dataset_import` tool to Research Agent: calls `run_suggest_import` to write an `import_queue` row; system prompt updated to instruct use when datasets are found via search_external or inspect_external_dataset |
 | LOG-056 | 2026-05-23 | knowledge-lib-duplicates-no-remove | Tutor | Medium | Knowledge Library had no way to remove entries | Added `POST /api/knowledge-library/{id}/remove`: sets status="removed", removes from ChromaDB if approved; GET excludes removed from "all" filter; Remove button added to KnowledgeLibraryPanel for all non-removed items; "Removed" added to status filter dropdown |

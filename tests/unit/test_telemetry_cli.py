@@ -76,3 +76,46 @@ def test_render_telemetry_filters_by_provider_and_task_type():
 
     assert "gpt-5.4" in output
     assert "claude-haiku" not in output
+
+
+def test_render_telemetry_shows_context_usage_section():
+    engine = _engine()
+    with Session(engine) as session:
+        session.add(ModelCallLog(
+            recorded_at="2026-05-23T13:45:22+00:00",
+            task_type="agent.loop.neuro_research",
+            provider="anthropic",
+            model="claude-sonnet-4-6",
+            mode="grounded",
+            context_papers_count=9,
+            context_notes_count=12,
+            context_claims_count=8,
+            context_datasets_count=3,
+            context_gap_count=2,
+        ))
+        session.commit()
+
+    output = render_telemetry(engine, tail=20)
+
+    assert "Context Usage" in output
+    assert "9p" in output
+    assert "12n" in output
+    assert "8c" in output
+    assert "3d" in output
+    assert "2 gaps" in output
+
+
+def test_render_telemetry_omits_context_usage_when_no_counts():
+    engine = _engine()
+    with Session(engine) as session:
+        session.add(ModelCallLog(
+            recorded_at="2026-05-23T13:45:22+00:00",
+            task_type="agent.loop.neuro_tutor",
+            provider="anthropic",
+            model="claude-sonnet-4-6",
+        ))
+        session.commit()
+
+    output = render_telemetry(engine, tail=20)
+
+    assert "Context Usage" not in output

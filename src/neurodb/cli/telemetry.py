@@ -54,10 +54,57 @@ def render_telemetry(
         sections.append(
             _render_model_calls(engine, tail=tail, provider=provider, task_type=task_type)
         )
+        context_section = _render_context_usage(engine, tail=tail)
+        if context_section:
+            sections.append(context_section)
     sections.append(
         _render_system_warnings(engine, tail=tail, provider=provider, task_type=task_type)
     )
     return "\n\n".join(sections)
+
+
+def _render_context_usage(engine: Engine, *, tail: int) -> str | None:
+    rows = _query_context_usage(engine, tail=tail)
+    if not rows:
+        return None
+    lines = [f"Context Usage (last {tail} agent turns)", "-" * 72]
+    for row in rows:
+        p = row.context_papers_count or 0
+        n = row.context_notes_count or 0
+        c = row.context_claims_count or 0
+        d = row.context_datasets_count or 0
+        g = row.context_gap_count or 0
+        counts = f"{p}p / {n}n / {c}c / {d}d"
+        gap_str = f"  {g} gaps" if g else ""
+        mode_str = row.mode or "unknown"
+        lines.append(
+            f"{format_recorded_at(row.recorded_at):17}  "
+            f"{row.task_type:28}  "
+            f"{mode_str:12}  "
+            f"{counts}{gap_str}"
+        )
+    return "\n".join(lines)
+
+
+def _query_context_usage(engine: Engine, *, tail: int) -> list:
+    sql = text("""
+        SELECT recorded_at, task_type, mode,
+               context_papers_count, context_notes_count,
+               context_claims_count, context_datasets_count, context_gap_count
+        FROM model_call_log
+        WHERE context_papers_count IS NOT NULL
+           OR context_notes_count IS NOT NULL
+           OR context_claims_count IS NOT NULL
+           OR context_datasets_count IS NOT NULL
+           OR context_gap_count IS NOT NULL
+        ORDER BY recorded_at DESC
+        LIMIT :limit
+    """)
+    try:
+        with engine.connect() as conn:
+            return list(conn.execute(sql, {"limit": tail}).fetchall())
+    except Exception:
+        return []
 
 
 def _render_model_calls(

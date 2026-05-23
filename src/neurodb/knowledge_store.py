@@ -60,6 +60,14 @@ class KnowledgeLibraryStore:
         self._collection.upsert(**kwargs)
         return doc_id
 
+    def remove_summary(self, source_id: int) -> None:
+        """Remove a source summary from the ChromaDB index."""
+        doc_id = f"knowledge_source:{source_id}"
+        try:
+            self._collection.delete(ids=[doc_id])
+        except Exception:
+            pass
+
     def search(self, query: str, n: int = 5) -> list[dict]:
         """Return semantically similar approved summaries."""
         if not query:

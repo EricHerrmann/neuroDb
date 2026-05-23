@@ -4,7 +4,7 @@
 **Status:** Implemented 2026-05-13; common manual verification pending
 **Epoch:** UI
 **Source:** `docs/superpowers/specs/2026-05-12-ui5-parity-completion-design.md`
-**Manual plan:** `docs/testsPlans/manualTestPlan_ui5_common_parity.md`
+**Manual plan:** `docs/testsPlans/completedAndPassedTestPlans/manualTestPlan_ui5_common_parity.md`
 
 ---
 
@@ -211,8 +211,8 @@ Automated tests:
 
 Manual tests:
 
-- Use `docs/testsPlans/manualTestPlan_ui5_common_parity.md` as the single UI-5
-  manual plan across P1, P2, and P3.
+- See `docs/testsPlans/completedAndPassedTestPlans/manualTestPlan_ui5_common_parity.md` for the completed
+  UI-5 manual plan across P1, P2, and P3.
 
 ---
 

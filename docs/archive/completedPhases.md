@@ -24,6 +24,9 @@ Archived from `docs/projectStatus.md`. Add new rows here when a phase reaches co
 | Config Control Phase 5B | TOML routing refactor — single [routing] section replaces env-var tier overrides; _cache patch pattern for provider tests; provider selection UI deferred to UI epoch — 398 automated tests | 2026-05-08 |
 | UI-1 | FastAPI backend shell — app factory, 8 API routes (status, preferences, research, chat/SSE), zero-arg uvicorn factory; 408 automated tests + 9 manual evals passed | 2026-05-11 |
 | UI-2 | React workbench prototype — Vite + React shell, typed API client, all 7 panels functional, FastAPI panel routes; 443 Python tests + 7 frontend tests + 11 manual evals passed | 2026-05-11 |
+| UI-2B | React layout redesign — activity rail, resizable/collapsible right panel, agent mode in chat header, Study Log chat history; 19 frontend tests + 9 manual evals passed | 2026-05-11 |
+| UI-3 | React parity migration — 7 write operations, Streamlit deprecation banner, API-backed panels; 474 Python tests + 43 frontend tests + build + manual evals passed | 2026-05-13 |
+| UI-5 P1/P2/P3 | React parity completion — data integrity, core workflow parity, and polish; 515 Python tests + 57 frontend tests + build + 8 common manual evals passed | 2026-05-23 |
 
 **Deferred:** DB Epochs 7 (entity resolution) and 8 (hypothesis layer) — decision pending. See `docs/DB_EpochPlan.md`.
 

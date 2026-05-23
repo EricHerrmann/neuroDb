@@ -5,13 +5,13 @@ datasets, research, and knowledge library.
 **Phase:** UI-5 P2
 **Design source:** `docs/superpowers/specs/2026-05-13-ui5-p2-core-workflow-design.md`
 **Implementation plan:** `docs/superpowers/plans/2026-05-13-ui5-p2-core-workflow.md`
-**Status:** Superseded by `docs/testsPlans/manualTestPlan_ui5_common_parity.md`
+**Status:** Superseded by completed common plan `docs/testsPlans/completedAndPassedTestPlans/manualTestPlan_ui5_common_parity.md`
 **Date:** 2026-05-13
-**Last updated:** 2026-05-13
+**Last updated:** 2026-05-23
 
-This P2-only plan is retained for historical detail. Active UI-5 manual
-verification now uses one common plan across P1, P2, and P3:
-`docs/testsPlans/manualTestPlan_ui5_common_parity.md`.
+This P2-only plan is retained for historical detail. UI-5 manual verification
+used one common plan across P1, P2, and P3:
+`docs/testsPlans/completedAndPassedTestPlans/manualTestPlan_ui5_common_parity.md`.
 
 All commands run from the repo root (`/home/oldha/projects/neuroDb`) unless noted.
 

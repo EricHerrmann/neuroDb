@@ -1,6 +1,6 @@
 # Manual Test Plan — Phase 5b: Evidence Lens, Dataset Honesty, and Retract Lifecycle
 
-**Status:** Active — Phase 5b; T1-T4 passed, T5-T7 pending
+**Status:** Signed off — Phase 5b; all T1-T7 passed 2026-05-23
 **Date created:** 2026-05-21
 **Spec:** `docs/superpowers/specs/2026-05-21-phase5b-evidence-lens-dataset-honesty-retract-design.md`
 
@@ -158,9 +158,9 @@
 | T2 — Evidence Lens: Gap Warning | Pass | 2026-05-23 | User-reported manual pass |
 | T3 — Dataset Honesty: Usefulness Badge | Pass | 2026-05-23 | User-reported manual pass |
 | T4 — Research Questions: Archive Action | Pass | 2026-05-23 | User-reported manual pass |
-| T5 — Claims: Approve and Reject | Pending | — | |
-| T6 — Gaps: Resolve and Archive | Pending | — | |
-| T7 — Evidence Links: Retract | Pending | — | |
+| T5 — Claims: Approve and Reject | Pass | 2026-05-23 | User-reported manual pass |
+| T6 — Gaps: Resolve and Archive | Pass | 2026-05-23 | User-reported manual pass |
+| T7 — Evidence Links: Retract | Pass | 2026-05-23 | User-reported manual pass |
 
 ---
 
@@ -168,4 +168,4 @@
 
 | Tester | Date | Result | Notes |
 |---|---|---|---|
-| | | | |
+| Eric Herrmann | 2026-05-23 | Pass | All T1-T7 passed; DuckDB FK update limitation resolved via migration 012 (table rebuild without FK constraints); hypothesis archive, question archive, claim approve/reject/archive, gap resolve/archive, evidence link retract all verified |

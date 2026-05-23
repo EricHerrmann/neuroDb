@@ -3,7 +3,7 @@
 **Date:** 2026-05-13
 **Status:** Implementation complete; manual verification pending
 **Design source:** `docs/superpowers/specs/2026-05-13-ui5-p2-core-workflow-design.md`
-**Manual plan:** `docs/testsPlans/manualTestPlan_ui5_common_parity.md`
+**Manual plan:** `docs/testsPlans/completedAndPassedTestPlans/manualTestPlan_ui5_common_parity.md`
 
 ---
 

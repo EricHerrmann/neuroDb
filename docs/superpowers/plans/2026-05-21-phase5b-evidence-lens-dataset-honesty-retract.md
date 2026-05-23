@@ -2192,16 +2192,16 @@ Expected: build completes with no errors.
 
 - [ ] **Step 3: Update `docs/projectStatus.md`**
 
-Update the UI epoch row to reflect P5b implementation complete:
+Final project-status state after Phase 5b and UI-5 sign-off:
 
 ```
-| UI | `src/neurodb/ui/`, `src/neurodb/api/`, `frontend/` | ... Phase 5b implementation complete; manual verification pending | Phase 5b manual verification; UI-5 common manual verification |
+| UI | `src/neurodb/ui/`, `src/neurodb/api/`, `frontend/` | ... UI-5 P1/P2/P3 complete and common manual testing passed 2026-05-23; Phase 5b signed off 2026-05-23 (T1-T7 passed) | No active UI phase; monitor LOG-060 recurrence |
 ```
 
 Update active focus:
 ```
-**Active focus:** Phase 5b — Evidence Lens, Dataset Honesty, Retract Lifecycle; implementation complete, manual verification pending
-**Next:** Phase 5b manual verification; UI-5 common manual verification
+**Active focus:** Learning and Research Memory Refocus — cross-epoch learning/research memory system and dataset research packet work
+**Next:** Continue Learning and Research Memory Refocus implementation and verification; Config Control Phase 6 after provider validation
 ```
 
 - [ ] **Step 4: Final commit**

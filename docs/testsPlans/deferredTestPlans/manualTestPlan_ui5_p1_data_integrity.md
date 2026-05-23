@@ -4,11 +4,11 @@
 **Phase:** UI-5 P1
 **Design source:** `docs/superpowers/specs/2026-05-12-ui5-p1-data-integrity-design.md`
 **Implementation plan:** `docs/superpowers/plans/2026-05-12-ui5-p1-data-integrity.md`
-**Status:** Deferred; superseded for active execution by `docs/testsPlans/manualTestPlan_ui5_common_parity.md`
+**Status:** Deferred; superseded by completed common plan `docs/testsPlans/completedAndPassedTestPlans/manualTestPlan_ui5_common_parity.md`
 **Date:** 2026-05-13
-**Last updated:** 2026-05-13
+**Last updated:** 2026-05-23
 
-**Deferred reason:** UI-5 P1 implementation and automated verification are complete. Manual verification remains valuable for production-like browser, FastAPI, DuckDB, and ChromaDB wiring, but active UI-5 execution now uses one consolidated P1/P2/P3 manual plan.
+**Deferred reason:** UI-5 P1 implementation and automated verification are complete. Manual verification remained valuable for production-like browser, FastAPI, DuckDB, and ChromaDB wiring, and UI-5 completed through one consolidated P1/P2/P3 manual plan.
 
 All commands run from the repo root (`/home/oldha/projects/neuroDb`) unless noted.
 

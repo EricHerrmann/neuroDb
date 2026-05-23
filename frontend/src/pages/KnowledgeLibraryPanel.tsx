@@ -61,6 +61,10 @@ export default function KnowledgeLibraryPanel() {
     mutationFn: (id: number) => api.rejectSource(id),
     onSuccess: () => queryClient.invalidateQueries({ queryKey: ['knowledge-library'] }),
   })
+  const remove = useMutation({
+    mutationFn: (id: number) => api.removeSource(id),
+    onSuccess: () => queryClient.invalidateQueries({ queryKey: ['knowledge-library'] }),
+  })
 
   if (isLoading) return <div style={{ padding: 12 }}>Loading...</div>
   if (isError) {
@@ -80,6 +84,7 @@ export default function KnowledgeLibraryPanel() {
           <option value="pending">Pending</option>
           <option value="approved">Approved</option>
           <option value="rejected">Rejected</option>
+          <option value="removed">Removed</option>
         </select>
       </div>
       <TaskStatus status={taskState.status} error={taskState.error} successMessage="Summary generated" />
@@ -120,10 +125,30 @@ export default function KnowledgeLibraryPanel() {
               >
                 Reject
               </button>
+              <button
+                onClick={() => remove.mutate(item.id)}
+                disabled={remove.isPending}
+                style={{ fontSize: 12, padding: '3px 10px', cursor: 'pointer', color: '#dc2626' }}
+              >
+                Remove
+              </button>
+            </div>
+          ) : item.status !== 'removed' ? (
+            <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginTop: 4 }}>
+              <span style={{ fontSize: 11, color: '#94a3b8' }}>
+                {item.status} · {item.reviewed_at?.slice(0, 10) ?? ''}
+              </span>
+              <button
+                onClick={() => remove.mutate(item.id)}
+                disabled={remove.isPending}
+                style={{ fontSize: 11, padding: '2px 6px', cursor: 'pointer', color: '#dc2626' }}
+              >
+                Remove
+              </button>
             </div>
           ) : (
             <div style={{ fontSize: 11, color: '#94a3b8', marginTop: 4 }}>
-              {item.status} · {item.reviewed_at?.slice(0, 10) ?? ''}
+              removed
             </div>
           )}
           {duplicateWarnings[item.id]?.length > 0 && (

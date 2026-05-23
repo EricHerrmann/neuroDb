@@ -331,7 +331,7 @@ Required automated coverage:
 
 Manual verification:
 
-- Use `docs/testsPlans/manualTestPlan_ui5_common_parity.md` as the active UI-5
+- See `docs/testsPlans/completedAndPassedTestPlans/manualTestPlan_ui5_common_parity.md` for the completed UI-5
   manual plan. The original P2-only plan is retained under
   `docs/testsPlans/deferredTestPlans/manualTestPlan_ui5_p2_core_workflow.md`.
 - Manual steps should use checked-in helper scripts under `tests/manual/` for

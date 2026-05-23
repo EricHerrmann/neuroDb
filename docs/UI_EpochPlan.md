@@ -1,7 +1,7 @@
 # NeuroDb — UI Epoch Plan
 
-**Status:** UI-3 signed off 2026-05-13 - UI-5 P1/P2/P3 implementation complete - common UI-5 manual verification active
-**Last updated:** 2026-05-20
+**Status:** UI-5 P1/P2/P3 complete; common manual verification passed and signed off 2026-05-23
+**Last updated:** 2026-05-23
 **Epoch directory:** `src/neurodb/ui/`
 **Architecture reference:** `docs/superpowers/specs/2026-05-07-epoch-architecture-design.md`
 
@@ -9,10 +9,9 @@
 
 ## Active Work
 
-UI-5 P1/P2/P3 implementation is complete. Manual verification has been
-consolidated into one common UI-5 plan across P1, P2, and P3. See
+UI-5 P1/P2/P3 implementation and common manual verification are complete. See
 `docs/superpowers/plans/2026-05-13-ui5-p3-polish.md` and
-`docs/testsPlans/manualTestPlan_ui5_common_parity.md`.
+`docs/testsPlans/completedAndPassedTestPlans/manualTestPlan_ui5_common_parity.md`.
 
 ---
 
@@ -20,7 +19,7 @@ consolidated into one common UI-5 plan across P1, P2, and P3. See
 
 Own the UI shell, routing, pane layout, streaming rendering, and workbench state. Current implementation is Streamlit. Target is a FastAPI + React workbench shell — migration is incremental with Streamlit retained until parity.
 
-**Active work:** Common UI-5 manual verification.
+**Active work:** None in the UI epoch; cross-epoch Learning and Research Memory Refocus is the current project focus.
 
 ---
 
@@ -34,14 +33,14 @@ Own the UI shell, routing, pane layout, streaming rendering, and workbench state
 | UI-2 | React workbench prototype — Vite + React + React Router + TanStack Query; same two-column layout as Streamlit; all 7 panels functional; infrastructure migration only | Complete | 443 automated Python + 7 frontend + 11 manual | 2026-05-11 | `docs/testsPlans/completedAndPassedTestPlans/manualTestPlan_ui2_react_workbench.md` |
 | UI-2B | Layout redesign — activity rail (replaces sidebar + PanelNav), resizable + collapsible right panel, agent mode in chat header, chat history in Study Log | Complete | 19 frontend + 9 manual | 2026-05-11 | `docs/testsPlans/completedAndPassedTestPlans/manualTestPlan_ui2b_layout_redesign.md` |
 | UI-3 | Parity migration — 7 write operations wired to React; Streamlit deprecation banner | Complete | 474 Python + 43 frontend + build | 2026-05-13 | `docs/testsPlans/completedAndPassedTestPlans/manualTestPlan_ui3_parity_migration.md` |
-| UI-5 P1 | Data integrity fixes — 6 gaps: study log embedding, KL ChromaDB indexing, ImportQueue status, promote provenance, suggest type gating, registry topics | Implementation complete; covered by common manual plan | 485 Python + 47 frontend + build | — | `docs/testsPlans/manualTestPlan_ui5_common_parity.md` |
-| UI-5 P2 | Core workflow parity — chat observability/formatting, study-log delete/filter, dataset filter/metadata, research lifecycle, KL summary/duplicates | Implementation complete; covered by common manual plan | 509 Python + 50 frontend + build | — | `docs/testsPlans/manualTestPlan_ui5_common_parity.md` |
-| UI-5 P3 | Polish parity — prior context banner, study-log edit/source alignment, dataset inline tag, registry content, KL DOI links, SQL hints | Implementation complete; covered by common manual plan | 515 Python + 57 frontend + build | — | `docs/testsPlans/manualTestPlan_ui5_common_parity.md` |
+| UI-5 P1 | Data integrity fixes — 6 gaps: study log embedding, KL ChromaDB indexing, ImportQueue status, promote provenance, suggest type gating, registry topics | Complete | 485 Python + 47 frontend + build + common manual T1-T2 | 2026-05-23 | `docs/testsPlans/completedAndPassedTestPlans/manualTestPlan_ui5_common_parity.md` |
+| UI-5 P2 | Core workflow parity — chat observability/formatting, study-log delete/filter, dataset filter/metadata, research lifecycle, KL summary/duplicates | Complete | 509 Python + 50 frontend + build + common manual T3-T5 | 2026-05-23 | `docs/testsPlans/completedAndPassedTestPlans/manualTestPlan_ui5_common_parity.md` |
+| UI-5 P3 | Polish parity — prior context banner, study-log edit/source alignment, dataset inline tag, registry content, KL DOI links, SQL hints | Complete | 515 Python + 57 frontend + build + common manual T6-T8 | 2026-05-23 | `docs/testsPlans/completedAndPassedTestPlans/manualTestPlan_ui5_common_parity.md` |
 | UI-5 Enhancements | Beyond-parity improvements deferred from UI-5 P3 scope | Planned | — | — | — |
 | UI-4 | Streamlit retirement decision | Planned (after UI-5) | — | — | — |
 
-Active test plan: `docs/testsPlans/manualTestPlan_ui5_common_parity.md` (8 evals covering UI-5 P1/P2/P3).
-Deferred detail plans: `docs/testsPlans/deferredTestPlans/manualTestPlan_ui5_p1_data_integrity.md` and `docs/testsPlans/deferredTestPlans/manualTestPlan_ui5_p2_core_workflow.md`. UI-3 signed off 2026-05-13.
+Completed test plan: `docs/testsPlans/completedAndPassedTestPlans/manualTestPlan_ui5_common_parity.md` (8 evals covering UI-5 P1/P2/P3).
+Deferred detail plans: `docs/testsPlans/deferredTestPlans/manualTestPlan_ui5_p1_data_integrity.md` and `docs/testsPlans/deferredTestPlans/manualTestPlan_ui5_p2_core_workflow.md`. UI-5 signed off 2026-05-23.
 
 ---
 
@@ -147,7 +146,7 @@ Historical options analysis and pros/cons: `docs/archive/UI_EpochPlan_historical
 | `docs/superpowers/specs/2026-05-12-ui5-p1-data-integrity-design.md` | UI-5 P1 design spec — 6 data-integrity fixes, warning propagation pattern |
 | `docs/superpowers/specs/2026-05-13-ui5-p2-core-workflow-design.md` | UI-5 P2 design spec — core workflow parity, chat formatting, task/status UX |
 | `docs/superpowers/specs/2026-05-13-ui5-p3-polish-design.md` | UI-5 P3 design spec — polish parity, edit/tag convenience, registry/KL/SQL detail |
-| `docs/testsPlans/manualTestPlan_ui5_common_parity.md` | UI-5 common manual test plan — 8 evals covering P1/P2/P3 |
+| `docs/testsPlans/completedAndPassedTestPlans/manualTestPlan_ui5_common_parity.md` | UI-5 common manual test plan — 8 evals covering P1/P2/P3; passed and signed off 2026-05-23 |
 | `docs/superpowers/plans/2026-05-12-ui5-p1-data-integrity.md` | UI-5 P1 implementation plan — 6 tasks complete |
 | `docs/testsPlans/deferredTestPlans/manualTestPlan_ui5_p1_data_integrity.md` | UI-5 P1 manual test plan — deferred detail plan superseded by common UI-5 plan |
 | `docs/superpowers/plans/2026-05-13-ui5-p2-core-workflow.md` | UI-5 P2 implementation plan — 8 tasks complete |

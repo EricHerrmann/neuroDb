@@ -48,7 +48,9 @@ def get_knowledge_library(
 ) -> list[PaperItem]:
     with get_session(engine) as session:
         query = session.query(Paper)
-        if status != "all":
+        if status == "all":
+            query = query.filter(Paper.status != "removed")
+        else:
             query = query.filter(Paper.status == status)
         rows = query.order_by(Paper.queued_at.desc()).all()
         return [PaperItem.model_validate(row) for row in rows]
@@ -166,6 +168,28 @@ def get_duplicate_candidates(
 @router.post("/{source_id}/reject", response_model=PaperItem)
 def reject_source(source_id: int, engine: Engine = Depends(get_engine)) -> PaperItem:
     return _set_status(source_id, "rejected", engine)
+
+
+@router.post("/{source_id}/remove", response_model=PaperItem)
+def remove_source(
+    source_id: int,
+    engine: Engine = Depends(get_engine),
+    knowledge_store=Depends(get_knowledge_store),
+) -> PaperItem:
+    with get_session(engine) as session:
+        row = _get_paper_or_404(session, source_id)
+        was_approved = row.status == "approved"
+        chroma_id = row.chroma_id
+
+    item = _update_paper_fields(source_id, engine, status="removed")
+
+    if was_approved and chroma_id:
+        try:
+            knowledge_store.remove_summary(source_id)
+        except Exception:
+            logger.exception("ChromaDB removal failed for source %d", source_id)
+
+    return item
 
 
 def _set_status(source_id: int, status: str, engine: Engine) -> PaperItem:

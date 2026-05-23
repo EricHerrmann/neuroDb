@@ -3,9 +3,9 @@
 **Epoch scope:** UI - React parity and polish across UI-5 P1, P2, and P3.
 **Phases covered:** UI-5 P1 data integrity, UI-5 P2 core workflow, UI-5 P3 polish.
 **Design sources:** `docs/superpowers/specs/2026-05-12-ui5-p1-data-integrity-design.md`, `docs/superpowers/specs/2026-05-13-ui5-p2-core-workflow-design.md`, `docs/superpowers/specs/2026-05-13-ui5-p3-polish-design.md`
-**Status:** Ready for execution as the active consolidated UI-5 manual plan.
+**Status:** Complete - T1-T8 passed and signed off.
 **Date:** 2026-05-13
-**Last updated:** 2026-05-13
+**Last updated:** 2026-05-23
 
 All commands run from the repo root (`/home/oldha/projects/neuroDb`) unless noted.
 
@@ -161,6 +161,26 @@ values remain clickable; non-DOI text remains plain.
 
 ## Completion Criteria
 
-UI-5 common manual verification can be signed off only when T1-T8 pass against
-the same local app stack, or when any remaining failures are logged in
-`docs/testLog.md` and explicitly deferred in `docs/projectStatus.md`.
+UI-5 common manual verification was signed off after T1-T8 passed against the
+same local app stack.
+
+---
+
+## Results
+
+| Test | Result | Date | Notes |
+|---|---|---|---|
+| T1 - P1 Study Log writes persist to DuckDB and ChromaDB | Pass | 2026-05-23 | User-reported manual pass |
+| T2 - P1 Knowledge and registry writes keep provenance and status | Pass | 2026-05-23 | User-reported manual pass |
+| T3 - P2 Chat is readable and observable | Pass | 2026-05-23 | User-reported manual pass |
+| T4 - P2 Study Log and Datasets support everyday cleanup and filtering | Pass | 2026-05-23 | User-reported manual pass |
+| T5 - P2 Research and Knowledge Library lifecycle actions work | Pass | 2026-05-23 | User-reported manual pass |
+| T6 - P3 Chat and SQL polish are present | Pass | 2026-05-23 | User-reported manual pass |
+| T7 - P3 Study Log edit and Dataset inline tag work | Pass | 2026-05-23 | User-reported manual pass |
+| T8 - P3 Registry and Knowledge Library detail polish is visible | Pass | 2026-05-23 | User-reported manual pass |
+
+## Sign-Off
+
+| Tester | Date | Result | Notes |
+|---|---|---|---|
+| User | 2026-05-23 | Pass | UI-5 common parity testing passed; UI-5 complete |

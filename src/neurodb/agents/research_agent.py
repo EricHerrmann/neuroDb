@@ -59,7 +59,12 @@ _RESEARCH_SYSTEM_PROMPT = (
     "Before answering a research question, call get_question_bundle to retrieve the active "
     "topic, hypotheses, approved claims, and open gaps; use add_evidence_link to ground "
     "hypothesis drafts in local sources rather than free-text evidence; use add_gap when "
-    "local evidence is insufficient to support a claim."
+    "local evidence is insufficient to support a claim. "
+    "When you find a relevant paper or review during research, call nominate_paper to queue "
+    "it for Knowledge Library approval — do not just mention it in the answer. "
+    "When the user asks for dataset suggestions or you identify a relevant external dataset "
+    "via search_external or inspect_external_dataset, call suggest_dataset_import to add it "
+    "to the import queue."
 )
 
 _RESEARCH_TOOLS = [
@@ -282,6 +287,56 @@ _RESEARCH_TOOLS = [
             "required": ["question_id"],
         },
     },
+    {
+        "name": "nominate_paper",
+        "description": (
+            "Nominate a paper or review for the Knowledge Library. Creates a pending entry "
+            "that requires human approval before it is searchable. Use when you discover a "
+            "relevant paper during research and want to flag it for the knowledge library."
+        ),
+        "input_schema": {
+            "type": "object",
+            "properties": {
+                "title": {"type": "string"},
+                "source_type": {
+                    "type": "string",
+                    "description": "paper, review, textbook, or website",
+                },
+                "topic_context": {
+                    "type": "string",
+                    "description": "Why this source is relevant to current research",
+                },
+                "url": {"type": "string"},
+                "doi": {"type": "string"},
+                "abstract": {"type": "string"},
+            },
+            "required": ["title", "source_type", "topic_context"],
+        },
+    },
+    {
+        "name": "suggest_dataset_import",
+        "description": (
+            "Add an external dataset to the import queue for later ingestion. Use when the "
+            "user asks for dataset suggestions or when search_external or "
+            "inspect_external_dataset surfaces a dataset relevant to the current research."
+        ),
+        "input_schema": {
+            "type": "object",
+            "properties": {
+                "source": {
+                    "type": "string",
+                    "description": "openneuro, neurovault, dandi, or allen_brain",
+                },
+                "source_id": {"type": "string"},
+                "title": {"type": "string"},
+                "reason": {
+                    "type": "string",
+                    "description": "Why this dataset is relevant to current research",
+                },
+            },
+            "required": ["source", "source_id", "title", "reason"],
+        },
+    },
 ]
 
 _READ_ONLY_DB_TOOLS = [
@@ -443,6 +498,10 @@ class NeuroResearchAgent(BaseAgent):
             from neurodb.db.claim_store import get_question_bundle as _get_question_bundle
             with get_session(self._engine) as session:
                 return json.dumps(_get_question_bundle(session, block.tool_input["question_id"]))
+        if block.tool_name == "nominate_paper":
+            return self._execute_nominate_paper(block.tool_input)
+        if block.tool_name == "suggest_dataset_import":
+            return self._execute_suggest_dataset_import(block.tool_input)
         return execute_tool(block.tool_name, block.tool_input, self._engine, self._vector_store)
 
     def _execute_search_knowledge_library(self, inputs: dict) -> str:
@@ -562,6 +621,51 @@ class NeuroResearchAgent(BaseAgent):
                 "source_type": source_type,
                 "source_id": source_id,
             }
+
+    def _execute_nominate_paper(self, inputs: dict) -> str:
+        from datetime import UTC, datetime
+        from neurodb.agents.tutor_agent import normalize_title
+        from neurodb.db import get_session
+        from neurodb.schema import Paper as PaperModel
+
+        title = inputs["title"].strip()
+        normalized = normalize_title(title)
+        doi = (inputs.get("doi") or "").strip() or None
+
+        with get_session(self._engine) as session:
+            existing = (
+                session.query(PaperModel).filter_by(doi=doi).first()
+                if doi
+                else session.query(PaperModel).filter_by(normalized_title=normalized).first()
+            )
+            if existing is not None:
+                return json.dumps({"status": "already_exists", "id": existing.id})
+            row = PaperModel(
+                title=title,
+                normalized_title=normalized,
+                doi=doi,
+                url=(inputs.get("url") or None),
+                source_type=inputs["source_type"],
+                topic_context=inputs["topic_context"],
+                abstract=(inputs.get("abstract") or None),
+                status="pending",
+                queued_at=datetime.now(UTC).isoformat(),
+            )
+            session.add(row)
+            session.flush()
+            return json.dumps({"status": "queued", "id": row.id})
+
+    def _execute_suggest_dataset_import(self, inputs: dict) -> str:
+        from neurodb.discovery_tools import run_suggest_import
+        return run_suggest_import(
+            source=inputs["source"],
+            source_id=inputs["source_id"],
+            title=inputs["title"],
+            reason=inputs["reason"],
+            chapter_ref=None,
+            metadata={},
+            engine=self._engine,
+        )
 
     def _build_terminal_tool_response(self, tool_trace: list[dict]) -> str | None:
         if not tool_trace:

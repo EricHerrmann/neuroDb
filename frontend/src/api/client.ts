@@ -127,6 +127,8 @@ export const api = {
     get<DuplicateCheckResponse>(`/api/knowledge-library/${id}/duplicates`),
   rejectSource: (id: number) =>
     post<PaperItem>(`/api/knowledge-library/${id}/reject`),
+  removeSource: (id: number) =>
+    post<PaperItem>(`/api/knowledge-library/${id}/remove`),
   getResearchMetrics: () => get<ResearchMetrics>('/api/research/metrics'),
   getResearchQuestions: (statuses: string[] = []) => {
     const params = new URLSearchParams()

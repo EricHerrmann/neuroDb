@@ -19,7 +19,7 @@ UI-5 P1/P2/P3 implementation and common manual verification are complete. See
 
 Own the UI shell, routing, pane layout, streaming rendering, and workbench state. Current implementation is Streamlit. Target is a FastAPI + React workbench shell — migration is incremental with Streamlit retained until parity.
 
-**Active work:** None in the UI epoch; cross-epoch Learning and Research Memory Refocus is the current project focus.
+**Active work:** None in the UI epoch; current project focus has moved to the Tech Debt epoch.
 
 ---
 

@@ -1,7 +1,7 @@
 # NeuroDb — Research Epoch Plan
 
-**Status:** Scaffolded (LT-3); hypothesis review with structured tool-use output
-**Last updated:** 2026-05-09
+**Status:** Scaffolded (LT-3); hypothesis review, research lifecycle, queue bridge, and dataset usefulness grounding implemented
+**Last updated:** 2026-05-24
 **Epoch directory:** `src/neurodb/research/`
 **Architecture reference:** `docs/superpowers/specs/2026-05-07-epoch-architecture-design.md`
 
@@ -11,7 +11,7 @@
 
 Apply AI capability to conduct real neuroscience investigations using existing public datasets and good scientific method — forming testable hypotheses, gathering evidence from available data, and producing structured outputs.
 
-**Active work:** None in active development. LOG-037, LOG-045, LOG-048 are open backlog. Research run management and research question actions are the next planned work.
+**Active work:** None in active development. Research run management remains future work.
 
 ---
 
@@ -30,9 +30,7 @@ Active test plan: none
 
 | Log ID | Issue |
 |--------|-------|
-| LOG-037 | No way to delete or act on existing research questions in the UI |
-| LOG-045 | Research agent cannot nominate papers for Knowledge Library import — no bridge to Tutor curation queue |
-| LOG-048 | No way to dismiss a draft hypothesis from the UI |
+| — | Research run management and run-level reporting |
 
 ---
 
@@ -40,9 +38,10 @@ Active test plan: none
 
 | Date | Decision | Rationale |
 |------|----------|-----------|
-| 2026-05-06 | Research reads Knowledge Library; Tutor writes it | Clean epoch boundary; Research uses `search_knowledge_library()` only — nominations flow through the Tutor curation queue (LOG-045) |
+| 2026-05-06 | Research reads Knowledge Library; Tutor owns curation approval | Clean epoch boundary; Research can nominate papers for the Knowledge Library queue, but approval remains in the Tutor/Knowledge Library workflow |
 | 2026-05-08 | Hypothesis review uses `submit_critique` tool-use to force structured output | LOG-044: premium model returned prose instead of JSON; tool-use with a defined schema forces structure regardless of model verbosity |
 | 2026-05-09 | `evidence` and `datasets` tool schema items are typed objects with defined properties | Groq's strict validator rejects bare `{"type": "object"}` items; defined `{source, summary}` and `{dataset_id, relevance}` shapes give all providers unambiguous guidance and produce consistently queryable data |
+| 2026-05-24 | Dataset usefulness state is part of research grounding | Memory Refocus Completion makes `sparse` and `partial` dataset states visible in agent context, so Research can label weak datasets as gaps instead of supporting evidence |
 
 ---
 

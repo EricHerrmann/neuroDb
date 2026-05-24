@@ -1,8 +1,8 @@
 # NeuroDb — Project Status
 
-**Last updated:** 2026-05-23
-**Active focus:** Learning and Research Memory Refocus — Completion Phase (LOG-059, context budgets, retrieval telemetry, dataset usefulness)
-**Next:** Tech Debt epoch (TD-1 CLI argument normalization, TD-2 keyword-only helper APIs)
+**Last updated:** 2026-05-24
+**Active focus:** Tech Debt epoch (TD-1 CLI argument normalization, TD-2 keyword-only helper APIs)
+**Next:** Tech Debt sprint planning and implementation
 **Goal alignment:** Two co-equal goals in a feedback loop — accumulate neuroscience understanding grounded in real data (Goal 1), and conduct structured neuroscience investigations using existing public datasets and good scientific method (Goal 2). See `NeuroDbGoals.md`.
 
 ---
@@ -11,10 +11,10 @@
 
 | Epoch | Source | Maturity | Next |
 |---|---|---|---|
-| DB | `src/neurodb/db/`, `src/neurodb/connectors/` | MVP complete (phases 0–3, 9); Phase 2 manual signed off 2026-05-21; Phase 3 manual signed off 2026-05-21; full suite 641 passed / 15 pre-existing failures; Phase 9 T1-T4 manual passed | Entity resolution (7); broader Phase 9 source-aware enrichment |
-| Agent Core | `src/neurodb/agents/` | Stable; Phase 4 context-mode mechanics implemented and signed off 2026-05-21; Config Control Phase 6 added provider capability gating | Coordinate provider live-tool validation with Config Control |
+| DB | `src/neurodb/db/`, `src/neurodb/connectors/` | MVP complete (phases 0–3, 9); Phase 2 manual signed off 2026-05-21; Phase 3 manual signed off 2026-05-21; Phase 9 T1-T4 manual passed; Memory Refocus Completion fixed LOG-059 and passed manual T1-T5 on 2026-05-24 | Entity resolution (7); broader Phase 9 source-aware enrichment |
+| Agent Core | `src/neurodb/agents/` | Stable; Phase 4 context-mode mechanics implemented and signed off 2026-05-21; Config Control Phase 6 added provider capability gating; Memory Refocus Completion added context budgets and retrieval telemetry | Coordinate provider live-tool validation with Config Control |
 | Tutor | `src/neurodb/tutor/` | MVP complete (LT-1/2/3); Phase 4 context-mode prompt and bundle behavior signed off 2026-05-21; active model visibility resolved in Config Control Phase 6 | Open backlog: LOG-001; Phase 2/3 manual verification |
-| Research | `src/neurodb/research/` | Scaffolded (LT-3); Phase 3 claims/evidence/gaps complete; Phase 2/3 manual signed off 2026-05-21; Phase 4 grounded/contextual behavior signed off 2026-05-21; lifecycle UI gaps from LOG-037, LOG-048, and LOG-061 resolved in Phase 5b; queue/tool gaps from LOG-045 and LOG-053 resolved | Open backlog: LOG-054 |
+| Research | `src/neurodb/research/` | Scaffolded (LT-3); Phase 3 claims/evidence/gaps complete; Phase 2/3 manual signed off 2026-05-21; Phase 4 grounded/contextual behavior signed off 2026-05-21; lifecycle UI gaps from LOG-037, LOG-048, and LOG-061 resolved in Phase 5b; queue/tool gaps from LOG-045 and LOG-053 resolved; dataset usefulness surfaced to agents in Memory Refocus Completion | No active Research phase |
 | UI | `src/neurodb/ui/`, `src/neurodb/api/`, `frontend/` | UI-3 signed off 2026-05-13; UI-5 P1/P2/P3 complete and common manual testing passed 2026-05-23; Phase 4 API preference and stream contract signed off 2026-05-21; Phase 5a signed off 2026-05-21; Phase 5b signed off 2026-05-23 (T1-T7 passed); DuckDB FK update limitation resolved via migration 012; LOG-060 moved to monitor after likely renderer fix | No active UI phase; monitor LOG-060 recurrence |
 | Config Control | `src/neurodb/config/` | Phase 5B complete; Phase 6 complete and signed off 2026-05-23 with focused backend, call-site, frontend, ruff, compile, and manual T1-T5 checks passing | No active Config Control phase |
 | Tech Debt | Cross-cutting | Planned — TD-1 CLI argument normalization started from LOG-057; TD-5 abstraction/extensibility review logged | TD-1 parser coverage, TD-2 keyword-only helper APIs, TD-5 reusable abstractions |
@@ -39,7 +39,7 @@ Source of truth for model IDs: `neurodb_models.toml`.
 
 ## Open Issues
 
-See `docs/testLog.md`. Current open items: LOG-001 (textbook dropdown ambiguity), LOG-013 (UI shell rearchitecture), LOG-050 (Gemini premium testing deferred), LOG-051 (UI icon pane association), LOG-054 (dataset minimal research value — partially resolved in completion phase; deeper enrichment deferred), LOG-057 (argument order tech debt), LOG-059 (study log inner join drops anchors — being resolved in completion phase). Monitor item: LOG-060 (chat-turn hang, likely frontend streamed-Markdown renderer loop fixed; watch for recurrence).
+See `docs/testLog.md`. Current open items: LOG-001 (textbook dropdown ambiguity), LOG-013 (UI shell rearchitecture), LOG-050 (Gemini premium testing deferred), LOG-051 (UI icon pane association), LOG-057 (argument order tech debt). Monitor item: LOG-060 (chat-turn hang, likely frontend streamed-Markdown renderer loop fixed; watch for recurrence).
 
 ---
 
@@ -81,6 +81,6 @@ See `docs/testLog.md`. Current open items: LOG-001 (textbook dropdown ambiguity)
 | `docs/superpowers/plans/2026-05-23-phase6-fallback-telemetry.md` | Config Control Phase 6 implementation plan — complete and signed off 2026-05-23 |
 | `docs/testsPlans/completedAndPassedTestPlans/manualTestPlan_phase6_fallback_telemetry.md` | Config Control Phase 6 manual test plan — T1-T5 passed and signed off 2026-05-23 |
 | `docs/superpowers/specs/2026-05-23-memory-refocus-completion-design.md` | Completion phase spec — context budgets, retrieval telemetry, task-type defaults, LOG-059 study log outer join, LOG-054 dataset usefulness |
-| `docs/superpowers/plans/2026-05-23-memory-refocus-completion.md` | Completion phase implementation plan — in progress |
-| `docs/testsPlans/manualTestPlan_memory_refocus_completion.md` | Completion phase manual test plan — T1-T5 pending |
+| `docs/superpowers/plans/2026-05-23-memory-refocus-completion.md` | Completion phase implementation plan — complete and signed off 2026-05-24 |
+| `docs/testsPlans/completedAndPassedTestPlans/manualTestPlan_memory_refocus_completion.md` | Completion phase manual test plan — T1-T5 passed and signed off 2026-05-24 |
 | `docs/testsPlans/completedAndPassedTestPlans/manualTestPlan_db_phase9_dataset_research_packets.md` | DB Phase 9 manual test plan — T1-T4 passed and signed off 2026-05-18 |

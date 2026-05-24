@@ -1,7 +1,7 @@
 # Manual Test Plan — Memory Refocus Completion
 
 **Phase:** Learning and Research Memory Refocus — Completion Phase
-**Status:** Pending execution
+**Status:** Complete - T1-T5 passed and signed off 2026-05-24
 **Covers:** LOG-059 study log outer join, context budgets, retrieval telemetry CLI, dataset usefulness in agents
 
 ---
@@ -101,3 +101,21 @@ curl -s -X POST http://localhost:8000/api/study-log \
    ```
 
 **Pass:** Context Usage line shows dataset count ≤ 5 for grounded turns.
+
+---
+
+## Results
+
+| Test | Result | Date | Notes |
+|---|---|---|---|
+| T1 - Study Log Shows Topic/Concept/Paper-Anchored Notes Under "All Sources" | Passed | 2026-05-24 | User-reported manual pass |
+| T2 - Source Filter Excludes Non-Dataset Notes | Passed | 2026-05-24 | User-reported manual pass |
+| T3 - `neurodb-telemetry` Context Usage Section Appears After Agent Turn with Context | Passed | 2026-05-24 | User-reported manual pass |
+| T4 - Grounded Agent Labels `sparse` Dataset as Insufficient | Passed | 2026-05-24 | User-reported manual pass |
+| T5 - Context Budget Limits Visible in Telemetry Counts | Passed | 2026-05-24 | User-reported manual pass |
+
+## Sign-Off
+
+| Tester | Date | Result | Notes |
+|---|---|---|---|
+| oldha | 2026-05-24 | Passed | Memory Refocus Completion manual test T1-T5 passed |

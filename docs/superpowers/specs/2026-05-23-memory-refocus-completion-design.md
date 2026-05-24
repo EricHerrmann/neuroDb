@@ -2,7 +2,7 @@
 
 **Date:** 2026-05-23
 **Epoch:** DB (LOG-059), Config Control (Sections 2–4), Agent Core / Tutor / Research (Section 5)
-**Status:** Design approved — implementation plan pending
+**Status:** Complete - implemented and signed off 2026-05-24
 **Resolves:** LOG-059 (study log inner join drops anchors), LOG-054 (dataset usefulness invisible to agents)
 **Completes:** Learning and Research Memory Refocus Phase 6 (`docs/superpowers/specs/2026-05-18-learning-research-memory-refocus-design.md`)
 
@@ -204,7 +204,7 @@ No agent code changes in this phase. These entries give future sub-task routing 
 
 This field is additive — existing frontend consumers ignore unknown keys. The field is omitted when no datasets were retrieved.
 
-**Scope note:** LOG-054 is partially resolved here. The usefulness signal is now visible to agents and the evidence lens. Deeper dataset enrichment (richer source-native harvesting for sparse records) remains a future DB epoch item.
+**Scope note:** LOG-054 is resolved for the current workflow. The usefulness signal is now visible to agents and the evidence lens, and sparse datasets are treated as insufficient evidence. Deeper dataset enrichment (richer source-native harvesting for sparse records) remains a future DB epoch enhancement, not an open defect.
 
 ### Files affected
 
@@ -230,7 +230,7 @@ This field is additive — existing frontend consumers ignore unknown keys. The 
 
 ### Manual
 
-Manual test plan (`docs/testsPlans/manualTestPlan_memory_refocus_completion.md`) covers:
+Manual test plan (`docs/testsPlans/completedAndPassedTestPlans/manualTestPlan_memory_refocus_completion.md`) passed T1-T5 and was signed off 2026-05-24. It covers:
 
 - T1: study log shows topic/concept/paper-anchored notes under "All sources" filter
 - T2: source filter still excludes non-dataset notes when a specific source is selected
@@ -240,9 +240,9 @@ Manual test plan (`docs/testsPlans/manualTestPlan_memory_refocus_completion.md`)
 
 ---
 
-## Open Issues Resolved / Partially Resolved
+## Open Issues Resolved
 
 | Log ID | Resolution |
 |--------|-----------|
 | LOG-059 | `list_tags()` and `search_tags()` converted to outer join with anchor resolution; topic/concept/paper-anchored notes visible in study log API |
-| LOG-054 | Partially resolved: `usefulness_state` surfaced in agent context bundle and evidence lens; deeper dataset enrichment deferred to DB epoch |
+| LOG-054 | Resolved for current workflow: `usefulness_state` surfaced in agent context bundle and evidence lens; sparse datasets are treated as insufficient evidence; deeper dataset enrichment deferred to future DB/source work |

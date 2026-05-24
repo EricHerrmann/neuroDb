@@ -2,6 +2,9 @@
 
 > **For agentic workers:** REQUIRED SUB-SKILL: Use superpowers:subagent-driven-development (recommended) or superpowers:executing-plans to implement this plan task-by-task. Steps use checkbox (`- [ ]`) syntax for tracking.
 
+**Status:** Complete - implementation finished and manual T1-T5 signed off 2026-05-24
+**Manual test plan:** `docs/testsPlans/completedAndPassedTestPlans/manualTestPlan_memory_refocus_completion.md`
+
 **Goal:** Fix the study log outer-join bug, add context budgets + retrieval telemetry, complete TOML task-type entries, and surface dataset usefulness state in agent context.
 
 **Architecture:** Five independent work streams unified by execution order (highest blast radius first): (1) study log correctness in `study.py`, (2) context budgets wired through TOML → `model_config.py` → `context_orchestrator.py`, (3) retrieval telemetry via schema migration + `model_telemetry.py` + `base.py` + CLI, (4) TOML task-type entries (config-only), (5) dataset usefulness in orchestrator + agent prompts + `context_summary_event`.
@@ -1372,17 +1375,17 @@ git commit -m "feat(LOG-054): surface dataset usefulness in context bundle and e
 
 **Files:**
 - Modify: `docs/projectStatus.md`
-- Create: `docs/testsPlans/manualTestPlan_memory_refocus_completion.md`
+- Create: `docs/testsPlans/completedAndPassedTestPlans/manualTestPlan_memory_refocus_completion.md`
 
 - [ ] **Step 1: Write the manual test plan**
 
-Create `docs/testsPlans/manualTestPlan_memory_refocus_completion.md`:
+Create `docs/testsPlans/completedAndPassedTestPlans/manualTestPlan_memory_refocus_completion.md`:
 
 ```markdown
 # Manual Test Plan — Memory Refocus Completion
 
 **Phase:** Learning and Research Memory Refocus — Completion Phase
-**Status:** Pending execution
+**Status:** Complete - T1-T5 passed and signed off 2026-05-24
 **Covers:** LOG-059 study log outer join, context budgets, retrieval telemetry CLI,
              dataset usefulness in agents
 
@@ -1489,21 +1492,21 @@ Use `inspect_external_dataset` or direct DB inspection to confirm.
 
 - [ ] **Step 2: Update `docs/projectStatus.md`**
 
-Update the "Active focus" line, "Next" line, add the new plan and test plan to the reference table, and update the open issues list to note LOG-059 and LOG-054 are being resolved.
+Update the "Active focus" line, "Next" line, add the plan and completed test plan to the reference table, and update the open issues list to note LOG-059 and LOG-054 are resolved.
 
 Specific changes:
-- Active focus: `Learning and Research Memory Refocus — Completion Phase`
-- Next: `Tech Debt epoch (TD-1 CLI argument normalization, TD-2 keyword-only helper APIs)`
-- Add to Open Issues list: remove LOG-059 from open items (resolved), mark LOG-054 as partially resolved
+- Active focus: `Tech Debt epoch (TD-1 CLI argument normalization, TD-2 keyword-only helper APIs)`
+- Next: `Tech Debt sprint planning and implementation`
+- Add to Open Issues list: remove LOG-059 and LOG-054 from open items (resolved)
 - Add to Key References table:
   - `docs/superpowers/specs/2026-05-23-memory-refocus-completion-design.md` — Completion phase spec: context budgets, retrieval telemetry, task-type defaults, study log outer join, dataset usefulness
   - `docs/superpowers/plans/2026-05-23-memory-refocus-completion.md` — Completion phase implementation plan
-  - `docs/testsPlans/manualTestPlan_memory_refocus_completion.md` — Completion phase manual test plan — T1-T5 pending
+  - `docs/testsPlans/completedAndPassedTestPlans/manualTestPlan_memory_refocus_completion.md` — Completion phase manual test plan — T1-T5 passed and signed off 2026-05-24
 
 - [ ] **Step 3: Commit docs**
 
 ```bash
-git add docs/projectStatus.md docs/testsPlans/manualTestPlan_memory_refocus_completion.md \
+git add docs/projectStatus.md docs/testsPlans/completedAndPassedTestPlans/manualTestPlan_memory_refocus_completion.md \
         docs/superpowers/plans/2026-05-23-memory-refocus-completion.md
 git commit -m "docs: memory refocus completion plan, manual test plan, project status update"
 ```

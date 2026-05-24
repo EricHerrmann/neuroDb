@@ -1,7 +1,7 @@
 # Learning and Research Memory Refocus - Design Spec
 
 **Date:** 2026-05-18
-**Status:** Draft - user-approved direction; Phases 1-4 implemented, Phase 4 manual verification pending
+**Status:** Complete through Memory Refocus Completion; manual T1-T5 signed off 2026-05-24
 **Source:** User brainstorming on shallow dataset value, learning goals, and agent grounding
 
 ---
@@ -338,7 +338,7 @@ Acceptance criteria:
 ### Phase 4 - Agent Core + Tutor + Research: Context Modes And Evidence Boundaries
 
 **Owner:** Agent Core for shared mode mechanics, Tutor/Research for prompts/tools
-**Status:** Implemented — automated verification passed; manual verification pending; see `docs/superpowers/specs/2026-05-19-phase4-context-modes-evidence-boundaries-design.md`
+**Status:** Implemented and signed off 2026-05-21; see `docs/superpowers/specs/2026-05-19-phase4-context-modes-evidence-boundaries-design.md`
 
 Deliverables:
 
@@ -410,6 +410,7 @@ Acceptance criteria:
 ### Phase 6 - Config Control: Context Policy, Budgets, And Telemetry
 
 **Owner:** Config Control epoch
+**Status:** Complete in Memory Refocus Completion; signed off 2026-05-24
 
 Deliverables:
 

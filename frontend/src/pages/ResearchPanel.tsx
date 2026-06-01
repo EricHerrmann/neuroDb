@@ -158,7 +158,7 @@ function QuestionStatusChip({ question }: { question: { id: number; status: stri
   const queryClient = useQueryClient()
   const archive = useMutation({
     mutationFn: () => api.archiveQuestion(question.id),
-    onSuccess: () => queryClient.invalidateQueries({ queryKey: ['research-questions'] }),
+    onSuccess: () => queryClient.invalidateQueries({ queryKey: ['research-questions-detail'] }),
   })
   const transitions: StatusTransition[] = question.status !== 'archived'
     ? [transition('Archive', () => archive.mutate())]

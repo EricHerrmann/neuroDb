@@ -25,7 +25,7 @@ function makeWrapper(data: {
     research_hypotheses_count: 0,
     caveats: [],
   })
-  qc.setQueryData(['research-questions'], data.questions ?? [])
+  qc.setQueryData(['research-questions-detail', undefined], data.questions ?? [])
   qc.setQueryData(['research-claims'], [])
   qc.setQueryData(['research-gaps'], [])
   return ({ children }: { children: React.ReactNode }) =>
@@ -150,7 +150,7 @@ describe('ResearchPanel retract UI', () => {
     expect(screen.getAllByText(/open/).length).toBeGreaterThan(0)
   })
 
-  it('places the status chip before the research question text', async () => {
+  it('renders the status chip and delete button alongside the research question text', async () => {
     vi.stubGlobal('fetch', vi.fn().mockImplementation((path: string) => {
       if (typeof path === 'string' && path.includes('/api/research/questions')) {
         return Promise.resolve(new Response(JSON.stringify([
@@ -161,8 +161,10 @@ describe('ResearchPanel retract UI', () => {
     }))
     render(<ResearchPanel />, { wrapper: makeFetchWrapper() })
     const question = await screen.findByText('Does LTP correlate with recovery?')
-    const row = question.parentElement?.parentElement
-    expect(row?.textContent?.startsWith('open')).toBe(true)
+    // The outer question row contains both the question text and the status chip
+    const row = question.closest('[style*="border"]')
+    expect(row?.textContent).toContain('open')
+    expect(row?.textContent).toContain('Delete')
   })
 
   it('collapses and expands research panel sections', async () => {

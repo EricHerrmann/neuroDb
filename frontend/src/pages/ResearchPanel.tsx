@@ -6,7 +6,7 @@ import { api } from '../api/client'
 import StatusChip from '../components/StatusChip'
 import TaskStatus from '../components/TaskStatus'
 import { useTask } from '../hooks/useTask'
-import type { ClaimItem, EvidenceLinkItem, Hypothesis, HypothesisReviewItem, ResearchGapItem } from '../api/types'
+import type { ClaimItem, EvidenceLinkItem, Hypothesis, HypothesisReviewItem, ResearchGapItem, ResearchQuestionDetail } from '../api/types'
 
 type StatusTransition = { label: string; onSelect: () => void; description?: string }
 
@@ -170,6 +170,147 @@ function QuestionStatusChip({ question }: { question: { id: number; status: stri
       isPending={archive.isPending}
       statusDescription={describeStatus(question.status)}
     />
+  )
+}
+
+function QuestionCreateForm({ onCreated }: { onCreated: () => void }) {
+  const [question, setQuestion] = useState('')
+  const [topicContext, setTopicContext] = useState('')
+  const create = useMutation({
+    mutationFn: () => api.createQuestion({ question, topic_context: topicContext || undefined }),
+    onSuccess: () => {
+      setQuestion('')
+      setTopicContext('')
+      onCreated()
+    },
+  })
+  return (
+    <form
+      onSubmit={e => { e.preventDefault(); if (question.trim()) create.mutate() }}
+      style={{ marginBottom: 12 }}
+    >
+      <textarea
+        value={question}
+        onChange={e => setQuestion(e.target.value)}
+        placeholder="Enter a research question…"
+        rows={3}
+        style={{ width: '100%', fontSize: 12, padding: 6, boxSizing: 'border-box', resize: 'vertical' }}
+      />
+      <input
+        value={topicContext}
+        onChange={e => setTopicContext(e.target.value)}
+        placeholder="Topic context (optional)"
+        style={{ width: '100%', fontSize: 12, padding: 4, marginTop: 4, boxSizing: 'border-box' }}
+      />
+      <button
+        type="submit"
+        disabled={!question.trim() || create.isPending}
+        style={{ marginTop: 6, fontSize: 12, padding: '3px 10px', cursor: 'pointer' }}
+      >
+        {create.isPending ? 'Saving…' : 'Save Question'}
+      </button>
+      {create.isError && (
+        <div style={{ color: '#dc2626', fontSize: 11, marginTop: 4 }}>
+          {String(create.error)}
+        </div>
+      )}
+    </form>
+  )
+}
+
+function QuestionRow({ question, onMutated }: { question: ResearchQuestionDetail; onMutated: () => void }) {
+  const queryClient = useQueryClient()
+  const invalidate = () => queryClient.invalidateQueries({ queryKey: ['research-questions-detail'] })
+
+  const deleteQ = useMutation({
+    mutationFn: () => api.deleteQuestion(question.id),
+    onSuccess: () => { invalidate(); onMutated() },
+  })
+  const confirmTopic = useMutation({
+    mutationFn: (topicId: number) => api.confirmQuestionTopic(question.id, topicId),
+    onSuccess: invalidate,
+  })
+  const dismissTopic = useMutation({
+    mutationFn: (topicId: number) => api.removeQuestionTopic(question.id, topicId),
+    onSuccess: invalidate,
+  })
+  const confirmConcept = useMutation({
+    mutationFn: (conceptId: number) => api.confirmQuestionConcept(question.id, conceptId),
+    onSuccess: invalidate,
+  })
+  const dismissConcept = useMutation({
+    mutationFn: (conceptId: number) => api.removeQuestionConcept(question.id, conceptId),
+    onSuccess: invalidate,
+  })
+
+  const topics = question.topics ?? []
+  const concepts = question.concepts ?? []
+  const confirmedTopics = topics.filter(t => t.status === 'confirmed')
+  const pendingTopics = topics.filter(t => t.status === 'pending')
+  const confirmedConcepts = concepts.filter(c => c.status === 'confirmed')
+  const pendingConcepts = concepts.filter(c => c.status === 'pending')
+
+  return (
+    <div style={{ border: '1px solid #e2e8f0', borderRadius: 6, padding: '8px 10px', marginBottom: 8 }}>
+      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', gap: 8 }}>
+        <div style={{ fontSize: 12, color: '#1e293b', flex: 1 }}>{question.question}</div>
+        <div style={{ display: 'flex', gap: 4, flexShrink: 0 }}>
+          <QuestionStatusChip question={question} />
+          <button
+            type="button"
+            onClick={() => {
+              if (window.confirm('Delete this question and all its topic/concept links?')) {
+                deleteQ.mutate()
+              }
+            }}
+            disabled={deleteQ.isPending}
+            style={{
+              fontSize: 11, padding: '2px 7px', border: '1px solid #fca5a5',
+              borderRadius: 4, background: '#fff', color: '#dc2626', cursor: 'pointer',
+            }}
+          >
+            {deleteQ.isPending ? '…' : 'Delete'}
+          </button>
+        </div>
+      </div>
+
+      {(confirmedTopics.length > 0 || confirmedConcepts.length > 0) && (
+        <div style={{ display: 'flex', gap: 4, flexWrap: 'wrap', marginTop: 6 }}>
+          {confirmedTopics.map(t => (
+            <span key={t.topic_id} style={{ fontSize: 10, padding: '1px 6px', background: '#dbeafe', color: '#1e40af', borderRadius: 10 }}>
+              {t.topic_name}
+            </span>
+          ))}
+          {confirmedConcepts.map(c => (
+            <span key={c.concept_id} style={{ fontSize: 10, padding: '1px 6px', background: '#dcfce7', color: '#166534', borderRadius: 10 }}>
+              {c.concept_name}
+            </span>
+          ))}
+        </div>
+      )}
+
+      {(pendingTopics.length > 0 || pendingConcepts.length > 0) && (
+        <div style={{ marginTop: 6 }}>
+          <div style={{ fontSize: 10, color: '#64748b', marginBottom: 3 }}>Suggested — confirm or dismiss:</div>
+          <div style={{ display: 'flex', gap: 4, flexWrap: 'wrap' }}>
+            {pendingTopics.map(t => (
+              <span key={t.topic_id} style={{ display: 'flex', alignItems: 'center', gap: 3, fontSize: 10, padding: '1px 4px', border: '1px dashed #93c5fd', borderRadius: 10, color: '#1e40af' }}>
+                {t.topic_name}
+                <button type="button" onClick={() => confirmTopic.mutate(t.topic_id)} style={{ fontSize: 9, border: 'none', background: 'transparent', cursor: 'pointer', color: '#16a34a', padding: 0 }}>✓</button>
+                <button type="button" onClick={() => dismissTopic.mutate(t.topic_id)} style={{ fontSize: 9, border: 'none', background: 'transparent', cursor: 'pointer', color: '#dc2626', padding: 0 }}>✕</button>
+              </span>
+            ))}
+            {pendingConcepts.map(c => (
+              <span key={c.concept_id} style={{ display: 'flex', alignItems: 'center', gap: 3, fontSize: 10, padding: '1px 4px', border: '1px dashed #86efac', borderRadius: 10, color: '#166534' }}>
+                {c.concept_name}
+                <button type="button" onClick={() => confirmConcept.mutate(c.concept_id)} style={{ fontSize: 9, border: 'none', background: 'transparent', cursor: 'pointer', color: '#16a34a', padding: 0 }}>✓</button>
+                <button type="button" onClick={() => dismissConcept.mutate(c.concept_id)} style={{ fontSize: 9, border: 'none', background: 'transparent', cursor: 'pointer', color: '#dc2626', padding: 0 }}>✕</button>
+              </span>
+            ))}
+          </div>
+        </div>
+      )}
+    </div>
   )
 }
 
@@ -502,24 +643,23 @@ function GapsSection() {
 
 export default function ResearchPanel() {
   const queryClient = useQueryClient()
-  const [questionStatuses, setQuestionStatuses] = useState<string[]>([])
+  const [selectedTopicId, setSelectedTopicId] = useState<number | undefined>(undefined)
   const [hypothesisStatuses, setHypothesisStatuses] = useState<string[]>([])
 
   const { data: metrics, isLoading: metricsLoading } = useQuery({
     queryKey: ['research-metrics'],
     queryFn: api.getResearchMetrics,
   })
-  const { data: allQuestions = [], isLoading: questionsLoading } = useQuery({
-    queryKey: ['research-questions'],
-    queryFn: () => api.getResearchQuestions([]),
+  const { data: questions = [], refetch: refetchQuestions } = useQuery({
+    queryKey: ['research-questions-detail', selectedTopicId],
+    queryFn: () => api.getResearchQuestionsDetail([], selectedTopicId),
   })
-  const questionCounts = allQuestions.reduce<Record<string, number>>((acc, q) => {
-    acc[q.status] = (acc[q.status] ?? 0) + 1
-    return acc
-  }, {})
-  const questions = questionStatuses.length > 0
-    ? allQuestions.filter(q => questionStatuses.includes(q.status))
-    : allQuestions
+  const { data: topicSqlResult } = useQuery({
+    queryKey: ['topics-for-filter'],
+    queryFn: () => api.executeSQL("SELECT id, name FROM topics WHERE status = 'active' ORDER BY name"),
+  })
+  const topicOptions: Array<{ id: number; name: string }> =
+    topicSqlResult?.rows?.map((r: unknown[]) => ({ id: r[0] as number, name: r[1] as string })) ?? []
   const { data: allHypotheses = [], isLoading: hypothesesLoading } = useQuery({
     queryKey: ['research-hypotheses'],
     queryFn: () => api.getHypotheses([]),
@@ -532,11 +672,6 @@ export default function ResearchPanel() {
     ? allHypotheses.filter(h => hypothesisStatuses.includes(h.status))
     : allHypotheses
 
-  const toggleQuestionStatus = (status: string) => {
-    setQuestionStatuses(current => current.includes(status)
-      ? current.filter(item => item !== status)
-      : [...current, status])
-  }
   const toggleHypothesisStatus = (status: string) => {
     setHypothesisStatuses(current => current.includes(status)
       ? current.filter(item => item !== status)
@@ -581,25 +716,43 @@ export default function ResearchPanel() {
 
       <hr style={{ margin: '12px 0', border: 'none', borderTop: '1px solid #e2e8f0' }} />
 
-      <Section title="Research Questions" count={allQuestions.length}>
-        <StatusFilters
-          options={['open', 'parked', 'converted_to_hypothesis', 'closed', 'archived']}
-          selected={questionStatuses}
-          counts={questionCounts}
-          onToggle={toggleQuestionStatus}
-        />
-        {questionsLoading ? (
-          <span style={{ fontSize: 12, color: '#94a3b8' }}>Loading...</span>
-        ) : questions.length === 0 ? (
+      <Section title="Research Questions" count={questions.length}>
+        <QuestionCreateForm onCreated={() => refetchQuestions()} />
+
+        <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap', marginBottom: 8 }}>
+          <button
+            type="button"
+            onClick={() => setSelectedTopicId(undefined)}
+            style={{
+              fontSize: 11, padding: '2px 7px', border: '1px solid #cbd5e1', borderRadius: 4,
+              background: selectedTopicId === undefined ? '#1e3a8a' : '#fff',
+              color: selectedTopicId === undefined ? '#fff' : '#334155',
+              cursor: 'pointer',
+            }}
+          >
+            All topics
+          </button>
+          {topicOptions.map(t => (
+            <button
+              key={t.id}
+              type="button"
+              onClick={() => setSelectedTopicId(selectedTopicId === t.id ? undefined : t.id)}
+              style={{
+                fontSize: 11, padding: '2px 7px', border: '1px solid #cbd5e1', borderRadius: 4,
+                background: selectedTopicId === t.id ? '#1e3a8a' : '#fff',
+                color: selectedTopicId === t.id ? '#fff' : '#334155',
+                cursor: 'pointer',
+              }}
+            >
+              {t.name}
+            </button>
+          ))}
+        </div>
+
+        {questions.length === 0 ? (
           <p style={{ color: '#94a3b8', fontSize: 12 }}>No research questions yet.</p>
-        ) : questions.map(question => (
-          <div key={question.id} style={{ padding: '6px 0', borderBottom: '1px solid #f1f5f9' }}>
-            <div style={{ fontSize: 13 }}>{question.question}</div>
-            <div style={{ fontSize: 11, color: '#94a3b8', marginTop: 2 }}>{question.created_at?.slice(0, 10)}</div>
-            <div style={{ marginTop: 6 }}>
-              <QuestionStatusChip question={question} />
-            </div>
-          </div>
+        ) : questions.map(q => (
+          <QuestionRow key={q.id} question={q} onMutated={() => refetchQuestions()} />
         ))}
       </Section>
 

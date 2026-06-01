@@ -111,7 +111,7 @@ A single type-parameterized function replaces `extract_question_topics`:
    - For each `proposed_new`: create a `groupings` row with `status='proposed'` (dedup by `(type, name)`; if an active one already exists, link it instead), plus a `pending` link.
 4. Return a summary (`suggested`, `proposed`) for the turn response and telemetry. `ModelClient` logs cost/tokens to `model_call_log` automatically.
 
-**Failure handling:** if the model call fails, write a `SystemWarning` and persist nothing for that pass (the question is still created). A deterministic substring fallback MAY be retained behind a flag for offline/dev, but is not the primary path.
+**Failure handling — fail closed (no fallback).** There is one matching path. If the matcher cannot run after the provider fallback chain in `neurodb_models.toml` is exhausted, write a `SystemWarning` and persist nothing for that pass; the question is still created. Resilience comes from the existing multi-provider routing (economy/standard/premium fallback across providers), and the human fallback is manual curation via the grouping API/UI. No substring or other secondary matcher is retained — a second path would reintroduce the brittle behavior this design removes, cannot propose new groupings, and would create a silent quality cliff.
 
 **Execution:** runs in the existing background thread that `create_question` already spawns — no added latency on the create response. Cost is one routed model call per question create (acceptable; tracked in telemetry).
 
@@ -195,9 +195,17 @@ Remove `topics`, `concepts`, and the six join tables once grep proves no referen
 - **Closes LOG-062**: semantic/agent matching is the Phase 3 matcher.
 - **Research Question Phase 1** (`question_topics`/`question_concepts`) is subsumed — its join tables are backfilled in Phase 1 and retired in Phase 5; its manual test plan’s suggestion expectations are replaced by the semantic+proposal flow.
 
+### Synergies with planned research-question phases
+
+These downstream items in `docs/researchQuestionDesignClaude.md` should be built on this engine, not the legacy join tables:
+
+- **`find_related_questions()` (RQ Phase 3) and the question cluster view (RQ Phase 4) are simplified by `grouping_links`.** "Questions sharing a grouping" and "group questions by grouping" each become a single query over `grouping_links` instead of unioning `question_topics` + `question_concepts`; clustering also works per grouping type (by topic, by concept, by any future type) for free. Build both on the engine.
+- **One shared proposal/confirm lifecycle.** RQ Phase 3's `propose_question()` (candidate questions seeded by an agent, confirmed or dismissed by the user) is the same pending→confirm/dismiss mechanic as proposed groupings here. Implement it once as a reusable pattern rather than twice.
+
 ## Open / Deferred
 
 - Semantic matching against new **anchor** types (papers, datasets) — structurally supported, not wired here.
 - Additional seeded parents (`neuromodulation`, `rehabilitation`) — left to user curation / agent proposal.
 - Replacing per-question topic/concept routes with the generalized `/groupings` link routes — optional cleanup after Phase 4.
 - Embedding-based matching — not pursued (LLM matcher chosen).
+- **Four-axis question categorization as grouping types** (question type / maturity / evidence posture / learning state, from RQ Open Q #1 and Codex §6) — **deliberately out of scope here.** Revisit whether these should become grouping types (`type='question_type'`, …) rather than schema columns at the **end of the research-question implementation** — i.e. once both the groupings engine and the research-question workspace are in real use — **not** at the end of this grouping effort. Decide then, with usage evidence.

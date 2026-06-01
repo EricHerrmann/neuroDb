@@ -12,6 +12,8 @@ from neurodb.schema import (
     Paper,
     PaperConcept,
     PaperTopic,
+    QuestionConcept,
+    QuestionTopic,
     StudyNote,
     Topic,
     TopicConcept,
@@ -175,4 +177,154 @@ def get_topic_bundle(session: Session, topic_id: int) -> dict:
              "title": pkt.title, "usefulness_state": pkt.usefulness_state}
             for pkt in packets
         ],
+    }
+
+
+def link_question_topic(session: Session, question_id: int, topic_id: int, status: str = "confirmed") -> None:
+    """Create a question→topic link. Skips if the link already exists."""
+    exists = session.execute(
+        select(QuestionTopic).where(
+            QuestionTopic.question_id == question_id,
+            QuestionTopic.topic_id == topic_id,
+        )
+    ).scalar_one_or_none()
+    if exists is None:
+        session.add(QuestionTopic(
+            question_id=question_id,
+            topic_id=topic_id,
+            status=status,
+            created_at=_now(),
+        ))
+        session.flush()
+
+
+def update_question_topic_status(session: Session, question_id: int, topic_id: int, status: str) -> bool:
+    """Update status on an existing question→topic link. Returns True if found."""
+    row = session.execute(
+        select(QuestionTopic).where(
+            QuestionTopic.question_id == question_id,
+            QuestionTopic.topic_id == topic_id,
+        )
+    ).scalar_one_or_none()
+    if row is None:
+        return False
+    row.status = status
+    session.flush()
+    return True
+
+
+def unlink_question_topic(session: Session, question_id: int, topic_id: int) -> bool:
+    """Delete a question→topic link. Returns True if found."""
+    row = session.execute(
+        select(QuestionTopic).where(
+            QuestionTopic.question_id == question_id,
+            QuestionTopic.topic_id == topic_id,
+        )
+    ).scalar_one_or_none()
+    if row is None:
+        return False
+    session.delete(row)
+    session.flush()
+    return True
+
+
+def link_question_concept(session: Session, question_id: int, concept_id: int, status: str = "confirmed") -> None:
+    """Create a question→concept link. Skips if the link already exists."""
+    exists = session.execute(
+        select(QuestionConcept).where(
+            QuestionConcept.question_id == question_id,
+            QuestionConcept.concept_id == concept_id,
+        )
+    ).scalar_one_or_none()
+    if exists is None:
+        session.add(QuestionConcept(
+            question_id=question_id,
+            concept_id=concept_id,
+            status=status,
+            created_at=_now(),
+        ))
+        session.flush()
+
+
+def update_question_concept_status(session: Session, question_id: int, concept_id: int, status: str) -> bool:
+    """Update status on an existing question→concept link. Returns True if found."""
+    row = session.execute(
+        select(QuestionConcept).where(
+            QuestionConcept.question_id == question_id,
+            QuestionConcept.concept_id == concept_id,
+        )
+    ).scalar_one_or_none()
+    if row is None:
+        return False
+    row.status = status
+    session.flush()
+    return True
+
+
+def unlink_question_concept(session: Session, question_id: int, concept_id: int) -> bool:
+    """Delete a question→concept link. Returns True if found."""
+    row = session.execute(
+        select(QuestionConcept).where(
+            QuestionConcept.question_id == question_id,
+            QuestionConcept.concept_id == concept_id,
+        )
+    ).scalar_one_or_none()
+    if row is None:
+        return False
+    session.delete(row)
+    session.flush()
+    return True
+
+
+def extract_question_topics(session: Session, question_id: int, question_text: str) -> dict:
+    """Match question text against existing topics/concepts; persist pending rows. Does not create new topics."""
+    question_lower = question_text.lower()
+
+    all_topics = session.execute(
+        select(Topic).where(Topic.status == "active")
+    ).scalars().all()
+    suggested_topics = []
+    for topic in all_topics:
+        if topic.name.lower() in question_lower:
+            existing = session.execute(
+                select(QuestionTopic).where(
+                    QuestionTopic.question_id == question_id,
+                    QuestionTopic.topic_id == topic.id,
+                )
+            ).scalar_one_or_none()
+            if existing is None:
+                session.add(QuestionTopic(
+                    question_id=question_id,
+                    topic_id=topic.id,
+                    status="pending",
+                    created_at=_now(),
+                ))
+                suggested_topics.append(topic.name)
+
+    all_concepts = session.execute(
+        select(Concept).where(Concept.status == "active")
+    ).scalars().all()
+    suggested_concepts = []
+    for concept in all_concepts:
+        if concept.name.lower() in question_lower:
+            existing = session.execute(
+                select(QuestionConcept).where(
+                    QuestionConcept.question_id == question_id,
+                    QuestionConcept.concept_id == concept.id,
+                )
+            ).scalar_one_or_none()
+            if existing is None:
+                session.add(QuestionConcept(
+                    question_id=question_id,
+                    concept_id=concept.id,
+                    status="pending",
+                    created_at=_now(),
+                ))
+                suggested_concepts.append(concept.name)
+
+    session.flush()
+    return {
+        "question_id": question_id,
+        "suggested_topics": suggested_topics,
+        "suggested_concepts": suggested_concepts,
     }

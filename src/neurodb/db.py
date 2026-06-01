@@ -365,6 +365,80 @@ def _migration_015_model_call_log_context_counts(conn) -> None:
             pass  # column already exists
 
 
+def _migration_016_question_topic_tables(conn) -> None:
+    """Create question_topics and question_concepts join tables; add origin_session_id to research_questions."""
+    conn.execute(text("""
+        CREATE TABLE IF NOT EXISTS question_topics (
+            id INTEGER PRIMARY KEY,
+            question_id INTEGER NOT NULL,
+            topic_id INTEGER NOT NULL,
+            status VARCHAR(16) NOT NULL DEFAULT 'pending',
+            created_at VARCHAR(32) NOT NULL
+        )
+    """))
+    try:
+        conn.execute(text(
+            "CREATE UNIQUE INDEX IF NOT EXISTS uq_question_topic "
+            "ON question_topics (question_id, topic_id)"
+        ))
+    except Exception:
+        pass
+    conn.execute(text(
+        "CREATE INDEX IF NOT EXISTS ix_question_topics_question_id "
+        "ON question_topics (question_id)"
+    ))
+    conn.execute(text(
+        "CREATE INDEX IF NOT EXISTS ix_question_topics_status "
+        "ON question_topics (status)"
+    ))
+
+    conn.execute(text("""
+        CREATE TABLE IF NOT EXISTS question_concepts (
+            id INTEGER PRIMARY KEY,
+            question_id INTEGER NOT NULL,
+            concept_id INTEGER NOT NULL,
+            status VARCHAR(16) NOT NULL DEFAULT 'pending',
+            created_at VARCHAR(32) NOT NULL
+        )
+    """))
+    try:
+        conn.execute(text(
+            "CREATE UNIQUE INDEX IF NOT EXISTS uq_question_concept "
+            "ON question_concepts (question_id, concept_id)"
+        ))
+    except Exception:
+        pass
+    conn.execute(text(
+        "CREATE INDEX IF NOT EXISTS ix_question_concepts_question_id "
+        "ON question_concepts (question_id)"
+    ))
+    conn.execute(text(
+        "CREATE INDEX IF NOT EXISTS ix_question_concepts_status "
+        "ON question_concepts (status)"
+    ))
+
+    try:
+        conn.execute(text("ALTER TABLE research_questions ADD COLUMN origin_session_id INTEGER"))
+    except Exception:
+        pass  # column already exists
+
+    # Backfill question_topics from existing non-null topic_id rows
+    try:
+        conn.execute(text("""
+            INSERT INTO question_topics (question_id, topic_id, status, created_at)
+            SELECT id, topic_id, 'confirmed', created_at
+            FROM research_questions
+            WHERE topic_id IS NOT NULL
+              AND NOT EXISTS (
+                SELECT 1 FROM question_topics qt
+                WHERE qt.question_id = research_questions.id
+                  AND qt.topic_id = research_questions.topic_id
+              )
+        """))
+    except Exception:
+        pass  # backfill already applied or table was empty
+
+
 _MIGRATIONS: dict[int, callable] = {
     1: _migration_001_study_note_unique,
     2: _migration_002_model_call_log,
@@ -381,6 +455,7 @@ _MIGRATIONS: dict[int, callable] = {
     13: _migration_013_system_warnings,
     14: _migration_014_chat_session_topic_category,
     15: _migration_015_model_call_log_context_counts,
+    16: _migration_016_question_topic_tables,
 }
 
 

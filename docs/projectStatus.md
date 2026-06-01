@@ -68,6 +68,7 @@ See `docs/testLog.md`. Current open items: LOG-001 (textbook dropdown ambiguity)
 | **Active Plans / Specs** | |
 | `docs/superpowers/specs/2026-06-01-research-question-phase1-design.md` | Research Question Phase 1 design spec — capture & categorize questions, topic/concept suggestion, UI lifecycle |
 | `docs/superpowers/specs/2026-06-01-unified-groupings-taxonomy-design.md` | Unified groupings taxonomy design spec — single groupings/grouping_links model across types (topic, concept, future), hierarchy, semantic+agent matching with new-item proposal, phased migration; closes LOG-062 |
+| `docs/superpowers/specs/2026-06-01-groupings-phase3-question-cutover-design.md` | Groupings Phase 3 design spec — question-workflow cutover, semantic/proposal matcher (agent.extract.groupings), /groupings routes, proposal lifecycle, hierarchy seed migration 018; split into 3a backend + 3b UI; closes LOG-062 |
 | `docs/superpowers/specs/2026-06-01-topic-taxonomy-hierarchy-design.md` | SUPERSEDED by the unified-groupings spec — topics-only hierarchy (retained for history) |
 | `docs/superpowers/plans/2026-06-01-groupings-phase1-unified-tables.md` | Groupings Phase 1 implementation plan — unified groupings/grouping_links models + migration 017 backfill from legacy tables; implemented 2026-06-01 |
 | `docs/superpowers/plans/2026-06-01-groupings-phase2-engine.md` | Groupings Phase 2 implementation plan — type-agnostic engine (store functions, type registry, single-level hierarchy guard, rollup helpers); implemented 2026-06-01 |

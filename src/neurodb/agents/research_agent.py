@@ -140,6 +140,18 @@ _RESEARCH_TOOLS = [
         },
     },
     {
+        "name": "extract_question_topics",
+        "description": "Match a research question against existing topics and concepts; persist pending suggestions the user can confirm.",
+        "input_schema": {
+            "type": "object",
+            "properties": {
+                "question_id": {"type": "integer"},
+                "question_text": {"type": "string"},
+            },
+            "required": ["question_id", "question_text"],
+        },
+    },
+    {
         "name": "draft_hypothesis",
         "description": "Persist a structured draft hypothesis with safeguards.",
         "input_schema": {
@@ -441,12 +453,32 @@ class NeuroResearchAgent(BaseAgent):
                 persist=block.tool_input.get("persist", False),
             ))
         if block.tool_name == "record_research_question":
-            return json.dumps(record_research_question(
+            result = record_research_question(
                 self._engine,
                 block.tool_input["question"],
                 block.tool_input["topic_context"],
                 status=block.tool_input.get("status", "open"),
-            ))
+            )
+            if "id" in result:
+                from neurodb.db import get_session as _gs
+                from neurodb.db.topic_store import extract_question_topics
+                with _gs(self._engine) as session:
+                    suggestions = extract_question_topics(
+                        session,
+                        result["id"],
+                        block.tool_input["question"],
+                    )
+                result["suggestions"] = suggestions
+            return json.dumps(result)
+        if block.tool_name == "extract_question_topics":
+            from neurodb.db import get_session as _gs
+            from neurodb.db.topic_store import extract_question_topics
+            with _gs(self._engine) as session:
+                return json.dumps(extract_question_topics(
+                    session,
+                    block.tool_input["question_id"],
+                    block.tool_input["question_text"],
+                ))
         if block.tool_name == "draft_hypothesis":
             return json.dumps(draft_hypothesis(
                 self._engine,

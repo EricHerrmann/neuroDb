@@ -1,6 +1,6 @@
 # NeuroDb — Project Status
 
-**Last updated:** 2026-05-24
+**Last updated:** 2026-05-31
 **Active focus:** Tech Debt epoch (TD-1 CLI argument normalization, TD-2 keyword-only helper APIs)
 **Next:** Tech Debt sprint planning and implementation
 **Goal alignment:** Two co-equal goals in a feedback loop — accumulate neuroscience understanding grounded in real data (Goal 1), and conduct structured neuroscience investigations using existing public datasets and good scientific method (Goal 2). See `NeuroDbGoals.md`.
@@ -50,6 +50,10 @@ See `docs/testLog.md`. Current open items: LOG-001 (textbook dropdown ambiguity)
 | **Goals / Process** | |
 | `NeuroDbGoals.md` | Top-level project goals and feedback loop |
 | `CLAUDE.md` | Engineering rules, process, environment |
+| `docs/OrganizingResearchQuestionsCodex.md` | Codex review of current NeuroDb capabilities and next steps for organizing, remembering, categorizing, creating, and tutoring research questions |
+| `docs/OrganizingResearchQuestionsClaude.md` | Claude review: lifecycle mapping, gap analysis, and recommended next capabilities for research question management |
+| `docs/OrganizingResearchQuestionsCodexReview.md` | Codex comparison of Claude and Codex research-question workflow notes |
+| `docs/researchQuestionDesignCodex.md` | Codex phased design plan for first-class research-question capture, categorization, source/dataset linking, Socratic exploration, recall, and hypothesis promotion |
 | **Active Issues** | |
 | `docs/testLog.md` | Running issue log — open and resolved items across all phases |
 | **Epoch Architecture + Status** | |
@@ -62,6 +66,9 @@ See `docs/testLog.md`. Current open items: LOG-001 (textbook dropdown ambiguity)
 | `docs/UI_EpochPlan.md` | UI epoch plan — Streamlit MVP, FastAPI/React migration path, phases UI-0–5 |
 | `docs/TechDebt_EpochPlan.md` | Tech Debt epoch plan — argument-order safety, keyword-only APIs, parser helpers, request/config objects, reusable abstractions |
 | **Active Plans / Specs** | |
+| `docs/superpowers/specs/2026-06-01-research-question-phase1-design.md` | Research Question Phase 1 design spec — capture & categorize questions, topic/concept suggestion, UI lifecycle |
+| `docs/superpowers/plans/2026-06-01-research-question-phase1.md` | Research Question Phase 1 implementation plan — 10 tasks |
+| `docs/testsPlans/manualTestPlan_research_question_phase1.md` | Research Question Phase 1 manual test plan — T1-T6 |
 | `docs/superpowers/specs/2026-05-18-learning-research-memory-refocus-design.md` | Cross-epoch design spec — refocus NeuroDb as a learning/research memory system and fix shallow dataset sourcing through dataset research packets |
 | `docs/superpowers/specs/2026-05-18-phase2-papers-topics-concepts-design.md` | Phase 2 design spec — rename KnowledgeSource → Paper, add topics/concepts tables, linking tables, StudyNote generalization, topic_store helper, Tutor agent tools |
 | `docs/superpowers/specs/2026-05-19-phase3-claims-evidence-design.md` | Phase 3 design spec — claims, evidence_links, research_gaps tables, claim_store helper, research agent tools |

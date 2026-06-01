@@ -70,6 +70,7 @@ See `docs/testLog.md`. Current open items: LOG-001 (textbook dropdown ambiguity)
 | `docs/superpowers/specs/2026-06-01-unified-groupings-taxonomy-design.md` | Unified groupings taxonomy design spec — single groupings/grouping_links model across types (topic, concept, future), hierarchy, semantic+agent matching with new-item proposal, phased migration; closes LOG-062 |
 | `docs/superpowers/specs/2026-06-01-topic-taxonomy-hierarchy-design.md` | SUPERSEDED by the unified-groupings spec — topics-only hierarchy (retained for history) |
 | `docs/superpowers/plans/2026-06-01-groupings-phase1-unified-tables.md` | Groupings Phase 1 implementation plan — unified groupings/grouping_links models + migration 017 backfill from legacy tables; implemented 2026-06-01 |
+| `docs/superpowers/plans/2026-06-01-groupings-phase2-engine.md` | Groupings Phase 2 implementation plan — type-agnostic engine (store functions, type registry, single-level hierarchy guard, rollup helpers); 5 tasks (not yet implemented) |
 | `docs/superpowers/plans/2026-06-01-research-question-phase1.md` | Research Question Phase 1 implementation plan — 10 tasks |
 | `docs/testsPlans/manualTestPlan_research_question_phase1.md` | Research Question Phase 1 manual test plan — T1-T6 |
 | `docs/superpowers/specs/2026-05-18-learning-research-memory-refocus-design.md` | Cross-epoch design spec — refocus NeuroDb as a learning/research memory system and fix shallow dataset sourcing through dataset research packets |

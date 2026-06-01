@@ -39,5 +39,6 @@ create_views = _db_legacy.create_views
 get_session = _db_legacy.get_session
 _MIGRATIONS = _db_legacy._MIGRATIONS
 _migration_016_question_topic_tables = _db_legacy._migration_016_question_topic_tables
+_migration_017_groupings = _db_legacy._migration_017_groupings
 
 __all__ = ["get_engine", "init_db", "seed_learning_sources", "create_views", "get_session"]

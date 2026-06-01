@@ -586,3 +586,43 @@ class ResearchGap(Base):
     status: Mapped[str] = mapped_column(String(16), nullable=False, default="open")
     created_at: Mapped[str] = mapped_column(String(32), nullable=False)
     updated_at: Mapped[str] = mapped_column(String(32), nullable=False)
+
+
+class Grouping(Base):
+    """Unified categorization entity. One row per topic/concept/future type.
+
+    `type` selects the grouping kind ('topic', 'concept', ...). `parent_id`
+    is a plain self-reference without an FK constraint because DuckDB rejects
+    updates on FK-referenced rows; re-parenting needs UPDATE support.
+    """
+    __tablename__ = "groupings"
+    __table_args__ = (
+        UniqueConstraint("type", "name", name="uq_groupings_type_name"),
+    )
+
+    id: Mapped[int] = mapped_column(Integer, Sequence("groupings_id_seq"), primary_key=True)
+    type: Mapped[str] = mapped_column(String(32), nullable=False, index=True)
+    name: Mapped[str] = mapped_column(String(256), nullable=False)
+    parent_id: Mapped[int | None] = mapped_column(Integer, nullable=True, index=True)
+    status: Mapped[str] = mapped_column(String(16), nullable=False, default="active", index=True)
+    description: Mapped[str | None] = mapped_column(Text, nullable=True)
+    created_at: Mapped[str] = mapped_column(String(32), nullable=False)
+    updated_at: Mapped[str] = mapped_column(String(32), nullable=False)
+
+
+class GroupingLink(Base):
+    """Link from a grouping to an anchor with pending/confirmed lifecycle."""
+    __tablename__ = "grouping_links"
+    __table_args__ = (
+        UniqueConstraint(
+            "grouping_id", "anchor_type", "anchor_id", name="uq_grouping_links_anchor"
+        ),
+        Index("ix_grouping_links_anchor", "anchor_type", "anchor_id"),
+    )
+
+    id: Mapped[int] = mapped_column(Integer, Sequence("grouping_links_id_seq"), primary_key=True)
+    grouping_id: Mapped[int] = mapped_column(Integer, nullable=False, index=True)
+    anchor_type: Mapped[str] = mapped_column(String(32), nullable=False)
+    anchor_id: Mapped[int] = mapped_column(Integer, nullable=False)
+    status: Mapped[str] = mapped_column(String(16), nullable=False, default="confirmed", index=True)
+    created_at: Mapped[str] = mapped_column(String(32), nullable=False)

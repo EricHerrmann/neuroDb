@@ -4,6 +4,7 @@ Migration target: src/neurodb/db/connection.py
 """
 from collections.abc import Generator
 from contextlib import contextmanager
+from datetime import UTC, datetime
 
 from sqlalchemy import Engine, text
 from sqlalchemy import create_engine as _create_engine
@@ -439,6 +440,273 @@ def _migration_016_question_topic_tables(conn) -> None:
         pass  # backfill already applied or table was empty
 
 
+def _migration_017_groupings(conn) -> None:
+    """Create unified groupings/grouping_links tables and backfill legacy rows."""
+    conn.execute(text("""
+        CREATE TABLE IF NOT EXISTS groupings (
+            id INTEGER PRIMARY KEY,
+            type VARCHAR(32) NOT NULL,
+            name VARCHAR(256) NOT NULL,
+            parent_id INTEGER,
+            status VARCHAR(16) NOT NULL DEFAULT 'active',
+            description TEXT,
+            created_at VARCHAR(32) NOT NULL,
+            updated_at VARCHAR(32) NOT NULL
+        )
+    """))
+    try:
+        conn.execute(text(
+            "CREATE UNIQUE INDEX IF NOT EXISTS uq_groupings_type_name ON groupings (type, name)"
+        ))
+    except Exception:
+        pass
+    conn.execute(text("CREATE INDEX IF NOT EXISTS ix_groupings_type ON groupings (type)"))
+    conn.execute(text("CREATE INDEX IF NOT EXISTS ix_groupings_parent_id ON groupings (parent_id)"))
+    conn.execute(text("CREATE INDEX IF NOT EXISTS ix_groupings_status ON groupings (status)"))
+
+    conn.execute(text("""
+        CREATE TABLE IF NOT EXISTS grouping_links (
+            id INTEGER PRIMARY KEY,
+            grouping_id INTEGER NOT NULL,
+            anchor_type VARCHAR(32) NOT NULL,
+            anchor_id INTEGER NOT NULL,
+            status VARCHAR(16) NOT NULL DEFAULT 'confirmed',
+            created_at VARCHAR(32) NOT NULL
+        )
+    """))
+    try:
+        conn.execute(text(
+            "CREATE UNIQUE INDEX IF NOT EXISTS uq_grouping_links_anchor "
+            "ON grouping_links (grouping_id, anchor_type, anchor_id)"
+        ))
+    except Exception:
+        pass
+    conn.execute(text(
+        "CREATE INDEX IF NOT EXISTS ix_grouping_links_grouping_id "
+        "ON grouping_links (grouping_id)"
+    ))
+    conn.execute(text(
+        "CREATE INDEX IF NOT EXISTS ix_grouping_links_anchor "
+        "ON grouping_links (anchor_type, anchor_id)"
+    ))
+    conn.execute(text(
+        "CREATE INDEX IF NOT EXISTS ix_grouping_links_status ON grouping_links (status)"
+    ))
+
+    conn.execute(text("""
+        INSERT INTO groupings (
+            id, type, name, parent_id, status, description, created_at, updated_at
+        )
+        SELECT
+            (SELECT COALESCE(MAX(id), 0) FROM groupings)
+                + ROW_NUMBER() OVER (ORDER BY t.id),
+            'topic',
+            t.name,
+            NULL,
+            t.status,
+            t.description,
+            t.created_at,
+            t.updated_at
+        FROM topics t
+        WHERE NOT EXISTS (
+            SELECT 1 FROM groupings g WHERE g.type = 'topic' AND g.name = t.name
+        )
+    """))
+    conn.execute(text("""
+        INSERT INTO groupings (
+            id, type, name, parent_id, status, description, created_at, updated_at
+        )
+        SELECT
+            (SELECT COALESCE(MAX(id), 0) FROM groupings)
+                + ROW_NUMBER() OVER (ORDER BY c.id),
+            'concept',
+            c.name,
+            NULL,
+            c.status,
+            c.description,
+            c.created_at,
+            c.updated_at
+        FROM concepts c
+        WHERE NOT EXISTS (
+            SELECT 1 FROM groupings g WHERE g.type = 'concept' AND g.name = c.name
+        )
+    """))
+
+    now_iso = datetime.now(UTC).isoformat()
+
+    conn.execute(text("""
+        INSERT INTO grouping_links (id, grouping_id, anchor_type, anchor_id, status, created_at)
+        SELECT
+            (SELECT COALESCE(MAX(id), 0) FROM grouping_links)
+                + ROW_NUMBER() OVER (ORDER BY qt.question_id, qt.topic_id),
+            g.id,
+            'question',
+            qt.question_id,
+            qt.status,
+            :now
+        FROM question_topics qt
+        JOIN topics t ON t.id = qt.topic_id
+        JOIN groupings g ON g.type = 'topic' AND g.name = t.name
+        WHERE NOT EXISTS (
+            SELECT 1 FROM grouping_links gl
+            WHERE gl.grouping_id = g.id
+              AND gl.anchor_type = 'question'
+              AND gl.anchor_id = qt.question_id
+        )
+    """), {"now": now_iso})
+
+    conn.execute(text("""
+        INSERT INTO grouping_links (id, grouping_id, anchor_type, anchor_id, status, created_at)
+        SELECT
+            (SELECT COALESCE(MAX(id), 0) FROM grouping_links)
+                + ROW_NUMBER() OVER (ORDER BY qc.question_id, qc.concept_id),
+            g.id,
+            'question',
+            qc.question_id,
+            qc.status,
+            :now
+        FROM question_concepts qc
+        JOIN concepts c ON c.id = qc.concept_id
+        JOIN groupings g ON g.type = 'concept' AND g.name = c.name
+        WHERE NOT EXISTS (
+            SELECT 1 FROM grouping_links gl
+            WHERE gl.grouping_id = g.id
+              AND gl.anchor_type = 'question'
+              AND gl.anchor_id = qc.question_id
+        )
+    """), {"now": now_iso})
+
+    conn.execute(text("""
+        INSERT INTO grouping_links (id, grouping_id, anchor_type, anchor_id, status, created_at)
+        SELECT
+            (SELECT COALESCE(MAX(id), 0) FROM grouping_links)
+                + ROW_NUMBER() OVER (ORDER BY pt.paper_id, pt.topic_id),
+            g.id,
+            'paper',
+            pt.paper_id,
+            'confirmed',
+            :now
+        FROM paper_topics pt
+        JOIN topics t ON t.id = pt.topic_id
+        JOIN groupings g ON g.type = 'topic' AND g.name = t.name
+        WHERE NOT EXISTS (
+            SELECT 1 FROM grouping_links gl
+            WHERE gl.grouping_id = g.id
+              AND gl.anchor_type = 'paper'
+              AND gl.anchor_id = pt.paper_id
+        )
+    """), {"now": now_iso})
+
+    conn.execute(text("""
+        INSERT INTO grouping_links (id, grouping_id, anchor_type, anchor_id, status, created_at)
+        SELECT
+            (SELECT COALESCE(MAX(id), 0) FROM grouping_links)
+                + ROW_NUMBER() OVER (ORDER BY pc.paper_id, pc.concept_id),
+            g.id,
+            'paper',
+            pc.paper_id,
+            'confirmed',
+            :now
+        FROM paper_concepts pc
+        JOIN concepts c ON c.id = pc.concept_id
+        JOIN groupings g ON g.type = 'concept' AND g.name = c.name
+        WHERE NOT EXISTS (
+            SELECT 1 FROM grouping_links gl
+            WHERE gl.grouping_id = g.id
+              AND gl.anchor_type = 'paper'
+              AND gl.anchor_id = pc.paper_id
+        )
+    """), {"now": now_iso})
+
+    conn.execute(text("""
+        INSERT INTO grouping_links (id, grouping_id, anchor_type, anchor_id, status, created_at)
+        SELECT
+            (SELECT COALESCE(MAX(id), 0) FROM grouping_links)
+                + ROW_NUMBER() OVER (ORDER BY dpt.packet_id, dpt.topic_id),
+            g.id,
+            'dataset_packet',
+            dpt.packet_id,
+            'confirmed',
+            :now
+        FROM dataset_packet_topics dpt
+        JOIN topics t ON t.id = dpt.topic_id
+        JOIN groupings g ON g.type = 'topic' AND g.name = t.name
+        WHERE NOT EXISTS (
+            SELECT 1 FROM grouping_links gl
+            WHERE gl.grouping_id = g.id
+              AND gl.anchor_type = 'dataset_packet'
+              AND gl.anchor_id = dpt.packet_id
+        )
+    """), {"now": now_iso})
+
+    conn.execute(text("""
+        INSERT INTO grouping_links (id, grouping_id, anchor_type, anchor_id, status, created_at)
+        SELECT
+            (SELECT COALESCE(MAX(id), 0) FROM grouping_links)
+                + ROW_NUMBER() OVER (ORDER BY tc.topic_id, tc.concept_id),
+            gt.id,
+            'grouping',
+            gc.id,
+            'confirmed',
+            :now
+        FROM topic_concepts tc
+        JOIN topics t ON t.id = tc.topic_id
+        JOIN concepts c ON c.id = tc.concept_id
+        JOIN groupings gt ON gt.type = 'topic' AND gt.name = t.name
+        JOIN groupings gc ON gc.type = 'concept' AND gc.name = c.name
+        WHERE NOT EXISTS (
+            SELECT 1 FROM grouping_links gl
+            WHERE gl.grouping_id = gt.id
+              AND gl.anchor_type = 'grouping'
+              AND gl.anchor_id = gc.id
+        )
+    """), {"now": now_iso})
+
+    conn.execute(text("""
+        INSERT INTO grouping_links (id, grouping_id, anchor_type, anchor_id, status, created_at)
+        SELECT
+            (SELECT COALESCE(MAX(id), 0) FROM grouping_links)
+                + ROW_NUMBER() OVER (ORDER BY sn.id),
+            g.id,
+            'study_note',
+            sn.id,
+            'confirmed',
+            :now
+        FROM study_notes sn
+        JOIN topics t ON t.id = sn.topic_id
+        JOIN groupings g ON g.type = 'topic' AND g.name = t.name
+        WHERE sn.topic_id IS NOT NULL
+          AND NOT EXISTS (
+            SELECT 1 FROM grouping_links gl
+            WHERE gl.grouping_id = g.id
+              AND gl.anchor_type = 'study_note'
+              AND gl.anchor_id = sn.id
+        )
+    """), {"now": now_iso})
+
+    conn.execute(text("""
+        INSERT INTO grouping_links (id, grouping_id, anchor_type, anchor_id, status, created_at)
+        SELECT
+            (SELECT COALESCE(MAX(id), 0) FROM grouping_links)
+                + ROW_NUMBER() OVER (ORDER BY sn.id),
+            g.id,
+            'study_note',
+            sn.id,
+            'confirmed',
+            :now
+        FROM study_notes sn
+        JOIN concepts c ON c.id = sn.concept_id
+        JOIN groupings g ON g.type = 'concept' AND g.name = c.name
+        WHERE sn.concept_id IS NOT NULL
+          AND NOT EXISTS (
+            SELECT 1 FROM grouping_links gl
+            WHERE gl.grouping_id = g.id
+              AND gl.anchor_type = 'study_note'
+              AND gl.anchor_id = sn.id
+        )
+    """), {"now": now_iso})
+
+
 _MIGRATIONS: dict[int, callable] = {
     1: _migration_001_study_note_unique,
     2: _migration_002_model_call_log,
@@ -456,6 +724,7 @@ _MIGRATIONS: dict[int, callable] = {
     14: _migration_014_chat_session_topic_category,
     15: _migration_015_model_call_log_context_counts,
     16: _migration_016_question_topic_tables,
+    17: _migration_017_groupings,
 }
 
 

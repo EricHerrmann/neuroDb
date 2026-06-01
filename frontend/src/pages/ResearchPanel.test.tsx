@@ -25,7 +25,7 @@ function makeWrapper(data: {
     research_hypotheses_count: 0,
     caveats: [],
   })
-  qc.setQueryData(['research-questions-detail', undefined], data.questions ?? [])
+  qc.setQueryData(['research-questions-detail', undefined, []], data.questions ?? [])
   qc.setQueryData(['research-claims'], [])
   qc.setQueryData(['research-gaps'], [])
   return ({ children }: { children: React.ReactNode }) =>

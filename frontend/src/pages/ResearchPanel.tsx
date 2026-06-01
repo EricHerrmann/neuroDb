@@ -644,6 +644,7 @@ function GapsSection() {
 export default function ResearchPanel() {
   const queryClient = useQueryClient()
   const [selectedTopicId, setSelectedTopicId] = useState<number | undefined>(undefined)
+  const [selectedQuestionStatuses, setSelectedQuestionStatuses] = useState<string[]>([])
   const [hypothesisStatuses, setHypothesisStatuses] = useState<string[]>([])
 
   const { data: metrics, isLoading: metricsLoading } = useQuery({
@@ -651,8 +652,8 @@ export default function ResearchPanel() {
     queryFn: api.getResearchMetrics,
   })
   const { data: questions = [], refetch: refetchQuestions } = useQuery({
-    queryKey: ['research-questions-detail', selectedTopicId],
-    queryFn: () => api.getResearchQuestionsDetail([], selectedTopicId),
+    queryKey: ['research-questions-detail', selectedTopicId, selectedQuestionStatuses],
+    queryFn: () => api.getResearchQuestionsDetail(selectedQuestionStatuses, selectedTopicId),
   })
   const { data: topicSqlResult } = useQuery({
     queryKey: ['topics-for-filter'],
@@ -718,6 +719,26 @@ export default function ResearchPanel() {
 
       <Section title="Research Questions" count={questions.length}>
         <QuestionCreateForm onCreated={() => refetchQuestions()} />
+
+        <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap', marginBottom: 6 }}>
+          {(['open', 'active', 'candidate', 'archived'] as const).map(s => (
+            <button
+              key={s}
+              type="button"
+              onClick={() => setSelectedQuestionStatuses(prev =>
+                prev.includes(s) ? prev.filter(x => x !== s) : [...prev, s]
+              )}
+              style={{
+                fontSize: 11, padding: '2px 7px', border: '1px solid #cbd5e1', borderRadius: 4,
+                background: selectedQuestionStatuses.includes(s) ? '#475569' : '#fff',
+                color: selectedQuestionStatuses.includes(s) ? '#fff' : '#334155',
+                cursor: 'pointer',
+              }}
+            >
+              {s}
+            </button>
+          ))}
+        </div>
 
         <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap', marginBottom: 8 }}>
           <button

@@ -168,7 +168,7 @@ export const api = {
   archiveHypothesis: (id: number) =>
     post<Hypothesis>(`/api/research/hypotheses/${id}/archive`),
   archiveQuestion: (id: number) =>
-    post<ResearchQuestion>(`/api/research/questions/${id}/archive`),
+    post<ResearchQuestionDetail>(`/api/research/questions/${id}/archive`),
   getResearchQuestionsDetail: (statuses: string[] = [], topicId?: number) => {
     const params = new URLSearchParams()
     statuses.forEach(status => params.append('status', status))

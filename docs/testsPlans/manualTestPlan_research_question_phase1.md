@@ -58,9 +58,10 @@
 **Steps:**
 1. Confirm at least one topic on a question (T2).
 2. Select that topic in the topic filter bar.
+3. Click "All topics" (or deselect the topic) to remove the filter.
 
 **Pass criteria:**
-- Only questions with that confirmed topic are shown.
+- Only questions with that confirmed topic are shown after step 2.
 - Removing the filter restores all questions.
 
 ---
@@ -70,11 +71,12 @@
 **Steps:**
 1. Click "Collapse" on the Questions section header.
 2. Click "Expand".
+3. Reload the page (browser refresh or Ctrl+R).
 
 **Pass criteria:**
-- Questions section collapses and the list disappears.
-- Expanding restores all rows.
-- State does not persist across page reload (local component state only).
+- Questions section collapses and the list disappears after step 1.
+- Expanding restores all rows after step 2.
+- After reload, the list is expanded again (state did not persist).
 
 ---
 

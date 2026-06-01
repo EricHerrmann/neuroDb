@@ -233,3 +233,32 @@ export interface EvidenceLinkItem {
   status: string
   created_at: string
 }
+
+export interface QuestionTopicLink {
+  topic_id: number
+  topic_name: string
+  status: string  // 'pending' | 'confirmed'
+}
+
+export interface QuestionConceptLink {
+  concept_id: number
+  concept_name: string
+  status: string
+}
+
+export interface ResearchQuestionDetail {
+  id: number
+  question: string
+  status: string
+  topic_context: string | null
+  origin_session_id: number | null
+  created_at: string | null
+  topics: QuestionTopicLink[]
+  concepts: QuestionConceptLink[]
+}
+
+export interface CreateQuestionRequest {
+  question: string
+  topic_context?: string
+  origin_session_id?: number
+}

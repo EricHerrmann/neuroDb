@@ -3,6 +3,7 @@ import type {
   ActiveContext,
   ClaimItem,
   CreateLearningSourceRequest,
+  CreateQuestionRequest,
   CreateStudyNoteRequest,
   DatasetItem,
   DeleteStudyNoteResponse,
@@ -15,9 +16,12 @@ import type {
   LearningSourceItem,
   ModelInfo,
   Preferences,
+  QuestionConceptLink,
+  QuestionTopicLink,
   ResearchGapItem,
   ResearchMetrics,
   ResearchQuestion,
+  ResearchQuestionDetail,
   SqlResult,
   StudyNote,
   SuggestionsResponse,
@@ -165,6 +169,33 @@ export const api = {
     post<Hypothesis>(`/api/research/hypotheses/${id}/archive`),
   archiveQuestion: (id: number) =>
     post<ResearchQuestion>(`/api/research/questions/${id}/archive`),
+  getResearchQuestionsDetail: (statuses: string[] = [], topicId?: number) => {
+    const params = new URLSearchParams()
+    statuses.forEach(status => params.append('status', status))
+    if (topicId !== undefined) params.set('topic_id', String(topicId))
+    const query = params.toString()
+    return get<ResearchQuestionDetail[]>(query ? `/api/research/questions?${query}` : '/api/research/questions')
+  },
+  getQuestionDetail: (id: number) =>
+    get<ResearchQuestionDetail>(`/api/research/questions/${id}`),
+  createQuestion: (body: CreateQuestionRequest) =>
+    post<ResearchQuestionDetail>('/api/research/questions', body),
+  updateQuestion: (id: number, body: { question?: string; topic_context?: string }) =>
+    put<ResearchQuestionDetail>(`/api/research/questions/${id}`, body),
+  deleteQuestion: (id: number) =>
+    del<void>(`/api/research/questions/${id}`),
+  addQuestionTopic: (questionId: number, topicId: number) =>
+    post<ResearchQuestionDetail>(`/api/research/questions/${questionId}/topics`, { topic_id: topicId }),
+  confirmQuestionTopic: (questionId: number, topicId: number) =>
+    patch<ResearchQuestionDetail>(`/api/research/questions/${questionId}/topics/${topicId}`, { status: 'confirmed' }),
+  removeQuestionTopic: (questionId: number, topicId: number) =>
+    del<void>(`/api/research/questions/${questionId}/topics/${topicId}`),
+  addQuestionConcept: (questionId: number, conceptId: number) =>
+    post<ResearchQuestionDetail>(`/api/research/questions/${questionId}/concepts`, { concept_id: conceptId }),
+  confirmQuestionConcept: (questionId: number, conceptId: number) =>
+    patch<ResearchQuestionDetail>(`/api/research/questions/${questionId}/concepts/${conceptId}`, { status: 'confirmed' }),
+  removeQuestionConcept: (questionId: number, conceptId: number) =>
+    del<void>(`/api/research/questions/${questionId}/concepts/${conceptId}`),
   approveClaim: (id: number) =>
     post<ClaimItem>(`/api/research/claims/${id}/approve`),
   rejectClaim: (id: number) =>

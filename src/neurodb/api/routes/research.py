@@ -495,13 +495,19 @@ def archive_hypothesis(
         return _hypothesis_item(row)
 
 
-@router.post("/questions/{question_id}/archive", response_model=ResearchQuestion)
+@router.post("/questions/{question_id}/archive", response_model=ResearchQuestionDetail)
 def archive_question(
     question_id: int,
     engine: Engine = Depends(get_engine),
-) -> ResearchQuestion:
+) -> ResearchQuestionDetail:
     from neurodb.schema import ResearchQuestion as ResearchQuestionORM
-    return _update_status(engine, ResearchQuestionORM, question_id, "archived", ResearchQuestion)
+    with get_session(engine) as session:
+        row = session.get(ResearchQuestionORM, question_id)
+        if row is None:
+            raise HTTPException(status_code=404, detail=f"Question {question_id} not found")
+        row.status = "archived"
+        session.flush()
+    return _question_detail(engine, question_id)
 
 
 @router.post("/claims/{claim_id}/approve", response_model=ClaimItem)

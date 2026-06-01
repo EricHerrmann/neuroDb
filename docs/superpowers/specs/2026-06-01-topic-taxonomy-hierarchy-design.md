@@ -2,8 +2,10 @@
 
 **Date:** 2026-06-01
 **Author:** Claude (brainstormed with user)
-**Status:** Draft — awaiting user review
+**Status:** SUPERSEDED — see `docs/superpowers/specs/2026-06-01-unified-groupings-taxonomy-design.md`
 **Related:** LOG-062 (semantic topic suggestion — separate enhancement), `docs/researchQuestionDesignClaude.md` / `docs/researchQuestionDesignCodex.md` (neither addresses topic-taxonomy generality)
+
+> **Superseded.** Hierarchy is now a property of the unified `groupings` model. This topics-only design was the first step; the discussion expanded to a common categorization engine (semantic + agent proposal + hierarchy) across grouping types. Retained for history. Do not implement from this doc — use the unified-groupings spec.
 
 ---
 

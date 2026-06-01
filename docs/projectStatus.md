@@ -67,7 +67,8 @@ See `docs/testLog.md`. Current open items: LOG-001 (textbook dropdown ambiguity)
 | `docs/TechDebt_EpochPlan.md` | Tech Debt epoch plan — argument-order safety, keyword-only APIs, parser helpers, request/config objects, reusable abstractions |
 | **Active Plans / Specs** | |
 | `docs/superpowers/specs/2026-06-01-research-question-phase1-design.md` | Research Question Phase 1 design spec — capture & categorize questions, topic/concept suggestion, UI lifecycle |
-| `docs/superpowers/specs/2026-06-01-topic-taxonomy-hierarchy-design.md` | Topic taxonomy hierarchy design spec — parent/child topics (parent_id), hierarchy-aware question→topic suggestion rollup, parent-filter descendants, curation UI |
+| `docs/superpowers/specs/2026-06-01-unified-groupings-taxonomy-design.md` | Unified groupings taxonomy design spec — single groupings/grouping_links model across types (topic, concept, future), hierarchy, semantic+agent matching with new-item proposal, phased migration; closes LOG-062 |
+| `docs/superpowers/specs/2026-06-01-topic-taxonomy-hierarchy-design.md` | SUPERSEDED by the unified-groupings spec — topics-only hierarchy (retained for history) |
 | `docs/superpowers/plans/2026-06-01-research-question-phase1.md` | Research Question Phase 1 implementation plan — 10 tasks |
 | `docs/testsPlans/manualTestPlan_research_question_phase1.md` | Research Question Phase 1 manual test plan — T1-T6 |
 | `docs/superpowers/specs/2026-05-18-learning-research-memory-refocus-design.md` | Cross-epoch design spec — refocus NeuroDb as a learning/research memory system and fix shallow dataset sourcing through dataset research packets |

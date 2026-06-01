@@ -100,6 +100,77 @@ def record_research_question(
         }
 
 
+def create_research_question(
+    engine: Engine,
+    question: str,
+    topic_context: str | None = None,
+    origin_session_id: int | None = None,
+    now: str | None = None,
+) -> dict:
+    """Create a research question from the UI (not via agent chat)."""
+    cleaned = question.strip()
+    if not cleaned:
+        return {"error": "question is required"}
+    timestamp = now or _now_iso()
+    with get_session(engine) as session:
+        row = ResearchQuestion(
+            question=cleaned,
+            topic_context=(topic_context or "").strip(),
+            status="open",
+            origin_session_id=origin_session_id,
+            created_at=timestamp,
+            updated_at=timestamp,
+        )
+        session.add(row)
+        session.flush()
+        return {"id": row.id, "question": row.question, "status": row.status}
+
+
+def update_research_question(
+    engine: Engine,
+    question_id: int,
+    question: str | None = None,
+    topic_context: str | None = None,
+    now: str | None = None,
+) -> dict:
+    """Edit question text and/or topic_context."""
+    with get_session(engine) as session:
+        row = session.get(ResearchQuestion, question_id)
+        if row is None:
+            return {"error": f"question {question_id} not found"}
+        if question is not None:
+            cleaned = question.strip()
+            if not cleaned:
+                return {"error": "question is required"}
+            row.question = cleaned
+        if topic_context is not None:
+            row.topic_context = topic_context.strip()
+        row.updated_at = now or _now_iso()
+        session.flush()
+        return {"id": row.id, "question": row.question, "status": row.status}
+
+
+def delete_research_question(engine: Engine, question_id: int) -> dict:
+    """Delete a question and cascade join rows. Does not touch topics, concepts, hypotheses, or gaps."""
+    from sqlalchemy import select as _select
+    from neurodb.schema import QuestionConcept, QuestionTopic
+    with get_session(engine) as session:
+        row = session.get(ResearchQuestion, question_id)
+        if row is None:
+            return {"error": f"question {question_id} not found"}
+        for qt in session.execute(
+            _select(QuestionTopic).where(QuestionTopic.question_id == question_id)
+        ).scalars().all():
+            session.delete(qt)
+        for qc in session.execute(
+            _select(QuestionConcept).where(QuestionConcept.question_id == question_id)
+        ).scalars().all():
+            session.delete(qc)
+        session.delete(row)
+        session.flush()
+        return {"deleted": True}
+
+
 def draft_hypothesis(
     engine: Engine,
     title: str,

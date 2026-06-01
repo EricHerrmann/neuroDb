@@ -47,7 +47,7 @@ def _seed_question_with_links(engine):
         session.flush()
         session.add(QuestionTopic(question_id=q.id, topic_id=t.id, status="confirmed", created_at=_now()))
         session.add(QuestionConcept(question_id=q.id, concept_id=c.id, status="pending", created_at=_now()))
-        session.flush()
+        session.commit()
         return q.id, t.id, c.id
 
 
@@ -110,7 +110,7 @@ def test_add_topic_link_twice_does_not_duplicate(client_and_engine):
             created_at=_now(), updated_at=_now(),
         )
         session.add_all([t, q])
-        session.flush()
+        session.commit()
         q_id, t_id = q.id, t.id
     resp1 = client.post(f"/api/research/questions/{q_id}/topics", json={"topic_id": t_id})
     assert resp1.status_code == 200

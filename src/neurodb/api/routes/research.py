@@ -11,12 +11,18 @@ from sqlalchemy import Engine
 
 from neurodb.api.deps import get_engine, get_research_stores, get_task_store
 from neurodb.api.schemas.research import (
+    AddConceptLinkRequest,
+    AddTopicLinkRequest,
     ClaimItem,
+    CreateQuestionRequest,
     EvidenceLinkItem,
     Hypothesis,
     HypothesisReviewItem,
+    PatchLinkStatusRequest,
     ResearchGapItem,
     ResearchQuestion,
+    ResearchQuestionDetail,
+    UpdateQuestionRequest,
 )
 from neurodb.api.tasks import TaskRecord
 from neurodb.db import get_session
@@ -30,6 +36,49 @@ from neurodb.research_tools import (
 from neurodb.schema import Claim, EvidenceLink, HypothesisReview, ResearchGap, ResearchHypothesis
 
 router = APIRouter()
+
+
+def _question_detail(engine: Engine, question_id: int) -> ResearchQuestionDetail:
+    """Build ResearchQuestionDetail including all topic and concept links."""
+    from sqlalchemy import select as _select
+    from neurodb.schema import (
+        Concept,
+        QuestionConcept,
+        QuestionTopic,
+        ResearchQuestion as ResearchQuestionORM,
+        Topic,
+    )
+    from neurodb.api.schemas.research import QuestionConceptLink, QuestionTopicLink
+    with get_session(engine) as session:
+        q = session.get(ResearchQuestionORM, question_id)
+        if q is None:
+            raise HTTPException(status_code=404, detail=f"Question {question_id} not found")
+        topic_rows = session.execute(
+            _select(QuestionTopic, Topic)
+            .join(Topic, Topic.id == QuestionTopic.topic_id)
+            .where(QuestionTopic.question_id == question_id)
+        ).all()
+        concept_rows = session.execute(
+            _select(QuestionConcept, Concept)
+            .join(Concept, Concept.id == QuestionConcept.concept_id)
+            .where(QuestionConcept.question_id == question_id)
+        ).all()
+        return ResearchQuestionDetail(
+            id=q.id,
+            question=q.question,
+            status=q.status,
+            topic_context=q.topic_context,
+            origin_session_id=getattr(q, "origin_session_id", None),
+            created_at=q.created_at,
+            topics=[
+                QuestionTopicLink(topic_id=qt.topic_id, topic_name=t.name, status=qt.status)
+                for qt, t in topic_rows
+            ],
+            concepts=[
+                QuestionConceptLink(concept_id=qc.concept_id, concept_name=c.name, status=qc.status)
+                for qc, c in concept_rows
+            ],
+        )
 
 
 @router.get("/metrics")
@@ -68,10 +117,177 @@ def post_metrics_snapshot(
 def get_questions(
     engine: Engine = Depends(get_engine),
     status: list[str] | None = Query(default=None),
-) -> list[ResearchQuestion]:
-    """Return research questions, optionally filtered by status."""
-    questions = list_research_questions(engine, status or "all")
-    return [ResearchQuestion.model_validate(q) for q in questions]
+    topic_id: int | None = Query(default=None),
+) -> list[ResearchQuestionDetail]:
+    """Return research questions, optionally filtered by status and/or confirmed topic."""
+    from sqlalchemy import select as _select
+    from neurodb.schema import QuestionTopic, ResearchQuestion as ResearchQuestionORM
+    with get_session(engine) as session:
+        query = _select(ResearchQuestionORM)
+        if status:
+            query = query.where(ResearchQuestionORM.status.in_(status))
+        if topic_id is not None:
+            query = query.where(
+                ResearchQuestionORM.id.in_(
+                    _select(QuestionTopic.question_id).where(
+                        QuestionTopic.topic_id == topic_id,
+                        QuestionTopic.status == "confirmed",
+                    )
+                )
+            )
+        rows = session.execute(
+            query.order_by(ResearchQuestionORM.created_at.desc())
+        ).scalars().all()
+    return [_question_detail(engine, r.id) for r in rows]
+
+
+@router.post("/questions", response_model=ResearchQuestionDetail)
+def create_question(
+    body: CreateQuestionRequest,
+    engine: Engine = Depends(get_engine),
+) -> ResearchQuestionDetail:
+    from neurodb.research_tools import create_research_question
+    result = create_research_question(
+        engine,
+        question=body.question,
+        topic_context=body.topic_context,
+        origin_session_id=body.origin_session_id,
+    )
+    if "error" in result:
+        raise HTTPException(status_code=422, detail=result["error"])
+    question_id = result["id"]
+
+    def _extract():
+        from neurodb.db import get_session as _gs
+        from neurodb.db.topic_store import extract_question_topics
+        with _gs(engine) as session:
+            extract_question_topics(session, question_id, body.question)
+
+    threading.Thread(target=_extract, daemon=True).start()
+    return _question_detail(engine, question_id)
+
+
+@router.put("/questions/{question_id}", response_model=ResearchQuestionDetail)
+def update_question(
+    question_id: int,
+    body: UpdateQuestionRequest,
+    engine: Engine = Depends(get_engine),
+) -> ResearchQuestionDetail:
+    from neurodb.research_tools import update_research_question
+    result = update_research_question(
+        engine,
+        question_id,
+        question=body.question,
+        topic_context=body.topic_context,
+    )
+    if "error" in result:
+        raise HTTPException(status_code=404, detail=result["error"])
+    return _question_detail(engine, question_id)
+
+
+@router.delete("/questions/{question_id}", status_code=204)
+def delete_question(
+    question_id: int,
+    engine: Engine = Depends(get_engine),
+) -> None:
+    from neurodb.research_tools import delete_research_question
+    result = delete_research_question(engine, question_id)
+    if "error" in result:
+        raise HTTPException(status_code=404, detail=result["error"])
+
+
+@router.get("/questions/{question_id}", response_model=ResearchQuestionDetail)
+def get_question(
+    question_id: int,
+    engine: Engine = Depends(get_engine),
+) -> ResearchQuestionDetail:
+    return _question_detail(engine, question_id)
+
+
+@router.post("/questions/{question_id}/topics", response_model=ResearchQuestionDetail)
+def add_question_topic(
+    question_id: int,
+    body: AddTopicLinkRequest,
+    engine: Engine = Depends(get_engine),
+) -> ResearchQuestionDetail:
+    from neurodb.schema import ResearchQuestion as ResearchQuestionORM
+    from neurodb.db.topic_store import link_question_topic
+    with get_session(engine) as session:
+        if session.get(ResearchQuestionORM, question_id) is None:
+            raise HTTPException(status_code=404, detail=f"Question {question_id} not found")
+        link_question_topic(session, question_id, body.topic_id, status="confirmed")
+    return _question_detail(engine, question_id)
+
+
+@router.patch("/questions/{question_id}/topics/{topic_id}", response_model=ResearchQuestionDetail)
+def patch_question_topic(
+    question_id: int,
+    topic_id: int,
+    body: PatchLinkStatusRequest,
+    engine: Engine = Depends(get_engine),
+) -> ResearchQuestionDetail:
+    from neurodb.db.topic_store import update_question_topic_status
+    with get_session(engine) as session:
+        found = update_question_topic_status(session, question_id, topic_id, body.status)
+    if not found:
+        raise HTTPException(status_code=404, detail=f"Topic link {question_id}/{topic_id} not found")
+    return _question_detail(engine, question_id)
+
+
+@router.delete("/questions/{question_id}/topics/{topic_id}", status_code=204)
+def remove_question_topic(
+    question_id: int,
+    topic_id: int,
+    engine: Engine = Depends(get_engine),
+) -> None:
+    from neurodb.db.topic_store import unlink_question_topic
+    with get_session(engine) as session:
+        found = unlink_question_topic(session, question_id, topic_id)
+    if not found:
+        raise HTTPException(status_code=404, detail=f"Topic link {question_id}/{topic_id} not found")
+
+
+@router.post("/questions/{question_id}/concepts", response_model=ResearchQuestionDetail)
+def add_question_concept(
+    question_id: int,
+    body: AddConceptLinkRequest,
+    engine: Engine = Depends(get_engine),
+) -> ResearchQuestionDetail:
+    from neurodb.schema import ResearchQuestion as ResearchQuestionORM
+    from neurodb.db.topic_store import link_question_concept
+    with get_session(engine) as session:
+        if session.get(ResearchQuestionORM, question_id) is None:
+            raise HTTPException(status_code=404, detail=f"Question {question_id} not found")
+        link_question_concept(session, question_id, body.concept_id, status="confirmed")
+    return _question_detail(engine, question_id)
+
+
+@router.patch("/questions/{question_id}/concepts/{concept_id}", response_model=ResearchQuestionDetail)
+def patch_question_concept(
+    question_id: int,
+    concept_id: int,
+    body: PatchLinkStatusRequest,
+    engine: Engine = Depends(get_engine),
+) -> ResearchQuestionDetail:
+    from neurodb.db.topic_store import update_question_concept_status
+    with get_session(engine) as session:
+        found = update_question_concept_status(session, question_id, concept_id, body.status)
+    if not found:
+        raise HTTPException(status_code=404, detail=f"Concept link {question_id}/{concept_id} not found")
+    return _question_detail(engine, question_id)
+
+
+@router.delete("/questions/{question_id}/concepts/{concept_id}", status_code=204)
+def remove_question_concept(
+    question_id: int,
+    concept_id: int,
+    engine: Engine = Depends(get_engine),
+) -> None:
+    from neurodb.db.topic_store import unlink_question_concept
+    with get_session(engine) as session:
+        found = unlink_question_concept(session, question_id, concept_id)
+    if not found:
+        raise HTTPException(status_code=404, detail=f"Concept link {question_id}/{concept_id} not found")
 
 
 @router.get("/claims", response_model=list[ClaimItem])

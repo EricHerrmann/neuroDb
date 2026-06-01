@@ -78,3 +78,49 @@ class EvidenceLinkItem(BaseModel):
     link_type: str
     status: str
     created_at: str
+
+
+class QuestionTopicLink(BaseModel):
+    topic_id: int
+    topic_name: str
+    status: str
+
+
+class QuestionConceptLink(BaseModel):
+    concept_id: int
+    concept_name: str
+    status: str
+
+
+class ResearchQuestionDetail(BaseModel):
+    id: int
+    question: str
+    status: str
+    topic_context: str | None = None
+    origin_session_id: int | None = None
+    created_at: datetime | None = None
+    topics: list[QuestionTopicLink] = []
+    concepts: list[QuestionConceptLink] = []
+
+
+class CreateQuestionRequest(BaseModel):
+    question: str
+    topic_context: str | None = None
+    origin_session_id: int | None = None
+
+
+class UpdateQuestionRequest(BaseModel):
+    question: str | None = None
+    topic_context: str | None = None
+
+
+class AddTopicLinkRequest(BaseModel):
+    topic_id: int
+
+
+class PatchLinkStatusRequest(BaseModel):
+    status: str
+
+
+class AddConceptLinkRequest(BaseModel):
+    concept_id: int

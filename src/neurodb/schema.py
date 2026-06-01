@@ -305,6 +305,7 @@ class ResearchQuestion(Base):
     created_at: Mapped[str] = mapped_column(String(32), nullable=False)
     updated_at: Mapped[str] = mapped_column(String(32), nullable=False)
     topic_id: Mapped[int | None] = mapped_column(ForeignKey("topics.id"), nullable=True)
+    origin_session_id: Mapped[int | None] = mapped_column(Integer, nullable=True)
 
 
 class ResearchHypothesis(Base):
@@ -341,6 +342,34 @@ class HypothesisReview(Base):
     missing_confounds_json: Mapped[str] = mapped_column(Text, nullable=False)
     suggested_revisions: Mapped[str] = mapped_column(Text, nullable=False)
     status: Mapped[str] = mapped_column(String(32), nullable=False, default="pending", index=True)
+
+
+class QuestionTopic(Base):
+    """Many-to-many: research_questions ↔ topics, with pending/confirmed lifecycle."""
+    __tablename__ = "question_topics"
+    __table_args__ = (
+        UniqueConstraint("question_id", "topic_id", name="uq_question_topic"),
+    )
+
+    id: Mapped[int] = mapped_column(Integer, Sequence("question_topics_id_seq"), primary_key=True)
+    question_id: Mapped[int] = mapped_column(Integer, nullable=False, index=True)
+    topic_id: Mapped[int] = mapped_column(Integer, nullable=False, index=True)
+    status: Mapped[str] = mapped_column(String(16), nullable=False, default="pending", index=True)
+    created_at: Mapped[str] = mapped_column(String(32), nullable=False)
+
+
+class QuestionConcept(Base):
+    """Many-to-many: research_questions ↔ concepts, with pending/confirmed lifecycle."""
+    __tablename__ = "question_concepts"
+    __table_args__ = (
+        UniqueConstraint("question_id", "concept_id", name="uq_question_concept"),
+    )
+
+    id: Mapped[int] = mapped_column(Integer, Sequence("question_concepts_id_seq"), primary_key=True)
+    question_id: Mapped[int] = mapped_column(Integer, nullable=False, index=True)
+    concept_id: Mapped[int] = mapped_column(Integer, nullable=False, index=True)
+    status: Mapped[str] = mapped_column(String(16), nullable=False, default="pending", index=True)
+    created_at: Mapped[str] = mapped_column(String(32), nullable=False)
 
 
 class KnowledgeGrowthSnapshot(Base):

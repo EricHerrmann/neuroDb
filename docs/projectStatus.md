@@ -1,8 +1,8 @@
 # NeuroDb — Project Status
 
 **Last updated:** 2026-06-01
-**Active focus:** Unified Groupings Phase 1 complete — `groupings` / `grouping_links` ORM models and migration 017 backfill are implemented; legacy tables remain the source of truth.
-**Next:** Unified Groupings Phase 2 store functions and hierarchy invariant guards.
+**Active focus:** Unified Groupings Phase 2 complete — type-agnostic store functions and single-level hierarchy guards are implemented; no consumers read the new engine yet.
+**Next:** Unified Groupings Phase 3 question-workflow cutover, semantic matcher, proposal lifecycle, and hierarchy seed data.
 **Goal alignment:** Two co-equal goals in a feedback loop — accumulate neuroscience understanding grounded in real data (Goal 1), and conduct structured neuroscience investigations using existing public datasets and good scientific method (Goal 2). See `NeuroDbGoals.md`.
 
 ---
@@ -14,7 +14,7 @@
 | DB | `src/neurodb/db/`, `src/neurodb/connectors/` | MVP complete (phases 0–3, 9); Phase 2 manual signed off 2026-05-21; Phase 3 manual signed off 2026-05-21; Phase 9 T1-T4 manual passed; Memory Refocus Completion fixed LOG-059 and passed manual T1-T5 on 2026-05-24 | Entity resolution (7); broader Phase 9 source-aware enrichment |
 | Agent Core | `src/neurodb/agents/` | Stable; Phase 4 context-mode mechanics implemented and signed off 2026-05-21; Config Control Phase 6 added provider capability gating; Memory Refocus Completion added context budgets and retrieval telemetry | Coordinate provider live-tool validation with Config Control |
 | Tutor | `src/neurodb/tutor/` | MVP complete (LT-1/2/3); Phase 4 context-mode prompt and bundle behavior signed off 2026-05-21; active model visibility resolved in Config Control Phase 6 | Open backlog: LOG-001; Phase 2/3 manual verification |
-| Research | `src/neurodb/research/` | Scaffolded (LT-3); Phase 3 claims/evidence/gaps complete; Phase 2/3 manual signed off 2026-05-21; Phase 4 grounded/contextual behavior signed off 2026-05-21; lifecycle UI gaps from LOG-037, LOG-048, and LOG-061 resolved in Phase 5b; queue/tool gaps from LOG-045 and LOG-053 resolved; dataset usefulness surfaced to agents in Memory Refocus Completion; Unified Groupings Phase 1 complete | Unified Groupings Phase 2 store functions and hierarchy invariant guards |
+| Research | `src/neurodb/research/` | Scaffolded (LT-3); Phase 3 claims/evidence/gaps complete; Phase 2/3 manual signed off 2026-05-21; Phase 4 grounded/contextual behavior signed off 2026-05-21; lifecycle UI gaps from LOG-037, LOG-048, and LOG-061 resolved in Phase 5b; queue/tool gaps from LOG-045 and LOG-053 resolved; dataset usefulness surfaced to agents in Memory Refocus Completion; Unified Groupings Phase 1 and Phase 2 complete | Unified Groupings Phase 3 question-workflow cutover and semantic/proposal matcher |
 | UI | `src/neurodb/ui/`, `src/neurodb/api/`, `frontend/` | UI-3 signed off 2026-05-13; UI-5 P1/P2/P3 complete and common manual testing passed 2026-05-23; Phase 4 API preference and stream contract signed off 2026-05-21; Phase 5a signed off 2026-05-21; Phase 5b signed off 2026-05-23 (T1-T7 passed); DuckDB FK update limitation resolved via migration 012; LOG-060 moved to monitor after likely renderer fix | No active UI phase; monitor LOG-060 recurrence |
 | Config Control | `src/neurodb/config/` | Phase 5B complete; Phase 6 complete and signed off 2026-05-23 with focused backend, call-site, frontend, ruff, compile, and manual T1-T5 checks passing | No active Config Control phase |
 | Tech Debt | Cross-cutting | Planned — TD-1 CLI argument normalization started from LOG-057; TD-5 abstraction/extensibility review logged | TD-1 parser coverage, TD-2 keyword-only helper APIs, TD-5 reusable abstractions |
@@ -70,7 +70,7 @@ See `docs/testLog.md`. Current open items: LOG-001 (textbook dropdown ambiguity)
 | `docs/superpowers/specs/2026-06-01-unified-groupings-taxonomy-design.md` | Unified groupings taxonomy design spec — single groupings/grouping_links model across types (topic, concept, future), hierarchy, semantic+agent matching with new-item proposal, phased migration; closes LOG-062 |
 | `docs/superpowers/specs/2026-06-01-topic-taxonomy-hierarchy-design.md` | SUPERSEDED by the unified-groupings spec — topics-only hierarchy (retained for history) |
 | `docs/superpowers/plans/2026-06-01-groupings-phase1-unified-tables.md` | Groupings Phase 1 implementation plan — unified groupings/grouping_links models + migration 017 backfill from legacy tables; implemented 2026-06-01 |
-| `docs/superpowers/plans/2026-06-01-groupings-phase2-engine.md` | Groupings Phase 2 implementation plan — type-agnostic engine (store functions, type registry, single-level hierarchy guard, rollup helpers); 5 tasks (not yet implemented) |
+| `docs/superpowers/plans/2026-06-01-groupings-phase2-engine.md` | Groupings Phase 2 implementation plan — type-agnostic engine (store functions, type registry, single-level hierarchy guard, rollup helpers); implemented 2026-06-01 |
 | `docs/superpowers/plans/2026-06-01-research-question-phase1.md` | Research Question Phase 1 implementation plan — 10 tasks |
 | `docs/testsPlans/manualTestPlan_research_question_phase1.md` | Research Question Phase 1 manual test plan — T1-T6 |
 | `docs/superpowers/specs/2026-05-18-learning-research-memory-refocus-design.md` | Cross-epoch design spec — refocus NeuroDb as a learning/research memory system and fix shallow dataset sourcing through dataset research packets |

@@ -10,7 +10,8 @@
 
 - [ ] Run automated tests: `uv run pytest tests/ -q`
   Pass criterion: no new failures beyond those tracked in `docs/testLog.md`.
-- [ ] Start the dev server: `uv run neurodb serve` (backend) + `cd frontend && npm run dev`
+- [ ] Start the backend: `uv run uvicorn neurodb.api.app:app_factory --factory --port 8001`
+- [ ] Start the frontend: `cd frontend && npm run dev` (Vite proxies `/api` to the backend on port 8001)
 
 ---
 

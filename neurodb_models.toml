@@ -6,7 +6,7 @@
 [routing]
 economy  = "anthropic"
 standard = "anthropic"
-premium  = "openai"
+premium  = "anthropic"
 economy_fallback  = ["anthropic", "openai", "gemini", "deepseek", "groq"]
 standard_fallback = ["openai", "anthropic", "gemini", "deepseek", "groq"]
 premium_fallback  = ["openai", "anthropic", "gemini", "deepseek", "groq"]

@@ -119,17 +119,20 @@ def get_questions(
 ) -> list[ResearchQuestionDetail]:
     """Return research questions, optionally filtered by status and/or confirmed topic."""
     from sqlalchemy import select as _select
-    from neurodb.schema import QuestionTopic, ResearchQuestion as ResearchQuestionORM
+    from neurodb.schema import GroupingLink, ResearchQuestion as ResearchQuestionORM
+    from neurodb.db.grouping_store import resolve_filter_ids
     with get_session(engine) as session:
         query = _select(ResearchQuestionORM)
         if status:
             query = query.where(ResearchQuestionORM.status.in_(status))
         if topic_id is not None:
+            ids = resolve_filter_ids(session, topic_id)
             query = query.where(
                 ResearchQuestionORM.id.in_(
-                    _select(QuestionTopic.question_id).where(
-                        QuestionTopic.topic_id == topic_id,
-                        QuestionTopic.status == "confirmed",
+                    _select(GroupingLink.anchor_id).where(
+                        GroupingLink.anchor_type == "question",
+                        GroupingLink.grouping_id.in_(ids),
+                        GroupingLink.status == "confirmed",
                     )
                 )
             )
@@ -156,10 +159,14 @@ def create_question(
     question_id = result["id"]
 
     def _extract():
-        from neurodb.db import get_session as _gs
-        from neurodb.db.topic_store import extract_question_topics
-        with _gs(engine) as session:
-            extract_question_topics(session, question_id, body.question)
+        from neurodb.research.grouping_matcher import run_suggest_groupings
+        run_suggest_groupings(
+            engine,
+            anchor_type="question",
+            anchor_id=question_id,
+            anchor_text=body.question,
+            gtypes=("topic", "concept"),
+        )
 
     threading.Thread(target=_extract, daemon=True).start()
     return _question_detail(engine, question_id)

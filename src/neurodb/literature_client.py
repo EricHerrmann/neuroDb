@@ -42,8 +42,15 @@ class LiteratureSearchClient:
     def search(self, query: str, limit: int = 10) -> list[dict]:
         pubmed_results = self._search_pubmed(query, limit)
         semantic_results = self._search_semantic_scholar(query, limit)
-        results = _dedup_by_doi(pubmed_results + semantic_results)
-        self._log_search(query, len(pubmed_results), len(semantic_results), results)
+        arxiv_results = self._search_arxiv(query, limit)
+        results = _dedup_by_doi(pubmed_results + semantic_results + arxiv_results)
+        self._log_search(
+            query,
+            len(pubmed_results),
+            len(semantic_results),
+            len(arxiv_results),
+            results,
+        )
         return results
 
     def _search_pubmed(self, query: str, limit: int) -> list[dict]:
@@ -107,11 +114,28 @@ class LiteratureSearchClient:
         except Exception:
             return []
 
+    def _search_arxiv(self, query: str, limit: int) -> list[dict]:
+        try:
+            response = self._http.get(
+                _ARXIV_API_URL,
+                params={
+                    "search_query": f"all:{query}",
+                    "start": 0,
+                    "max_results": limit,
+                },
+                timeout=self._timeout,
+            )
+            response.raise_for_status()
+            return _parse_arxiv_xml(response.text)
+        except Exception:
+            return []
+
     def _log_search(
         self,
         query: str,
         pubmed_count: int,
         semantic_scholar_count: int,
+        arxiv_count: int,
         results: list[dict],
     ) -> None:
         with get_session(self._engine) as session:
@@ -120,6 +144,7 @@ class LiteratureSearchClient:
                     query=query,
                     pubmed_count=pubmed_count,
                     semantic_scholar_count=semantic_scholar_count,
+                    arxiv_count=arxiv_count,
                     results_json=json.dumps(results),
                     searched_at=datetime.now(timezone.utc).isoformat(),
                 )

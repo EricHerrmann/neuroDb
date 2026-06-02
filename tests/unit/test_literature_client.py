@@ -131,7 +131,7 @@ def test_search_parses_pubmed_and_semantic_scholar_and_dedups_by_doi():
     # Semantic Scholar result with no source URL falls back to the DOI resolver.
     assert results[1]["url"] == "https://doi.org/10.1000/review"
     # Semantic Scholar request must ask for the url field.
-    s2_call = fake.calls[-1]
+    s2_call = next(c for c in fake.calls if "semanticscholar" in c[0])
     assert "url" in s2_call[1]["params"]["fields"].split(",")
 
     with Session(engine) as session:
@@ -207,3 +207,38 @@ def test_parse_arxiv_xml_normalizes_entries():
     # Preprint without a DOI: doi is None, url still built from id.
     assert results[1]["doi"] is None
     assert results[1]["url"] == "https://arxiv.org/abs/2402.05678v2"
+
+
+def test_search_merges_arxiv_and_logs_arxiv_count():
+    engine = _engine()
+    fake = _FakeHttp([
+        _Response({"esearchresult": {"idlist": ["123"]}}),
+        _Response(text=PUBMED_XML),
+        _Response({"data": []}),
+        _Response(text=ARXIV_XML),
+    ])
+
+    results = LiteratureSearchClient(engine, http_client=fake).search("plasticity")
+
+    arxiv_rows = [row for row in results if row["source"] == "arxiv"]
+    assert len(arxiv_rows) == 2
+    assert arxiv_rows[1]["url"] == "https://arxiv.org/abs/2402.05678v2"
+
+    with Session(engine) as session:
+        row = session.query(LiteratureSearch).one()
+        assert row.arxiv_count == 2
+
+
+def test_search_degrades_gracefully_when_arxiv_fails():
+    engine = _engine()
+    fake = _FakeHttp([
+        _Response({"esearchresult": {"idlist": []}}),
+        _Response({"data": []}),
+        httpx.TimeoutException("arxiv down"),
+    ])
+
+    results = LiteratureSearchClient(engine, http_client=fake).search("plasticity")
+
+    assert results == []
+    with Session(engine) as session:
+        assert session.query(LiteratureSearch).one().arxiv_count == 0

@@ -707,6 +707,46 @@ def _migration_017_groupings(conn) -> None:
     """), {"now": now_iso})
 
 
+def _migration_018_seed_grouping_hierarchy(conn) -> None:
+    """Seed the plasticity/stroke topic hierarchy on the unified groupings table.
+    Creates a top-level 'plasticity' topic and sets parent_id on seed children.
+    Additive and idempotent."""
+    now = datetime.now(UTC).isoformat()
+    conn.execute(text("""
+        INSERT INTO groupings (type, name, parent_id, status, description, created_at, updated_at)
+        SELECT 'topic', 'plasticity', NULL, 'active', NULL, :now, :now
+        WHERE NOT EXISTS (
+            SELECT 1 FROM groupings WHERE type='topic' AND name='plasticity'
+        )
+    """), {"now": now})
+
+    seed = {
+        "plasticity": [
+            "neuroplasticity", "circuit plasticity", "interhemispheric plasticity",
+            "cortical remapping", "maladaptive reorganization",
+            "interhemispheric competition", "interhemispheric inhibition",
+            "transcallosal inhibition",
+        ],
+        "stroke": [
+            "stroke recovery", "stroke rehabilitation", "stroke severity",
+            "peri-infarct cortex",
+        ],
+    }
+    for parent_name, children in seed.items():
+        prow = conn.execute(text(
+            "SELECT id FROM groupings WHERE type='topic' AND name=:n"
+        ), {"n": parent_name}).fetchone()
+        if prow is None:
+            continue
+        pid = prow[0]
+        for child in children:
+            conn.execute(text("""
+                UPDATE groupings SET parent_id = :pid, updated_at = :now
+                WHERE type='topic' AND name = :child
+                  AND (parent_id IS NULL OR parent_id <> :pid)
+            """), {"pid": pid, "now": now, "child": child})
+
+
 _MIGRATIONS: dict[int, callable] = {
     1: _migration_001_study_note_unique,
     2: _migration_002_model_call_log,
@@ -725,6 +765,7 @@ _MIGRATIONS: dict[int, callable] = {
     15: _migration_015_model_call_log_context_counts,
     16: _migration_016_question_topic_tables,
     17: _migration_017_groupings,
+    18: _migration_018_seed_grouping_hierarchy,
 }
 
 

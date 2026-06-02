@@ -1,5 +1,13 @@
 # Manual Test Plan — Groupings Phase 3b (UI)
 
+**Status:** Complete — T1-T3 passed and signed off 2026-06-02
+**Date created:** 2026-06-01
+**Design spec:** `docs/superpowers/specs/2026-06-01-groupings-phase3-question-cutover-design.md`
+**Implementation plan:** `docs/superpowers/plans/2026-06-01-groupings-phase3b-ui.md`
+**Notes:** T2 surfaced LOG-063 (DuckDB grouping id-sequence collision), fixed via migration 019; re-verified passing. Follow-ups logged for Phase 4: LOG-064 (delete cleanup), LOG-065 (hierarchy collapse), LOG-066 (suggestion auto-refresh).
+
+---
+
 ## Prerequisites
 - [ ] Run the automated suites:
   - Backend: `uv run pytest tests/ -q` — pass criterion: no new failures beyond `docs/testLog.md`.

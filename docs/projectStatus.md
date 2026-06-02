@@ -1,7 +1,7 @@
 # NeuroDb — Project Status
 
 **Last updated:** 2026-06-01
-**Active focus:** Unified Groupings Phase 3 complete (3a backend + 3b UI) — semantic/proposal matcher (`agent.extract.groupings`), `/api/research/groupings` routes, proposal "new" chips, topic-hierarchy curation view, and the filter repointed to the engine; LOG-062 closed. Backend 829 tests green; frontend 98 tests green.
+**Active focus:** Unified Groupings Phase 3 complete and signed off (3a backend + 3b UI; manual T1-T3 passed 2026-06-02) — semantic/proposal matcher (`agent.extract.groupings`), `/api/research/groupings` routes, proposal "new" chips, topic-hierarchy curation view, and the filter repointed to the engine; LOG-062 and LOG-063 closed. Backend 832 tests green; frontend 98 tests green.
 **Next:** Unified Groupings Phase 4 — migrate the remaining consumers (papers, datasets, study-note anchors, claim/context bundles) off the legacy `topics`/`concepts` tables onto the engine.
 **Goal alignment:** Two co-equal goals in a feedback loop — accumulate neuroscience understanding grounded in real data (Goal 1), and conduct structured neuroscience investigations using existing public datasets and good scientific method (Goal 2). See `NeuroDbGoals.md`.
 
@@ -72,7 +72,6 @@ See `docs/testLog.md`. Current open items: LOG-001 (textbook dropdown ambiguity)
 | `docs/superpowers/plans/2026-06-01-groupings-phase3a-backend-cutover.md` | Groupings Phase 3a implementation plan — matcher, /groupings routes, question-flow cutover, proposal lifecycle, migration 018; implemented 2026-06-01 |
 | `docs/testsPlans/manualTestPlan_groupings_phase3a.md` | Groupings Phase 3a manual test plan — live matcher, proposal confirm/dismiss, parent-filter rollup, fail-closed |
 | `docs/superpowers/plans/2026-06-01-groupings-phase3b-ui.md` | Groupings Phase 3b UI plan — filter repoint to /groupings, proposal "new" chips, topic hierarchy curation view; implemented 2026-06-02 |
-| `docs/testsPlans/manualTestPlan_groupings_phase3b.md` | Groupings Phase 3b manual test plan — filter source, proposal chips, hierarchy curation |
 | `docs/superpowers/specs/2026-06-01-topic-taxonomy-hierarchy-design.md` | SUPERSEDED by the unified-groupings spec — topics-only hierarchy (retained for history) |
 | `docs/superpowers/plans/2026-06-01-groupings-phase1-unified-tables.md` | Groupings Phase 1 implementation plan — unified groupings/grouping_links models + migration 017 backfill from legacy tables; implemented 2026-06-01 |
 | `docs/superpowers/plans/2026-06-01-groupings-phase2-engine.md` | Groupings Phase 2 implementation plan — type-agnostic engine (store functions, type registry, single-level hierarchy guard, rollup helpers); implemented 2026-06-01 |
@@ -100,3 +99,4 @@ See `docs/testLog.md`. Current open items: LOG-001 (textbook dropdown ambiguity)
 | `docs/superpowers/plans/2026-05-23-memory-refocus-completion.md` | Completion phase implementation plan — complete and signed off 2026-05-24 |
 | `docs/testsPlans/completedAndPassedTestPlans/manualTestPlan_memory_refocus_completion.md` | Completion phase manual test plan — T1-T5 passed and signed off 2026-05-24 |
 | `docs/testsPlans/completedAndPassedTestPlans/manualTestPlan_db_phase9_dataset_research_packets.md` | DB Phase 9 manual test plan — T1-T4 passed and signed off 2026-05-18 |
+| `docs/testsPlans/completedAndPassedTestPlans/manualTestPlan_groupings_phase3b.md` | Groupings Phase 3b manual test plan — T1-T3 passed and signed off 2026-06-02 (T2 surfaced LOG-063, fixed via migration 019) |

@@ -173,6 +173,7 @@ def get_groupings_for_anchor(
             "name": grouping.name,
             "parent_id": grouping.parent_id,
             "status": grouping.status,
+            "grouping_status": grouping.status,
             "description": grouping.description,
             "link_status": link_status,
         }

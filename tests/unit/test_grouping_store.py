@@ -195,3 +195,12 @@ def test_rollup_parents(session):
     assert sorted(rollup_parents(session, [child.id, parent.id])) == sorted(
         [child.id, parent.id]
     )
+
+
+def test_get_groupings_for_anchor_includes_grouping_status(session):
+    from neurodb.db.grouping_store import link_grouping
+    g = get_or_create_grouping(session, "topic", "plasticity", status="proposed")
+    link_grouping(session, g.id, "question", 5, status="pending")
+    rows = get_groupings_for_anchor(session, "question", 5)
+    assert rows[0]["grouping_status"] == "proposed"
+    assert rows[0]["link_status"] == "pending"

@@ -139,7 +139,7 @@ def test_hypothesis_review_json_fields_store_valid_json():
         session.add(HypothesisReview(
             hypothesis_id=hypothesis.id,
             created_at="2026-05-08T00:00:00+00:00",
-            model="claude-opus-4-7",
+            model="claude-opus-4-8",
             critique_text="The draft overstates causal support.",
             unsupported_claims_json=json.dumps(["causal learning claim"]),
             missing_confounds_json=json.dumps(["task design"]),

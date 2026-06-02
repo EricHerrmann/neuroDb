@@ -69,7 +69,7 @@ def test_get_model_for_task_routing_section_selects_gemini(monkeypatch):
     provider, model_id, max_tokens = get_model_for_task("agent.loop.research")
 
     assert provider == "gemini"
-    assert model_id == "gemini-2.5-flash"
+    assert model_id == "gemini-3.5-flash"
     assert max_tokens == 4096
 
 

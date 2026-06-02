@@ -14,7 +14,7 @@ from neurodb.research_tools import create_hypothesis_review
 from neurodb.schema import ResearchHypothesis
 
 
-NEURODB_PREMIUM_MODEL = os.environ.get("NEURODB_PREMIUM_MODEL", "claude-opus-4-7")
+NEURODB_PREMIUM_MODEL = os.environ.get("NEURODB_PREMIUM_MODEL", "claude-opus-4-8")
 
 _SYSTEM_PROMPT = """You are reviewing a draft neuroscience research hypothesis.
 Treat the draft as unconfirmed. Do not present it as a finding.

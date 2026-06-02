@@ -4,7 +4,7 @@ import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { api } from '../api/client'
 import TaskStatus from '../components/TaskStatus'
 import { useTask } from '../hooks/useTask'
-import type { DuplicateCandidate } from '../api/types'
+import type { DuplicateCandidate, PaperItem } from '../api/types'
 
 function doiHref(doi: string): string | null {
   if (doi.startsWith('10.')) return `https://doi.org/${doi}`
@@ -19,6 +19,64 @@ function DoiValue({ doi }: { doi: string }) {
     <a href={href} target="_blank" rel="noreferrer" style={{ color: '#1d4ed8' }}>
       {doi}
     </a>
+  )
+}
+
+function externalHref(value: string): string | null {
+  if (value.startsWith('http://') || value.startsWith('https://')) return value
+  return null
+}
+
+function titleSearchHref(title: string): string {
+  return `https://scholar.google.com/scholar?q=${encodeURIComponent(title)}`
+}
+
+function ExternalLink({ href, label }: { href: string; label: string }) {
+  return (
+    <a href={href} target="_blank" rel="noreferrer" style={{ color: '#1d4ed8' }}>
+      {label}
+    </a>
+  )
+}
+
+function SourceReviewDetails({ item }: { item: PaperItem }) {
+  const sourceHref = item.url ? externalHref(item.url) : null
+  const hasRecordedReference = Boolean(item.doi || sourceHref)
+
+  return (
+    <details style={{ fontSize: 12, marginTop: 6 }}>
+      <summary style={{ cursor: 'pointer', color: '#475569' }}>Review details</summary>
+      <div style={{ marginTop: 6, display: 'grid', gap: 4 }}>
+        <div><strong>Status:</strong> {item.status}</div>
+        <div><strong>Queued:</strong> {item.queued_at?.slice(0, 10) ?? '-'}</div>
+        {item.year !== null && item.year !== undefined && (
+          <div><strong>Year:</strong> {item.year}</div>
+        )}
+        <div><strong>Type:</strong> {item.source_type}</div>
+        <div><strong>Relevance:</strong> {item.topic_context || '-'}</div>
+        {item.doi && (
+          <div><strong>DOI:</strong> <DoiValue doi={item.doi} /></div>
+        )}
+        {item.url && (
+          <div>
+            <strong>URL:</strong>{' '}
+            {sourceHref ? <ExternalLink href={sourceHref} label={item.url} /> : item.url}
+          </div>
+        )}
+        {!hasRecordedReference && (
+          <div style={{ color: '#92400e' }}>
+            No DOI or URL is recorded yet.{' '}
+            <ExternalLink href={titleSearchHref(item.title)} label="Verify by title" />
+          </div>
+        )}
+        {item.abstract && (
+          <div>
+            <strong>Abstract:</strong>
+            <p style={{ margin: '3px 0 0', whiteSpace: 'pre-wrap' }}>{item.abstract}</p>
+          </div>
+        )}
+      </div>
+    </details>
   )
 }
 
@@ -100,6 +158,15 @@ export default function KnowledgeLibraryPanel() {
             {item.source_type} · {item.topic_context.slice(0, 80)}
           </div>
           {item.doi && <div style={{ fontSize: 11 }}>DOI: <DoiValue doi={item.doi} /></div>}
+          {item.url && (
+            <div style={{ fontSize: 11 }}>
+              URL:{' '}
+              {externalHref(item.url)
+                ? <ExternalLink href={item.url} label={item.url} />
+                : item.url}
+            </div>
+          )}
+          <SourceReviewDetails item={item} />
           {item.summary && (
             <details style={{ fontSize: 12, marginTop: 4 }}>
               <summary style={{ cursor: 'pointer', color: '#475569' }}>Summary</summary>

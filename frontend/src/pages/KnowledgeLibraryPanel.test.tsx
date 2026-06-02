@@ -60,8 +60,61 @@ describe('KnowledgeLibraryPanel', () => {
       }]),
     })
 
-    const link = screen.getByRole('link', { name: '10.1234/test' })
+    const link = screen.getAllByRole('link', { name: '10.1234/test' })[0]
     expect(link.getAttribute('href')).toBe('https://doi.org/10.1234/test')
+  })
+
+  it('renders expandable review details and source URL for pending papers', () => {
+    render(<KnowledgeLibraryPanel />, {
+      wrapper: makeWrapper([{
+        id: 16,
+        title: 'Bridging Neuroscience and AI: CLS Theory',
+        doi: null,
+        url: 'https://example.org/cls-review',
+        source_type: 'review',
+        topic_context: 'CLS ↔ LLM pretraining/RAG',
+        status: 'pending',
+        queued_at: '2026-06-02',
+        reviewed_at: null,
+        summary: null,
+        abstract: 'Candidate review requiring DOI verification.',
+        year: null,
+      }]),
+    })
+
+    expect(screen.getAllByRole('link', { name: 'https://example.org/cls-review' })[0].getAttribute('href'))
+      .toBe('https://example.org/cls-review')
+
+    fireEvent.click(screen.getByText('Review details'))
+
+    expect(screen.getAllByText(/CLS ↔ LLM pretraining\/RAG/).length).toBeGreaterThan(0)
+    expect(screen.getByText(/Candidate review requiring DOI verification/)).toBeTruthy()
+  })
+
+  it('shows a title verification link when a pending paper has no DOI or URL', () => {
+    render(<KnowledgeLibraryPanel />, {
+      wrapper: makeWrapper([{
+        id: 17,
+        title: 'Modern Hopfield Networks & Transformer Attention',
+        doi: null,
+        url: null,
+        source_type: 'paper',
+        topic_context: 'Formal attention = associative memory proof',
+        status: 'pending',
+        queued_at: '2026-06-02',
+        reviewed_at: null,
+        summary: null,
+        abstract: null,
+        year: 2020,
+      }]),
+    })
+
+    fireEvent.click(screen.getByText('Review details'))
+
+    const verifyLink = screen.getByRole('link', { name: 'Verify by title' })
+    expect(verifyLink.getAttribute('href')).toContain('scholar.google.com/scholar?q=')
+    expect(screen.getByText(/No DOI or URL is recorded yet/)).toBeTruthy()
+    expect(screen.getByText('2020')).toBeTruthy()
   })
 
   it('starts summary task when approve has no duplicates', async () => {

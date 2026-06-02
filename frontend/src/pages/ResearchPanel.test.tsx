@@ -278,6 +278,42 @@ describe('ResearchPanel retract UI', () => {
     expect(await screen.findByText('Does LTP correlate with recovery?')).toBeTruthy()
   })
 
+  it('collapses topic hierarchy separately from research questions', async () => {
+    render(<ResearchPanel />, {
+      wrapper: makeWrapper({
+        questions: [
+          {
+            id: 1,
+            question: 'Does LTP correlate with recovery?',
+            status: 'open',
+            topic_context: 'ctx',
+            created_at: '2026-01-01T00:00:00',
+            updated_at: '2026-01-01T00:00:00',
+            topics: [],
+            concepts: [],
+          },
+        ],
+        groupings: [
+          { id: 1, type: 'topic', name: 'plasticity', parent_id: null, status: 'active', description: null },
+          { id: 2, type: 'topic', name: 'neuroplasticity', parent_id: 1, status: 'active', description: null },
+        ],
+      }),
+    })
+
+    expect(screen.getByLabelText('parent of plasticity')).toBeTruthy()
+    expect(screen.getByText('Does LTP correlate with recovery?')).toBeTruthy()
+
+    fireEvent.click(screen.getByRole('button', { name: /Topic Hierarchy/ }))
+    expect(screen.queryByLabelText('parent of plasticity')).toBeNull()
+    expect(screen.getByText('Does LTP correlate with recovery?')).toBeTruthy()
+
+    fireEvent.click(screen.getByRole('button', { name: /Research Questions/ }))
+    expect(screen.queryByText('Does LTP correlate with recovery?')).toBeNull()
+
+    fireEvent.click(screen.getByRole('button', { name: /Topic Hierarchy/ }))
+    expect(screen.getByLabelText('parent of plasticity')).toBeTruthy()
+  })
+
   it('renders Claims section heading', async () => {
     vi.stubGlobal('fetch', vi.fn().mockImplementation((path: string) => {
       if (typeof path === 'string' && path.includes('/api/research/claims')) {

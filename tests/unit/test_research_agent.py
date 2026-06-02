@@ -112,6 +112,34 @@ def test_research_prompt_includes_current_date_and_prior_context():
     assert "simple Markdown tables" in prompt
 
 
+def test_nominate_paper_updates_existing_title_match_with_new_url():
+    engine = _engine()
+    agent = _agent(engine)
+    first = json.loads(agent._execute_nominate_paper({
+        "title": "Bridging Neuroscience and AI",
+        "source_type": "review",
+        "topic_context": "CLS and memory consolidation",
+    }))
+
+    second = json.loads(agent._execute_nominate_paper({
+        "title": "Bridging Neuroscience and AI",
+        "source_type": "review",
+        "topic_context": "CLS and memory consolidation",
+        "url": "https://example.org/bridging-neuroscience-ai",
+        "abstract": "Review candidate for CLS theory.",
+    }))
+
+    assert second == {
+        "status": "updated",
+        "id": first["id"],
+        "updated_fields": ["url", "abstract"],
+    }
+    with Session(engine) as session:
+        row = session.get(Paper, first["id"])
+        assert row.url == "https://example.org/bridging-neuroscience-ai"
+        assert row.abstract == "Review candidate for CLS theory."
+
+
 def test_research_prompt_includes_context_mode_and_bundle():
     agent = _agent(
         current_date="2026-05-19",

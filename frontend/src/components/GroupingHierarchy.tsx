@@ -29,7 +29,13 @@ function GroupingRow({ g, parents, onReparent }: RowProps) {
   )
 }
 
-export default function GroupingHierarchy({ type = 'topic' }: { type?: string }) {
+export default function GroupingHierarchy({
+  type = 'topic',
+  showTitle = true,
+}: {
+  type?: string
+  showTitle?: boolean
+}) {
   const queryClient = useQueryClient()
   const [error, setError] = useState<string | null>(null)
   const [collapsedParentIds, setCollapsedParentIds] = useState<Set<number>>(() => new Set())
@@ -72,9 +78,11 @@ export default function GroupingHierarchy({ type = 'topic' }: { type?: string })
 
   return (
     <div>
-      <div style={{ fontSize: 11, fontWeight: 600, color: '#475569', marginBottom: 4 }}>
-        Topic hierarchy
-      </div>
+      {showTitle && (
+        <div style={{ fontSize: 11, fontWeight: 600, color: '#475569', marginBottom: 4 }}>
+          Topic hierarchy
+        </div>
+      )}
       {error && (
         <div role="alert" style={{ fontSize: 10, color: '#dc2626', marginBottom: 4 }}>{error}</div>
       )}

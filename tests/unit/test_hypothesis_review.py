@@ -34,7 +34,7 @@ def _seed_hypothesis(engine) -> int:
     return result["id"]
 
 
-def _critique_tool_response(model="claude-opus-4-7"):
+def _critique_tool_response(model="claude-opus-4-8"):
     """Build a ModelResponse with a submit_critique tool_use block."""
     return ModelResponse(
         stop_reason="tool_use",

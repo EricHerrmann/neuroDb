@@ -16,4 +16,6 @@ class PaperItem(BaseModel):
     queued_at: str
     reviewed_at: str | None = None
     summary: str | None = None
+    abstract: str | None = None
+    year: int | None = None
     warnings: list[str] = []

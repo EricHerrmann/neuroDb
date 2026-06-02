@@ -1,7 +1,7 @@
 # NeuroDb — Project Status
 
 **Last updated:** 2026-06-02
-**Active focus:** Unified Groupings Phase 4 implemented — remaining backend consumers and React UI polish moved to the unified grouping engine; LOG-064, LOG-065, and LOG-066 closed in code. Automated checks: backend 839 tests green with isolated DuckDB path, frontend 100 tests green, frontend build green. Manual Phase 4 T1-T7 pending.
+**Active focus:** Unified Groupings Phase 4 implemented — remaining backend consumers and React UI polish moved to the unified grouping engine; LOG-064, LOG-065, and LOG-066 closed in code. Automated checks: backend 843 tests total; focused backend queue-source and Knowledge Library remove checks green after the full rerun was stopped by user request; frontend 103 tests green, frontend build green. Manual Phase 4 T1-T7 pending.
 **Next:** Run and sign off Groupings Phase 4 manual plan, then proceed to Unified Groupings Phase 5 legacy table drop/retirement.
 **Goal alignment:** Two co-equal goals in a feedback loop — accumulate neuroscience understanding grounded in real data (Goal 1), and conduct structured neuroscience investigations using existing public datasets and good scientific method (Goal 2). See `NeuroDbGoals.md`.
 
@@ -27,12 +27,12 @@ Quality-aligned provider model assignments. Update this table and `neurodb_model
 
 | Tier | Anthropic | OpenAI | Gemini | Groq | DeepSeek |
 |---|---|---|---|---|---|
-| **economy** | claude-haiku-4-5-20251001 | gpt-5.4-mini | gemini-2.5-flash-lite | llama-3.1-8b-instant | deepseek-chat |
-| **standard** | claude-sonnet-4-6 | gpt-5.4 | gemini-2.5-flash | llama-3.3-70b-versatile | deepseek-chat |
-| **premium** | claude-opus-4-7 | gpt-5.5 | gemini-2.5-pro | openai/gpt-oss-120b | deepseek-reasoner |
+| **economy** | claude-haiku-4-5-20251001 | gpt-5.4-mini | gemini-3.1-flash-lite | llama-3.1-8b-instant | deepseek-v4-flash |
+| **standard** | claude-sonnet-4-6 | gpt-5.4 | gemini-3.5-flash | llama-3.3-70b-versatile | deepseek-v4-flash |
+| **premium** | claude-opus-4-8 | gpt-5.5 | gemini-3.1-pro-preview | openai/gpt-oss-120b | deepseek-v4-pro |
 
 Default provider for all tiers is **anthropic**. Override per tier via `[routing]` section in `neurodb_models.toml`.
-DeepSeek is wired (economy: `deepseek-chat`, standard: `deepseek-chat`, premium: `deepseek-reasoner`); `eval_status = "baseline"` — all 7 probe checks passed 2026-05-20.
+DeepSeek is wired (economy/standard: `deepseek-v4-flash`, premium: `deepseek-v4-pro`); previous aliases `deepseek-chat` and `deepseek-reasoner` are deprecated by provider docs for 2026-07-24.
 Source of truth for model IDs: `neurodb_models.toml`.
 
 ---
@@ -67,6 +67,7 @@ See `docs/testLog.md`. Current open items: LOG-001 (textbook dropdown ambiguity)
 | `docs/TechDebt_EpochPlan.md` | Tech Debt epoch plan — argument-order safety, keyword-only APIs, parser helpers, request/config objects, reusable abstractions |
 | **Active Plans / Specs** | |
 | `docs/superpowers/specs/2026-06-01-research-question-phase1-design.md` | Research Question Phase 1 design spec — capture & categorize questions, topic/concept suggestion, UI lifecycle |
+| `docs/superpowers/specs/2026-06-02-literature-source-registry-design.md` | Literature source backend registry design (Tutor epoch, Tech Debt TD-5) — SourceBackend protocol + registry list + JSON source_counts column so a new lit source is one file + one line; implementation deferred until after Groupings Phase 5 and Research Question Phase 1 |
 | `docs/superpowers/specs/2026-06-01-unified-groupings-taxonomy-design.md` | Unified groupings taxonomy design spec — single groupings/grouping_links model across types (topic, concept, future), hierarchy, semantic+agent matching with new-item proposal, phased migration; closes LOG-062 |
 | `docs/superpowers/specs/2026-06-01-groupings-phase3-question-cutover-design.md` | Groupings Phase 3 design spec — question-workflow cutover, semantic/proposal matcher (agent.extract.groupings), /groupings routes, proposal lifecycle, hierarchy seed migration 018; split into 3a backend + 3b UI; closes LOG-062 |
 | `docs/superpowers/plans/2026-06-01-groupings-phase3a-backend-cutover.md` | Groupings Phase 3a implementation plan — matcher, /groupings routes, question-flow cutover, proposal lifecycle, migration 018; implemented 2026-06-01 |

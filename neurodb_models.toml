@@ -16,84 +16,84 @@ premium_fallback  = ["openai", "anthropic", "gemini", "deepseek", "groq"]
 [tiers.economy.providers.anthropic]
 model = "claude-haiku-4-5-20251001"
 eval_status = "baseline"
-last_verified_at = "2026-05-08"
+last_verified_at = "2026-06-02"
 
 [tiers.economy.providers.openai]
 model = "gpt-5.4-mini"
 eval_status = "baseline"
-last_verified_at = "2026-05-08"
+last_verified_at = "2026-06-02"
 
 [tiers.economy.providers.gemini]
-model = "gemini-2.5-flash-lite"
+model = "gemini-3.1-flash-lite"
 eval_status = "degraded"
-last_verified_at = "2026-05-20"
+last_verified_at = "2026-06-02"
 tool_loop_reliable = false
 
 [tiers.economy.providers.groq]
 model = "llama-3.1-8b-instant"
 eval_status = "baseline"
-last_verified_at = "2026-05-20"
+last_verified_at = "2026-06-02"
 
 [tiers.economy.providers.deepseek]
-model = "deepseek-chat"
+model = "deepseek-v4-flash"
 eval_status = "baseline"
-last_verified_at = "2026-05-20"
+last_verified_at = "2026-06-02"
 
 [tiers.standard]
 
 [tiers.standard.providers.anthropic]
 model = "claude-sonnet-4-6"
 eval_status = "baseline"
-last_verified_at = "2026-05-08"
+last_verified_at = "2026-06-02"
 
 [tiers.standard.providers.openai]
 model = "gpt-5.4"
 eval_status = "baseline"
-last_verified_at = "2026-05-08"
+last_verified_at = "2026-06-02"
 
 [tiers.standard.providers.gemini]
-model = "gemini-2.5-flash"
+model = "gemini-3.5-flash"
 eval_status = "baseline"
-last_verified_at = "2026-05-20"
+last_verified_at = "2026-06-02"
 
 [tiers.standard.providers.groq]
 model = "llama-3.3-70b-versatile"
 eval_status = "baseline"
-last_verified_at = "2026-05-20"
+last_verified_at = "2026-06-02"
 
 [tiers.standard.providers.deepseek]
-model = "deepseek-chat"
+model = "deepseek-v4-flash"
 eval_status = "baseline"
-last_verified_at = "2026-05-20"
+last_verified_at = "2026-06-02"
 
 [tiers.premium]
 
 [tiers.premium.providers.anthropic]
-model = "claude-opus-4-7"
+model = "claude-opus-4-8"
 eval_status = "baseline"
-last_verified_at = "2026-05-08"
+last_verified_at = "2026-06-02"
 
 [tiers.premium.providers.openai]
 model = "gpt-5.5"
 eval_status = "baseline"
-last_verified_at = "2026-05-08"
+last_verified_at = "2026-06-02"
 
 [tiers.premium.providers.gemini]
-model = "gemini-2.5-pro"
+model = "gemini-3.1-pro-preview"
 eval_status = "baseline"
-last_verified_at = "2026-05-08"
+last_verified_at = "2026-06-02"
 
 [tiers.premium.providers.groq]
 model = "openai/gpt-oss-120b"
 eval_status = "degraded"
-last_verified_at = "2026-05-20"
+last_verified_at = "2026-06-02"
 requires_tools = true
 tool_loop_reliable = false
 
 [tiers.premium.providers.deepseek]
-model = "deepseek-reasoner"
+model = "deepseek-v4-pro"
 eval_status = "baseline"
-last_verified_at = "2026-05-20"
+last_verified_at = "2026-06-02"
 
 # Task types → tier + max_tokens
 # task_type keys must match the telemetry_task_type values used in agents

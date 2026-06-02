@@ -85,6 +85,8 @@ export interface PaperItem {
   queued_at: string
   reviewed_at: string | null
   summary: string | null
+  abstract: string | null
+  year: number | null
   warnings?: string[]
 }
 

@@ -9,7 +9,7 @@ from sqlalchemy.pool import StaticPool
 from neurodb.api.routes.knowledge_library import router
 from neurodb.db import get_session
 from neurodb.db.grouping_store import get_or_create_grouping, link_grouping
-from neurodb.schema import Base, Claim, GroupingLink, Paper
+from neurodb.schema import Base, Claim, Concept, GroupingLink, Paper, PaperConcept, PaperTopic, Topic
 
 
 def _make_app(engine, knowledge_store=None):
@@ -78,6 +78,28 @@ def test_get_knowledge_library_filter_by_status():
     assert resp.status_code == 200
     assert len(data) == 1
     assert data[0]["title"] == "Paper A"
+
+
+def test_get_knowledge_library_returns_review_detail_fields():
+    client, engine = _make_client()
+    with get_session(engine) as session:
+        session.add(Paper(
+            title="Detailed Paper",
+            normalized_title="detailed paper",
+            source_type="review",
+            topic_context="memory consolidation",
+            status="pending",
+            queued_at="2026-06-02T00:00:00",
+            abstract="Review abstract",
+            year=2020,
+        ))
+
+    resp = client.get("/api/knowledge-library")
+
+    data = resp.json()
+    assert resp.status_code == 200
+    assert data[0]["abstract"] == "Review abstract"
+    assert data[0]["year"] == 2020
 
 
 def test_approve_source_sets_status():
@@ -194,6 +216,46 @@ def test_approve_source_preserves_claims_with_duckdb():
         assert claim is not None
         assert claim.paper_id == source_id
         assert claim.text == "A real extracted claim."
+
+
+def test_remove_source_preserves_legacy_topic_and_concept_links_with_duckdb():
+    client, engine = _make_duckdb_client()
+    with get_session(engine) as session:
+        paper = Paper(
+            title="Legacy Linked Paper",
+            normalized_title="legacy linked paper",
+            source_type="paper",
+            topic_context="plasticity",
+            status="pending",
+            queued_at="2026-01-01T00:00:00",
+        )
+        topic = Topic(
+            name="plasticity",
+            status="active",
+            created_at="2026-01-01T00:00:00",
+            updated_at="2026-01-01T00:00:00",
+        )
+        concept = Concept(
+            name="memory consolidation",
+            status="active",
+            created_at="2026-01-01T00:00:00",
+            updated_at="2026-01-01T00:00:00",
+        )
+        session.add_all([paper, topic, concept])
+        session.flush()
+        source_id = paper.id
+        session.add_all([
+            PaperTopic(paper_id=source_id, topic_id=topic.id),
+            PaperConcept(paper_id=source_id, concept_id=concept.id),
+        ])
+
+    resp = client.post(f"/api/knowledge-library/{source_id}/remove")
+
+    assert resp.status_code == 200
+    assert resp.json()["status"] == "removed"
+    with get_session(engine) as session:
+        assert session.query(PaperTopic).filter_by(paper_id=source_id).one_or_none() is not None
+        assert session.query(PaperConcept).filter_by(paper_id=source_id).one_or_none() is not None
 
 
 def test_reject_source_handles_legacy_study_notes_without_paper_id_duckdb():

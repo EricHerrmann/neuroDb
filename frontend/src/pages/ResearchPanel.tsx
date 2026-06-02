@@ -726,6 +726,12 @@ export default function ResearchPanel() {
 
       <hr style={{ margin: '12px 0', border: 'none', borderTop: '1px solid #e2e8f0' }} />
 
+      <Section title="Topic Hierarchy">
+        <GroupingHierarchy type="topic" showTitle={false} />
+      </Section>
+
+      <hr style={{ margin: '12px 0', border: 'none', borderTop: '1px solid #e2e8f0' }} />
+
       <Section title="Research Questions" count={questions.length}>
         <QuestionCreateForm onCreated={() => refetchQuestions()} />
 
@@ -778,8 +784,6 @@ export default function ResearchPanel() {
             </button>
           ))}
         </div>
-
-        <GroupingHierarchy type="topic" />
 
         {questions.length === 0 ? (
           <p style={{ color: '#94a3b8', fontSize: 12 }}>No research questions yet.</p>

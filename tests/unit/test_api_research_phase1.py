@@ -102,16 +102,18 @@ def test_deleted_question_returns_404_on_get(client_and_engine):
 
 def test_add_topic_link_twice_does_not_duplicate(client_and_engine):
     client, engine = client_and_engine
+    from neurodb.schema import GroupingLink
+    from neurodb.db.grouping_store import get_or_create_grouping
     with Session(engine) as session:
-        t = Topic(name="memory", description=None, status="active",
-                  created_at=_now(), updated_at=_now())
+        g = get_or_create_grouping(session, "topic", "memory")
         q = ResearchQuestion(
             question="Test?", topic_context="", status="open",
             created_at=_now(), updated_at=_now(),
         )
-        session.add_all([t, q])
+        session.add(q)
+        session.flush()
+        q_id, t_id = q.id, g.id
         session.commit()
-        q_id, t_id = q.id, t.id
     resp1 = client.post(f"/api/research/questions/{q_id}/topics", json={"topic_id": t_id})
     assert resp1.status_code == 200
     resp2 = client.post(f"/api/research/questions/{q_id}/topics", json={"topic_id": t_id})
@@ -119,9 +121,10 @@ def test_add_topic_link_twice_does_not_duplicate(client_and_engine):
     assert resp2.status_code in (200, 204)
     with Session(engine) as session:
         rows = session.execute(
-            select(QuestionTopic).where(
-                QuestionTopic.question_id == q_id,
-                QuestionTopic.topic_id == t_id,
+            select(GroupingLink).where(
+                GroupingLink.grouping_id == t_id,
+                GroupingLink.anchor_type == "question",
+                GroupingLink.anchor_id == q_id,
             )
         ).scalars().all()
         assert len(rows) == 1, f"expected 1 row, got {len(rows)}"

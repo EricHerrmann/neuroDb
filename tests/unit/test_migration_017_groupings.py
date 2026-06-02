@@ -234,7 +234,9 @@ def test_full_migration_run_backfills_and_records_version():
     with engine.connect() as conn:
         groupings = conn.execute(text("SELECT COUNT(*) FROM groupings")).fetchone()[0]
         links = conn.execute(text("SELECT COUNT(*) FROM grouping_links")).fetchone()[0]
-    assert groupings == 2
+    # 2 backfilled by migration 017 (stroke topic + LTP concept) plus the
+    # 'plasticity' parent seeded by migration 018 in the full chain = 3.
+    assert groupings == 3
     assert links == 8
     assert get_schema_version(engine) >= 17
 

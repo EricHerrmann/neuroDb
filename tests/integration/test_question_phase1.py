@@ -35,12 +35,12 @@ def client_engine():
 
 
 def _seed_topic(engine, name: str) -> int:
+    """Seed a topic grouping and return its id (the unified engine replaced topics)."""
+    from neurodb.db.grouping_store import get_or_create_grouping
     with Session(engine) as session:
-        t = Topic(name=name, description=None, status="active",
-                  created_at=_now(), updated_at=_now())
-        session.add(t)
+        g = get_or_create_grouping(session, "topic", name)
         session.commit()
-        return t.id
+        return g.id
 
 
 def test_create_then_confirm_topic_then_filter(client_engine):
@@ -48,7 +48,7 @@ def test_create_then_confirm_topic_then_filter(client_engine):
 
     topic_id = _seed_topic(engine, "plasticity")
 
-    # Create question via API — suppress background extraction thread
+    # Create question via API — suppress background matcher thread
     with patch("threading.Thread"):
         resp = client.post("/api/research/questions", json={
             "question": "How does plasticity shape memory circuits?",
@@ -57,12 +57,10 @@ def test_create_then_confirm_topic_then_filter(client_engine):
     assert resp.status_code == 200
     q_id = resp.json()["id"]
 
-    # Add a pending topic link manually (simulates what background extraction would create)
+    # Add a pending grouping link manually (simulates what the background matcher would create)
+    from neurodb.db.grouping_store import link_grouping
     with Session(engine) as session:
-        session.add(QuestionTopic(
-            question_id=q_id, topic_id=topic_id,
-            status="pending", created_at=_now(),
-        ))
+        link_grouping(session, topic_id, "question", q_id, status="pending")
         session.commit()
 
     # Confirm the topic link via PATCH

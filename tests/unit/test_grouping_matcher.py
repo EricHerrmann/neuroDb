@@ -118,3 +118,24 @@ def test_invalid_existing_id_is_ignored(engine):
     out = _run(engine, client)
     assert out["suggested"] == []
     assert _links(engine) == []
+
+
+def test_run_suggest_groupings_fails_closed(engine, monkeypatch):
+    from sqlalchemy import text as _text
+    from neurodb.research import grouping_matcher
+    import neurodb.config.provider_factory as pf
+
+    # No providers configured → TaskRouter.route raises RoutingError.
+    monkeypatch.setattr(pf, "build_provider_clients", lambda: {})
+
+    grouping_matcher.run_suggest_groupings(
+        engine, anchor_type="question", anchor_id=1, anchor_text="x", gtypes=("topic",)
+    )
+
+    with engine.connect() as conn:
+        links = conn.execute(_text("SELECT COUNT(*) FROM grouping_links")).fetchone()[0]
+        warnings = conn.execute(_text(
+            "SELECT COUNT(*) FROM system_warnings WHERE warning_type='grouping_match_failed'"
+        )).fetchone()[0]
+    assert links == 0
+    assert warnings >= 1

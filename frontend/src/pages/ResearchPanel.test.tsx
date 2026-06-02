@@ -42,6 +42,31 @@ describe('ResearchPanel', () => {
     expect(screen.getByText(/No hypotheses yet/)).toBeTruthy()
   })
 
+  it('marks a proposed pending topic with a "new" badge', () => {
+    const qc = new QueryClient({ defaultOptions: { queries: { retry: false, staleTime: Infinity } } })
+    qc.setQueryData(['research-hypotheses'], [])
+    qc.setQueryData(['research-metrics'], {
+      approved_sources_count: 0, chat_sessions_count: 0,
+      literature_searches_count: 0, research_hypotheses_count: 0, caveats: [],
+    })
+    qc.setQueryData(['research-claims'], [])
+    qc.setQueryData(['research-gaps'], [])
+    qc.setQueryData(['groupings-for-filter', 'topic'], [])
+    qc.setQueryData(['research-questions-detail', undefined, []], [
+      {
+        id: 1, question: 'Q?', status: 'open', topic_context: '', origin_session_id: null,
+        created_at: '2026-06-01',
+        topics: [{ topic_id: 9, topic_name: 'plasticity', status: 'pending', proposed: true }],
+        concepts: [],
+      },
+    ])
+    const wrapper = ({ children }: { children: React.ReactNode }) =>
+      React.createElement(QueryClientProvider, { client: qc }, children)
+    render(<ResearchPanel />, { wrapper })
+    expect(screen.getByText('plasticity')).toBeTruthy()
+    expect(screen.getByText('new')).toBeTruthy()
+  })
+
   it('renders topic filter buttons from the groupings endpoint', () => {
     const qc = new QueryClient({ defaultOptions: { queries: { retry: false, staleTime: Infinity } } })
     qc.setQueryData(['research-hypotheses'], [])

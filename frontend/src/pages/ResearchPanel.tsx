@@ -296,6 +296,9 @@ function QuestionRow({ question, onMutated }: { question: ResearchQuestionDetail
             {pendingTopics.map(t => (
               <span key={t.topic_id} style={{ display: 'flex', alignItems: 'center', gap: 3, fontSize: 10, padding: '1px 4px', border: '1px dashed #93c5fd', borderRadius: 10, color: '#1e40af' }}>
                 {t.topic_name}
+                {t.proposed && (
+                  <span style={{ fontSize: 8, padding: '0 3px', background: '#fde68a', color: '#92400e', borderRadius: 6 }}>new</span>
+                )}
                 <button type="button" onClick={() => confirmTopic.mutate(t.topic_id)} style={{ fontSize: 9, border: 'none', background: 'transparent', cursor: 'pointer', color: '#16a34a', padding: 0 }}>✓</button>
                 <button type="button" onClick={() => dismissTopic.mutate(t.topic_id)} style={{ fontSize: 9, border: 'none', background: 'transparent', cursor: 'pointer', color: '#dc2626', padding: 0 }}>✕</button>
               </span>
@@ -303,6 +306,9 @@ function QuestionRow({ question, onMutated }: { question: ResearchQuestionDetail
             {pendingConcepts.map(c => (
               <span key={c.concept_id} style={{ display: 'flex', alignItems: 'center', gap: 3, fontSize: 10, padding: '1px 4px', border: '1px dashed #86efac', borderRadius: 10, color: '#166534' }}>
                 {c.concept_name}
+                {c.proposed && (
+                  <span style={{ fontSize: 8, padding: '0 3px', background: '#fde68a', color: '#92400e', borderRadius: 6 }}>new</span>
+                )}
                 <button type="button" onClick={() => confirmConcept.mutate(c.concept_id)} style={{ fontSize: 9, border: 'none', background: 'transparent', cursor: 'pointer', color: '#16a34a', padding: 0 }}>✓</button>
                 <button type="button" onClick={() => dismissConcept.mutate(c.concept_id)} style={{ fontSize: 9, border: 'none', background: 'transparent', cursor: 'pointer', color: '#dc2626', padding: 0 }}>✕</button>
               </span>

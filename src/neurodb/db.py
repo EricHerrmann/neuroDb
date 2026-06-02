@@ -713,8 +713,10 @@ def _migration_018_seed_grouping_hierarchy(conn) -> None:
     Additive and idempotent."""
     now = datetime.now(UTC).isoformat()
     conn.execute(text("""
-        INSERT INTO groupings (type, name, parent_id, status, description, created_at, updated_at)
-        SELECT 'topic', 'plasticity', NULL, 'active', NULL, :now, :now
+        INSERT INTO groupings (id, type, name, parent_id, status, description, created_at, updated_at)
+        SELECT
+            (SELECT COALESCE(MAX(id), 0) FROM groupings) + 1,
+            'topic', 'plasticity', NULL, 'active', NULL, :now, :now
         WHERE NOT EXISTS (
             SELECT 1 FROM groupings WHERE type='topic' AND name='plasticity'
         )
@@ -747,6 +749,24 @@ def _migration_018_seed_grouping_hierarchy(conn) -> None:
             """), {"pid": pid, "now": now, "child": child})
 
 
+def _migration_019_resync_grouping_sequences(conn) -> None:
+    """Advance the groupings / grouping_links id sequences past the max backfilled id.
+
+    Migrations 017/018 insert rows with explicit ids (COALESCE(MAX(id),0)+1), which
+    does NOT advance the DuckDB sequence used by the ORM insert path (nextval). Without
+    this, the first agent-proposed grouping/link collides on the primary key. DuckDB
+    only; SQLite uses autoincrement and needs no resync.
+    """
+    if conn.dialect.name != "duckdb":
+        return
+    for table, seq in (
+        ("groupings", "groupings_id_seq"),
+        ("grouping_links", "grouping_links_id_seq"),
+    ):
+        max_id = conn.execute(text(f"SELECT COALESCE(MAX(id), 0) FROM {table}")).scalar() or 0
+        conn.execute(text(f"CREATE OR REPLACE SEQUENCE {seq} START WITH {int(max_id) + 1}"))
+
+
 _MIGRATIONS: dict[int, callable] = {
     1: _migration_001_study_note_unique,
     2: _migration_002_model_call_log,
@@ -766,6 +786,7 @@ _MIGRATIONS: dict[int, callable] = {
     16: _migration_016_question_topic_tables,
     17: _migration_017_groupings,
     18: _migration_018_seed_grouping_hierarchy,
+    19: _migration_019_resync_grouping_sequences,
 }
 
 

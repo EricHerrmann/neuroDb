@@ -238,12 +238,23 @@ export interface QuestionTopicLink {
   topic_id: number
   topic_name: string
   status: string  // 'pending' | 'confirmed'
+  proposed?: boolean
 }
 
 export interface QuestionConceptLink {
   concept_id: number
   concept_name: string
   status: string
+  proposed?: boolean
+}
+
+export interface GroupingItem {
+  id: number
+  type: string
+  name: string
+  parent_id: number | null
+  status: string
+  description: string | null
 }
 
 export interface ResearchQuestionDetail {

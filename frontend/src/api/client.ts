@@ -10,6 +10,7 @@ import type {
   DuplicateCheckResponse,
   EvidenceLinkItem,
   EvidenceSummary,
+  GroupingItem,
   Hypothesis,
   HypothesisReviewItem,
   PaperItem,
@@ -196,6 +197,17 @@ export const api = {
     patch<ResearchQuestionDetail>(`/api/research/questions/${questionId}/concepts/${conceptId}`, { status: 'confirmed' }),
   removeQuestionConcept: (questionId: number, conceptId: number) =>
     del<void>(`/api/research/questions/${questionId}/concepts/${conceptId}`),
+  listGroupings: (params: { type?: string; status?: string } = {}) => {
+    const q = new URLSearchParams()
+    if (params.type) q.set('type', params.type)
+    if (params.status) q.set('status', params.status)
+    const query = q.toString()
+    return get<GroupingItem[]>(query ? `/api/research/groupings?${query}` : '/api/research/groupings')
+  },
+  createGrouping: (body: { type: string; name: string; parent_id?: number | null; description?: string | null }) =>
+    post<GroupingItem>('/api/research/groupings', body),
+  patchGrouping: (id: number, body: { parent_id?: number | null; status?: string }) =>
+    patch<GroupingItem>(`/api/research/groupings/${id}`, body),
   approveClaim: (id: number) =>
     post<ClaimItem>(`/api/research/claims/${id}/approve`),
   rejectClaim: (id: number) =>

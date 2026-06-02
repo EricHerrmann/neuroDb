@@ -3,6 +3,7 @@ import type { ReactNode } from 'react'
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 
 import { api } from '../api/client'
+import GroupingHierarchy from '../components/GroupingHierarchy'
 import StatusChip from '../components/StatusChip'
 import TaskStatus from '../components/TaskStatus'
 import { useTask } from '../hooks/useTask'
@@ -775,6 +776,8 @@ export default function ResearchPanel() {
             </button>
           ))}
         </div>
+
+        <GroupingHierarchy type="topic" />
 
         {questions.length === 0 ? (
           <p style={{ color: '#94a3b8', fontSize: 12 }}>No research questions yet.</p>

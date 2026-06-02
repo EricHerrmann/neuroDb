@@ -10,6 +10,7 @@ function makeWrapper(data: {
   reviews?: Record<number, unknown[]>
   metrics?: unknown
   questions?: unknown[]
+  groupings?: unknown[]
 } = {}) {
   const qc = new QueryClient({
     defaultOptions: { queries: { retry: false, staleTime: Infinity } },
@@ -26,6 +27,8 @@ function makeWrapper(data: {
     caveats: [],
   })
   qc.setQueryData(['research-questions-detail', undefined, []], data.questions ?? [])
+  qc.setQueryData(['groupings-for-filter', 'topic'], data.groupings ?? [])
+  qc.setQueryData(['groupings-all', 'topic'], data.groupings ?? [])
   qc.setQueryData(['research-claims'], [])
   qc.setQueryData(['research-gaps'], [])
   return ({ children }: { children: React.ReactNode }) =>

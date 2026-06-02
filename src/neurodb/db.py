@@ -767,6 +767,16 @@ def _migration_019_resync_grouping_sequences(conn) -> None:
         conn.execute(text(f"CREATE OR REPLACE SEQUENCE {seq} START WITH {int(max_id) + 1}"))
 
 
+def _migration_020_literature_search_arxiv_count(conn) -> None:
+    """Add per-source arXiv count column to literature_searches."""
+    try:
+        conn.execute(
+            text("ALTER TABLE literature_searches ADD COLUMN arxiv_count INTEGER DEFAULT 0")
+        )
+    except Exception:
+        pass  # column already exists
+
+
 _MIGRATIONS: dict[int, callable] = {
     1: _migration_001_study_note_unique,
     2: _migration_002_model_call_log,
@@ -787,6 +797,7 @@ _MIGRATIONS: dict[int, callable] = {
     17: _migration_017_groupings,
     18: _migration_018_seed_grouping_hierarchy,
     19: _migration_019_resync_grouping_sequences,
+    20: _migration_020_literature_search_arxiv_count,
 }
 
 

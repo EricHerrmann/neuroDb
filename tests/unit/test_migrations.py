@@ -113,3 +113,25 @@ def test_migration_013_creates_system_warnings_table():
         "selected_provider",
         "message",
     }.issubset(columns)
+
+
+def test_migration_020_adds_arxiv_count_column():
+    from sqlalchemy import text
+
+    from neurodb.db import _migration_020_literature_search_arxiv_count
+
+    engine = create_engine("sqlite:///:memory:")
+    with engine.connect() as conn:
+        conn.execute(text(
+            "CREATE TABLE literature_searches ("
+            "id INTEGER PRIMARY KEY, query TEXT, pubmed_count INTEGER, "
+            "semantic_scholar_count INTEGER, results_json TEXT, searched_at TEXT)"
+        ))
+        conn.commit()
+        # Idempotent: applying twice must not raise.
+        _migration_020_literature_search_arxiv_count(conn)
+        _migration_020_literature_search_arxiv_count(conn)
+        conn.commit()
+
+    cols = {c["name"] for c in inspect(engine).get_columns("literature_searches")}
+    assert "arxiv_count" in cols

@@ -42,6 +42,25 @@ describe('ResearchPanel', () => {
     expect(screen.getByText(/No hypotheses yet/)).toBeTruthy()
   })
 
+  it('renders topic filter buttons from the groupings endpoint', () => {
+    const qc = new QueryClient({ defaultOptions: { queries: { retry: false, staleTime: Infinity } } })
+    qc.setQueryData(['research-hypotheses'], [])
+    qc.setQueryData(['research-metrics'], {
+      approved_sources_count: 0, chat_sessions_count: 0,
+      literature_searches_count: 0, research_hypotheses_count: 0, caveats: [],
+    })
+    qc.setQueryData(['research-questions-detail', undefined, []], [])
+    qc.setQueryData(['research-claims'], [])
+    qc.setQueryData(['research-gaps'], [])
+    qc.setQueryData(['groupings-for-filter', 'topic'], [
+      { id: 7, type: 'topic', name: 'plasticity', parent_id: null, status: 'active', description: null },
+    ])
+    const wrapper = ({ children }: { children: React.ReactNode }) =>
+      React.createElement(QueryClientProvider, { client: qc }, children)
+    render(<ResearchPanel />, { wrapper })
+    expect(screen.getByRole('button', { name: 'plasticity' })).toBeTruthy()
+  })
+
   it('renders Run Review button per hypothesis', () => {
     render(<ResearchPanel />, {
       wrapper: makeWrapper({

@@ -655,12 +655,12 @@ export default function ResearchPanel() {
     queryKey: ['research-questions-detail', selectedTopicId, selectedQuestionStatuses],
     queryFn: () => api.getResearchQuestionsDetail(selectedQuestionStatuses, selectedTopicId),
   })
-  const { data: topicSqlResult } = useQuery({
-    queryKey: ['topics-for-filter'],
-    queryFn: () => api.executeSQL("SELECT id, name FROM topics WHERE status = 'active' ORDER BY name"),
+  const { data: topicGroupings = [] } = useQuery({
+    queryKey: ['groupings-for-filter', 'topic'],
+    queryFn: () => api.listGroupings({ type: 'topic', status: 'active' }),
   })
   const topicOptions: Array<{ id: number; name: string }> =
-    topicSqlResult?.rows?.map((r: unknown[]) => ({ id: r[0] as number, name: r[1] as string })) ?? []
+    topicGroupings.map(g => ({ id: g.id, name: g.name }))
   const { data: allHypotheses = [], isLoading: hypothesesLoading } = useQuery({
     queryKey: ['research-hypotheses'],
     queryFn: () => api.getHypotheses([]),

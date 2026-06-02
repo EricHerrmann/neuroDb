@@ -46,30 +46,27 @@ def _now_iso() -> str:
 
 
 def _question_detail(engine: Engine, question_id: int) -> ResearchQuestionDetail:
-    """Build ResearchQuestionDetail including all topic and concept links."""
-    from sqlalchemy import select as _select
-    from neurodb.schema import (
-        Concept,
-        QuestionConcept,
-        QuestionTopic,
-        ResearchQuestion as ResearchQuestionORM,
-        Topic,
-    )
+    """Build ResearchQuestionDetail from the unified grouping engine."""
+    from neurodb.schema import ResearchQuestion as ResearchQuestionORM
+    from neurodb.db.grouping_store import get_groupings_for_anchor
     from neurodb.api.schemas.research import QuestionConceptLink, QuestionTopicLink
     with get_session(engine) as session:
         q = session.get(ResearchQuestionORM, question_id)
         if q is None:
             raise HTTPException(status_code=404, detail=f"Question {question_id} not found")
-        topic_rows = session.execute(
-            _select(QuestionTopic, Topic)
-            .join(Topic, Topic.id == QuestionTopic.topic_id)
-            .where(QuestionTopic.question_id == question_id)
-        ).all()
-        concept_rows = session.execute(
-            _select(QuestionConcept, Concept)
-            .join(Concept, Concept.id == QuestionConcept.concept_id)
-            .where(QuestionConcept.question_id == question_id)
-        ).all()
+        links = get_groupings_for_anchor(session, "question", question_id)
+        topics: list[QuestionTopicLink] = []
+        concepts: list[QuestionConceptLink] = []
+        for g in links:
+            is_proposed = g["grouping_status"] == "proposed"
+            if g["type"] == "topic":
+                topics.append(QuestionTopicLink(
+                    topic_id=g["id"], topic_name=g["name"],
+                    status=g["link_status"], proposed=is_proposed))
+            elif g["type"] == "concept":
+                concepts.append(QuestionConceptLink(
+                    concept_id=g["id"], concept_name=g["name"],
+                    status=g["link_status"], proposed=is_proposed))
         return ResearchQuestionDetail(
             id=q.id,
             question=q.question,
@@ -77,14 +74,8 @@ def _question_detail(engine: Engine, question_id: int) -> ResearchQuestionDetail
             topic_context=q.topic_context,
             origin_session_id=getattr(q, "origin_session_id", None),
             created_at=q.created_at,
-            topics=[
-                QuestionTopicLink(topic_id=qt.topic_id, topic_name=t.name, status=qt.status)
-                for qt, t in topic_rows
-            ],
-            concepts=[
-                QuestionConceptLink(concept_id=qc.concept_id, concept_name=c.name, status=qc.status)
-                for qc, c in concept_rows
-            ],
+            topics=topics,
+            concepts=concepts,
         )
 
 

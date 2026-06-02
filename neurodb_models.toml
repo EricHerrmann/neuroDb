@@ -154,6 +154,10 @@ max_tokens = 4096
 tier = "premium"
 max_tokens = 2048
 
+[tasks."agent.extract.groupings"]
+tier = "standard"
+max_tokens = 1024
+
 [context_budgets.general]
 papers = 2
 notes = 3

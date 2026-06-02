@@ -14,6 +14,9 @@ from neurodb.api.schemas.research import (
     AddConceptLinkRequest,
     AddTopicLinkRequest,
     ClaimItem,
+    CreateGroupingRequest,
+    GroupingItem,
+    PatchGroupingRequest,
     CreateQuestionRequest,
     EvidenceLinkItem,
     Hypothesis,
@@ -36,6 +39,10 @@ from neurodb.research_tools import (
 from neurodb.schema import Claim, EvidenceLink, HypothesisReview, ResearchGap, ResearchHypothesis
 
 router = APIRouter()
+
+
+def _now_iso() -> str:
+    return datetime.now(UTC).isoformat()
 
 
 def _question_detail(engine: Engine, question_id: int) -> ResearchQuestionDetail:
@@ -566,3 +573,61 @@ def _review_item(engine: Engine, review_id: int) -> HypothesisReviewItem:
             status=row.status,
             created_at=row.created_at,
         )
+
+
+@router.get("/groupings", response_model=list[GroupingItem])
+def list_groupings_route(
+    type: str | None = Query(default=None),
+    status: str | None = Query(default=None),
+    engine: Engine = Depends(get_engine),
+) -> list[GroupingItem]:
+    from neurodb.db.grouping_store import list_groupings
+    with get_session(engine) as session:
+        return [GroupingItem(**g) for g in list_groupings(session, gtype=type, status=status)]
+
+
+@router.post("/groupings", response_model=GroupingItem)
+def create_grouping_route(
+    body: CreateGroupingRequest,
+    engine: Engine = Depends(get_engine),
+) -> GroupingItem:
+    from neurodb.db.grouping_store import get_or_create_grouping, set_parent, get_grouping
+    from neurodb.db.grouping_types import GroupingHierarchyError, UnknownGroupingType
+    with get_session(engine) as session:
+        try:
+            g = get_or_create_grouping(session, body.type, body.name, description=body.description)
+            if body.parent_id is not None:
+                set_parent(session, g.id, body.parent_id)
+            session.flush()
+            g = get_grouping(session, g.id)
+            return GroupingItem(id=g.id, type=g.type, name=g.name,
+                                parent_id=g.parent_id, status=g.status, description=g.description)
+        except (UnknownGroupingType, GroupingHierarchyError) as exc:
+            raise HTTPException(status_code=422, detail=str(exc))
+
+
+@router.patch("/groupings/{grouping_id}", response_model=GroupingItem)
+def patch_grouping_route(
+    grouping_id: int,
+    body: PatchGroupingRequest,
+    engine: Engine = Depends(get_engine),
+) -> GroupingItem:
+    from neurodb.db.grouping_store import get_grouping, set_parent
+    from neurodb.db.grouping_types import GroupingHierarchyError
+    fields = body.model_dump(exclude_unset=True)
+    with get_session(engine) as session:
+        if get_grouping(session, grouping_id) is None:
+            raise HTTPException(status_code=404, detail=f"Grouping {grouping_id} not found")
+        try:
+            if "parent_id" in fields:
+                set_parent(session, grouping_id, fields["parent_id"])
+            if fields.get("status") is not None:
+                g = get_grouping(session, grouping_id)
+                g.status = fields["status"]
+                g.updated_at = _now_iso()
+                session.flush()
+        except GroupingHierarchyError as exc:
+            raise HTTPException(status_code=422, detail=str(exc))
+        g = get_grouping(session, grouping_id)
+        return GroupingItem(id=g.id, type=g.type, name=g.name,
+                            parent_id=g.parent_id, status=g.status, description=g.description)

@@ -84,12 +84,14 @@ class QuestionTopicLink(BaseModel):
     topic_id: int
     topic_name: str
     status: str
+    proposed: bool = False
 
 
 class QuestionConceptLink(BaseModel):
     concept_id: int
     concept_name: str
     status: str
+    proposed: bool = False
 
 
 class ResearchQuestionDetail(BaseModel):
@@ -124,3 +126,24 @@ class PatchLinkStatusRequest(BaseModel):
 
 class AddConceptLinkRequest(BaseModel):
     concept_id: int
+
+
+class GroupingItem(BaseModel):
+    id: int
+    type: str
+    name: str
+    parent_id: int | None = None
+    status: str
+    description: str | None = None
+
+
+class CreateGroupingRequest(BaseModel):
+    type: str
+    name: str
+    parent_id: int | None = None
+    description: str | None = None
+
+
+class PatchGroupingRequest(BaseModel):
+    parent_id: int | None = None
+    status: str | None = None

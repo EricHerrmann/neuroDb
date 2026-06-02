@@ -251,6 +251,15 @@ variants, create a shared extension point.
 
 Highest-priority candidates:
 
+- Literature source backend registry (Tutor epoch): adding a neuroscience
+  literature source (PubMed, Semantic Scholar, arXiv, and future BioRxiv/OpenAlex)
+  currently requires a `SourceBackend`-shaped method, a parser, a per-source count
+  column + migration, hardcoded `search()` fan-out, a `_log_search` argument, and
+  duplicated `source_type` strings. Three concrete backends now exist (rule of
+  three met). Design: `docs/superpowers/specs/2026-06-02-literature-source-registry-design.md`.
+  **Deferred:** start only after Unified Groupings Phase 4 manual sign-off + Phase 5
+  legacy-table retirement and Research Question Phase 1 are complete (avoids
+  migration-number churn and keeps focus).
 - Runtime setup helper for scripts: dotenv loading, root-relative DB path
   resolution, engine initialization, optional view creation, and shared parser
   parents for `--db`.

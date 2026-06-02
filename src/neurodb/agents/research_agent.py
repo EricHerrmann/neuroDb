@@ -316,7 +316,7 @@ _RESEARCH_TOOLS = [
                 "title": {"type": "string"},
                 "source_type": {
                     "type": "string",
-                    "description": "paper, review, textbook, or website",
+                    "description": "paper, review, preprint, textbook, or website",
                 },
                 "topic_context": {
                     "type": "string",
@@ -660,7 +660,7 @@ class NeuroResearchAgent(BaseAgent):
 
     def _execute_nominate_paper(self, inputs: dict) -> str:
         from datetime import UTC, datetime
-        from neurodb.agents.tutor_agent import normalize_title
+        from neurodb.agents.tutor_agent import merge_existing_paper_metadata, normalize_title
         from neurodb.db import get_session
         from neurodb.schema import Paper as PaperModel
 
@@ -669,13 +669,17 @@ class NeuroResearchAgent(BaseAgent):
         doi = (inputs.get("doi") or "").strip() or None
 
         with get_session(self._engine) as session:
-            existing = (
-                session.query(PaperModel).filter_by(doi=doi).first()
-                if doi
-                else session.query(PaperModel).filter_by(normalized_title=normalized).first()
-            )
+            existing = session.query(PaperModel).filter_by(doi=doi).first() if doi else None
+            if existing is None:
+                existing = session.query(PaperModel).filter_by(normalized_title=normalized).first()
             if existing is not None:
-                return json.dumps({"status": "already_exists", "id": existing.id})
+                updated_fields = merge_existing_paper_metadata(existing, inputs)
+                session.flush()
+                return json.dumps({
+                    "status": "updated" if updated_fields else "already_exists",
+                    "id": existing.id,
+                    "updated_fields": updated_fields,
+                })
             row = PaperModel(
                 title=title,
                 normalized_title=normalized,

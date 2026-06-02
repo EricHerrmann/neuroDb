@@ -106,6 +106,34 @@ def test_queue_source_dedups_by_normalized_title_without_doi():
     }))["status"] == "already_exists"
 
 
+def test_queue_source_updates_existing_title_match_with_new_url():
+    engine = _engine()
+    agent = _agent(engine)
+    first = json.loads(agent._execute_queue_source({
+        "title": "Modern Hopfield Networks and Attention",
+        "source_type": "paper",
+        "topic_context": "attention as associative memory",
+    }))
+
+    second = json.loads(agent._execute_queue_source({
+        "title": "Modern Hopfield Networks and Attention",
+        "source_type": "paper",
+        "topic_context": "attention as associative memory",
+        "url": "https://arxiv.org/abs/2008.02217",
+        "doi": "10.48550/arXiv.2008.02217",
+    }))
+
+    assert second == {
+        "status": "updated",
+        "id": first["id"],
+        "updated_fields": ["doi", "url"],
+    }
+    with Session(engine) as session:
+        row = session.get(Paper, first["id"])
+        assert row.url == "https://arxiv.org/abs/2008.02217"
+        assert row.doi == "10.48550/arXiv.2008.02217"
+
+
 def test_search_knowledge_library_uses_store():
     store = _store()
     store.add_summary(1, "LTP Review", None, "plasticity", "Hippocampus LTP summary")
@@ -254,3 +282,11 @@ def test_system_prompt_mentions_topic_retrieval_tools():
     prompt = _agent()._build_system_prompt()
     assert "search_topics" in prompt
     assert "get_grouping_bundle" in prompt
+
+
+def test_queue_source_tool_lists_preprint_type():
+    from neurodb.agents.tutor_agent import _TUTOR_TOOLS
+
+    queue_tool = next(t for t in _TUTOR_TOOLS if t["name"] == "queue_source")
+    desc = queue_tool["input_schema"]["properties"]["source_type"]["description"]
+    assert "preprint" in desc.lower()

@@ -29,7 +29,7 @@ _TUTOR_SYSTEM_PROMPT = (
     "knowledge alone. "
     "To retrieve local context for a topic, call search_topics to find the topic grouping ID, "
     "then get_grouping_bundle to retrieve related papers, concepts, notes, and datasets. "
-    "Whenever you cite or recommend an external resource such as a paper, review, textbook, "
+    "Whenever you cite or recommend an external resource such as a paper, review, preprint, textbook, "
     "or website, call queue_source with the title, source type, and topic context so the user "
     "can review it later. To discover candidate learning resources, call search_literature. "
     "Never fabricate paper titles, DOIs, dataset IDs, counts, or source details. "
@@ -86,7 +86,7 @@ _TUTOR_TOOLS = [
                 "title": {"type": "string", "description": "Source title."},
                 "source_type": {
                     "type": "string",
-                    "description": "One of: paper, review, textbook, website.",
+                    "description": "One of: paper, review, preprint, textbook, website.",
                 },
                 "topic_context": {
                     "type": "string",
@@ -138,6 +138,21 @@ def normalize_title(title: str) -> str:
     value = unicodedata.normalize("NFKD", title.strip().lower())
     value = re.sub(r"[^\w\s]", "", value)
     return re.sub(r"\s+", " ", value).strip()
+
+
+def merge_existing_paper_metadata(paper: Paper, inputs: dict) -> list[str]:
+    """Fill missing review metadata when a queued source is re-submitted."""
+    updates: list[str] = []
+    for field in ("doi", "url", "abstract"):
+        value = (inputs.get(field) or "").strip()
+        if value and not getattr(paper, field):
+            setattr(paper, field, value)
+            updates.append(field)
+    year = inputs.get("year")
+    if year and not paper.year:
+        paper.year = int(year)
+        updates.append("year")
+    return updates
 
 
 class NeuroTutorAgent(BaseAgent):
@@ -206,14 +221,19 @@ class NeuroTutorAgent(BaseAgent):
         doi = (inputs.get("doi") or "").strip() or None
 
         with get_session(self._engine) as session:
-            if doi:
-                existing = session.query(Paper).filter_by(doi=doi).first()
-            else:
+            existing = session.query(Paper).filter_by(doi=doi).first() if doi else None
+            if existing is None:
                 existing = session.query(Paper).filter_by(
                     normalized_title=normalized
                 ).first()
             if existing is not None:
-                return json.dumps({"status": "already_exists", "id": existing.id})
+                updated_fields = merge_existing_paper_metadata(existing, inputs)
+                session.flush()
+                return json.dumps({
+                    "status": "updated" if updated_fields else "already_exists",
+                    "id": existing.id,
+                    "updated_fields": updated_fields,
+                })
 
             row = Paper(
                 title=title,

@@ -209,6 +209,44 @@ def get_question(
     return _question_detail(engine, question_id)
 
 
+def _confirm_question_grouping(engine: Engine, question_id: int, grouping_id: int, status: str) -> bool:
+    """Update a question→grouping link status; activate a proposed grouping on confirm.
+    Returns True if a link was found."""
+    from neurodb.db.grouping_store import update_link_status, get_grouping
+    with get_session(engine) as session:
+        found = update_link_status(session, grouping_id, "question", question_id, status)
+        if not found:
+            return False
+        if status == "confirmed":
+            g = get_grouping(session, grouping_id)
+            if g is not None and g.status == "proposed":
+                g.status = "active"
+                g.updated_at = _now_iso()
+                session.flush()
+        return True
+
+
+def _dismiss_question_grouping(engine: Engine, question_id: int, grouping_id: int) -> bool:
+    """Unlink a question→grouping link; delete the grouping if it is an orphan proposal.
+    Returns True if a link was found."""
+    from sqlalchemy import select as _select
+    from neurodb.schema import GroupingLink
+    from neurodb.db.grouping_store import unlink_grouping, get_grouping
+    with get_session(engine) as session:
+        found = unlink_grouping(session, grouping_id, "question", question_id)
+        if not found:
+            return False
+        g = get_grouping(session, grouping_id)
+        if g is not None and g.status == "proposed":
+            remaining = session.execute(
+                _select(GroupingLink).where(GroupingLink.grouping_id == grouping_id)
+            ).first()
+            if remaining is None:
+                session.delete(g)
+                session.flush()
+        return True
+
+
 @router.post("/questions/{question_id}/topics", response_model=ResearchQuestionDetail)
 def add_question_topic(
     question_id: int,
@@ -216,11 +254,11 @@ def add_question_topic(
     engine: Engine = Depends(get_engine),
 ) -> ResearchQuestionDetail:
     from neurodb.schema import ResearchQuestion as ResearchQuestionORM
-    from neurodb.db.topic_store import link_question_topic
+    from neurodb.db.grouping_store import link_grouping
     with get_session(engine) as session:
         if session.get(ResearchQuestionORM, question_id) is None:
             raise HTTPException(status_code=404, detail=f"Question {question_id} not found")
-        link_question_topic(session, question_id, body.topic_id, status="confirmed")
+        link_grouping(session, body.topic_id, "question", question_id, status="confirmed")
     return _question_detail(engine, question_id)
 
 
@@ -231,10 +269,7 @@ def patch_question_topic(
     body: PatchLinkStatusRequest,
     engine: Engine = Depends(get_engine),
 ) -> ResearchQuestionDetail:
-    from neurodb.db.topic_store import update_question_topic_status
-    with get_session(engine) as session:
-        found = update_question_topic_status(session, question_id, topic_id, body.status)
-    if not found:
+    if not _confirm_question_grouping(engine, question_id, topic_id, body.status):
         raise HTTPException(status_code=404, detail=f"Topic link {question_id}/{topic_id} not found")
     return _question_detail(engine, question_id)
 
@@ -245,10 +280,7 @@ def remove_question_topic(
     topic_id: int,
     engine: Engine = Depends(get_engine),
 ) -> None:
-    from neurodb.db.topic_store import unlink_question_topic
-    with get_session(engine) as session:
-        found = unlink_question_topic(session, question_id, topic_id)
-    if not found:
+    if not _dismiss_question_grouping(engine, question_id, topic_id):
         raise HTTPException(status_code=404, detail=f"Topic link {question_id}/{topic_id} not found")
 
 
@@ -259,11 +291,11 @@ def add_question_concept(
     engine: Engine = Depends(get_engine),
 ) -> ResearchQuestionDetail:
     from neurodb.schema import ResearchQuestion as ResearchQuestionORM
-    from neurodb.db.topic_store import link_question_concept
+    from neurodb.db.grouping_store import link_grouping
     with get_session(engine) as session:
         if session.get(ResearchQuestionORM, question_id) is None:
             raise HTTPException(status_code=404, detail=f"Question {question_id} not found")
-        link_question_concept(session, question_id, body.concept_id, status="confirmed")
+        link_grouping(session, body.concept_id, "question", question_id, status="confirmed")
     return _question_detail(engine, question_id)
 
 
@@ -274,10 +306,7 @@ def patch_question_concept(
     body: PatchLinkStatusRequest,
     engine: Engine = Depends(get_engine),
 ) -> ResearchQuestionDetail:
-    from neurodb.db.topic_store import update_question_concept_status
-    with get_session(engine) as session:
-        found = update_question_concept_status(session, question_id, concept_id, body.status)
-    if not found:
+    if not _confirm_question_grouping(engine, question_id, concept_id, body.status):
         raise HTTPException(status_code=404, detail=f"Concept link {question_id}/{concept_id} not found")
     return _question_detail(engine, question_id)
 
@@ -288,10 +317,7 @@ def remove_question_concept(
     concept_id: int,
     engine: Engine = Depends(get_engine),
 ) -> None:
-    from neurodb.db.topic_store import unlink_question_concept
-    with get_session(engine) as session:
-        found = unlink_question_concept(session, question_id, concept_id)
-    if not found:
+    if not _dismiss_question_grouping(engine, question_id, concept_id):
         raise HTTPException(status_code=404, detail=f"Concept link {question_id}/{concept_id} not found")
 
 

@@ -149,7 +149,7 @@ def test_create_hypothesis_review_persists_without_duplicating_hypothesis():
     review = create_hypothesis_review(
         engine,
         result["id"],
-        model="claude-opus-4-7",
+        model="claude-opus-4-8",
         critique_text="The causal language is not yet supported.",
         unsupported_claims=["LTP causes learning improvement"],
         missing_confounds=["task design"],
@@ -162,7 +162,7 @@ def test_create_hypothesis_review_persists_without_duplicating_hypothesis():
         assert session.query(ResearchHypothesis).count() == 1
         row = session.query(HypothesisReview).one()
         assert row.hypothesis_id == result["id"]
-        assert row.model == "claude-opus-4-7"
+        assert row.model == "claude-opus-4-8"
         assert row.status == "pending"
         assert json.loads(row.missing_confounds_json) == ["task design"]
 

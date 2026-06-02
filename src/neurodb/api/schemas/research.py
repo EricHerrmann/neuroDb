@@ -80,14 +80,14 @@ class EvidenceLinkItem(BaseModel):
     created_at: str
 
 
-class QuestionTopicLink(BaseModel):
+class TopicGroupingLink(BaseModel):
     topic_id: int
     topic_name: str
     status: str
     proposed: bool = False
 
 
-class QuestionConceptLink(BaseModel):
+class ConceptGroupingLink(BaseModel):
     concept_id: int
     concept_name: str
     status: str
@@ -101,8 +101,8 @@ class ResearchQuestionDetail(BaseModel):
     topic_context: str | None = None
     origin_session_id: int | None = None
     created_at: datetime | None = None
-    topics: list[QuestionTopicLink] = []
-    concepts: list[QuestionConceptLink] = []
+    topics: list[TopicGroupingLink] = []
+    concepts: list[ConceptGroupingLink] = []
 
 
 class CreateQuestionRequest(BaseModel):

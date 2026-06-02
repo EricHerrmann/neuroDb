@@ -175,6 +175,7 @@ function QuestionStatusChip({ question }: { question: { id: number; status: stri
 }
 
 function QuestionCreateForm({ onCreated }: { onCreated: () => void }) {
+  const queryClient = useQueryClient()
   const [question, setQuestion] = useState('')
   const [topicContext, setTopicContext] = useState('')
   const create = useMutation({
@@ -182,6 +183,7 @@ function QuestionCreateForm({ onCreated }: { onCreated: () => void }) {
     onSuccess: () => {
       setQuestion('')
       setTopicContext('')
+      queryClient.invalidateQueries({ queryKey: ['suggestions'] })
       onCreated()
     },
   })

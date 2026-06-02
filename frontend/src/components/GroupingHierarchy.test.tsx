@@ -16,6 +16,7 @@ function wrapperWith(groupings: unknown[]) {
 const PARENT = { id: 1, type: 'topic', name: 'plasticity', parent_id: null, status: 'active', description: null }
 const CHILD = { id: 2, type: 'topic', name: 'neuroplasticity', parent_id: 1, status: 'active', description: null }
 const LOOSE = { id: 3, type: 'topic', name: 'stroke', parent_id: null, status: 'active', description: null }
+const LOOSE_CHILD = { id: 4, type: 'topic', name: 'rehab', parent_id: 3, status: 'active', description: null }
 
 describe('GroupingHierarchy', () => {
   afterEach(() => vi.restoreAllMocks())
@@ -48,5 +49,20 @@ describe('GroupingHierarchy', () => {
     const select = screen.getByLabelText('parent of neuroplasticity')
     fireEvent.change(select, { target: { value: '3' } })
     await waitFor(() => expect(screen.getByRole('alert').textContent).toContain('Parent must be top-level'))
+  })
+
+  it('collapses each top-level grouping independently', () => {
+    render(<GroupingHierarchy type="topic" />, { wrapper: wrapperWith([PARENT, CHILD, LOOSE, LOOSE_CHILD]) })
+
+    fireEvent.click(screen.getByRole('button', { name: 'Collapse plasticity' }))
+    expect(screen.queryByLabelText('parent of neuroplasticity')).toBeNull()
+    expect(screen.getByLabelText('parent of rehab')).toBeTruthy()
+
+    fireEvent.click(screen.getByRole('button', { name: 'Collapse stroke' }))
+    expect(screen.queryByLabelText('parent of rehab')).toBeNull()
+
+    fireEvent.click(screen.getByRole('button', { name: 'Expand plasticity' }))
+    expect(screen.getByLabelText('parent of neuroplasticity')).toBeTruthy()
+    expect(screen.queryByLabelText('parent of rehab')).toBeNull()
   })
 })

@@ -9,7 +9,8 @@ from sqlalchemy.orm import Session
 from sqlalchemy.pool import StaticPool
 
 from neurodb.api.routes.research import router
-from neurodb.schema import Base, Concept, QuestionConcept, QuestionTopic, ResearchQuestion, Topic
+from neurodb.db.grouping_store import get_or_create_grouping, link_grouping
+from neurodb.schema import Base, Concept, Grouping, GroupingLink, ResearchQuestion, Topic
 
 
 def _now():
@@ -45,43 +46,46 @@ def _seed_question_with_links(engine):
         )
         session.add_all([t, c, q])
         session.flush()
-        session.add(QuestionTopic(question_id=q.id, topic_id=t.id, status="confirmed", created_at=_now()))
-        session.add(QuestionConcept(question_id=q.id, concept_id=c.id, status="pending", created_at=_now()))
+        gt = get_or_create_grouping(session, "topic", "plasticity")
+        gc = get_or_create_grouping(session, "concept", "LTP")
+        link_grouping(session, gt.id, "question", q.id, status="confirmed")
+        link_grouping(session, gc.id, "question", q.id, status="pending")
         session.commit()
-        return q.id, t.id, c.id
+        return q.id, t.id, c.id, gt.id, gc.id
 
 
 # --- T5: delete cascade ---
 
 def test_delete_question_returns_204(client_and_engine):
     client, engine = client_and_engine
-    q_id, _, _ = _seed_question_with_links(engine)
+    q_id, *_ = _seed_question_with_links(engine)
     resp = client.delete(f"/api/research/questions/{q_id}")
     assert resp.status_code == 204
 
 
-def test_delete_question_removes_join_rows(client_and_engine):
+def test_delete_question_removes_grouping_link_rows(client_and_engine):
     client, engine = client_and_engine
-    q_id, t_id, c_id = _seed_question_with_links(engine)
+    q_id, *_ = _seed_question_with_links(engine)
     client.delete(f"/api/research/questions/{q_id}")
     with Session(engine) as session:
-        qt = session.execute(
-            select(QuestionTopic).where(QuestionTopic.question_id == q_id)
+        links = session.execute(
+            select(GroupingLink).where(
+                GroupingLink.anchor_type == "question",
+                GroupingLink.anchor_id == q_id,
+            )
         ).scalars().all()
-        qc = session.execute(
-            select(QuestionConcept).where(QuestionConcept.question_id == q_id)
-        ).scalars().all()
-        assert len(qt) == 0, "question_topics rows not deleted"
-        assert len(qc) == 0, "question_concepts rows not deleted"
+        assert len(links) == 0, "grouping_links rows not deleted"
 
 
 def test_delete_question_does_not_remove_topics_or_concepts(client_and_engine):
     client, engine = client_and_engine
-    q_id, t_id, c_id = _seed_question_with_links(engine)
+    q_id, t_id, c_id, gt_id, gc_id = _seed_question_with_links(engine)
     client.delete(f"/api/research/questions/{q_id}")
     with Session(engine) as session:
         assert session.get(Topic, t_id) is not None, "Topic was incorrectly deleted"
         assert session.get(Concept, c_id) is not None, "Concept was incorrectly deleted"
+        assert session.get(Grouping, gt_id) is not None, "Topic grouping was incorrectly deleted"
+        assert session.get(Grouping, gc_id) is not None, "Concept grouping was incorrectly deleted"
 
 
 def test_delete_question_404_when_not_found(client_and_engine):
@@ -92,7 +96,7 @@ def test_delete_question_404_when_not_found(client_and_engine):
 
 def test_deleted_question_returns_404_on_get(client_and_engine):
     client, engine = client_and_engine
-    q_id, _, _ = _seed_question_with_links(engine)
+    q_id, *_ = _seed_question_with_links(engine)
     client.delete(f"/api/research/questions/{q_id}")
     resp = client.get(f"/api/research/questions/{q_id}")
     assert resp.status_code == 404

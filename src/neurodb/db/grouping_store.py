@@ -241,3 +241,92 @@ def rollup_parents(session: Session, grouping_ids: list[int]) -> list[int]:
                 result.append(grouping.parent_id)
                 seen.add(grouping.parent_id)
     return result
+
+
+def get_anchor_ids_for_grouping(
+    session: Session,
+    grouping_id: int,
+    anchor_type: str,
+    *,
+    status: str | None = None,
+) -> list[int]:
+    """Anchor ids of one type linked to a grouping."""
+    stmt = select(GroupingLink.anchor_id).where(
+        GroupingLink.grouping_id == grouping_id,
+        GroupingLink.anchor_type == anchor_type,
+    )
+    if status is not None:
+        stmt = stmt.where(GroupingLink.status == status)
+    return [row[0] for row in session.execute(stmt).all()]
+
+
+def get_grouping_bundle(session: Session, grouping_id: int) -> dict:
+    """Related concepts, papers, study notes, and dataset packets for a grouping."""
+    from neurodb.schema import DatasetResearchPacket, Paper, StudyNote
+
+    grouping = session.get(Grouping, grouping_id)
+    if grouping is None:
+        return {}
+
+    concept_ids = get_anchor_ids_for_grouping(
+        session, grouping_id, "grouping", status="confirmed"
+    )
+    concepts = [session.get(Grouping, concept_id) for concept_id in concept_ids]
+    paper_ids = get_anchor_ids_for_grouping(
+        session, grouping_id, "paper", status="confirmed"
+    )
+    papers = [session.get(Paper, paper_id) for paper_id in paper_ids]
+    note_ids = get_anchor_ids_for_grouping(
+        session, grouping_id, "study_note", status="confirmed"
+    )
+    notes = [session.get(StudyNote, note_id) for note_id in note_ids]
+    packet_ids = get_anchor_ids_for_grouping(
+        session, grouping_id, "dataset_packet", status="confirmed"
+    )
+    packets = [session.get(DatasetResearchPacket, packet_id) for packet_id in packet_ids]
+
+    return {
+        "grouping": {
+            "id": grouping.id,
+            "name": grouping.name,
+            "type": grouping.type,
+            "description": grouping.description,
+        },
+        "concepts": [
+            {"id": c.id, "name": c.name, "description": c.description}
+            for c in concepts
+            if c is not None
+        ],
+        "papers": [
+            {
+                "id": p.id,
+                "title": p.title,
+                "doi": p.doi,
+                "status": p.status,
+                "summary": p.summary,
+            }
+            for p in papers
+            if p is not None
+        ],
+        "study_notes": [
+            {
+                "id": n.id,
+                "note_text": n.note_text,
+                "concept_tag": n.concept_tag,
+                "tagged_at": n.tagged_at,
+            }
+            for n in notes
+            if n is not None
+        ],
+        "dataset_packets": [
+            {
+                "id": pkt.id,
+                "source": pkt.source,
+                "source_id": pkt.source_id,
+                "title": pkt.title,
+                "usefulness_state": pkt.usefulness_state,
+            }
+            for pkt in packets
+            if pkt is not None
+        ],
+    }

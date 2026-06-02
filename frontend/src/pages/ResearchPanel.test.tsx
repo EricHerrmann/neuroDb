@@ -4,6 +4,7 @@ import { fireEvent, render, screen, waitFor } from '@testing-library/react'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 
 import ResearchPanel from './ResearchPanel'
+import { api } from '../api/client'
 
 function makeWrapper(data: {
   hypotheses?: unknown[]
@@ -167,6 +168,49 @@ describe('ResearchPanel', () => {
 
     await waitFor(() => {
       expect(screen.getByText('Running...')).toBeTruthy()
+    })
+  })
+
+  it('refreshes suggestions after creating a research question', async () => {
+    const qc = new QueryClient({
+      defaultOptions: { queries: { retry: false, staleTime: Infinity }, mutations: { retry: false } },
+    })
+    qc.setQueryData(['research-hypotheses'], [])
+    qc.setQueryData(['research-metrics'], {
+      approved_sources_count: 0,
+      chat_sessions_count: 0,
+      literature_searches_count: 0,
+      research_hypotheses_count: 0,
+      caveats: [],
+    })
+    qc.setQueryData(['research-questions-detail', undefined, []], [])
+    qc.setQueryData(['groupings-for-filter', 'topic'], [])
+    qc.setQueryData(['groupings-all', 'topic'], [])
+    qc.setQueryData(['research-claims'], [])
+    qc.setQueryData(['research-gaps'], [])
+    vi.spyOn(api, 'createQuestion').mockResolvedValue({
+      id: 1,
+      question: 'Does LTP predict recovery?',
+      status: 'open',
+      topic_context: null,
+      origin_session_id: null,
+      created_at: '2026-06-02',
+      topics: [],
+      concepts: [],
+    })
+    vi.spyOn(api, 'getResearchQuestionsDetail').mockResolvedValue([])
+    const invalidateSpy = vi.spyOn(qc, 'invalidateQueries')
+    const wrapper = ({ children }: { children: React.ReactNode }) =>
+      React.createElement(QueryClientProvider, { client: qc }, children)
+
+    render(<ResearchPanel />, { wrapper })
+    fireEvent.change(screen.getByPlaceholderText('Enter a research question…'), {
+      target: { value: 'Does LTP predict recovery?' },
+    })
+    fireEvent.click(screen.getByText('Save Question'))
+
+    await waitFor(() => {
+      expect(invalidateSpy).toHaveBeenCalledWith({ queryKey: ['suggestions'] })
     })
   })
 })

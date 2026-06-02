@@ -1,4 +1,6 @@
 """Unit tests for the type-agnostic grouping engine."""
+from datetime import UTC, datetime
+
 import pytest
 from sqlalchemy import create_engine, text
 from sqlalchemy.orm import Session
@@ -6,6 +8,8 @@ from sqlalchemy.pool import StaticPool
 
 from neurodb.db.grouping_store import (
     get_children,
+    get_anchor_ids_for_grouping,
+    get_grouping_bundle,
     get_grouping,
     get_groupings_for_anchor,
     get_or_create_grouping,
@@ -20,6 +24,10 @@ from neurodb.db.grouping_store import (
 )
 from neurodb.db.grouping_types import GroupingHierarchyError, UnknownGroupingType
 from neurodb.schema import Base
+
+
+def _now():
+    return datetime.now(UTC).isoformat()
 
 
 @pytest.fixture
@@ -195,6 +203,46 @@ def test_rollup_parents(session):
     assert sorted(rollup_parents(session, [child.id, parent.id])) == sorted(
         [child.id, parent.id]
     )
+
+
+def test_get_anchor_ids_for_grouping(session):
+    grouping = get_or_create_grouping(session, "topic", "stroke")
+    link_grouping(session, grouping.id, "paper", 11, status="confirmed")
+    link_grouping(session, grouping.id, "paper", 12, status="confirmed")
+    link_grouping(session, grouping.id, "study_note", 5, status="confirmed")
+    papers = get_anchor_ids_for_grouping(session, grouping.id, "paper")
+    assert sorted(papers) == [11, 12]
+    assert get_anchor_ids_for_grouping(session, grouping.id, "study_note") == [5]
+    assert get_anchor_ids_for_grouping(session, grouping.id, "dataset_packet") == []
+
+
+def test_get_grouping_bundle(session):
+    from neurodb.schema import Paper
+
+    topic = get_or_create_grouping(session, "topic", "plasticity", description="d")
+    concept = get_or_create_grouping(session, "concept", "LTP")
+    paper = Paper(
+        title="P1",
+        normalized_title="p1",
+        source_type="paper",
+        topic_context="",
+        status="approved",
+        queued_at=_now(),
+    )
+    session.add(paper)
+    session.flush()
+    link_grouping(session, topic.id, "grouping", concept.id, status="confirmed")
+    link_grouping(session, topic.id, "paper", paper.id, status="confirmed")
+    bundle = get_grouping_bundle(session, topic.id)
+    assert bundle["grouping"]["name"] == "plasticity"
+    assert [c["name"] for c in bundle["concepts"]] == ["LTP"]
+    assert [p["id"] for p in bundle["papers"]] == [paper.id]
+    assert bundle["study_notes"] == []
+    assert bundle["dataset_packets"] == []
+
+
+def test_get_grouping_bundle_missing(session):
+    assert get_grouping_bundle(session, 999999) == {}
 
 
 def test_get_groupings_for_anchor_includes_grouping_status(session):

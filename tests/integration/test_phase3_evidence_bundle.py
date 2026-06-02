@@ -16,7 +16,7 @@ from neurodb.db.claim_store import (
     resolve_gap,
     update_claim_status,
 )
-from neurodb.db.topic_store import get_or_create_topic, link_paper_topic
+from neurodb.db.grouping_store import get_or_create_grouping, link_grouping
 from neurodb.schema import (
     Base,
     DatasetIndex,
@@ -47,24 +47,26 @@ def engine():
 
 def test_question_linked_to_topic_returns_correct_bundle(engine):
     with Session(engine) as session:
-        topic = get_or_create_topic(session, "synaptic plasticity")
+        topic = get_or_create_grouping(session, "topic", "synaptic plasticity")
         session.flush()
+        topic_id = topic.id
 
         question = ResearchQuestion(
             question="Does LTP drive long-term memory consolidation?",
             topic_context="synaptic plasticity",
-            topic_id=topic.id,
             status="open",
             created_at=_now(),
             updated_at=_now(),
         )
         session.add(question)
+        session.flush()
+        link_grouping(session, topic_id, "question", question.id, status="confirmed")
         session.commit()
 
         bundle = get_question_bundle(session, question.id)
 
     assert bundle["question"]["question"] == "Does LTP drive long-term memory consolidation?"
-    assert bundle["topic"]["name"] == "synaptic plasticity"
+    assert bundle["topics"] == [{"id": topic_id, "name": "synaptic plasticity"}]
     assert bundle["hypotheses"] == []
     assert bundle["claims"] == []
     assert bundle["gaps"] == []
@@ -72,7 +74,7 @@ def test_question_linked_to_topic_returns_correct_bundle(engine):
 
 def test_approved_claim_from_linked_paper_appears_in_bundle(engine):
     with Session(engine) as session:
-        topic = get_or_create_topic(session, "hippocampal plasticity")
+        topic = get_or_create_grouping(session, "topic", "hippocampal plasticity")
         session.flush()
 
         paper = Paper(
@@ -85,18 +87,18 @@ def test_approved_claim_from_linked_paper_appears_in_bundle(engine):
         )
         session.add(paper)
         session.flush()
-        link_paper_topic(session, paper.id, topic.id)
+        link_grouping(session, topic.id, "paper", paper.id, status="confirmed")
 
         question = ResearchQuestion(
             question="How does LTP affect memory?",
             topic_context="hippocampal plasticity",
-            topic_id=topic.id,
             status="open",
             created_at=_now(),
             updated_at=_now(),
         )
         session.add(question)
         session.flush()
+        link_grouping(session, topic.id, "question", question.id, status="confirmed")
 
         claim = create_claim(session, paper.id, "LTP potentiates synaptic weight.", "finding")
         update_claim_status(session, claim.id, "approved")

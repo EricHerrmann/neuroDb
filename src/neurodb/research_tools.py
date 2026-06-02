@@ -151,21 +151,33 @@ def update_research_question(
 
 
 def delete_research_question(engine: Engine, question_id: int) -> dict:
-    """Delete a question and cascade join rows. Does not touch topics, concepts, hypotheses, or gaps."""
+    """Delete a question, grouping links, and now-orphan proposed groupings."""
     from sqlalchemy import select as _select
-    from neurodb.schema import QuestionConcept, QuestionTopic
+    from neurodb.schema import Grouping, GroupingLink
+
     with get_session(engine) as session:
         row = session.get(ResearchQuestion, question_id)
         if row is None:
             return {"error": f"question {question_id} not found"}
-        for qt in session.execute(
-            _select(QuestionTopic).where(QuestionTopic.question_id == question_id)
-        ).scalars().all():
-            session.delete(qt)
-        for qc in session.execute(
-            _select(QuestionConcept).where(QuestionConcept.question_id == question_id)
-        ).scalars().all():
-            session.delete(qc)
+        links = session.execute(
+            _select(GroupingLink).where(
+                GroupingLink.anchor_type == "question",
+                GroupingLink.anchor_id == question_id,
+            )
+        ).scalars().all()
+        affected_grouping_ids = {link.grouping_id for link in links}
+        for link in links:
+            session.delete(link)
+        session.flush()
+        for grouping_id in affected_grouping_ids:
+            grouping = session.get(Grouping, grouping_id)
+            if grouping is None or grouping.status != "proposed":
+                continue
+            remaining = session.execute(
+                _select(GroupingLink).where(GroupingLink.grouping_id == grouping_id)
+            ).first()
+            if remaining is None:
+                session.delete(grouping)
         session.delete(row)
         session.flush()
         return {"deleted": True}

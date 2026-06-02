@@ -32,6 +32,7 @@ function GroupingRow({ g, parents, onReparent }: RowProps) {
 export default function GroupingHierarchy({ type = 'topic' }: { type?: string }) {
   const queryClient = useQueryClient()
   const [error, setError] = useState<string | null>(null)
+  const [collapsedParentIds, setCollapsedParentIds] = useState<Set<number>>(() => new Set())
 
   const { data: groupings = [] } = useQuery({
     queryKey: ['groupings-all', type],
@@ -57,6 +58,18 @@ export default function GroupingHierarchy({ type = 'topic' }: { type?: string })
   const eligibleParents = (g: GroupingItem) =>
     childrenOf(g.id).length > 0 ? [] : topLevel.filter(p => p.id !== g.id)
 
+  const toggleParent = (id: number) => {
+    setCollapsedParentIds(current => {
+      const next = new Set(current)
+      if (next.has(id)) {
+        next.delete(id)
+      } else {
+        next.add(id)
+      }
+      return next
+    })
+  }
+
   return (
     <div>
       <div style={{ fontSize: 11, fontWeight: 600, color: '#475569', marginBottom: 4 }}>
@@ -67,21 +80,52 @@ export default function GroupingHierarchy({ type = 'topic' }: { type?: string })
       )}
       {topLevel.map(parent => (
         <div key={parent.id} style={{ marginBottom: 4 }}>
-          <GroupingRow
-            g={parent}
-            parents={eligibleParents(parent)}
-            onReparent={(pid) => reparent.mutate({ id: parent.id, parentId: pid })}
-          />
-          <div style={{ marginLeft: 14 }}>
-            {childrenOf(parent.id).map(child => (
-              <GroupingRow
-                key={child.id}
-                g={child}
-                parents={eligibleParents(child)}
-                onReparent={(pid) => reparent.mutate({ id: child.id, parentId: pid })}
-              />
-            ))}
+          <div style={{ display: 'flex', alignItems: 'center', gap: 4 }}>
+            {childrenOf(parent.id).length > 0 ? (
+              <button
+                type="button"
+                aria-label={`${collapsedParentIds.has(parent.id) ? 'Expand' : 'Collapse'} ${parent.name}`}
+                aria-expanded={!collapsedParentIds.has(parent.id)}
+                onClick={() => toggleParent(parent.id)}
+                style={{
+                  width: 16,
+                  height: 16,
+                  display: 'inline-flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  padding: 0,
+                  border: '1px solid #cbd5e1',
+                  borderRadius: 4,
+                  background: '#fff',
+                  color: '#475569',
+                  cursor: 'pointer',
+                  fontSize: 10,
+                  lineHeight: 1,
+                }}
+              >
+                {collapsedParentIds.has(parent.id) ? '▸' : '▾'}
+              </button>
+            ) : (
+              <span aria-hidden="true" style={{ width: 16 }} />
+            )}
+            <GroupingRow
+              g={parent}
+              parents={eligibleParents(parent)}
+              onReparent={(pid) => reparent.mutate({ id: parent.id, parentId: pid })}
+            />
           </div>
+          {!collapsedParentIds.has(parent.id) && (
+            <div style={{ marginLeft: 30 }}>
+              {childrenOf(parent.id).map(child => (
+                <GroupingRow
+                  key={child.id}
+                  g={child}
+                  parents={eligibleParents(child)}
+                  onReparent={(pid) => reparent.mutate({ id: child.id, parentId: pid })}
+                />
+              ))}
+            </div>
+          )}
         </div>
       ))}
     </div>

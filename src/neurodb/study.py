@@ -7,7 +7,7 @@ from datetime import datetime, timezone
 from sqlalchemy import select, text
 from sqlalchemy.orm import Session
 
-from neurodb.schema import Concept, DatasetIndex, Paper, StudyNote, Topic
+from neurodb.schema import DatasetIndex, GroupingLink, Paper, StudyNote
 
 
 def tag_dataset(
@@ -44,25 +44,37 @@ def tag_dataset(
 
 
 def _resolve_anchor(
+    session: Session,
+    note: StudyNote,
     idx: DatasetIndex | None,
-    topic: Topic | None,
-    concept: Concept | None,
     paper: Paper | None,
 ) -> tuple[str, str]:
     """Return (source, source_id) for a study note based on which FK anchor is set.
 
-    Precedence: index_id → topic_id → concept_id → paper_id.
+    Precedence: index_id -> topic grouping -> concept grouping -> paper_id.
     """
     if idx is not None:
         return idx.source, idx.source_id
-    if topic is not None:
-        return "topic", topic.name
-    if concept is not None:
-        return "concept", concept.name
+    grouping_anchor = _note_grouping_anchor(session, note.id)
+    if grouping_anchor is not None:
+        return grouping_anchor
     if paper is not None:
         source_id = paper.doi if paper.doi else (paper.title or "")[:50]
         return "paper", source_id
     return "note", ""
+
+
+def _note_grouping_anchor(session: Session, note_id: int) -> tuple[str, str] | None:
+    from neurodb.db.grouping_store import get_groupings_for_anchor
+
+    groupings = get_groupings_for_anchor(session, "study_note", note_id)
+    for grouping in groupings:
+        if grouping["type"] == "topic":
+            return "topic", grouping["name"]
+    for grouping in groupings:
+        if grouping["type"] == "concept":
+            return "concept", grouping["name"]
+    return None
 
 
 def list_tags(
@@ -77,10 +89,8 @@ def list_tags(
             through only when source is None (i.e. "all sources")
     """
     rows = session.execute(
-        select(StudyNote, DatasetIndex, Topic, Concept, Paper)
+        select(StudyNote, DatasetIndex, Paper)
         .outerjoin(DatasetIndex, DatasetIndex.id == StudyNote.index_id)
-        .outerjoin(Topic, Topic.id == StudyNote.topic_id)
-        .outerjoin(Concept, Concept.id == StudyNote.concept_id)
         .outerjoin(Paper, Paper.id == StudyNote.paper_id)
         .order_by(StudyNote.tagged_at.desc())
     ).all()
@@ -88,7 +98,7 @@ def list_tags(
     for row in rows:
         note = row.StudyNote
         resolved_source, resolved_source_id = _resolve_anchor(
-            row.DatasetIndex, row.Topic, row.Concept, row.Paper
+            session, note, row.DatasetIndex, row.Paper
         )
         if concept and concept.lower() not in note.concept_tag.lower():
             continue
@@ -120,6 +130,13 @@ def delete_tag(session: Session, tag_id: int) -> bool:
     note = session.get(StudyNote, tag_id)
     if note is None:
         return False
+    for link in session.execute(
+        select(GroupingLink).where(
+            GroupingLink.anchor_type == "study_note",
+            GroupingLink.anchor_id == tag_id,
+        )
+    ).scalars().all():
+        session.delete(link)
     # DuckDB ART index bug: index entries become inconsistent for rows that
     # predate column additions via ALTER TABLE. The FatalException on commit
     # invalidates the whole connection, so there is no safe catch-and-retry.
@@ -138,10 +155,8 @@ def search_tags(session: Session, keyword: str) -> list[dict]:
     """Return notes where keyword appears in concept_tag, note_text, or section_ref."""
     kw = keyword.lower()
     rows = session.execute(
-        select(StudyNote, DatasetIndex, Topic, Concept, Paper)
+        select(StudyNote, DatasetIndex, Paper)
         .outerjoin(DatasetIndex, DatasetIndex.id == StudyNote.index_id)
-        .outerjoin(Topic, Topic.id == StudyNote.topic_id)
-        .outerjoin(Concept, Concept.id == StudyNote.concept_id)
         .outerjoin(Paper, Paper.id == StudyNote.paper_id)
         .order_by(StudyNote.tagged_at.desc())
     ).all()
@@ -153,7 +168,7 @@ def search_tags(session: Session, keyword: str) -> list[dict]:
         in_section = note.section_ref and kw in note.section_ref.lower()
         if in_concept or in_note or in_section:
             resolved_source, resolved_source_id = _resolve_anchor(
-                row.DatasetIndex, row.Topic, row.Concept, row.Paper
+                session, note, row.DatasetIndex, row.Paper
             )
             results.append({
                 "source": resolved_source,

@@ -6,6 +6,7 @@ from sqlalchemy.orm import Session
 from sqlalchemy.pool import StaticPool
 
 from neurodb.schema import Base, Concept, DatasetIndex, IngestRun, Paper, StudyNote, Topic
+from neurodb.db.grouping_store import get_or_create_grouping, link_grouping
 from neurodb.study import tag_dataset, list_tags, search_tags, delete_tag
 
 
@@ -247,10 +248,11 @@ def test_delete_tag_unknown_id_returns_false():
 
 def test_list_tags_includes_topic_anchored_note(full_engine):
     with Session(full_engine) as s:
-        topic = Topic(name="LTP", status="active", created_at=_now(), updated_at=_now())
-        s.add(topic)
+        grouping = get_or_create_grouping(s, "topic", "LTP")
+        note = StudyNote(topic_id=1, concept_tag="potentiation", tagged_at=_now())
+        s.add(note)
         s.flush()
-        s.add(StudyNote(topic_id=topic.id, concept_tag="potentiation", tagged_at=_now()))
+        link_grouping(s, grouping.id, "study_note", note.id, status="confirmed")
         s.commit()
 
     with Session(full_engine) as s:
@@ -263,11 +265,11 @@ def test_list_tags_includes_topic_anchored_note(full_engine):
 
 def test_list_tags_includes_concept_anchored_note(full_engine):
     with Session(full_engine) as s:
-        concept = Concept(name="synaptic pruning", status="active",
-                          created_at=_now(), updated_at=_now())
-        s.add(concept)
+        grouping = get_or_create_grouping(s, "concept", "synaptic pruning")
+        note = StudyNote(concept_id=1, concept_tag="pruning", tagged_at=_now())
+        s.add(note)
         s.flush()
-        s.add(StudyNote(concept_id=concept.id, concept_tag="pruning", tagged_at=_now()))
+        link_grouping(s, grouping.id, "study_note", note.id, status="confirmed")
         s.commit()
 
     with Session(full_engine) as s:
@@ -302,11 +304,12 @@ def test_list_tags_source_filter_excludes_topic_notes(full_engine):
         idx = DatasetIndex(source="openneuro", source_id="ds1", run_id=run.id)
         s.add(idx)
         s.flush()
-        topic = Topic(name="LTP", status="active", created_at=_now(), updated_at=_now())
-        s.add(topic)
-        s.flush()
+        grouping = get_or_create_grouping(s, "topic", "LTP")
         s.add(StudyNote(index_id=idx.id, concept_tag="ds_note", tagged_at=_now()))
-        s.add(StudyNote(topic_id=topic.id, concept_tag="topic_note", tagged_at=_now()))
+        note = StudyNote(topic_id=1, concept_tag="topic_note", tagged_at=_now())
+        s.add(note)
+        s.flush()
+        link_grouping(s, grouping.id, "study_note", note.id, status="confirmed")
         s.commit()
 
     with Session(full_engine) as s:
@@ -317,12 +320,16 @@ def test_list_tags_source_filter_excludes_topic_notes(full_engine):
 
 def test_search_tags_matches_topic_anchored_note(full_engine):
     with Session(full_engine) as s:
-        topic = Topic(name="plasticity", status="active",
-                      created_at=_now(), updated_at=_now())
-        s.add(topic)
+        grouping = get_or_create_grouping(s, "topic", "plasticity")
+        note = StudyNote(
+            topic_id=1,
+            concept_tag="LTP",
+            note_text="long-term potentiation",
+            tagged_at=_now(),
+        )
+        s.add(note)
         s.flush()
-        s.add(StudyNote(topic_id=topic.id, concept_tag="LTP",
-                        note_text="long-term potentiation", tagged_at=_now()))
+        link_grouping(s, grouping.id, "study_note", note.id, status="confirmed")
         s.commit()
 
     with Session(full_engine) as s:

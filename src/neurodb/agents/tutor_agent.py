@@ -27,8 +27,8 @@ _TUTOR_SYSTEM_PROMPT = (
     "local study notes, local dataset tools, and your own training knowledge. "
     "For topic questions, call search_knowledge_library before relying on training "
     "knowledge alone. "
-    "To retrieve local context for a topic, call search_topics to find the topic ID, "
-    "then get_topic_bundle to retrieve related papers, concepts, notes, and datasets. "
+    "To retrieve local context for a topic, call search_topics to find the topic grouping ID, "
+    "then get_grouping_bundle to retrieve related papers, concepts, notes, and datasets. "
     "Whenever you cite or recommend an external resource such as a paper, review, textbook, "
     "or website, call queue_source with the title, source type, and topic context so the user "
     "can review it later. To discover candidate learning resources, call search_literature. "
@@ -118,17 +118,17 @@ _TUTOR_TOOLS = [
         },
     },
     {
-        "name": "get_topic_bundle",
+        "name": "get_grouping_bundle",
         "description": (
             "Retrieve all related papers, concepts, study notes, and dataset packets "
-            "for a topic. Use search_topics first to find the topic_id."
+            "for a topic grouping. Use search_topics first to find the grouping_id."
         ),
         "input_schema": {
             "type": "object",
             "properties": {
-                "topic_id": {"type": "integer", "description": "Topic ID from search_topics."},
+                "grouping_id": {"type": "integer", "description": "Topic grouping ID from search_topics."},
             },
-            "required": ["topic_id"],
+            "required": ["grouping_id"],
         },
     },
 ]
@@ -196,8 +196,8 @@ class NeuroTutorAgent(BaseAgent):
             return self._execute_search_literature(block.tool_input)
         if block.tool_name == "search_topics":
             return self._execute_search_topics(block.tool_input)
-        if block.tool_name == "get_topic_bundle":
-            return self._execute_get_topic_bundle(block.tool_input)
+        if block.tool_name == "get_grouping_bundle":
+            return self._execute_get_grouping_bundle(block.tool_input)
         return execute_tool(block.tool_name, block.tool_input, self._engine, self._vector_store)
 
     def _execute_queue_source(self, inputs: dict) -> str:
@@ -230,10 +230,11 @@ class NeuroTutorAgent(BaseAgent):
             paper_id = row.id
             topics = inputs.get("topics") or []
             if topics:
-                from neurodb.db.topic_store import get_or_create_topic, link_paper_topic
+                from neurodb.db.grouping_store import get_or_create_grouping, link_grouping
+
                 for topic_name in topics:
-                    topic = get_or_create_topic(session, topic_name)
-                    link_paper_topic(session, paper_id, topic.id)
+                    grouping = get_or_create_grouping(session, "topic", topic_name)
+                    link_grouping(session, grouping.id, "paper", paper_id, status="confirmed")
             return json.dumps({"status": "queued", "id": paper_id})
 
     def _execute_search_knowledge_library(self, inputs: dict) -> str:
@@ -254,23 +255,36 @@ class NeuroTutorAgent(BaseAgent):
 
     def _execute_search_topics(self, inputs: dict) -> str:
         if self._context_bundle and self._context_bundle.get("topic_bundle"):
-            topic = self._context_bundle["topic_bundle"].get("topic") or {}
+            topic = (
+                self._context_bundle["topic_bundle"].get("grouping")
+                or self._context_bundle["topic_bundle"].get("topic")
+                or {}
+            )
             query = (inputs.get("query") or "").lower()
             if topic.get("name") and topic["name"].lower() in query:
                 return json.dumps([topic])
-        from neurodb.db.topic_store import search_topics
+        from neurodb.db.grouping_store import search_groupings
+
         with get_session(self._engine) as session:
-            results = search_topics(session, inputs["query"], limit=inputs.get("limit", 10))
+            results = search_groupings(
+                session, "topic", inputs["query"], limit=inputs.get("limit", 10)
+            )
         return json.dumps(results)
 
-    def _execute_get_topic_bundle(self, inputs: dict) -> str:
+    def _execute_get_grouping_bundle(self, inputs: dict) -> str:
+        grouping_id = inputs["grouping_id"]
         if self._context_bundle and self._context_bundle.get("topic_bundle"):
-            topic = self._context_bundle["topic_bundle"].get("topic") or {}
-            if topic.get("id") == inputs["topic_id"]:
+            topic = (
+                self._context_bundle["topic_bundle"].get("grouping")
+                or self._context_bundle["topic_bundle"].get("topic")
+                or {}
+            )
+            if topic.get("id") == grouping_id:
                 return json.dumps(self._context_bundle["topic_bundle"])
-        from neurodb.db.topic_store import get_topic_bundle
+        from neurodb.db.grouping_store import get_grouping_bundle
+
         with get_session(self._engine) as session:
-            bundle = get_topic_bundle(session, inputs["topic_id"])
+            bundle = get_grouping_bundle(session, grouping_id)
         return json.dumps(bundle)
 
 

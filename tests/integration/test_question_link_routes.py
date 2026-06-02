@@ -108,3 +108,32 @@ def test_add_concept_link_via_route(client_engine):
     assert resp.status_code == 200
     assert any(c["concept_id"] == gid and c["status"] == "confirmed"
                for c in resp.json()["concepts"])
+
+
+def test_delete_question_removes_grouping_links_and_orphan_proposals(client_engine):
+    client, engine = client_engine
+    qid = _make_question(engine)
+    with Session(engine) as s:
+        active = get_or_create_grouping(s, "topic", "stroke")
+        proposed = get_or_create_grouping(s, "concept", "engram", status="proposed")
+        link_grouping(s, active.id, "question", qid, status="confirmed")
+        link_grouping(s, proposed.id, "question", qid, status="pending")
+        s.commit()
+        active_id, proposed_id = active.id, proposed.id
+
+    resp = client.delete(f"/api/research/questions/{qid}")
+    assert resp.status_code == 204
+    with engine.connect() as conn:
+        links = conn.execute(text(
+            "SELECT COUNT(*) FROM grouping_links "
+            "WHERE anchor_type='question' AND anchor_id=:q"
+        ), {"q": qid}).scalar()
+        proposed_exists = conn.execute(text(
+            "SELECT COUNT(*) FROM groupings WHERE id=:i"
+        ), {"i": proposed_id}).scalar()
+        active_exists = conn.execute(text(
+            "SELECT COUNT(*) FROM groupings WHERE id=:i"
+        ), {"i": active_id}).scalar()
+    assert links == 0
+    assert proposed_exists == 0
+    assert active_exists == 1

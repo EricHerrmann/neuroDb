@@ -12,13 +12,7 @@ from neurodb.agents.context_orchestrator import (
     normalize_context_mode,
 )
 from neurodb.db.claim_store import add_gap, create_claim, update_claim_status
-from neurodb.db.topic_store import (
-    get_or_create_concept,
-    get_or_create_topic,
-    link_packet_topic,
-    link_paper_topic,
-    link_topic_concept,
-)
+from neurodb.db.grouping_store import get_or_create_grouping, link_grouping
 from neurodb.schema import (
     Base, DatasetIndex, DatasetResearchPacket, IngestRun, Paper, ResearchQuestion, StudyNote,
 )
@@ -48,9 +42,11 @@ def engine():
 def _seed_topic(engine):
     with Session(engine) as session:
         now = datetime.now(UTC).isoformat()
-        topic = get_or_create_topic(session, "stroke recovery", "Recovery after stroke")
-        concept = get_or_create_concept(session, "cortical remapping")
-        link_topic_concept(session, topic.id, concept.id)
+        topic = get_or_create_grouping(
+            session, "topic", "stroke recovery", description="Recovery after stroke"
+        )
+        concept = get_or_create_grouping(session, "concept", "cortical remapping")
+        link_grouping(session, topic.id, "grouping", concept.id, status="confirmed")
         paper = Paper(
             title="Motor Recovery After Stroke",
             normalized_title="motor recovery after stroke",
@@ -64,8 +60,11 @@ def _seed_topic(engine):
         )
         session.add(paper)
         session.flush()
-        link_paper_topic(session, paper.id, topic.id)
-        session.add(StudyNote(topic_id=topic.id, concept_tag="remapping", tagged_at=now))
+        link_grouping(session, topic.id, "paper", paper.id, status="confirmed")
+        note = StudyNote(paper_id=paper.id, concept_tag="remapping", tagged_at=now)
+        session.add(note)
+        session.flush()
+        link_grouping(session, topic.id, "study_note", note.id, status="confirmed")
         session.commit()
         return topic.id
 
@@ -73,7 +72,9 @@ def _seed_topic(engine):
 def _seed_question(engine):
     with Session(engine) as session:
         now = datetime.now(UTC).isoformat()
-        topic = get_or_create_topic(session, "stroke recovery", "Recovery after stroke")
+        topic = get_or_create_grouping(
+            session, "topic", "stroke recovery", description="Recovery after stroke"
+        )
         paper = Paper(
             title="Motor Recovery After Stroke",
             normalized_title="motor recovery after stroke",
@@ -85,7 +86,7 @@ def _seed_question(engine):
         )
         session.add(paper)
         session.flush()
-        link_paper_topic(session, paper.id, topic.id)
+        link_grouping(session, topic.id, "paper", paper.id, status="confirmed")
         claim = create_claim(session, paper.id, "Remapping supports recovery.", "finding")
         update_claim_status(session, claim.id, "approved")
         question = ResearchQuestion(
@@ -94,10 +95,10 @@ def _seed_question(engine):
             status="open",
             created_at=now,
             updated_at=now,
-            topic_id=topic.id,
         )
         session.add(question)
         session.flush()
+        link_grouping(session, topic.id, "question", question.id, status="confirmed")
         add_gap(session, "No lesion-location dataset.", "missing_dataset", question_id=question.id)
         session.commit()
         return question.id
@@ -122,7 +123,7 @@ def test_contextual_topic_focus_returns_topic_bundle_counts(engine):
         },
     )
     assert bundle["mode"] == "contextual"
-    assert bundle["topic_bundle"]["topic"]["name"] == "stroke recovery"
+    assert bundle["topic_bundle"]["grouping"]["name"] == "stroke recovery"
     assert bundle["source_counts"]["papers"] == 1
     assert bundle["source_counts"]["concepts"] == 1
     assert bundle["source_counts"]["study_notes"] == 1
@@ -254,7 +255,9 @@ def test_context_summary_event_shape(engine):
 def _seed_topic_with_packets(engine, n: int, usefulness_state: str = "sparse") -> int:
     with Session(engine) as session:
         now = datetime.now(UTC).isoformat()
-        topic = get_or_create_topic(session, "multi packet topic", "test")
+        topic = get_or_create_grouping(
+            session, "topic", "multi packet topic", description="test"
+        )
         for i in range(n):
             run = IngestRun(source="openneuro", run_at=now, version="1")
             session.add(run)
@@ -271,7 +274,7 @@ def _seed_topic_with_packets(engine, n: int, usefulness_state: str = "sparse") -
             )
             session.add(pkt)
             session.flush()
-            link_packet_topic(session, pkt.id, topic.id)
+            link_grouping(session, topic.id, "dataset_packet", pkt.id, status="confirmed")
         session.commit()
         return topic.id
 
@@ -324,7 +327,7 @@ def test_context_summary_event_includes_dataset_usefulness_breakdown(engine):
         )
         session.add(pkt)
         session.flush()
-        link_packet_topic(session, pkt.id, topic_id)
+        link_grouping(session, topic_id, "dataset_packet", pkt.id, status="confirmed")
 
         run2 = IngestRun(source="openneuro", run_at=now, version="1")
         session.add(run2)
@@ -341,7 +344,7 @@ def test_context_summary_event_includes_dataset_usefulness_breakdown(engine):
         )
         session.add(pkt2)
         session.flush()
-        link_packet_topic(session, pkt2.id, topic_id)
+        link_grouping(session, topic_id, "dataset_packet", pkt2.id, status="confirmed")
         session.commit()
 
     request = {

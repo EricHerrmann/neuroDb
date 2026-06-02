@@ -8,13 +8,12 @@ from neurodb.schema import (
     Claim,
     DatasetResearchPacket,
     EvidenceLink,
+    GroupingLink,
     Paper,
-    PaperTopic,
     ResearchGap,
     ResearchHypothesis,
     ResearchQuestion,
     StudyNote,
-    Topic,
 )
 
 _CLAIM_TYPES = {"finding", "limitation", "method", "question"}
@@ -72,12 +71,14 @@ def get_claims_for_paper(session: Session, paper_id: int) -> list[dict]:
     ]
 
 
-def get_approved_claims_for_topic(session: Session, topic_id: int) -> list[dict]:
+def get_approved_claims_for_grouping(session: Session, grouping_id: int) -> list[dict]:
+    """Approved claims of papers linked to a grouping."""
     rows = session.execute(
         select(Claim, Paper)
         .join(Paper, Paper.id == Claim.paper_id)
-        .join(PaperTopic, PaperTopic.paper_id == Paper.id)
-        .where(PaperTopic.topic_id == topic_id)
+        .join(GroupingLink, GroupingLink.anchor_id == Paper.id)
+        .where(GroupingLink.anchor_type == "paper")
+        .where(GroupingLink.grouping_id == grouping_id)
         .where(Claim.status == "approved")
     ).all()
     return [
@@ -87,6 +88,11 @@ def get_approved_claims_for_topic(session: Session, topic_id: int) -> list[dict]
         }
         for c, p in rows
     ]
+
+
+def get_approved_claims_for_topic(session: Session, topic_id: int) -> list[dict]:
+    """Compatibility wrapper: topic_id is now interpreted as a topic grouping id."""
+    return get_approved_claims_for_grouping(session, topic_id)
 
 
 # ---------------------------------------------------------------------------
@@ -249,19 +255,28 @@ def get_gaps(
 # ---------------------------------------------------------------------------
 
 def get_question_bundle(session: Session, question_id: int) -> dict:
+    from neurodb.db.grouping_store import get_groupings_for_anchor
+
     question = session.get(ResearchQuestion, question_id)
     if question is None:
         return {}
 
-    topic = None
-    if question.topic_id is not None:
-        topic = session.get(Topic, question.topic_id)
+    linked = get_groupings_for_anchor(
+        session, "question", question_id, status="confirmed"
+    )
+    topics = [grouping for grouping in linked if grouping["type"] == "topic"]
 
     hypotheses = session.execute(
         select(ResearchHypothesis).where(ResearchHypothesis.question_id == question_id)
     ).scalars().all()
 
-    claims = get_approved_claims_for_topic(session, topic.id) if topic is not None else []
+    seen_claim_ids: set[int] = set()
+    claims: list[dict] = []
+    for topic in topics:
+        for claim in get_approved_claims_for_grouping(session, topic["id"]):
+            if claim["id"] not in seen_claim_ids:
+                seen_claim_ids.add(claim["id"])
+                claims.append(claim)
     gaps = get_gaps(session, question_id=question_id)
 
     return {
@@ -269,12 +284,8 @@ def get_question_bundle(session: Session, question_id: int) -> dict:
             "id": question.id,
             "question": question.question,
             "status": question.status,
-            "topic_id": question.topic_id,
         },
-        "topic": (
-            {"id": topic.id, "name": topic.name, "description": topic.description}
-            if topic is not None else None
-        ),
+        "topics": [{"id": topic["id"], "name": topic["name"]} for topic in topics],
         "hypotheses": [
             {"id": h.id, "title": h.title, "status": h.status}
             for h in hypotheses

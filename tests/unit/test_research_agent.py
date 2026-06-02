@@ -543,7 +543,7 @@ def test_get_question_bundle_dispatch_returns_bundle_shape():
     result = json.loads(agent._execute_tool_block(_block(
         "get_question_bundle", {"question_id": q_id}
     )))
-    assert set(result.keys()) == {"question", "topic", "hypotheses", "claims", "gaps"}
+    assert set(result.keys()) == {"question", "topics", "hypotheses", "claims", "gaps"}
 
 
 def test_extract_claims_dispatch_returns_error_for_missing_paper():

@@ -8,7 +8,8 @@ from sqlalchemy.pool import StaticPool
 
 from neurodb.api.routes.knowledge_library import router
 from neurodb.db import get_session
-from neurodb.schema import Base, Claim, Paper, PaperTopic, Topic
+from neurodb.db.grouping_store import get_or_create_grouping, link_grouping
+from neurodb.schema import Base, Claim, GroupingLink, Paper
 
 
 def _make_app(engine, knowledge_store=None):
@@ -123,7 +124,7 @@ def test_approve_source_calls_add_summary():
     mock_ks.add_summary.assert_called_once()
 
 
-def test_approve_source_preserves_topic_links_with_duckdb():
+def test_approve_source_preserves_grouping_links_with_duckdb():
     mock_ks = MagicMock()
     mock_ks.add_summary.return_value = "knowledge_source:1"
     client, engine = _make_duckdb_client(mock_ks)
@@ -136,27 +137,22 @@ def test_approve_source_preserves_topic_links_with_duckdb():
             status="pending",
             queued_at="2026-01-01T00:00:00",
         )
-        topic = Topic(
-            name="stroke recovery",
-            description=None,
-            status="active",
-            created_at="2026-01-01T00:00:00",
-            updated_at="2026-01-01T00:00:00",
-        )
-        session.add_all([paper, topic])
+        session.add(paper)
         session.flush()
         source_id = paper.id
-        topic_id = topic.id
-        session.add(PaperTopic(paper_id=source_id, topic_id=topic_id))
+        grouping = get_or_create_grouping(session, "topic", "stroke recovery")
+        grouping_id = grouping.id
+        link_grouping(session, grouping_id, "paper", source_id, status="confirmed")
 
     resp = client.post(f"/api/knowledge-library/{source_id}/approve")
 
     assert resp.status_code == 200
     assert resp.json()["status"] == "approved"
     with get_session(engine) as session:
-        link = session.query(PaperTopic).filter_by(
-            paper_id=source_id,
-            topic_id=topic_id,
+        link = session.query(GroupingLink).filter_by(
+            grouping_id=grouping_id,
+            anchor_type="paper",
+            anchor_id=source_id,
         ).one_or_none()
         assert link is not None
 

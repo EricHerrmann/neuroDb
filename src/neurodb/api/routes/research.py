@@ -49,22 +49,22 @@ def _question_detail(engine: Engine, question_id: int) -> ResearchQuestionDetail
     """Build ResearchQuestionDetail from the unified grouping engine."""
     from neurodb.schema import ResearchQuestion as ResearchQuestionORM
     from neurodb.db.grouping_store import get_groupings_for_anchor
-    from neurodb.api.schemas.research import QuestionConceptLink, QuestionTopicLink
+    from neurodb.api.schemas.research import ConceptGroupingLink, TopicGroupingLink
     with get_session(engine) as session:
         q = session.get(ResearchQuestionORM, question_id)
         if q is None:
             raise HTTPException(status_code=404, detail=f"Question {question_id} not found")
         links = get_groupings_for_anchor(session, "question", question_id)
-        topics: list[QuestionTopicLink] = []
-        concepts: list[QuestionConceptLink] = []
+        topics: list[TopicGroupingLink] = []
+        concepts: list[ConceptGroupingLink] = []
         for g in links:
             is_proposed = g["grouping_status"] == "proposed"
             if g["type"] == "topic":
-                topics.append(QuestionTopicLink(
+                topics.append(TopicGroupingLink(
                     topic_id=g["id"], topic_name=g["name"],
                     status=g["link_status"], proposed=is_proposed))
             elif g["type"] == "concept":
-                concepts.append(QuestionConceptLink(
+                concepts.append(ConceptGroupingLink(
                     concept_id=g["id"], concept_name=g["name"],
                     status=g["link_status"], proposed=is_proposed))
         return ResearchQuestionDetail(

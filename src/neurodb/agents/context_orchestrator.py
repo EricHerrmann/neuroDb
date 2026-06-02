@@ -8,7 +8,7 @@ from sqlalchemy.exc import SQLAlchemyError
 from sqlalchemy.orm import Session
 
 from neurodb.config.model_config import get_context_budget
-from neurodb.schema import ResearchQuestion, Topic
+from neurodb.schema import Grouping, ResearchQuestion
 
 ContextMode = Literal["general", "contextual", "grounded"]
 VALID_CONTEXT_MODES: frozenset[str] = frozenset({"general", "contextual", "grounded"})
@@ -128,10 +128,10 @@ def build_context_bundle(
                         f"claims/evidence migration. Detail: {exc.__class__.__name__}"
                     )
             elif active_focus and active_focus.get("focus_type") == "topic":
-                from neurodb.db.topic_store import get_topic_bundle
+                from neurodb.db.grouping_store import get_grouping_bundle
 
                 try:
-                    topic_bundle = get_topic_bundle(session, int(active_focus["focus_id"]))
+                    topic_bundle = get_grouping_bundle(session, int(active_focus["focus_id"]))
                     topic_bundle = _apply_topic_budget(
                         topic_bundle, max_papers, max_notes, max_datasets
                     )
@@ -283,7 +283,9 @@ def _resolve_active_focus(
 
     for token in _candidate_focus_terms(query):
         topic = session.execute(
-            select(Topic).where(Topic.name.ilike(f"%{token}%")).limit(1)
+            select(Grouping)
+            .where(Grouping.type == "topic", Grouping.name.ilike(f"%{token}%"))
+            .limit(1)
         ).scalar_one_or_none()
         if topic is not None:
             return {"focus_type": "topic", "focus_id": topic.id, "label": topic.name}
@@ -296,8 +298,10 @@ def _add_focus_label(session: Session, active_focus: ActiveFocus) -> ActiveFocus
     focus_type = active_focus.get("focus_type")
     focus_id = active_focus.get("focus_id")
     if focus_type == "topic":
-        topic = session.get(Topic, focus_id)
+        topic = session.get(Grouping, focus_id)
         if topic is not None:
+            if topic.type != "topic":
+                return active_focus
             return {**active_focus, "label": topic.name}
     if focus_type == "research_question":
         try:
@@ -436,8 +440,8 @@ def _compact_context_lines(bundle: ContextBundle) -> list[str]:
     lines: list[str] = []
     topic_bundle = bundle.get("topic_bundle") or {}
     question_bundle = bundle.get("question_bundle") or {}
-    if topic_bundle.get("topic"):
-        topic = topic_bundle["topic"]
+    topic = topic_bundle.get("grouping") or topic_bundle.get("topic")
+    if topic:
         lines.append(f"- Topic: {topic.get('name')}")
     if question_bundle.get("question"):
         question = question_bundle["question"]

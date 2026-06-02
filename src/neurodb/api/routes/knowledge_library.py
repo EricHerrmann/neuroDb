@@ -19,9 +19,8 @@ from neurodb.schema import (
     Claim,
     DatasetPacketPaper,
     EvidenceLink,
+    GroupingLink,
     Paper,
-    PaperConcept,
-    PaperTopic,
     StudyNote,
 )
 
@@ -313,6 +312,11 @@ def _detach_paper_links(session, paper_id: int) -> dict[str, list[dict]]:
             "created_at",
         ],
     )
+    has_grouping_links = _table_has_columns(
+        session,
+        "grouping_links",
+        ["id", "grouping_id", "anchor_type", "anchor_id", "status", "created_at"],
+    )
     claims = session.query(Claim).filter_by(paper_id=paper_id).all() if has_claims else []
     claim_ids = [claim.id for claim in claims]
     study_notes = (
@@ -334,13 +338,22 @@ def _detach_paper_links(session, paper_id: int) -> dict[str, list[dict]]:
             )
         evidence_links = evidence_query.all()
     links: dict[str, list[dict]] = {
-        "paper_topics": [
-            {"id": link.id, "paper_id": link.paper_id, "topic_id": link.topic_id}
-            for link in session.query(PaperTopic).filter_by(paper_id=paper_id).all()
-        ],
-        "paper_concepts": [
-            {"id": link.id, "paper_id": link.paper_id, "concept_id": link.concept_id}
-            for link in session.query(PaperConcept).filter_by(paper_id=paper_id).all()
+        "grouping_links": [
+            {
+                "id": link.id,
+                "grouping_id": link.grouping_id,
+                "anchor_type": link.anchor_type,
+                "anchor_id": link.anchor_id,
+                "status": link.status,
+                "created_at": link.created_at,
+            }
+            for link in (
+                session.query(GroupingLink)
+                .filter_by(anchor_type="paper", anchor_id=paper_id)
+                .all()
+                if has_grouping_links
+                else []
+            )
         ],
         "dataset_packet_papers": [
             {"id": link.id, "packet_id": link.packet_id, "paper_id": link.paper_id}
@@ -386,11 +399,14 @@ def _detach_paper_links(session, paper_id: int) -> dict[str, list[dict]]:
             for link in evidence_links
         ],
     }
+    if has_grouping_links:
+        for link in session.query(GroupingLink).filter_by(
+            anchor_type="paper", anchor_id=paper_id
+        ).all():
+            session.delete(link)
     for link in evidence_links:
         session.delete(link)
     for model, enabled in [
-        (PaperTopic, True),
-        (PaperConcept, True),
         (DatasetPacketPaper, True),
         (StudyNote, has_study_notes),
         (Claim, has_claims),
@@ -404,10 +420,8 @@ def _detach_paper_links(session, paper_id: int) -> dict[str, list[dict]]:
 
 
 def _restore_paper_links(session, links: dict[str, list[dict]]) -> None:
-    for values in links["paper_topics"]:
-        session.add(PaperTopic(**values))
-    for values in links["paper_concepts"]:
-        session.add(PaperConcept(**values))
+    for values in links.get("grouping_links", []):
+        session.add(GroupingLink(**values))
     for values in links["dataset_packet_papers"]:
         session.add(DatasetPacketPaper(**values))
     for values in links["claims"]:

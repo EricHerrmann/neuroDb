@@ -7,13 +7,14 @@ from sqlalchemy.pool import StaticPool
 
 from neurodb.schema import (
     Base, Claim, DatasetIndex, DatasetResearchPacket, IngestRun,
-    Paper, PaperTopic, ResearchHypothesis, ResearchQuestion, StudyNote, Topic,
+    Paper, ResearchHypothesis, ResearchQuestion, StudyNote,
 )
-from neurodb.db.topic_store import get_or_create_topic, link_paper_topic
+from neurodb.db.grouping_store import get_or_create_grouping, link_grouping
 from neurodb.db.claim_store import (
     add_evidence_link,
     add_gap,
     create_claim,
+    get_approved_claims_for_grouping,
     get_approved_claims_for_topic,
     get_claims_for_paper,
     get_evidence_links,
@@ -171,9 +172,9 @@ def test_get_claims_for_paper_returns_dict_shape(session):
 
 def test_get_approved_claims_for_topic_returns_only_approved(session):
     paper = _make_paper(session)
-    topic = get_or_create_topic(session, "plasticity")
+    topic = get_or_create_grouping(session, "topic", "plasticity")
     session.flush()
-    link_paper_topic(session, paper.id, topic.id)
+    link_grouping(session, topic.id, "paper", paper.id, status="confirmed")
 
     c_approved = create_claim(session, paper.id, "LTP is real.", "finding")
     c_candidate = create_claim(session, paper.id, "Maybe LTP matters.", "question")
@@ -188,15 +189,26 @@ def test_get_approved_claims_for_topic_returns_only_approved(session):
 
 def test_get_approved_claims_for_topic_includes_paper_title(session):
     paper = _make_paper(session)
-    topic = get_or_create_topic(session, "memory")
+    topic = get_or_create_grouping(session, "topic", "memory")
     session.flush()
-    link_paper_topic(session, paper.id, topic.id)
+    link_grouping(session, topic.id, "paper", paper.id, status="confirmed")
     claim = create_claim(session, paper.id, "Key finding.", "finding")
     update_claim_status(session, claim.id, "approved")
     session.flush()
 
     results = get_approved_claims_for_topic(session, topic.id)
     assert results[0]["paper_title"] == "LTP Study"
+
+
+def test_get_approved_claims_for_grouping(session):
+    paper = _make_paper(session)
+    claim = create_claim(session, paper.id, "claim A", "finding")
+    update_claim_status(session, claim.id, "approved")
+    grouping = get_or_create_grouping(session, "topic", "stroke")
+    link_grouping(session, grouping.id, "paper", paper.id, status="confirmed")
+
+    out = get_approved_claims_for_grouping(session, grouping.id)
+    assert [c["text"] for c in out] == ["claim A"]
 
 
 # --- add_evidence_link ---
@@ -393,9 +405,9 @@ def test_get_question_bundle_returns_empty_for_unknown(session):
 
 
 def test_get_question_bundle_returns_correct_shape(session):
-    topic = get_or_create_topic(session, "hippocampal plasticity")
-    session.flush()
-    q = _make_question(session, topic_id=topic.id)
+    q = _make_question(session)
+    topic = get_or_create_grouping(session, "topic", "hippocampal plasticity")
+    link_grouping(session, topic.id, "question", q.id, status="confirmed")
     h = _make_hypothesis(session, question_id=q.id)
     session.flush()
     add_gap(session, "Need more data.", "missing_dataset", question_id=q.id)
@@ -403,18 +415,32 @@ def test_get_question_bundle_returns_correct_shape(session):
 
     bundle = get_question_bundle(session, q.id)
 
-    assert set(bundle.keys()) == {"question", "topic", "hypotheses", "claims", "gaps"}
+    assert set(bundle.keys()) == {"question", "topics", "hypotheses", "claims", "gaps"}
     assert bundle["question"]["id"] == q.id
-    assert bundle["topic"]["name"] == "hippocampal plasticity"
+    assert bundle["topics"][0]["name"] == "hippocampal plasticity"
     assert any(h_item["id"] == h.id for h_item in bundle["hypotheses"])
     assert len(bundle["gaps"]) == 1
 
 
-def test_get_question_bundle_topic_is_none_when_no_topic_id(session):
+def test_get_question_bundle_topics_empty_when_no_grouping_links(session):
     q = _make_question(session)
     session.flush()
     bundle = get_question_bundle(session, q.id)
-    assert bundle["topic"] is None
+    assert bundle["topics"] == []
+
+
+def test_get_question_bundle_uses_engine_topics(session):
+    q = _make_question(session)
+    topic = get_or_create_grouping(session, "topic", "stroke")
+    link_grouping(session, topic.id, "question", q.id, status="confirmed")
+    paper = _make_paper(session)
+    link_grouping(session, topic.id, "paper", paper.id, status="confirmed")
+    claim = create_claim(session, paper.id, "claim A", "finding")
+    update_claim_status(session, claim.id, "approved")
+
+    bundle = get_question_bundle(session, q.id)
+    assert [t["name"] for t in bundle["topics"]] == ["stroke"]
+    assert [c["text"] for c in bundle["claims"]] == ["claim A"]
 
 
 def test_get_gaps_no_filter_returns_all_gaps(session):

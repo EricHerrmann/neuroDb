@@ -7,7 +7,7 @@ from sqlalchemy.pool import StaticPool
 
 from neurodb.agents.context_orchestrator import build_context_bundle
 from neurodb.db.claim_store import add_gap, create_claim, update_claim_status
-from neurodb.db.topic_store import get_or_create_topic, link_paper_topic
+from neurodb.db.grouping_store import get_or_create_grouping, link_grouping
 from neurodb.schema import Base, Paper, ResearchQuestion
 
 
@@ -24,7 +24,7 @@ def _engine():
 def _seed(engine):
     with Session(engine) as session:
         now = datetime.now(UTC).isoformat()
-        topic = get_or_create_topic(session, "stroke recovery")
+        topic = get_or_create_grouping(session, "topic", "stroke recovery")
         paper = Paper(
             title="Motor Recovery After Stroke",
             normalized_title="motor recovery after stroke",
@@ -38,7 +38,7 @@ def _seed(engine):
         )
         session.add(paper)
         session.flush()
-        link_paper_topic(session, paper.id, topic.id)
+        link_grouping(session, topic.id, "paper", paper.id, status="confirmed")
         claim = create_claim(session, paper.id, "Remapping supports recovery.", "finding")
         update_claim_status(session, claim.id, "approved")
         question = ResearchQuestion(
@@ -47,10 +47,10 @@ def _seed(engine):
             status="open",
             created_at=now,
             updated_at=now,
-            topic_id=topic.id,
         )
         session.add(question)
         session.flush()
+        link_grouping(session, topic.id, "question", question.id, status="confirmed")
         add_gap(session, "No lesion-location dataset.", "missing_dataset", question_id=question.id)
         session.commit()
         return topic.id, question.id

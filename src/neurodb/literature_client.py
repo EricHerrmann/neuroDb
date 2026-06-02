@@ -19,6 +19,11 @@ from neurodb.schema import LiteratureSearch
 _PUBMED_ESEARCH_URL = "https://eutils.ncbi.nlm.nih.gov/entrez/eutils/esearch.fcgi"
 _PUBMED_EFETCH_URL = "https://eutils.ncbi.nlm.nih.gov/entrez/eutils/efetch.fcgi"
 _SEMANTIC_SCHOLAR_URL = "https://api.semanticscholar.org/graph/v1/paper/search"
+_ARXIV_API_URL = "http://export.arxiv.org/api/query"
+_ARXIV_NS = {
+    "atom": "http://www.w3.org/2005/Atom",
+    "arxiv": "http://arxiv.org/schemas/atom",
+}
 
 
 class LiteratureSearchClient:
@@ -92,7 +97,7 @@ class LiteratureSearchClient:
                 params={
                     "query": query,
                     "limit": limit,
-                    "fields": "title,abstract,year,citationCount,externalIds,publicationTypes",
+                    "fields": "title,abstract,year,citationCount,externalIds,publicationTypes,url",
                 },
                 headers=headers,
                 timeout=self._timeout,
@@ -139,10 +144,12 @@ def _parse_pubmed_xml(xml_text: str) -> list[dict]:
             if (node.attrib.get("EIdType") == "doi" or node.attrib.get("IdType") == "doi"):
                 doi = _text(node)
                 break
+        pmid = _text(article.find(".//PMID"))
         results.append(
             {
                 "title": title,
                 "doi": doi,
+                "url": _pubmed_url(pmid, doi),
                 "abstract": _truncate(abstract),
                 "source_type": "review" if any("review" in p for p in publication_types) else "paper",
                 "year": int(year_text) if year_text and year_text.isdigit() else None,
@@ -155,15 +162,43 @@ def _parse_pubmed_xml(xml_text: str) -> list[dict]:
 
 def _normalize_semantic_scholar(row: dict) -> dict:
     publication_types = [str(value).lower() for value in row.get("publicationTypes") or []]
+    doi = (row.get("externalIds") or {}).get("DOI")
     return {
         "title": row.get("title") or "Untitled Semantic Scholar result",
-        "doi": (row.get("externalIds") or {}).get("DOI"),
+        "doi": doi,
+        "url": (row.get("url") or "").strip() or _doi_url(doi),
         "abstract": _truncate(row.get("abstract") or ""),
         "source_type": "review" if any("review" in value for value in publication_types) else "paper",
         "year": row.get("year"),
         "citation_count": row.get("citationCount"),
         "source": "semantic_scholar",
     }
+
+
+def _parse_arxiv_xml(xml_text: str) -> list[dict]:
+    root = ET.fromstring(xml_text)
+    results = []
+    for entry in root.findall("atom:entry", _ARXIV_NS):
+        title = _text(entry.find("atom:title", _ARXIV_NS)) or "Untitled arXiv result"
+        abstract = _text(entry.find("atom:summary", _ARXIV_NS))
+        published = _text(entry.find("atom:published", _ARXIV_NS)) or ""
+        year = int(published[:4]) if published[:4].isdigit() else None
+        doi = _text(entry.find("arxiv:doi", _ARXIV_NS))
+        entry_id = _text(entry.find("atom:id", _ARXIV_NS)) or ""
+        url = entry_id.replace("http://arxiv.org", "https://arxiv.org") or None
+        results.append(
+            {
+                "title": title,
+                "doi": doi,
+                "url": url,
+                "abstract": _truncate(abstract or ""),
+                "source_type": "preprint",
+                "year": year,
+                "citation_count": None,
+                "source": "arxiv",
+            }
+        )
+    return results
 
 
 def _dedup_by_doi(results: list[dict]) -> list[dict]:
@@ -177,6 +212,18 @@ def _dedup_by_doi(results: list[dict]) -> list[dict]:
             seen_dois.add(doi)
         deduped.append(result)
     return deduped
+
+
+def _doi_url(doi: str | None) -> str | None:
+    doi = (doi or "").strip()
+    return f"https://doi.org/{doi}" if doi else None
+
+
+def _pubmed_url(pmid: str | None, doi: str | None) -> str | None:
+    pmid = (pmid or "").strip()
+    if pmid:
+        return f"https://pubmed.ncbi.nlm.nih.gov/{pmid}/"
+    return _doi_url(doi)
 
 
 def _truncate(text: str, limit: int = 300) -> str | None:

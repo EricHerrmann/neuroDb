@@ -12,6 +12,7 @@ PUBMED_XML = """<?xml version="1.0"?>
 <PubmedArticleSet>
   <PubmedArticle>
     <MedlineCitation>
+      <PMID>123</PMID>
       <Article>
         <ArticleTitle>Hippocampal long-term potentiation and memory</ArticleTitle>
         <Abstract><AbstractText>Long-term potentiation is a model of synaptic plasticity.</AbstractText></Abstract>
@@ -22,6 +23,25 @@ PUBMED_XML = """<?xml version="1.0"?>
     </MedlineCitation>
   </PubmedArticle>
 </PubmedArticleSet>
+"""
+
+
+ARXIV_XML = """<?xml version="1.0" encoding="UTF-8"?>
+<feed xmlns="http://www.w3.org/2005/Atom" xmlns:arxiv="http://arxiv.org/schemas/atom">
+  <entry>
+    <id>http://arxiv.org/abs/2401.01234v1</id>
+    <published>2024-01-15T10:00:00Z</published>
+    <title>Predictive coding and synaptic plasticity</title>
+    <summary>A preprint on plasticity mechanisms.</summary>
+    <arxiv:doi>10.1000/arxivpublished</arxiv:doi>
+  </entry>
+  <entry>
+    <id>http://arxiv.org/abs/2402.05678v2</id>
+    <published>2024-02-20T10:00:00Z</published>
+    <title>Cortical maps without a DOI</title>
+    <summary>An unpublished preprint.</summary>
+  </entry>
+</feed>
 """
 
 
@@ -106,6 +126,13 @@ def test_search_parses_pubmed_and_semantic_scholar_and_dedups_by_doi():
     assert results[0]["source"] == "pubmed"
     assert results[1]["source"] == "semantic_scholar"
     assert results[1]["source_type"] == "review"
+    # PubMed result carries a landing-page URL built from its PMID.
+    assert results[0]["url"] == "https://pubmed.ncbi.nlm.nih.gov/123/"
+    # Semantic Scholar result with no source URL falls back to the DOI resolver.
+    assert results[1]["url"] == "https://doi.org/10.1000/review"
+    # Semantic Scholar request must ask for the url field.
+    s2_call = fake.calls[-1]
+    assert "url" in s2_call[1]["params"]["fields"].split(",")
 
     with Session(engine) as session:
         row = session.query(LiteratureSearch).one()
@@ -113,6 +140,28 @@ def test_search_parses_pubmed_and_semantic_scholar_and_dedups_by_doi():
         assert row.pubmed_count == 1
         assert row.semantic_scholar_count == 2
         assert len(json.loads(row.results_json)) == 2
+
+
+def test_semantic_scholar_prefers_source_url_over_doi():
+    engine = _engine()
+    fake = _FakeHttp([
+        _Response({"esearchresult": {"idlist": []}}),
+        _Response({
+            "data": [{
+                "title": "Paper with a real landing page",
+                "abstract": "Has both a url and a DOI.",
+                "year": 2025,
+                "citationCount": 7,
+                "url": "https://www.semanticscholar.org/paper/abc123",
+                "externalIds": {"DOI": "10.1000/haspage"},
+                "publicationTypes": ["JournalArticle"],
+            }]
+        }),
+    ])
+
+    results = LiteratureSearchClient(engine, http_client=fake).search("plasticity")
+
+    assert results[0]["url"] == "https://www.semanticscholar.org/paper/abc123"
 
 
 def test_search_gracefully_logs_when_one_source_times_out():
@@ -139,3 +188,22 @@ def test_search_gracefully_logs_when_one_source_times_out():
         row = session.query(LiteratureSearch).one()
         assert row.pubmed_count == 0
         assert row.semantic_scholar_count == 1
+
+
+def test_parse_arxiv_xml_normalizes_entries():
+    from neurodb.literature_client import _parse_arxiv_xml
+
+    results = _parse_arxiv_xml(ARXIV_XML)
+
+    assert len(results) == 2
+    first = results[0]
+    assert first["title"] == "Predictive coding and synaptic plasticity"
+    assert first["source"] == "arxiv"
+    assert first["source_type"] == "preprint"
+    assert first["year"] == 2024
+    assert first["url"] == "https://arxiv.org/abs/2401.01234v1"
+    assert first["doi"] == "10.1000/arxivpublished"
+    assert first["citation_count"] is None
+    # Preprint without a DOI: doi is None, url still built from id.
+    assert results[1]["doi"] is None
+    assert results[1]["url"] == "https://arxiv.org/abs/2402.05678v2"

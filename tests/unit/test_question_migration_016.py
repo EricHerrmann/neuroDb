@@ -1,15 +1,15 @@
 """Unit test for migration 016 — question_topics/question_concepts tables and backfill (T3)."""
-from datetime import datetime, timezone
+from datetime import UTC, datetime
 
 from sqlalchemy import create_engine, text
 from sqlalchemy.pool import StaticPool
 
-from neurodb.schema import Base
 from neurodb.db import _migration_016_question_topic_tables
+from neurodb.schema import Base
 
 
 def _now():
-    return datetime.now(timezone.utc).isoformat()
+    return datetime.now(UTC).isoformat()
 
 
 def _make_engine():
@@ -20,6 +20,21 @@ def _make_engine():
     )
     Base.metadata.create_all(eng)
     return eng
+
+
+def _create_topics_table(conn):
+    """Create the legacy topics table for tests that seed topic rows.
+
+    Base.metadata.create_all no longer creates it (the Topic ORM model was
+    removed in Groupings Phase 5); these migration-016 tests still need a
+    topics table to seed a topic_id value.
+    """
+    conn.execute(text("""
+        CREATE TABLE IF NOT EXISTS topics (
+            id INTEGER PRIMARY KEY, name VARCHAR(256) NOT NULL,
+            description TEXT, status VARCHAR(16) NOT NULL DEFAULT 'active',
+            created_at VARCHAR(32) NOT NULL, updated_at VARCHAR(32) NOT NULL)
+    """))
 
 
 def test_migration_creates_tables():
@@ -57,12 +72,16 @@ def test_migration_backfills_existing_topic_id():
     engine = _make_engine()
     # Insert a topic and a question with topic_id set
     with engine.connect() as conn:
+        _create_topics_table(conn)
         conn.execute(text(
-            "INSERT INTO topics (name, status, created_at, updated_at) VALUES ('plasticity', 'active', :now, :now)"
+            "INSERT INTO topics (name, status, created_at, updated_at)"
+            " VALUES ('plasticity', 'active', :now, :now)"
         ), {"now": _now()})
         conn.commit()
     with engine.connect() as conn:
-        topic_id = conn.execute(text("SELECT id FROM topics WHERE name='plasticity'")).fetchone()[0]
+        topic_id = conn.execute(
+            text("SELECT id FROM topics WHERE name='plasticity'")
+        ).fetchone()[0]
         conn.execute(text(
             "INSERT INTO research_questions "
             "(question, topic_context, status, created_at, updated_at, topic_id) "
@@ -70,7 +89,9 @@ def test_migration_backfills_existing_topic_id():
         ), {"now": _now(), "tid": topic_id})
         conn.commit()
     with engine.connect() as conn:
-        q_id = conn.execute(text("SELECT id FROM research_questions WHERE question='q?'")).fetchone()[0]
+        q_id = conn.execute(
+            text("SELECT id FROM research_questions WHERE question='q?'")
+        ).fetchone()[0]
     # Apply migration
     with engine.connect() as conn:
         _migration_016_question_topic_tables(conn)
@@ -98,12 +119,16 @@ def test_migration_is_idempotent():
 def test_existing_topic_id_fk_preserved():
     engine = _make_engine()
     with engine.connect() as conn:
+        _create_topics_table(conn)
         conn.execute(text(
-            "INSERT INTO topics (name, status, created_at, updated_at) VALUES ('plasticity', 'active', :now, :now)"
+            "INSERT INTO topics (name, status, created_at, updated_at)"
+            " VALUES ('plasticity', 'active', :now, :now)"
         ), {"now": _now()})
         conn.commit()
     with engine.connect() as conn:
-        topic_id = conn.execute(text("SELECT id FROM topics WHERE name='plasticity'")).fetchone()[0]
+        topic_id = conn.execute(
+            text("SELECT id FROM topics WHERE name='plasticity'")
+        ).fetchone()[0]
         conn.execute(text(
             "INSERT INTO research_questions "
             "(question, topic_context, status, created_at, updated_at, topic_id) "

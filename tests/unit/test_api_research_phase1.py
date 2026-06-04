@@ -10,7 +10,7 @@ from sqlalchemy.pool import StaticPool
 
 from neurodb.api.routes.research import router
 from neurodb.db.grouping_store import get_or_create_grouping, link_grouping
-from neurodb.schema import Base, Concept, Grouping, GroupingLink, ResearchQuestion, Topic
+from neurodb.schema import Base, Grouping, GroupingLink, ResearchQuestion
 
 
 def _now():
@@ -36,22 +36,18 @@ def client_and_engine():
 
 def _seed_question_with_links(engine):
     with Session(engine) as session:
-        t = Topic(name="plasticity", description=None, status="active",
-                  created_at=_now(), updated_at=_now())
-        c = Concept(name="LTP", description=None, status="active",
-                    created_at=_now(), updated_at=_now())
         q = ResearchQuestion(
             question="Test?", topic_context="", status="open",
             created_at=_now(), updated_at=_now(),
         )
-        session.add_all([t, c, q])
+        session.add(q)
         session.flush()
         gt = get_or_create_grouping(session, "topic", "plasticity")
         gc = get_or_create_grouping(session, "concept", "LTP")
         link_grouping(session, gt.id, "question", q.id, status="confirmed")
         link_grouping(session, gc.id, "question", q.id, status="pending")
         session.commit()
-        return q.id, t.id, c.id, gt.id, gc.id
+        return q.id, gt.id, gc.id
 
 
 # --- T5: delete cascade ---
@@ -77,13 +73,11 @@ def test_delete_question_removes_grouping_link_rows(client_and_engine):
         assert len(links) == 0, "grouping_links rows not deleted"
 
 
-def test_delete_question_does_not_remove_topics_or_concepts(client_and_engine):
+def test_delete_question_does_not_remove_groupings(client_and_engine):
     client, engine = client_and_engine
-    q_id, t_id, c_id, gt_id, gc_id = _seed_question_with_links(engine)
+    q_id, gt_id, gc_id = _seed_question_with_links(engine)
     client.delete(f"/api/research/questions/{q_id}")
     with Session(engine) as session:
-        assert session.get(Topic, t_id) is not None, "Topic was incorrectly deleted"
-        assert session.get(Concept, c_id) is not None, "Concept was incorrectly deleted"
         assert session.get(Grouping, gt_id) is not None, "Topic grouping was incorrectly deleted"
         assert session.get(Grouping, gc_id) is not None, "Concept grouping was incorrectly deleted"
 

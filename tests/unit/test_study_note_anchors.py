@@ -5,7 +5,7 @@ from sqlalchemy.orm import Session
 from sqlalchemy.pool import StaticPool
 
 from neurodb.schema import (
-    Base, Concept, DatasetIndex, IngestRun, Paper, StudyNote, Topic,
+    Base, DatasetIndex, IngestRun, Paper, StudyNote,
 )
 
 
@@ -44,21 +44,13 @@ def test_study_note_accepts_index_id_anchor(engine):
 
 def test_study_note_accepts_topic_id_anchor(engine):
     with Session(engine) as s:
-        topic = Topic(name="hippocampal plasticity", status="active",
-                      created_at=_now(), updated_at=_now())
-        s.add(topic)
-        s.flush()
-        s.add(StudyNote(topic_id=topic.id, concept_tag="LTP", tagged_at=_now()))
+        s.add(StudyNote(topic_id=1, concept_tag="LTP", tagged_at=_now()))
         s.commit()
 
 
 def test_study_note_accepts_concept_id_anchor(engine):
     with Session(engine) as s:
-        concept = Concept(name="synaptic pruning", status="active",
-                          created_at=_now(), updated_at=_now())
-        s.add(concept)
-        s.flush()
-        s.add(StudyNote(concept_id=concept.id, concept_tag="pruning", tagged_at=_now()))
+        s.add(StudyNote(concept_id=1, concept_tag="pruning", tagged_at=_now()))
         s.commit()
 
 

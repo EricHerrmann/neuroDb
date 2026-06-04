@@ -108,10 +108,10 @@ class StudyNote(Base):
         ForeignKey("datasets_index.id"), nullable=True, index=True
     )
     topic_id: Mapped[int | None] = mapped_column(
-        ForeignKey("topics.id"), nullable=True, index=True
+        Integer, nullable=True, index=True
     )
     concept_id: Mapped[int | None] = mapped_column(
-        ForeignKey("concepts.id"), nullable=True, index=True
+        Integer, nullable=True, index=True
     )
     paper_id: Mapped[int | None] = mapped_column(
         ForeignKey("papers.id"), nullable=True, index=True
@@ -305,7 +305,7 @@ class ResearchQuestion(Base):
     status: Mapped[str] = mapped_column(String(32), nullable=False, default="open", index=True)
     created_at: Mapped[str] = mapped_column(String(32), nullable=False)
     updated_at: Mapped[str] = mapped_column(String(32), nullable=False)
-    topic_id: Mapped[int | None] = mapped_column(ForeignKey("topics.id"), nullable=True)
+    topic_id: Mapped[int | None] = mapped_column(Integer, nullable=True)
     origin_session_id: Mapped[int | None] = mapped_column(Integer, nullable=True)
 
 

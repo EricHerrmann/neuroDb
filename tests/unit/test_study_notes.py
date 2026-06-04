@@ -5,7 +5,7 @@ from sqlalchemy.exc import IntegrityError
 from sqlalchemy.orm import Session
 from sqlalchemy.pool import StaticPool
 
-from neurodb.schema import Base, Concept, DatasetIndex, IngestRun, Paper, StudyNote, Topic
+from neurodb.schema import Base, DatasetIndex, IngestRun, Paper, StudyNote
 from neurodb.db.grouping_store import get_or_create_grouping, link_grouping
 from neurodb.study import tag_dataset, list_tags, search_tags, delete_tag
 

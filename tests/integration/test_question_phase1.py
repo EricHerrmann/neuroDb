@@ -5,12 +5,12 @@ from unittest.mock import patch
 import pytest
 from fastapi import FastAPI
 from fastapi.testclient import TestClient
-from sqlalchemy import create_engine, select
+from sqlalchemy import create_engine
 from sqlalchemy.orm import Session
 from sqlalchemy.pool import StaticPool
 
 from neurodb.api.routes.research import router
-from neurodb.schema import Base, Concept, QuestionTopic, ResearchQuestion, Topic
+from neurodb.schema import Base
 
 
 def _now():

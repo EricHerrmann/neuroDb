@@ -784,6 +784,23 @@ def _migration_020_literature_search_arxiv_count(conn) -> None:
         pass  # column already exists
 
 
+def _migration_021_drop_legacy_groupings_tables(conn) -> None:
+    """Drop the legacy topics/concepts tables and their six join tables.
+
+    Data was backfilled into groupings/grouping_links by migration 017. No
+    surviving table holds a foreign key to these (removed in migrations 010/012),
+    so the drop is unblocked. The legacy ORM models were removed in Phase 5, so
+    create_all no longer recreates these tables on startup.
+    """
+    for table in (
+        "question_topics", "question_concepts",
+        "paper_topics", "paper_concepts",
+        "topic_concepts", "dataset_packet_topics",
+        "topics", "concepts",
+    ):
+        conn.execute(text(f"DROP TABLE IF EXISTS {table}"))
+
+
 _MIGRATIONS: dict[int, callable] = {
     1: _migration_001_study_note_unique,
     2: _migration_002_model_call_log,
@@ -805,6 +822,7 @@ _MIGRATIONS: dict[int, callable] = {
     18: _migration_018_seed_grouping_hierarchy,
     19: _migration_019_resync_grouping_sequences,
     20: _migration_020_literature_search_arxiv_count,
+    21: _migration_021_drop_legacy_groupings_tables,
 }
 
 

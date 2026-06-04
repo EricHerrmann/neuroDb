@@ -345,34 +345,6 @@ class HypothesisReview(Base):
     status: Mapped[str] = mapped_column(String(32), nullable=False, default="pending", index=True)
 
 
-class QuestionTopic(Base):
-    """Many-to-many: research_questions ↔ topics, with pending/confirmed lifecycle."""
-    __tablename__ = "question_topics"
-    __table_args__ = (
-        UniqueConstraint("question_id", "topic_id", name="uq_question_topic"),
-    )
-
-    id: Mapped[int] = mapped_column(Integer, Sequence("question_topics_id_seq"), primary_key=True)
-    question_id: Mapped[int] = mapped_column(Integer, nullable=False, index=True)
-    topic_id: Mapped[int] = mapped_column(Integer, nullable=False, index=True)
-    status: Mapped[str] = mapped_column(String(16), nullable=False, default="pending", index=True)
-    created_at: Mapped[str] = mapped_column(String(32), nullable=False)
-
-
-class QuestionConcept(Base):
-    """Many-to-many: research_questions ↔ concepts, with pending/confirmed lifecycle."""
-    __tablename__ = "question_concepts"
-    __table_args__ = (
-        UniqueConstraint("question_id", "concept_id", name="uq_question_concept"),
-    )
-
-    id: Mapped[int] = mapped_column(Integer, Sequence("question_concepts_id_seq"), primary_key=True)
-    question_id: Mapped[int] = mapped_column(Integer, nullable=False, index=True)
-    concept_id: Mapped[int] = mapped_column(Integer, nullable=False, index=True)
-    status: Mapped[str] = mapped_column(String(16), nullable=False, default="pending", index=True)
-    created_at: Mapped[str] = mapped_column(String(32), nullable=False)
-
-
 class KnowledgeGrowthSnapshot(Base):
     """Append-only snapshot of learning and research-growth metrics."""
     __tablename__ = "knowledge_growth_snapshots"
@@ -441,74 +413,6 @@ class AppPreference(Base):
     key: Mapped[str] = mapped_column(String(128), primary_key=True)
     value: Mapped[str] = mapped_column(Text, nullable=False)
     updated_at: Mapped[str] = mapped_column(String(32), nullable=False)
-
-
-class Topic(Base):
-    """Researchable subject area used to group Papers, Concepts, notes, and dataset packets."""
-    __tablename__ = "topics"
-
-    id: Mapped[int] = mapped_column(Integer, Sequence("topics_id_seq"), primary_key=True)
-    name: Mapped[str] = mapped_column(String(256), nullable=False, unique=True, index=True)
-    description: Mapped[str | None] = mapped_column(Text, nullable=True)
-    status: Mapped[str] = mapped_column(String(16), nullable=False, default="active")
-    created_at: Mapped[str] = mapped_column(String(32), nullable=False)
-    updated_at: Mapped[str] = mapped_column(String(32), nullable=False)
-
-
-class Concept(Base):
-    """Learnable idea, mechanism, anatomy term, or clinical concept within a topic."""
-    __tablename__ = "concepts"
-
-    id: Mapped[int] = mapped_column(Integer, Sequence("concepts_id_seq"), primary_key=True)
-    name: Mapped[str] = mapped_column(String(256), nullable=False, unique=True, index=True)
-    description: Mapped[str | None] = mapped_column(Text, nullable=True)
-    status: Mapped[str] = mapped_column(String(16), nullable=False, default="active")
-    created_at: Mapped[str] = mapped_column(String(32), nullable=False)
-    updated_at: Mapped[str] = mapped_column(String(32), nullable=False)
-
-
-class PaperTopic(Base):
-    """Join table linking a Paper to a Topic."""
-    __tablename__ = "paper_topics"
-    __table_args__ = (UniqueConstraint("paper_id", "topic_id", name="uq_paper_topics"),)
-
-    id: Mapped[int] = mapped_column(Integer, Sequence("paper_topics_id_seq"), primary_key=True)
-    paper_id: Mapped[int] = mapped_column(ForeignKey("papers.id"), nullable=False, index=True)
-    topic_id: Mapped[int] = mapped_column(ForeignKey("topics.id"), nullable=False, index=True)
-
-
-class PaperConcept(Base):
-    """Join table linking a Paper to a Concept."""
-    __tablename__ = "paper_concepts"
-    __table_args__ = (UniqueConstraint("paper_id", "concept_id", name="uq_paper_concepts"),)
-
-    id: Mapped[int] = mapped_column(Integer, Sequence("paper_concepts_id_seq"), primary_key=True)
-    paper_id: Mapped[int] = mapped_column(ForeignKey("papers.id"), nullable=False, index=True)
-    concept_id: Mapped[int] = mapped_column(ForeignKey("concepts.id"), nullable=False, index=True)
-
-
-class TopicConcept(Base):
-    """Join table linking a Topic to a Concept."""
-    __tablename__ = "topic_concepts"
-    __table_args__ = (UniqueConstraint("topic_id", "concept_id", name="uq_topic_concepts"),)
-
-    id: Mapped[int] = mapped_column(Integer, Sequence("topic_concepts_id_seq"), primary_key=True)
-    topic_id: Mapped[int] = mapped_column(ForeignKey("topics.id"), nullable=False, index=True)
-    concept_id: Mapped[int] = mapped_column(ForeignKey("concepts.id"), nullable=False, index=True)
-
-
-class DatasetPacketTopic(Base):
-    """Join table linking a DatasetResearchPacket to a Topic."""
-    __tablename__ = "dataset_packet_topics"
-    __table_args__ = (UniqueConstraint("packet_id", "topic_id", name="uq_dataset_packet_topics"),)
-
-    id: Mapped[int] = mapped_column(
-        Integer, Sequence("dataset_packet_topics_id_seq"), primary_key=True
-    )
-    packet_id: Mapped[int] = mapped_column(
-        ForeignKey("dataset_research_packets.id"), nullable=False, index=True
-    )
-    topic_id: Mapped[int] = mapped_column(ForeignKey("topics.id"), nullable=False, index=True)
 
 
 class DatasetPacketPaper(Base):

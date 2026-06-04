@@ -23,6 +23,56 @@ def _make_engine():
     return eng
 
 
+def _create_legacy_tables(conn):
+    """Create the legacy source tables the 017 backfill reads, for tests that
+    exercise backfill after the ORM models have been removed."""
+    conn.execute(text("""
+        CREATE TABLE IF NOT EXISTS topics (
+            id INTEGER PRIMARY KEY, name VARCHAR(256) NOT NULL,
+            description TEXT, status VARCHAR(16) NOT NULL DEFAULT 'active',
+            created_at VARCHAR(32) NOT NULL, updated_at VARCHAR(32) NOT NULL)
+    """))
+    conn.execute(text("""
+        CREATE TABLE IF NOT EXISTS concepts (
+            id INTEGER PRIMARY KEY, name VARCHAR(256) NOT NULL,
+            description TEXT, status VARCHAR(16) NOT NULL DEFAULT 'active',
+            created_at VARCHAR(32) NOT NULL, updated_at VARCHAR(32) NOT NULL)
+    """))
+    conn.execute(text("""
+        CREATE TABLE IF NOT EXISTS question_topics (
+            id INTEGER PRIMARY KEY, question_id INTEGER NOT NULL,
+            topic_id INTEGER NOT NULL, status VARCHAR(16) NOT NULL DEFAULT 'pending',
+            created_at VARCHAR(32) NOT NULL)
+    """))
+    conn.execute(text("""
+        CREATE TABLE IF NOT EXISTS question_concepts (
+            id INTEGER PRIMARY KEY, question_id INTEGER NOT NULL,
+            concept_id INTEGER NOT NULL, status VARCHAR(16) NOT NULL DEFAULT 'pending',
+            created_at VARCHAR(32) NOT NULL)
+    """))
+    # Link tables: only the columns the 017 backfill reads (no status/timestamps).
+    conn.execute(text("""
+        CREATE TABLE IF NOT EXISTS paper_topics (
+            id INTEGER PRIMARY KEY, paper_id INTEGER NOT NULL,
+            topic_id INTEGER NOT NULL)
+    """))
+    conn.execute(text("""
+        CREATE TABLE IF NOT EXISTS paper_concepts (
+            id INTEGER PRIMARY KEY, paper_id INTEGER NOT NULL,
+            concept_id INTEGER NOT NULL)
+    """))
+    conn.execute(text("""
+        CREATE TABLE IF NOT EXISTS topic_concepts (
+            id INTEGER PRIMARY KEY, topic_id INTEGER NOT NULL,
+            concept_id INTEGER NOT NULL)
+    """))
+    conn.execute(text("""
+        CREATE TABLE IF NOT EXISTS dataset_packet_topics (
+            id INTEGER PRIMARY KEY, packet_id INTEGER NOT NULL,
+            topic_id INTEGER NOT NULL)
+    """))
+
+
 def test_migration_017_registered():
     assert _MIGRATIONS.get(17) is _migration_017_groupings
 
@@ -54,6 +104,7 @@ def test_migration_is_idempotent_on_empty_db():
 
 def _seed_topics_concepts(engine):
     with engine.connect() as conn:
+        _create_legacy_tables(conn)
         conn.execute(text(
             "INSERT INTO topics (name, description, status, created_at, updated_at) VALUES "
             "('neuroplasticity', 'desc-np', 'active', :now, :now), "
@@ -98,6 +149,7 @@ def test_backfill_groupings_idempotent():
 def _seed_links_fixture(engine):
     """Seed topics/concepts plus one row in every legacy link source."""
     with engine.connect() as conn:
+        _create_legacy_tables(conn)
         conn.execute(text(
             "INSERT INTO topics (name, status, created_at, updated_at) "
             "VALUES ('stroke', 'active', :now, :now)"

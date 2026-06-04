@@ -44,6 +44,31 @@ describe('KnowledgeLibraryPanel', () => {
     expect(screen.getByText('Reject')).toBeTruthy()
   })
 
+  it('renders topic grouping link indicators for pending papers', () => {
+    render(<KnowledgeLibraryPanel />, {
+      wrapper: makeWrapper([{
+        id: 1,
+        title: 'Linked Paper',
+        doi: null,
+        url: null,
+        source_type: 'paper',
+        topic_context: 'stroke',
+        status: 'pending',
+        queued_at: '2026-01-01',
+        reviewed_at: null,
+        summary: null,
+        grouping_links: [{
+          grouping_id: 7,
+          grouping_type: 'topic',
+          grouping_name: 'stroke recovery',
+          status: 'confirmed',
+        }],
+      }]),
+    })
+
+    expect(screen.getByText('topic: stroke recovery')).toBeTruthy()
+  })
+
   it('renders bare DOI as resolver link', () => {
     render(<KnowledgeLibraryPanel />, {
       wrapper: makeWrapper([{

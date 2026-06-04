@@ -3,7 +3,7 @@
 **Date:** 2026-06-04
 **Author:** Claude (brainstormed with user)
 **Parent spec:** `docs/superpowers/specs/2026-06-01-unified-groupings-taxonomy-design.md` (Phase 5 — "Drop legacy")
-**Status:** Draft — awaiting user review
+**Status:** Complete — implemented and signed off 2026-06-04
 
 ---
 

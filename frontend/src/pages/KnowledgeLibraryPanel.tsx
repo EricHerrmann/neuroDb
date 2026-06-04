@@ -39,6 +39,34 @@ function ExternalLink({ href, label }: { href: string; label: string }) {
   )
 }
 
+function GroupingLinks({ item }: { item: PaperItem }) {
+  const links = item.grouping_links ?? []
+  if (links.length === 0) return null
+
+  return (
+    <div style={{ display: 'flex', flexWrap: 'wrap', gap: 4, marginTop: 6 }}>
+      {links.map(link => (
+        <span
+          key={`${link.grouping_type}-${link.grouping_id}`}
+          title={`${link.grouping_type} grouping link: ${link.status}`}
+          style={{
+            fontSize: 10,
+            lineHeight: '16px',
+            padding: '1px 6px',
+            border: '1px solid #bfdbfe',
+            background: '#eff6ff',
+            color: '#1e40af',
+            borderRadius: 10,
+          }}
+        >
+          {link.grouping_type}: {link.grouping_name}
+          {link.status !== 'confirmed' ? ` (${link.status})` : ''}
+        </span>
+      ))}
+    </div>
+  )
+}
+
 function SourceReviewDetails({ item }: { item: PaperItem }) {
   const sourceHref = item.url ? externalHref(item.url) : null
   const hasRecordedReference = Boolean(item.doi || sourceHref)
@@ -61,6 +89,14 @@ function SourceReviewDetails({ item }: { item: PaperItem }) {
           <div>
             <strong>URL:</strong>{' '}
             {sourceHref ? <ExternalLink href={sourceHref} label={item.url} /> : item.url}
+          </div>
+        )}
+        {(item.grouping_links ?? []).length > 0 && (
+          <div>
+            <strong>Grouping links:</strong>{' '}
+            {(item.grouping_links ?? [])
+              .map(link => `${link.grouping_type}: ${link.grouping_name} (${link.status})`)
+              .join(', ')}
           </div>
         )}
         {!hasRecordedReference && (
@@ -157,6 +193,7 @@ export default function KnowledgeLibraryPanel() {
           <div style={{ fontSize: 11, color: '#64748b', margin: '2px 0' }}>
             {item.source_type} · {item.topic_context.slice(0, 80)}
           </div>
+          <GroupingLinks item={item} />
           {item.doi && <div style={{ fontSize: 11 }}>DOI: <DoiValue doi={item.doi} /></div>}
           {item.url && (
             <div style={{ fontSize: 11 }}>

@@ -4,6 +4,8 @@
 
 **Goal:** Remove the legacy `topics`/`concepts` tables, their six join tables, and their ORM models, cutting the last live consumers over to the unified groupings engine, so categorization has a single model.
 
+**Status:** Complete — implemented and signed off 2026-06-04. Manual T1-T4 passed in `docs/testsPlans/completedAndPassedTestPlans/manualTestPlan_groupings_phase5.md`.
+
 **Architecture:** The DB bootstraps via `Base.metadata.create_all(engine)` then runs ordered migrations. Phase 5 (1) makes migration 017's legacy backfill tolerant of the legacy tables being absent, (2) cuts over the two remaining live consumers (`research_agent`, `knowledge_library`) to the engine, (3) removes the legacy ORM models so `create_all` no longer recreates the tables, then (4) adds migration 021 to hard-`DROP` the eight tables. Order matters: models must be removed *before* the drop migration, or `create_all` resurrects the dropped tables on the next startup.
 
 **Tech Stack:** Python, SQLAlchemy (DuckDB runtime, SQLite in-memory for tests), pytest, ruff. Migrations are plain functions in `src/neurodb/db.py` registered in `_MIGRATIONS` and applied by `apply_migrations` in `src/neurodb/migrations.py`.

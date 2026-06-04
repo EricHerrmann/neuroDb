@@ -1,5 +1,11 @@
 # Manual Test Plan — Groupings Phase 3a (Backend Cutover)
 
+> **SUPERSEDED (2026-06-04) — retained for history only.** The backend cutover
+> behavior covered here was subsequently verified through Groupings Phase 3b,
+> Phase 4, and the final Phase 5 post-drop manual gate. The active grouping and
+> research-question completion record is
+> `docs/testsPlans/completedAndPassedTestPlans/manualTestPlan_groupings_phase5.md`.
+
 ## Prerequisites
 - [ ] Run the automated suite: `uv run pytest tests/ -q`. Pass criterion: no new failures beyond those tracked in `docs/testLog.md`.
 - [ ] A provider API key is configured in `.env` (the matcher makes a real model call).

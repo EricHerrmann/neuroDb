@@ -3,7 +3,14 @@
 **Date:** 2026-06-01
 **Lifecycle stages served:** Capture (1), Categorize (2)
 **Source design:** `docs/researchQuestionDesignClaude.md` Phase 1
-**Status:** Spec — ready for implementation plan
+**Status:** Complete — delivered through the unified groupings engine and signed off 2026-06-04 via Groupings Phase 5 T3
+
+> The original standalone `question_topics` / `question_concepts` join-table
+> design below was superseded during implementation by the unified
+> `groupings` / `grouping_links` engine. The user-facing Research Question
+> Phase 1 capability is complete: create, suggest, confirm/dismiss, filter,
+> collapse, and delete workflows were verified through Groupings Phase 3b/4
+> and the final Phase 5 post-drop manual gate.
 
 ---
 

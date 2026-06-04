@@ -12,13 +12,14 @@ from pydantic import BaseModel
 from sqlalchemy import Engine, text
 
 from neurodb.api.deps import get_engine, get_knowledge_store, get_task_store
-from neurodb.api.schemas.knowledge_library import PaperItem
+from neurodb.api.schemas.knowledge_library import PaperGroupingLink, PaperItem
 from neurodb.api.tasks import TaskRecord
 from neurodb.db import get_session
 from neurodb.schema import (
     Claim,
     DatasetPacketPaper,
     EvidenceLink,
+    Grouping,
     GroupingLink,
     Paper,
     StudyNote,
@@ -52,7 +53,7 @@ def get_knowledge_library(
         else:
             query = query.filter(Paper.status == status)
         rows = query.order_by(Paper.queued_at.desc()).all()
-        return [PaperItem.model_validate(row) for row in rows]
+        return [_paper_item_from_row(row, session) for row in rows]
 
 
 @router.post("/{source_id}/approve", response_model=PaperItem)
@@ -233,7 +234,7 @@ def _update_paper_fields(source_id: int, engine: Engine, **fields) -> PaperItem:
     if not fields:
         with get_session(engine) as session:
             row = _get_paper_or_404(session, source_id)
-            return PaperItem.model_validate(row)
+            return _paper_item_from_row(row, session)
     if engine.dialect.name == "duckdb":
         return _update_paper_fields_duckdb(source_id, engine, **fields)
 
@@ -242,7 +243,7 @@ def _update_paper_fields(source_id: int, engine: Engine, **fields) -> PaperItem:
         for field, value in fields.items():
             setattr(row, field, value)
         session.flush()
-        return PaperItem.model_validate(row)
+        return _paper_item_from_row(row, session)
 
 
 def _update_paper_fields_duckdb(source_id: int, engine: Engine, **fields) -> PaperItem:
@@ -263,11 +264,34 @@ def _update_paper_fields_duckdb(source_id: int, engine: Engine, **fields) -> Pap
             for field, value in fields.items():
                 setattr(row, field, value)
             session.flush()
-            item = PaperItem.model_validate(row)
     finally:
         with get_session(engine) as session:
             _restore_paper_links(session, preserved_links)
-    return item
+    with get_session(engine) as session:
+        row = _get_paper_or_404(session, source_id)
+        return _paper_item_from_row(row, session)
+
+
+def _paper_item_from_row(row: Paper, session) -> PaperItem:
+    item = PaperItem.model_validate(row)
+    links = (
+        session.query(GroupingLink, Grouping)
+        .join(Grouping, Grouping.id == GroupingLink.grouping_id)
+        .filter(GroupingLink.anchor_type == "paper", GroupingLink.anchor_id == row.id)
+        .order_by(Grouping.type.asc(), Grouping.name.asc())
+        .all()
+    )
+    return item.model_copy(update={
+        "grouping_links": [
+            PaperGroupingLink(
+                grouping_id=link.grouping_id,
+                grouping_type=grouping.type,
+                grouping_name=grouping.name,
+                status=link.status,
+            )
+            for link, grouping in links
+        ]
+    })
 
 
 def _get_paper_or_404(session, source_id: int) -> Paper:

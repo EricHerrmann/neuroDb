@@ -2,7 +2,7 @@
 
 **Date:** 2026-06-01
 **Author:** Claude (brainstormed with user)
-**Status:** Draft — awaiting user review
+**Status:** Complete — delivered through Phases 3a/3b and final signed off 2026-06-04
 **Parent spec:** `docs/superpowers/specs/2026-06-01-unified-groupings-taxonomy-design.md` (this details that spec's Phase 3)
 **Builds on:** Phase 1 (unified tables + backfill, commit `b9bb250`) and Phase 2 (type-agnostic engine `grouping_store.py`)
 **Closes:** LOG-062 (semantic / agent-based grouping suggestion)

@@ -10,7 +10,8 @@
 > `docs/testsPlans/completedAndPassedTestPlans/manualTestPlan_groupings_phase3b.md`
 > and `manualTestPlan_groupings_phase4.md` (T5 delete, T6 collapse, T7 suggestion
 > refresh), and are re-smoked post-legacy-drop in
-> `docs/testsPlans/manualTestPlan_groupings_phase5.md` (T3). Retained for history only.
+> `docs/testsPlans/completedAndPassedTestPlans/manualTestPlan_groupings_phase5.md`
+> (T3). Retained for history only.
 
 **Phase:** Research Question Phase 1
 **Spec:** `docs/superpowers/specs/2026-06-01-research-question-phase1-design.md`

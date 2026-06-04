@@ -39,6 +39,7 @@ function makeWrapper(data: {
 describe('ResearchPanel', () => {
   afterEach(() => {
     vi.restoreAllMocks()
+    vi.useRealTimers()
   })
 
   it('shows empty state when no hypotheses', () => {
@@ -171,7 +172,7 @@ describe('ResearchPanel', () => {
     })
   })
 
-  it('refreshes suggestions after creating a research question', async () => {
+  it('polls question detail after creating a research question so async suggestions appear', async () => {
     const qc = new QueryClient({
       defaultOptions: { queries: { retry: false, staleTime: Infinity }, mutations: { retry: false } },
     })
@@ -198,8 +199,21 @@ describe('ResearchPanel', () => {
       topics: [],
       concepts: [],
     })
-    vi.spyOn(api, 'getResearchQuestionsDetail').mockResolvedValue([])
+    const refetchSpy = vi.spyOn(api, 'getResearchQuestionsDetail').mockResolvedValue([])
     const invalidateSpy = vi.spyOn(qc, 'invalidateQueries')
+    const realSetTimeout = window.setTimeout.bind(window)
+    const refreshDelays = [1500, 3000, 7000]
+    const timeoutSpy = vi.spyOn(window, 'setTimeout').mockImplementation(((
+      handler: TimerHandler,
+      timeout?: number,
+      ...args: unknown[]
+    ) => {
+      if (typeof handler === 'function' && refreshDelays.includes(Number(timeout))) {
+        handler()
+        return 0
+      }
+      return realSetTimeout(handler, timeout, ...args)
+    }) as typeof window.setTimeout)
     const wrapper = ({ children }: { children: React.ReactNode }) =>
       React.createElement(QueryClientProvider, { client: qc }, children)
 
@@ -212,6 +226,10 @@ describe('ResearchPanel', () => {
     await waitFor(() => {
       expect(invalidateSpy).toHaveBeenCalledWith({ queryKey: ['suggestions'] })
     })
+    expect(invalidateSpy).toHaveBeenCalledWith({ queryKey: ['research-questions-detail'] })
+    const scheduledRefreshes = timeoutSpy.mock.calls.filter(call => refreshDelays.includes(Number(call[1])))
+    expect(scheduledRefreshes).toHaveLength(3)
+    expect(refetchSpy.mock.calls.length).toBeGreaterThan(1)
   })
 })
 

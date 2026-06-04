@@ -4,6 +4,8 @@
 
 **Goal:** Wire research questions as first-class DB objects: direct UI creation, agent-suggested multi-topic tagging (persisted as pending/confirmed), collapsible question list with badges and chips, and delete with cascade.
 
+**Status:** Superseded / complete by replacement — the user-facing Research Question Phase 1 capability was delivered through the unified groupings engine and signed off 2026-06-04 via Groupings Phase 5 T3. The standalone join-table implementation details below are retained for history.
+
 **Architecture:** Schema adds `question_topics` and `question_concepts` join tables with a `status` column (pending/confirmed) and an `origin_session_id` column on `research_questions`. Backend layers follow the established topic_store → research_tools → API schema → API route pattern. Topic extraction is a lightweight DB-side keyword match — no LLM call — fired inline by the agent and as a background thread from the API POST route. The React UI extends `ResearchPanel.tsx` with a creation form, inline chips, and a filter bar.
 
 **Tech Stack:** Python, SQLAlchemy ORM, DuckDB (prod) / SQLite (tests), FastAPI, React 18, TypeScript, @tanstack/react-query

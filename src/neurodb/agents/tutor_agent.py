@@ -11,6 +11,11 @@ from neurodb.agents.base import BaseAgent
 from neurodb.agents.db_agent import TOOLS as _DB_TOOLS
 from neurodb.agents.db_agent import execute_tool
 from neurodb.db import get_session
+from neurodb.discovery_tools import (
+    READ_ONLY_DISCOVERY_TOOLS,
+    run_inspect_external_dataset,
+    run_search_external,
+)
 from neurodb.knowledge_store import KnowledgeLibraryStore
 from neurodb.schema import Paper
 
@@ -34,7 +39,13 @@ _TUTOR_SYSTEM_PROMPT = (
     "can review it later. If the user explicitly asks you to correct metadata on an existing "
     "Knowledge Library source, call update_source_metadata with the source ID and corrected "
     "metadata instead of calling queue_source again. To discover candidate learning resources, "
-    "call search_literature. "
+    "call search_literature. When the user asks to search external sites for papers, "
+    "reviews, or preprints, call search_literature before "
+    "answering. When the user asks to find external datasets by topic, call "
+    "search_external. When the user asks about an external dataset URL or source-native "
+    "dataset ID, call inspect_external_dataset. Do not say you cannot search or browse "
+    "external sites when one of these tools fits the request; if the tool returns no "
+    "results or an error, report that result plainly. "
     "Never fabricate paper titles, DOIs, dataset IDs, counts, or source details. "
     "Never write that a source is queued, in the Knowledge Library, approved, local, "
     "or cited from NeuroDb unless that state came from a successful tool result in this "
@@ -266,7 +277,7 @@ class NeuroTutorAgent(BaseAgent):
         self._literature_client = literature_client
 
     def _get_active_tools(self) -> list[dict]:
-        return list(_TUTOR_TOOLS) + list(_DB_TOOLS)
+        return list(_TUTOR_TOOLS) + list(READ_ONLY_DISCOVERY_TOOLS) + list(_DB_TOOLS)
 
     def _build_system_prompt(self) -> str:
         system = f"{_TUTOR_SYSTEM_PROMPT}\n\n{_context_prompt_rules(self._context_mode)}"
@@ -285,6 +296,17 @@ class NeuroTutorAgent(BaseAgent):
             return self._execute_search_knowledge_library(block.tool_input)
         if block.tool_name == "search_literature":
             return self._execute_search_literature(block.tool_input)
+        if block.tool_name == "search_external":
+            return run_search_external(
+                block.tool_input["source"],
+                block.tool_input["query"],
+                block.tool_input.get("limit", 10),
+            )
+        if block.tool_name == "inspect_external_dataset":
+            return run_inspect_external_dataset(
+                block.tool_input["source"],
+                block.tool_input["reference"],
+            )
         if block.tool_name == "search_topics":
             return self._execute_search_topics(block.tool_input)
         if block.tool_name == "get_grouping_bundle":

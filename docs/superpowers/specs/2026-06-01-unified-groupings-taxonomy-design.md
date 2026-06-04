@@ -2,7 +2,7 @@
 
 **Date:** 2026-06-01
 **Author:** Claude (brainstormed with user)
-**Status:** Draft — awaiting user review
+**Status:** Complete — Phases 1–5 implemented and signed off 2026-06-04
 **Supersedes:** `docs/superpowers/specs/2026-06-01-topic-taxonomy-hierarchy-design.md` (hierarchy becomes a property of the unified model)
 **Closes:** LOG-062 (semantic / agent-based grouping suggestion)
 **Context:** `docs/researchQuestionDesignClaude.md` / `docs/researchQuestionDesignCodex.md` (neither addresses taxonomy generality or a common categorization mechanism)

@@ -11,6 +11,8 @@ import type { ClaimItem, EvidenceLinkItem, Hypothesis, HypothesisReviewItem, Res
 
 type StatusTransition = { label: string; onSelect: () => void; description?: string }
 
+const QUESTION_SUGGESTION_REFRESH_DELAYS_MS = [1500, 3000, 7000]
+
 const STATUS_DESCRIPTIONS: Record<string, string> = {
   active: 'This evidence relationship is currently counted in the hypothesis evidence set.',
   approved: 'This item has been accepted for use as trusted project evidence.',
@@ -184,7 +186,14 @@ function QuestionCreateForm({ onCreated }: { onCreated: () => void }) {
       setQuestion('')
       setTopicContext('')
       queryClient.invalidateQueries({ queryKey: ['suggestions'] })
+      queryClient.invalidateQueries({ queryKey: ['research-questions-detail'] })
       onCreated()
+      QUESTION_SUGGESTION_REFRESH_DELAYS_MS.forEach(delay => {
+        window.setTimeout(() => {
+          queryClient.invalidateQueries({ queryKey: ['research-questions-detail'] })
+          onCreated()
+        }, delay)
+      })
     },
   })
   return (

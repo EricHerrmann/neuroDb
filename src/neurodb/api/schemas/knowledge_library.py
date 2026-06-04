@@ -1,6 +1,13 @@
 from __future__ import annotations
 
-from pydantic import BaseModel
+from pydantic import BaseModel, Field
+
+
+class PaperGroupingLink(BaseModel):
+    grouping_id: int
+    grouping_type: str
+    grouping_name: str
+    status: str
 
 
 class PaperItem(BaseModel):
@@ -19,3 +26,4 @@ class PaperItem(BaseModel):
     abstract: str | None = None
     year: int | None = None
     warnings: list[str] = []
+    grouping_links: list[PaperGroupingLink] = Field(default_factory=list)

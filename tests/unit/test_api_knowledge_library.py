@@ -102,6 +102,35 @@ def test_get_knowledge_library_returns_review_detail_fields():
     assert data[0]["year"] == 2020
 
 
+def test_get_knowledge_library_returns_grouping_link_indicators():
+    client, engine = _make_client()
+    with get_session(engine) as session:
+        paper = Paper(
+            title="Linked Paper",
+            normalized_title="linked paper",
+            source_type="paper",
+            topic_context="stroke",
+            status="pending",
+            queued_at="2026-01-01T00:00:00",
+        )
+        session.add(paper)
+        session.flush()
+        grouping = get_or_create_grouping(session, "topic", "stroke recovery")
+        grouping_id = grouping.id
+        link_grouping(session, grouping_id, "paper", paper.id, status="confirmed")
+
+    resp = client.get("/api/knowledge-library?status=pending")
+
+    assert resp.status_code == 200
+    data = resp.json()
+    assert data[0]["grouping_links"] == [{
+        "grouping_id": grouping_id,
+        "grouping_type": "topic",
+        "grouping_name": "stroke recovery",
+        "status": "confirmed",
+    }]
+
+
 def test_approve_source_sets_status():
     client, engine = _make_client()
     _insert_source(engine, "Paper A", "pending")

@@ -29,6 +29,7 @@ Archived from `docs/projectStatus.md`. Add new rows here when a phase reaches co
 | UI-5 P1/P2/P3 | React parity completion — data integrity, core workflow parity, and polish; 515 Python tests + 57 frontend tests + build + 8 common manual evals passed | 2026-05-23 |
 | Learning and Research Memory Refocus Phases 1-6 | Dataset research packets, papers/topics/concepts/study context, claims/evidence/gaps, context modes/evidence boundaries, UI evidence controls, context budgets and telemetry; manual phase gates signed off | 2026-05-24 |
 | Learning and Research Memory Refocus Completion | LOG-059 study log outer join fix, context budgets, retrieval telemetry, task-type defaults, dataset usefulness in agent context; manual T1-T5 passed | 2026-05-24 |
+| Unified Groupings Phases 1-5 + Research Question Phase 1 | Unified `groupings`/`grouping_links` taxonomy, question suggestion/confirmation/filter/delete workflow, consumer migration, legacy table retirement, and final post-drop manual T1-T4 sign-off | 2026-06-04 |
 
 **Deferred:** DB Epochs 7 (entity resolution) and 8 (hypothesis layer) — decision pending. See `docs/DB_EpochPlan.md`.
 

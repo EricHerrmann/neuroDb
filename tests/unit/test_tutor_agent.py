@@ -1,7 +1,7 @@
 import json
 import uuid
 from types import SimpleNamespace
-from unittest.mock import MagicMock
+from unittest.mock import MagicMock, patch
 
 import chromadb
 from sqlalchemy import create_engine
@@ -51,12 +51,13 @@ def test_tutor_tool_list_contains_required_tools():
     assert "queue_source" in names
     assert "update_source_metadata" in names
     assert "search_literature" in names
+    assert "search_external" in names
+    assert "inspect_external_dataset" in names
     assert "query_db" in names
 
 
-def test_tutor_tool_list_excludes_dataset_discovery_tools():
+def test_tutor_tool_list_excludes_write_dataset_discovery_tools():
     names = {tool["name"] for tool in _agent()._get_active_tools()}
-    assert "search_external" not in names
     assert "suggest_import" not in names
 
 
@@ -288,11 +289,52 @@ def test_search_literature_uses_literature_client():
     assert results[0]["doi"] == "10.1000/ltp"
 
 
+def test_search_external_dispatch_uses_discovery_tool():
+    agent = _agent()
+    block = SimpleNamespace(
+        tool_name="search_external",
+        tool_input={"source": "all", "query": "plasticity", "limit": 3},
+    )
+
+    with patch(
+        "neurodb.agents.tutor_agent.run_search_external",
+        return_value=json.dumps([{"source": "openneuro", "id": "ds000001"}]),
+    ) as search_external:
+        result = json.loads(agent._execute_tool_block(block))
+
+    search_external.assert_called_once_with("all", "plasticity", 3)
+    assert result == [{"source": "openneuro", "id": "ds000001"}]
+
+
+def test_inspect_external_dataset_dispatch_uses_discovery_tool():
+    agent = _agent()
+    block = SimpleNamespace(
+        tool_name="inspect_external_dataset",
+        tool_input={"source": "auto", "reference": "https://openneuro.org/datasets/ds000001"},
+    )
+
+    with patch(
+        "neurodb.agents.tutor_agent.run_inspect_external_dataset",
+        return_value=json.dumps({"source": "openneuro", "source_id": "ds000001"}),
+    ) as inspect_external:
+        result = json.loads(agent._execute_tool_block(block))
+
+    inspect_external.assert_called_once_with(
+        "auto",
+        "https://openneuro.org/datasets/ds000001",
+    )
+    assert result == {"source": "openneuro", "source_id": "ds000001"}
+
+
 def test_system_prompt_contains_tutor_instructions():
     prompt = _agent()._build_system_prompt().lower()
     assert "knowledge library" in prompt
     assert "queue_source" in prompt
     assert "update_source_metadata" in prompt
+    assert "search external sites" in prompt
+    assert "call search_external" in prompt
+    assert "call inspect_external_dataset" in prompt
+    assert "do not say you cannot search or browse external sites" in prompt
     assert "never write that a source is queued" in prompt
     assert "audit those references against tool results" in prompt
     assert "readable markdown" in prompt

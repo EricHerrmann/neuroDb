@@ -87,7 +87,15 @@ export interface PaperItem {
   summary: string | null
   abstract: string | null
   year: number | null
+  grouping_links?: PaperGroupingLink[]
   warnings?: string[]
+}
+
+export interface PaperGroupingLink {
+  grouping_id: number
+  grouping_type: string
+  grouping_name: string
+  status: string
 }
 
 export interface ResearchMetrics {

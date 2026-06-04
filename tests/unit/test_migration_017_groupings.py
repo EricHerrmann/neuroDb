@@ -241,6 +241,27 @@ def test_full_migration_run_backfills_and_records_version():
     assert get_schema_version(engine) >= 17
 
 
+def test_backfill_skipped_when_legacy_tables_absent():
+    """On a fresh DB with no legacy tables, 017 creates the new tables and
+    skips the legacy backfill instead of crashing on `FROM topics`."""
+    engine = create_engine(
+        "sqlite:///:memory:",
+        connect_args={"check_same_thread": False},
+        poolclass=StaticPool,
+    )
+    # Deliberately NO Base.metadata.create_all -> legacy tables do not exist.
+    with engine.connect() as conn:
+        _migration_017_groupings(conn)  # must not raise
+        conn.commit()
+    with engine.connect() as conn:
+        for tbl in ("groupings", "grouping_links"):
+            row = conn.execute(
+                text("SELECT name FROM sqlite_master WHERE type='table' AND name=:t"),
+                {"t": tbl},
+            ).fetchone()
+            assert row is not None, f"{tbl} missing"
+
+
 def test_reapplying_all_migrations_is_noop():
     engine = _make_engine()
     _seed_links_fixture(engine)

@@ -8,6 +8,7 @@ from datetime import UTC, datetime
 
 from sqlalchemy import Engine, text
 from sqlalchemy import create_engine as _create_engine
+from sqlalchemy import inspect as sqla_inspect
 from sqlalchemy.orm import Session
 
 from neurodb.migrations import apply_migrations
@@ -492,6 +493,12 @@ def _migration_017_groupings(conn) -> None:
     conn.execute(text(
         "CREATE INDEX IF NOT EXISTS ix_grouping_links_status ON grouping_links (status)"
     ))
+
+    # --- Legacy backfill: only runs when the legacy tables still exist. ---
+    # On a fresh DB built after the Phase 5 model removal, these tables are
+    # absent and there is nothing to migrate, so skip the whole block.
+    if not (sqla_inspect(conn).has_table("topics") and sqla_inspect(conn).has_table("concepts")):
+        return
 
     conn.execute(text("""
         INSERT INTO groupings (

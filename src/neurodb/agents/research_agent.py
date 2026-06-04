@@ -14,6 +14,7 @@ from neurodb.discovery_tools import (
     run_search_external,
 )
 from neurodb.knowledge_store import KnowledgeLibraryStore
+from neurodb.research.grouping_matcher import run_suggest_groupings
 from neurodb.research_tools import (
     cross_reference_datasets,
     draft_hypothesis,
@@ -460,25 +461,26 @@ class NeuroResearchAgent(BaseAgent):
                 status=block.tool_input.get("status", "open"),
             )
             if "id" in result:
-                from neurodb.db import get_session as _gs
-                from neurodb.db.topic_store import extract_question_topics
-                with _gs(self._engine) as session:
-                    suggestions = extract_question_topics(
-                        session,
-                        result["id"],
-                        block.tool_input["question"],
-                    )
-                result["suggestions"] = suggestions
+                run_suggest_groupings(
+                    self._engine,
+                    anchor_type="question",
+                    anchor_id=result["id"],
+                    anchor_text=block.tool_input["question"],
+                    gtypes=("topic", "concept"),
+                )
             return json.dumps(result)
         if block.tool_name == "extract_question_topics":
-            from neurodb.db import get_session as _gs
-            from neurodb.db.topic_store import extract_question_topics
-            with _gs(self._engine) as session:
-                return json.dumps(extract_question_topics(
-                    session,
-                    block.tool_input["question_id"],
-                    block.tool_input["question_text"],
-                ))
+            run_suggest_groupings(
+                self._engine,
+                anchor_type="question",
+                anchor_id=block.tool_input["question_id"],
+                anchor_text=block.tool_input["question_text"],
+                gtypes=("topic", "concept"),
+            )
+            return json.dumps({
+                "status": "suggestions_generated",
+                "question_id": block.tool_input["question_id"],
+            })
         if block.tool_name == "draft_hypothesis":
             return json.dumps(draft_hypothesis(
                 self._engine,

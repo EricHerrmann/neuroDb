@@ -651,3 +651,47 @@ def test_add_evidence_link_dispatch_returns_error_for_unknown_source_type():
         },
     )))
     assert "error" in result
+
+
+def test_record_research_question_triggers_grouping_matcher():
+    engine = _engine()
+    agent = _agent(engine)
+
+    with patch("neurodb.agents.research_agent.run_suggest_groupings") as mock_run:
+        out = json.loads(agent._execute_tool_block(_block(
+            "record_research_question",
+            {
+                "question": "How does sleep affect plasticity?",
+                "topic_context": "sleep",
+            },
+        )))
+
+    assert "id" in out
+    mock_run.assert_called_once()
+    kwargs = mock_run.call_args.kwargs
+    assert kwargs["anchor_type"] == "question"
+    assert kwargs["anchor_id"] == out["id"]
+    assert kwargs["anchor_text"] == "How does sleep affect plasticity?"
+    assert kwargs["gtypes"] == ("topic", "concept")
+
+
+def test_extract_question_topics_handler_calls_grouping_matcher():
+    engine = _engine()
+    agent = _agent(engine)
+
+    with patch("neurodb.agents.research_agent.run_suggest_groupings") as mock_run:
+        out = json.loads(agent._execute_tool_block(_block(
+            "extract_question_topics",
+            {
+                "question_id": 42,
+                "question_text": "How does sleep affect plasticity?",
+            },
+        )))
+
+    assert out == {"status": "suggestions_generated", "question_id": 42}
+    mock_run.assert_called_once()
+    kwargs = mock_run.call_args.kwargs
+    assert kwargs["anchor_type"] == "question"
+    assert kwargs["anchor_id"] == 42
+    assert kwargs["anchor_text"] == "How does sleep affect plasticity?"
+    assert kwargs["gtypes"] == ("topic", "concept")

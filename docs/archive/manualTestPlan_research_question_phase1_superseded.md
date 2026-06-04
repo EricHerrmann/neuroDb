@@ -1,8 +1,20 @@
 # Manual Test Plan — Research Question Phase 1: Capture & Categorize
 
+> **SUPERSEDED (2026-06-04) — never executed.** The Research Question Phase 1
+> capability (create-from-UI, persisted suggestions, confirm/dismiss, topic
+> filter, collapsible list, delete cascade) was delivered through the unified
+> groupings engine (groupings Phases 3–4), not the standalone `question_topics`/
+> `question_concepts` substring design this plan assumes. The suggestion mechanism
+> in particular changed from literal substring matching to the semantic + proposal
+> matcher. The user-facing workflows were manually verified in
+> `docs/testsPlans/completedAndPassedTestPlans/manualTestPlan_groupings_phase3b.md`
+> and `manualTestPlan_groupings_phase4.md` (T5 delete, T6 collapse, T7 suggestion
+> refresh), and are re-smoked post-legacy-drop in
+> `docs/testsPlans/manualTestPlan_groupings_phase5.md` (T3). Retained for history only.
+
 **Phase:** Research Question Phase 1
 **Spec:** `docs/superpowers/specs/2026-06-01-research-question-phase1-design.md`
-**Status:** Not started
+**Status:** Superseded — not executed (see banner)
 
 ---
 

@@ -21,8 +21,6 @@ from neurodb.schema import (
     EvidenceLink,
     GroupingLink,
     Paper,
-    PaperConcept,
-    PaperTopic,
     StudyNote,
 )
 
@@ -319,16 +317,6 @@ def _detach_paper_links(session, paper_id: int) -> dict[str, list[dict]]:
         "grouping_links",
         ["id", "grouping_id", "anchor_type", "anchor_id", "status", "created_at"],
     )
-    has_paper_topics = _table_has_columns(
-        session,
-        "paper_topics",
-        ["id", "paper_id", "topic_id"],
-    )
-    has_paper_concepts = _table_has_columns(
-        session,
-        "paper_concepts",
-        ["id", "paper_id", "concept_id"],
-    )
     claims = session.query(Claim).filter_by(paper_id=paper_id).all() if has_claims else []
     claim_ids = [claim.id for claim in claims]
     study_notes = (
@@ -370,22 +358,6 @@ def _detach_paper_links(session, paper_id: int) -> dict[str, list[dict]]:
         "dataset_packet_papers": [
             {"id": link.id, "packet_id": link.packet_id, "paper_id": link.paper_id}
             for link in session.query(DatasetPacketPaper).filter_by(paper_id=paper_id).all()
-        ],
-        "paper_topics": [
-            {"id": link.id, "paper_id": link.paper_id, "topic_id": link.topic_id}
-            for link in (
-                session.query(PaperTopic).filter_by(paper_id=paper_id).all()
-                if has_paper_topics
-                else []
-            )
-        ],
-        "paper_concepts": [
-            {"id": link.id, "paper_id": link.paper_id, "concept_id": link.concept_id}
-            for link in (
-                session.query(PaperConcept).filter_by(paper_id=paper_id).all()
-                if has_paper_concepts
-                else []
-            )
         ],
         "study_notes": [
             {
@@ -436,8 +408,6 @@ def _detach_paper_links(session, paper_id: int) -> dict[str, list[dict]]:
         session.delete(link)
     for model, enabled in [
         (DatasetPacketPaper, True),
-        (PaperTopic, has_paper_topics),
-        (PaperConcept, has_paper_concepts),
         (StudyNote, has_study_notes),
         (Claim, has_claims),
     ]:
@@ -454,10 +424,6 @@ def _restore_paper_links(session, links: dict[str, list[dict]]) -> None:
         session.add(GroupingLink(**values))
     for values in links["dataset_packet_papers"]:
         session.add(DatasetPacketPaper(**values))
-    for values in links["paper_topics"]:
-        session.add(PaperTopic(**values))
-    for values in links["paper_concepts"]:
-        session.add(PaperConcept(**values))
     for values in links["claims"]:
         session.add(Claim(**values))
     for values in links["study_notes"]:

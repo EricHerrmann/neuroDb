@@ -1,7 +1,7 @@
 # Phase 5b — Evidence Lens, Dataset Honesty, and Retract Lifecycle
 
 **Date:** 2026-05-21
-**Status:** Design approved — ready for implementation planning
+**Status:** Complete — implemented and signed off 2026-05-23
 **Epoch:** UI (frontend-heavy) + DB migrations + API endpoints
 **Parent spec:** `docs/superpowers/specs/2026-05-18-learning-research-memory-refocus-design.md`
 

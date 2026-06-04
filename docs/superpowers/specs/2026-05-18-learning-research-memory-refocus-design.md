@@ -300,7 +300,7 @@ Acceptance criteria:
 ### Phase 2 - DB + Tutor: Papers, Topics, Concepts, And Study Context
 
 **Owner:** DB epoch for schema, Tutor epoch for curation/write workflows  
-**Status:** Design complete — ready for implementation plan; see `docs/superpowers/specs/2026-05-18-phase2-papers-topics-concepts-design.md`  
+**Status:** Complete — implemented and signed off 2026-05-21; see `docs/superpowers/specs/2026-05-18-phase2-papers-topics-concepts-design.md`  
 **Fits existing plan:** DB Phase 8/9 plus Tutor backlog sprint
 
 Deliverables:
@@ -320,6 +320,7 @@ Acceptance criteria:
 ### Phase 3 - Research: Claims, Evidence Links, And Question-Centered Workflow
 
 **Owner:** Research epoch, with DB-owned schema
+**Status:** Complete — implemented and signed off 2026-05-21; see `docs/superpowers/specs/2026-05-19-phase3-claims-evidence-design.md`
 
 Deliverables:
 
@@ -357,6 +358,7 @@ Acceptance criteria:
 ### Phase 5 - UI: Focus Controls, Evidence Lens, And Dataset Honesty
 
 **Owner:** UI epoch
+**Status:** Complete for the UI-5 scope — Phase 5a focus controls signed off 2026-05-21; Phase 5b evidence lens, dataset honesty, and retract lifecycle signed off 2026-05-23. The broader research-question workspace moved to the Research Question design stream.
 **Fits existing plan:** UI-5 Enhancements or UI-6 after common UI-5 sign-off
 
 **Required pre-design checkpoint:** Before implementing Phase 5, hold a focused

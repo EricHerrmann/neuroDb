@@ -31,7 +31,10 @@ _TUTOR_SYSTEM_PROMPT = (
     "then get_grouping_bundle to retrieve related papers, concepts, notes, and datasets. "
     "Whenever you cite or recommend an external resource such as a paper, review, preprint, textbook, "
     "or website, call queue_source with the title, source type, and topic context so the user "
-    "can review it later. To discover candidate learning resources, call search_literature. "
+    "can review it later. If the user explicitly asks you to correct metadata on an existing "
+    "Knowledge Library source, call update_source_metadata with the source ID and corrected "
+    "metadata instead of calling queue_source again. To discover candidate learning resources, "
+    "call search_literature. "
     "Never fabricate paper titles, DOIs, dataset IDs, counts, or source details. "
     "Never write that a source is queued, in the Knowledge Library, approved, local, "
     "or cited from NeuroDb unless that state came from a successful tool result in this "
@@ -104,6 +107,34 @@ _TUTOR_TOOLS = [
         },
     },
     {
+        "name": "update_source_metadata",
+        "description": (
+            "Correct DOI, URL, abstract, or year metadata for an existing Knowledge Library "
+            "source. Use only when the user explicitly asks to correct a known source record."
+        ),
+        "input_schema": {
+            "type": "object",
+            "properties": {
+                "source_id": {
+                    "type": "integer",
+                    "description": "Existing Knowledge Library source/paper ID to update.",
+                },
+                "doi": {"type": "string", "description": "Corrected DOI, if known."},
+                "url": {"type": "string", "description": "Corrected URL, if known."},
+                "abstract": {
+                    "type": "string",
+                    "description": "Corrected or fuller abstract, if known.",
+                },
+                "year": {"type": "integer", "description": "Corrected publication year, if known."},
+                "update_reason": {
+                    "type": "string",
+                    "description": "Brief reason the existing metadata should be replaced.",
+                },
+            },
+            "required": ["source_id", "update_reason"],
+        },
+    },
+    {
         "name": "search_topics",
         "description": (
             "Search for topics in the NeuroDb knowledge base by name or description keyword."
@@ -153,6 +184,49 @@ def merge_existing_paper_metadata(paper: Paper, inputs: dict) -> list[str]:
         paper.year = int(year)
         updates.append("year")
     return updates
+
+
+def find_paper_metadata_conflicts(paper: Paper, inputs: dict) -> list[dict]:
+    """Return submitted metadata values that conflict with an existing paper record."""
+    conflicts: list[dict] = []
+    for field in ("doi", "url", "abstract"):
+        submitted = (inputs.get(field) or "").strip()
+        current = getattr(paper, field)
+        if submitted and current and submitted != current:
+            conflicts.append({"field": field, "current": current, "submitted": submitted})
+    year = inputs.get("year")
+    if year and paper.year and int(year) != paper.year:
+        conflicts.append({"field": "year", "current": paper.year, "submitted": int(year)})
+    return conflicts
+
+
+def replace_existing_paper_metadata(paper: Paper, inputs: dict) -> tuple[list[str], dict, dict]:
+    """Replace explicitly corrected review metadata on an existing paper."""
+    updated_fields: list[str] = []
+    previous_values: dict = {}
+    current_values: dict = {}
+    for field in ("doi", "url", "abstract"):
+        if field not in inputs:
+            continue
+        value = (inputs.get(field) or "").strip()
+        if not value:
+            continue
+        if value != getattr(paper, field):
+            previous_values[field] = getattr(paper, field)
+            setattr(paper, field, value)
+            current_values[field] = value
+            updated_fields.append(field)
+    if "year" in inputs:
+        raw_year = inputs.get("year")
+        if not raw_year:
+            return updated_fields, previous_values, current_values
+        value = int(raw_year)
+        if value != paper.year:
+            previous_values["year"] = paper.year
+            paper.year = value
+            current_values["year"] = value
+            updated_fields.append("year")
+    return updated_fields, previous_values, current_values
 
 
 class NeuroTutorAgent(BaseAgent):
@@ -205,6 +279,8 @@ class NeuroTutorAgent(BaseAgent):
     def _execute_tool_block(self, block) -> str:
         if block.tool_name == "queue_source":
             return self._execute_queue_source(block.tool_input)
+        if block.tool_name == "update_source_metadata":
+            return self._execute_update_source_metadata(block.tool_input)
         if block.tool_name == "search_knowledge_library":
             return self._execute_search_knowledge_library(block.tool_input)
         if block.tool_name == "search_literature":
@@ -228,12 +304,20 @@ class NeuroTutorAgent(BaseAgent):
                 ).first()
             if existing is not None:
                 updated_fields = merge_existing_paper_metadata(existing, inputs)
+                conflicts = find_paper_metadata_conflicts(existing, inputs)
                 session.flush()
-                return json.dumps({
+                result = {
                     "status": "updated" if updated_fields else "already_exists",
                     "id": existing.id,
                     "updated_fields": updated_fields,
-                })
+                }
+                if conflicts:
+                    result["conflicts"] = conflicts
+                    result["next_action"] = (
+                        "Call update_source_metadata if the user explicitly asked to "
+                        "correct this existing source."
+                    )
+                return json.dumps(result)
 
             row = Paper(
                 title=title,
@@ -256,6 +340,29 @@ class NeuroTutorAgent(BaseAgent):
                     grouping = get_or_create_grouping(session, "topic", topic_name)
                     link_grouping(session, grouping.id, "paper", paper_id, status="confirmed")
             return json.dumps({"status": "queued", "id": paper_id})
+
+    def _execute_update_source_metadata(self, inputs: dict) -> str:
+        source_id = int(inputs["source_id"])
+        with get_session(self._engine) as session:
+            paper = session.get(Paper, source_id)
+            if paper is None:
+                return json.dumps({
+                    "status": "not_found",
+                    "id": source_id,
+                    "message": f"No Knowledge Library source found for id {source_id}.",
+                })
+            updated_fields, previous_values, current_values = replace_existing_paper_metadata(
+                paper, inputs
+            )
+            session.flush()
+            return json.dumps({
+                "status": "updated" if updated_fields else "unchanged",
+                "id": source_id,
+                "updated_fields": updated_fields,
+                "previous_values": previous_values,
+                "current_values": current_values or _paper_metadata_snapshot(paper),
+                "update_reason": inputs["update_reason"],
+            })
 
     def _execute_search_knowledge_library(self, inputs: dict) -> str:
         if self._knowledge_store is None:
@@ -307,6 +414,27 @@ class NeuroTutorAgent(BaseAgent):
             bundle = get_grouping_bundle(session, grouping_id)
         return json.dumps(bundle)
 
+    def _build_terminal_tool_response(self, tool_trace: list[dict]) -> str | None:
+        if not tool_trace:
+            return None
+        last = tool_trace[-1]
+        if last.get("tool") != "update_source_metadata":
+            return None
+        try:
+            result = json.loads(last["result"])
+        except json.JSONDecodeError:
+            return None
+        status = result.get("status")
+        source_id = result.get("id")
+        if status == "updated":
+            fields = ", ".join(result.get("updated_fields") or [])
+            return f"Updated Knowledge Library source {source_id}: {fields}."
+        if status == "unchanged":
+            return f"Knowledge Library source {source_id} already has that metadata; no changes made."
+        if status == "not_found":
+            return result.get("message") or f"No Knowledge Library source found for id {source_id}."
+        return None
+
 
 def _context_prompt_rules(mode: str) -> str:
     if mode == "general":
@@ -327,3 +455,12 @@ def _context_prompt_rules(mode: str) -> str:
         "then focus the answer using available NeuroDb topics, papers, notes, "
         "claims, and dataset packets. Separate general neurology from local context."
     )
+
+
+def _paper_metadata_snapshot(paper: Paper) -> dict:
+    return {
+        "doi": paper.doi,
+        "url": paper.url,
+        "abstract": paper.abstract,
+        "year": paper.year,
+    }

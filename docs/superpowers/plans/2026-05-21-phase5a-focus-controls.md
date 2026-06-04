@@ -1,7 +1,7 @@
 # Phase 5a Implementation Spec — Focus Controls and Agent In-Progress Feedback
 
 **Date:** 2026-05-21
-**Status:** Implementation ready
+**Status:** Complete — implemented and signed off 2026-05-21
 **Design source:** `docs/superpowers/specs/2026-05-21-phase5a-focus-controls-design.md`
 **Manual test plan:** `docs/testsPlans/completedAndPassedTestPlans/manualTestPlan_phase5a_focus_controls.md`
 **Epoch:** UI

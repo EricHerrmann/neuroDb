@@ -2077,8 +2077,8 @@ Expected: no new failures beyond the 9 pre-existing config-routing failures.
 In `docs/projectStatus.md`:
 - Update the DB epoch row: increment test count to reflect new Phase 3 tests; add "Phase 3 (claims/evidence/gaps) implementation complete"
 - Add the Phase 3 manual test plan to the reference table:
-  `docs/testsPlans/manualTestPlan_db_phase3_claims_evidence.md`
-- Update `Last updated` to today's date and `Active focus` to reflect Phase 3 manual verification pending
+  `docs/testsPlans/completedAndPassedTestPlans/manualTestPlan_db_phase3_claims_evidence.md`
+- Update `Last updated` and `Active focus` to reflect Phase 3 implementation status. Manual verification later passed and was archived at `docs/testsPlans/completedAndPassedTestPlans/manualTestPlan_db_phase3_claims_evidence.md`.
 
 - [ ] **Step 5: Commit**
 

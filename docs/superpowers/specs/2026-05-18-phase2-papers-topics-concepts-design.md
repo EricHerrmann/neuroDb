@@ -1,7 +1,7 @@
 # Phase 2 — Papers, Topics, Concepts, and Study Context
 
 **Date:** 2026-05-18
-**Status:** Design approved — ready for implementation plan
+**Status:** Complete — implemented and signed off 2026-05-21
 **Owner:** DB epoch (schema, migration, topic_store helper); Tutor epoch (agent tools, queue_source extension)
 **Parent spec:** `docs/superpowers/specs/2026-05-18-learning-research-memory-refocus-design.md` Phase 2
 

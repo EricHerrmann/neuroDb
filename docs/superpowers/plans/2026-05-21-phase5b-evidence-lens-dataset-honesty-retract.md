@@ -2,6 +2,8 @@
 
 > **For agentic workers:** REQUIRED SUB-SKILL: Use superpowers:subagent-driven-development (recommended) or superpowers:executing-plans to implement this plan task-by-task. Steps use checkbox (`- [ ]`) syntax for tracking.
 
+**Status:** Complete — implemented and signed off 2026-05-23
+
 **Goal:** Surface per-answer evidence provenance in chat, show dataset readiness honestly in the Datasets panel, and give users status-transition controls for evidence links, claims, gaps, and research questions.
 
 **Architecture:** Backend-first: ORM schema update + DB migrations + new API endpoints, then three independent frontend features (Evidence Lens in MessageBubble, Dataset badge in DatasetsPanel, StatusChip-based retract UI in ResearchPanel). All four backend transitions use the same SQLAlchemy session pattern already established in the research routes. The Evidence Lens is purely frontend — it reads the `context_summary` SSE event already emitted by Phase 4.

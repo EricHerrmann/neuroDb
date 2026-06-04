@@ -1,7 +1,7 @@
 # Phase 5a — Focus Controls and Agent In-Progress Feedback
 
 **Date:** 2026-05-21
-**Status:** Design approved — ready for implementation planning
+**Status:** Complete — implemented and signed off 2026-05-21
 **Epoch:** UI
 **Parent spec:** `docs/superpowers/specs/2026-05-18-learning-research-memory-refocus-design.md`
 

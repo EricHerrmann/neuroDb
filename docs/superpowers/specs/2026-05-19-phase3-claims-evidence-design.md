@@ -1,7 +1,7 @@
 # Phase 3 — Claims, Evidence Links, and Question-Centered Workflow
 
 **Date:** 2026-05-19
-**Status:** Design approved — ready for implementation plan
+**Status:** Complete — implemented and signed off 2026-05-21
 **Owner:** Research epoch (agent tools); DB epoch (schema, migration, claim_store helper)
 **Parent spec:** `docs/superpowers/specs/2026-05-18-learning-research-memory-refocus-design.md` Phase 3
 

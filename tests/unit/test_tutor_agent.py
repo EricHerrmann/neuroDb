@@ -49,6 +49,7 @@ def test_tutor_tool_list_contains_required_tools():
     names = {tool["name"] for tool in _agent()._get_active_tools()}
     assert "search_knowledge_library" in names
     assert "queue_source" in names
+    assert "update_source_metadata" in names
     assert "search_literature" in names
     assert "query_db" in names
 
@@ -134,6 +135,117 @@ def test_queue_source_updates_existing_title_match_with_new_url():
         assert row.doi == "10.48550/arXiv.2008.02217"
 
 
+def test_queue_source_reports_conflict_for_existing_url_without_overwrite():
+    engine = _engine()
+    agent = _agent(engine)
+    first = json.loads(agent._execute_queue_source({
+        "title": "Memory Consolidation Review",
+        "source_type": "review",
+        "topic_context": "memory consolidation",
+        "url": "https://example.org/summary-page",
+    }))
+
+    second = json.loads(agent._execute_queue_source({
+        "title": "Memory Consolidation Review",
+        "source_type": "review",
+        "topic_context": "memory consolidation",
+        "url": "https://www.sciencedirect.com/science/article/pii/S0896627320300012",
+    }))
+
+    assert second["status"] == "already_exists"
+    assert second["id"] == first["id"]
+    assert second["updated_fields"] == []
+    assert second["conflicts"] == [{
+        "field": "url",
+        "current": "https://example.org/summary-page",
+        "submitted": "https://www.sciencedirect.com/science/article/pii/S0896627320300012",
+    }]
+    assert "update_source_metadata" in second["next_action"]
+    with Session(engine) as session:
+        row = session.get(Paper, first["id"])
+        assert row.url == "https://example.org/summary-page"
+
+
+def test_update_source_metadata_replaces_existing_url_by_source_id():
+    engine = _engine()
+    agent = _agent(engine)
+    queued = json.loads(agent._execute_queue_source({
+        "title": "Memory Consolidation Review",
+        "source_type": "review",
+        "topic_context": "memory consolidation",
+        "url": "https://example.org/summary-page",
+    }))
+
+    result = json.loads(agent._execute_update_source_metadata({
+        "source_id": queued["id"],
+        "url": "https://www.sciencedirect.com/science/article/pii/S0896627320300012",
+        "update_reason": "User confirmed the previous URL was a summary page.",
+    }))
+
+    assert result == {
+        "status": "updated",
+        "id": queued["id"],
+        "updated_fields": ["url"],
+        "previous_values": {"url": "https://example.org/summary-page"},
+        "current_values": {
+            "url": "https://www.sciencedirect.com/science/article/pii/S0896627320300012",
+        },
+        "update_reason": "User confirmed the previous URL was a summary page.",
+    }
+    with Session(engine) as session:
+        row = session.get(Paper, queued["id"])
+        assert row.url == "https://www.sciencedirect.com/science/article/pii/S0896627320300012"
+
+
+def test_update_source_metadata_returns_unchanged_for_same_values():
+    engine = _engine()
+    agent = _agent(engine)
+    queued = json.loads(agent._execute_queue_source({
+        "title": "Memory Consolidation Review",
+        "source_type": "review",
+        "topic_context": "memory consolidation",
+        "url": "https://example.org/article",
+    }))
+
+    result = json.loads(agent._execute_update_source_metadata({
+        "source_id": queued["id"],
+        "url": "https://example.org/article",
+        "update_reason": "User asked to confirm the URL.",
+    }))
+
+    assert result["status"] == "unchanged"
+    assert result["updated_fields"] == []
+    assert result["current_values"]["url"] == "https://example.org/article"
+
+
+def test_update_source_metadata_terminal_response_stops_tool_loop():
+    engine = _engine()
+    agent = _agent(engine)
+    queued = json.loads(agent._execute_queue_source({
+        "title": "Memory Consolidation Review",
+        "source_type": "review",
+        "topic_context": "memory consolidation",
+        "url": "https://example.org/summary-page",
+    }))
+    block = SimpleNamespace(
+        tool_name="update_source_metadata",
+        tool_input={
+            "source_id": queued["id"],
+            "url": "https://example.org/article",
+            "update_reason": "User provided corrected article URL.",
+        },
+    )
+
+    result_text = agent._execute_tool_block(block)
+    terminal = agent._build_terminal_tool_response([{
+        "tool": "update_source_metadata",
+        "input": block.tool_input,
+        "result": result_text,
+    }])
+
+    assert terminal == f"Updated Knowledge Library source {queued['id']}: url."
+
+
 def test_search_knowledge_library_uses_store():
     store = _store()
     store.add_summary(1, "LTP Review", None, "plasticity", "Hippocampus LTP summary")
@@ -180,6 +292,7 @@ def test_system_prompt_contains_tutor_instructions():
     prompt = _agent()._build_system_prompt().lower()
     assert "knowledge library" in prompt
     assert "queue_source" in prompt
+    assert "update_source_metadata" in prompt
     assert "never write that a source is queued" in prompt
     assert "audit those references against tool results" in prompt
     assert "readable markdown" in prompt

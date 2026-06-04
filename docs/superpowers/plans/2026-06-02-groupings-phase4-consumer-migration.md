@@ -618,7 +618,7 @@ After a successful create, briefly poll the question list so background-matcher 
 
 ### Task 12: Full suites, manual test plan, status + log sync
 
-**Files:** Create `docs/testsPlans/manualTestPlan_groupings_phase4.md`; Modify `docs/projectStatus.md`, `docs/testLog.md`.
+**Files:** Created `docs/testsPlans/completedAndPassedTestPlans/manualTestPlan_groupings_phase4.md`; modified `docs/projectStatus.md`, `docs/testLog.md`.
 
 - [ ] **Step 1: Backend suite** — `uv run pytest tests/ -q`. Pass: no new failures beyond `docs/testLog.md`. Fix any test that asserted the old `get_topic_bundle`/`get_question_bundle` shapes by repointing to the engine equivalents (do not weaken assertions).
 - [ ] **Step 2: Frontend** — `cd frontend && npm test && npm run build`. Both green; remove any now-unused imports `tsc` flags.
@@ -627,7 +627,7 @@ After a successful create, briefly poll the question list so background-matcher 
   git grep -nE "get_topic_bundle|PaperTopic|PaperConcept|TopicConcept|DatasetPacketTopic|QuestionTopic|QuestionConcept" -- src/neurodb | grep -vE "schema.py|/db.py$|topic_store.py|ui/pages/"
   ```
   Expected: empty.
-- [ ] **Step 4: Manual test plan** — create `docs/testsPlans/manualTestPlan_groupings_phase4.md` covering, via the React app + live server: tutor "tag paper to topic" persists and shows in the hierarchy/filter; tutor/research bundles return engine data; knowledge-library paper detail shows topic/concept links; study log shows topic/concept-anchored notes; deleting a question removes its chips and any orphan proposals (LOG-064); hierarchy collapse is independent (LOG-065); suggestions appear without manual refresh (LOG-066). Prerequisites start with `uv run pytest tests/ -q` and `cd frontend && npm test`.
+- [ ] **Step 4: Manual test plan** — archived at `docs/testsPlans/completedAndPassedTestPlans/manualTestPlan_groupings_phase4.md`, covering via the React app + live server: tutor "tag paper to topic" persists and shows in the hierarchy/filter; tutor/research bundles return engine data; knowledge-library paper detail shows topic/concept links; study log shows topic/concept-anchored notes; deleting a question removes its chips and any orphan proposals (LOG-064); hierarchy collapse is independent (LOG-065); suggestions appear without manual refresh (LOG-066). Prerequisites start with `uv run pytest tests/ -q` and `cd frontend && npm test`.
 - [ ] **Step 5: Status + log sync** — in `docs/projectStatus.md`: set Active focus to "Unified Groupings Phase 4 complete — all consumers on the engine; legacy tables dormant pending Phase 5"; Next to "Unified Groupings Phase 5 — drop legacy topics/concepts + join tables once grep proves no references"; update the Research epoch row; mark this plan implemented and add the manual test plan to the reference table. In `docs/testLog.md`, move LOG-064, LOG-065, LOG-066 from Open to Resolved with resolution notes.
 - [ ] **Step 6: Commit** `docs: Groupings Phase 4 manual plan; status + LOG-064/065/066 resolved`.
 

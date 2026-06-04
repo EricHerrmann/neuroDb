@@ -1,7 +1,7 @@
 # Phase 4 — Context Modes and Evidence Boundaries
 
 **Date:** 2026-05-19
-**Status:** Implemented — automated verification passed; manual verification pending
+**Status:** Complete — implemented and signed off 2026-05-21
 **Owner:** Agent Core epoch (shared mechanics); Tutor and Research epochs (agent behavior)
 **Parent spec:** `docs/superpowers/specs/2026-05-18-learning-research-memory-refocus-design.md` Phase 4
 
@@ -574,7 +574,7 @@ Assertions:
 
 Before implementation, create:
 
-`docs/testsPlans/manualTestPlan_phase4_context_modes.md`
+`docs/testsPlans/completedAndPassedTestPlans/manualTestPlan_phase4_context_modes.md`
 
 Required evals:
 

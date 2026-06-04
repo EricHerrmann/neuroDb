@@ -1,8 +1,8 @@
 # NeuroDb — Project Status
 
-**Last updated:** 2026-06-02
-**Active focus:** Unified Groupings Phase 4 implemented — remaining backend consumers and React UI polish moved to the unified grouping engine; LOG-064, LOG-065, and LOG-066 closed in code. Automated checks: backend 843 tests total; focused backend queue-source and Knowledge Library remove checks green after the full rerun was stopped by user request; frontend 103 tests green, frontend build green. Manual Phase 4 T1-T7 pending.
-**Next:** Run and sign off Groupings Phase 4 manual plan, then proceed to Unified Groupings Phase 5 legacy table drop/retirement.
+**Last updated:** 2026-06-04
+**Active focus:** Unified Groupings Phase 5 complete (2026-06-04) — legacy `topics`/`concepts` tables and their six join tables dropped (migration 021); legacy ORM models removed; migration 017 backfill guarded so fresh builds skip it; the last consumers (research_agent question tools, knowledge_library detach/restore) cut over to the unified engine. Categorization now has a single model. Backend 814 tests green; grep confirms no non-historical legacy references; restart-safety verified (`create_all` no longer resurrects the dropped tables).
+**Next:** Research Question Phase 1 (design + plan exist). Deferred: drop the now-unused dead columns `research_questions.topic_id` and `study_notes.topic_id`/`concept_id` (retained to avoid a DuckDB table rebuild).
 **Goal alignment:** Two co-equal goals in a feedback loop — accumulate neuroscience understanding grounded in real data (Goal 1), and conduct structured neuroscience investigations using existing public datasets and good scientific method (Goal 2). See `NeuroDbGoals.md`.
 
 ---
@@ -13,8 +13,8 @@
 |---|---|---|---|
 | DB | `src/neurodb/db/`, `src/neurodb/connectors/` | MVP complete (phases 0–3, 9); Phase 2 manual signed off 2026-05-21; Phase 3 manual signed off 2026-05-21; Phase 9 T1-T4 manual passed; Memory Refocus Completion fixed LOG-059 and passed manual T1-T5 on 2026-05-24 | Entity resolution (7); broader Phase 9 source-aware enrichment |
 | Agent Core | `src/neurodb/agents/` | Stable; Phase 4 context-mode mechanics implemented and signed off 2026-05-21; Config Control Phase 6 added provider capability gating; Memory Refocus Completion added context budgets and retrieval telemetry | Coordinate provider live-tool validation with Config Control |
-| Tutor | `src/neurodb/tutor/` | MVP complete (LT-1/2/3); Phase 4 context-mode prompt and bundle behavior signed off 2026-05-21; active model visibility resolved in Config Control Phase 6 | Open backlog: LOG-001; Phase 2/3 manual verification |
-| Research | `src/neurodb/research/` | Scaffolded (LT-3); Phase 3 claims/evidence/gaps complete; Phase 2/3 manual signed off 2026-05-21; Phase 4 grounded/contextual behavior signed off 2026-05-21; lifecycle UI gaps from LOG-037, LOG-048, and LOG-061 resolved in Phase 5b; queue/tool gaps from LOG-045 and LOG-053 resolved; dataset usefulness surfaced to agents in Memory Refocus Completion; Unified Groupings Phase 1, 2, 3a, and 3b complete; Phase 4 consumer migration implemented 2026-06-02 (remaining consumers off legacy join reads/writes; LOG-064/065/066 closed in code) | Groupings Phase 4 manual verification; then Phase 5 legacy table retirement |
+| Tutor | `src/neurodb/tutor/` | MVP complete (LT-1/2/3); Learning and Research Memory Refocus complete through Phase 6; Phase 2/3 manual verification and Phase 4 context-mode prompt behavior signed off 2026-05-21; active model visibility resolved in Config Control Phase 6 | Open backlog: LOG-001 |
+| Research | `src/neurodb/research/` | Scaffolded (LT-3); Phase 3 claims/evidence/gaps complete; Phase 2/3 manual signed off 2026-05-21; Phase 4 grounded/contextual behavior signed off 2026-05-21; lifecycle UI gaps from LOG-037, LOG-048, and LOG-061 resolved in Phase 5b; queue/tool gaps from LOG-045 and LOG-053 resolved; dataset usefulness surfaced to agents in Memory Refocus Completion; Unified Groupings Phases 1–5 complete; Phase 4 consumer migration signed off 2026-06-04 (LOG-064/065/066 closed); Phase 5 complete 2026-06-04 — legacy `topics`/`concepts` + six join tables dropped (migration 021), legacy ORM models removed, all consumers on the unified engine | Research Question Phase 1; deferred: drop unused legacy dead columns |
 | UI | `src/neurodb/ui/`, `src/neurodb/api/`, `frontend/` | UI-3 signed off 2026-05-13; UI-5 P1/P2/P3 complete and common manual testing passed 2026-05-23; Phase 4 API preference and stream contract signed off 2026-05-21; Phase 5a signed off 2026-05-21; Phase 5b signed off 2026-05-23 (T1-T7 passed); DuckDB FK update limitation resolved via migration 012; LOG-060 moved to monitor after likely renderer fix | No active UI phase; monitor LOG-060 recurrence |
 | Config Control | `src/neurodb/config/` | Phase 5B complete; Phase 6 complete and signed off 2026-05-23 with focused backend, call-site, frontend, ruff, compile, and manual T1-T5 checks passing | No active Config Control phase |
 | Tech Debt | Cross-cutting | Planned — TD-1 CLI argument normalization started from LOG-057; TD-5 abstraction/extensibility review logged | TD-1 parser coverage, TD-2 keyword-only helper APIs, TD-5 reusable abstractions |
@@ -75,26 +75,30 @@ See `docs/testLog.md`. Current open items: LOG-001 (textbook dropdown ambiguity)
 | `docs/testsPlans/manualTestPlan_groupings_phase3a.md` | Groupings Phase 3a manual test plan — live matcher, proposal confirm/dismiss, parent-filter rollup, fail-closed |
 | `docs/superpowers/plans/2026-06-01-groupings-phase3b-ui.md` | Groupings Phase 3b UI plan — filter repoint to /groupings, proposal "new" chips, topic hierarchy curation view; implemented 2026-06-02 |
 | `docs/superpowers/plans/2026-06-02-groupings-phase4-consumer-migration.md` | Groupings Phase 4 plan — migrate all consumers (bundles, claims, tutor/orchestrator agents, knowledge-library, study-log) off legacy tables onto the engine; read+write cutover; incl. LOG-064/065/066; implemented 2026-06-02 |
-| `docs/testsPlans/manualTestPlan_groupings_phase4.md` | Groupings Phase 4 manual test plan — T1-T7 for tutor tagging, bundles/context, Knowledge Library link preservation, Study Log anchors, question delete cleanup, hierarchy collapse, and suggestion refresh |
+| `docs/superpowers/specs/2026-06-04-groupings-phase5-legacy-drop-design.md` | Groupings Phase 5 design spec — hard-drop legacy `topics`/`concepts` + six join tables (migration 021); migration 017 backfill guard; straggler cutover; deferred dead-column cleanup; implemented & verified 2026-06-04 |
+| `docs/superpowers/plans/2026-06-04-groupings-phase5-legacy-drop.md` | Groupings Phase 5 implementation plan — 8 tasks (017 guard, research_agent + knowledge_library cutover, topic_store + model removal, migration 021 drop); completed 2026-06-04 (backend 814 tests green) |
 | `docs/superpowers/specs/2026-06-01-topic-taxonomy-hierarchy-design.md` | SUPERSEDED by the unified-groupings spec — topics-only hierarchy (retained for history) |
 | `docs/superpowers/plans/2026-06-01-groupings-phase1-unified-tables.md` | Groupings Phase 1 implementation plan — unified groupings/grouping_links models + migration 017 backfill from legacy tables; implemented 2026-06-01 |
 | `docs/superpowers/plans/2026-06-01-groupings-phase2-engine.md` | Groupings Phase 2 implementation plan — type-agnostic engine (store functions, type registry, single-level hierarchy guard, rollup helpers); implemented 2026-06-01 |
 | `docs/superpowers/plans/2026-06-01-research-question-phase1.md` | Research Question Phase 1 implementation plan — 10 tasks |
 | `docs/testsPlans/manualTestPlan_research_question_phase1.md` | Research Question Phase 1 manual test plan — T1-T6 |
-| `docs/superpowers/specs/2026-05-18-learning-research-memory-refocus-design.md` | Cross-epoch design spec — refocus NeuroDb as a learning/research memory system and fix shallow dataset sourcing through dataset research packets |
-| `docs/superpowers/specs/2026-05-18-phase2-papers-topics-concepts-design.md` | Phase 2 design spec — rename KnowledgeSource → Paper, add topics/concepts tables, linking tables, StudyNote generalization, topic_store helper, Tutor agent tools |
-| `docs/superpowers/specs/2026-05-19-phase3-claims-evidence-design.md` | Phase 3 design spec — claims, evidence_links, research_gaps tables, claim_store helper, research agent tools |
-| `docs/superpowers/specs/2026-05-19-phase4-context-modes-evidence-boundaries-design.md` | Phase 4 design spec — context modes, shared context orchestrator, evidence-boundary prompts, context metadata |
-| `docs/superpowers/plans/2026-05-19-phase3-claims-evidence.md` | Phase 3 implementation plan — 5 tasks: schema, migration, claim_store, agent tools, integration test |
-| `docs/testsPlans/manualTestPlan_db_phase2_papers_topics.md` | DB Phase 2 manual test plan — T1-T8 passed; signed off 2026-05-21 (T7-T8 verified as Phase 4 carry-forward) |
-| `docs/testsPlans/manualTestPlan_db_phase3_claims_evidence.md` | DB Phase 3 manual test plan — T1-T8 passed; signed off 2026-05-21 (T8 verified as Phase 4 carry-forward) |
-| `docs/testsPlans/manualTestPlan_phase4_context_modes.md` | Phase 4 manual test plan — context-mode preferences, SSE context summaries, Tutor/Research evidence-boundary behavior; T1-T8 passed, signed off 2026-05-21 |
 | **History** | |
 | `docs/archive/completedPhases.md` | Completed phases and tech debt sprints — full history |
+| `docs/superpowers/specs/2026-05-18-learning-research-memory-refocus-design.md` | Completed Learning and Research Memory Refocus design spec — Phases 1-6 complete through Memory Refocus Completion, signed off 2026-05-24 |
+| `docs/superpowers/specs/2026-05-18-phase2-papers-topics-concepts-design.md` | Completed Phase 2 design spec — papers/topics/concepts/study context, signed off 2026-05-21 |
+| `docs/superpowers/plans/2026-05-18-phase2-papers-topics-concepts.md` | Completed Phase 2 implementation plan — papers/topics/concepts/study context |
+| `docs/testsPlans/completedAndPassedTestPlans/manualTestPlan_db_phase2_papers_topics.md` | DB Phase 2 manual test plan — T1-T8 passed and signed off 2026-05-21 |
+| `docs/superpowers/specs/2026-05-19-phase3-claims-evidence-design.md` | Completed Phase 3 design spec — claims, evidence links, research gaps, and question bundles, signed off 2026-05-21 |
+| `docs/superpowers/plans/2026-05-19-phase3-claims-evidence.md` | Completed Phase 3 implementation plan — schema, migration, claim_store, agent tools, integration tests |
+| `docs/testsPlans/completedAndPassedTestPlans/manualTestPlan_db_phase3_claims_evidence.md` | DB Phase 3 manual test plan — T1-T8 passed and signed off 2026-05-21 |
+| `docs/superpowers/specs/2026-05-19-phase4-context-modes-evidence-boundaries-design.md` | Completed Phase 4 design spec — context modes, shared context orchestrator, evidence-boundary prompts, signed off 2026-05-21 |
+| `docs/testsPlans/completedAndPassedTestPlans/manualTestPlan_phase4_context_modes.md` | Phase 4 manual test plan — T1-T8 passed and signed off 2026-05-21 |
 | `docs/testsPlans/completedAndPassedTestPlans/manualTestPlan_ui5_common_parity.md` | UI-5 common manual test plan — T1-T8 passed and signed off 2026-05-23 |
-| `docs/superpowers/specs/2026-05-21-phase5a-focus-controls-design.md` | Phase 5a design spec — three-dropdown header, ThinkingBubble, Tooltip, useChat thinkingState/activeTool |
-| `docs/superpowers/plans/2026-05-21-phase5a-focus-controls.md` | Phase 5a implementation spec — phased frontend plan for header controls, in-progress feedback, and verification |
+| `docs/superpowers/specs/2026-05-21-phase5a-focus-controls-design.md` | Completed Phase 5a design spec — focus controls and in-progress feedback, signed off 2026-05-21 |
+| `docs/superpowers/plans/2026-05-21-phase5a-focus-controls.md` | Completed Phase 5a implementation plan — header controls, in-progress feedback, and verification |
 | `docs/testsPlans/completedAndPassedTestPlans/manualTestPlan_phase5a_focus_controls.md` | Phase 5a manual test plan — T1-T10 passed and signed off 2026-05-21 |
+| `docs/superpowers/specs/2026-05-21-phase5b-evidence-lens-dataset-honesty-retract-design.md` | Completed Phase 5b design spec — evidence lens, dataset honesty, and retract lifecycle, signed off 2026-05-23 |
+| `docs/superpowers/plans/2026-05-21-phase5b-evidence-lens-dataset-honesty-retract.md` | Completed Phase 5b implementation plan — evidence lens, dataset honesty, and lifecycle status transitions |
 | `docs/testsPlans/completedAndPassedTestPlans/manualTestPlan_phase5b_evidence_retract.md` | Phase 5b manual test plan — T1-T7 passed and signed off 2026-05-23 |
 | `docs/superpowers/specs/2026-05-23-phase6-fallback-telemetry-design.md` | Config Control Phase 6 design spec — provider fallback, system warnings, telemetry CLI, UI visibility |
 | `docs/superpowers/plans/2026-05-23-phase6-fallback-telemetry.md` | Config Control Phase 6 implementation plan — complete and signed off 2026-05-23 |
@@ -104,3 +108,4 @@ See `docs/testLog.md`. Current open items: LOG-001 (textbook dropdown ambiguity)
 | `docs/testsPlans/completedAndPassedTestPlans/manualTestPlan_memory_refocus_completion.md` | Completion phase manual test plan — T1-T5 passed and signed off 2026-05-24 |
 | `docs/testsPlans/completedAndPassedTestPlans/manualTestPlan_db_phase9_dataset_research_packets.md` | DB Phase 9 manual test plan — T1-T4 passed and signed off 2026-05-18 |
 | `docs/testsPlans/completedAndPassedTestPlans/manualTestPlan_groupings_phase3b.md` | Groupings Phase 3b manual test plan — T1-T3 passed and signed off 2026-06-02 (T2 surfaced LOG-063, fixed via migration 019) |
+| `docs/testsPlans/completedAndPassedTestPlans/manualTestPlan_groupings_phase4.md` | Groupings Phase 4 manual test plan — T1-T7 passed and signed off 2026-06-04 |

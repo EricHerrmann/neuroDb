@@ -107,9 +107,11 @@ class StudyNote(Base):
     index_id: Mapped[int | None] = mapped_column(
         ForeignKey("datasets_index.id"), nullable=True, index=True
     )
+    # Deferred (Groupings Ph5): legacy FK to topics removed; kept to avoid DROP-column rebuild.
     topic_id: Mapped[int | None] = mapped_column(
         Integer, nullable=True, index=True
     )
+    # Deferred (Groupings Ph5): legacy FK to concepts removed; kept to avoid DROP-column rebuild.
     concept_id: Mapped[int | None] = mapped_column(
         Integer, nullable=True, index=True
     )
@@ -305,6 +307,7 @@ class ResearchQuestion(Base):
     status: Mapped[str] = mapped_column(String(32), nullable=False, default="open", index=True)
     created_at: Mapped[str] = mapped_column(String(32), nullable=False)
     updated_at: Mapped[str] = mapped_column(String(32), nullable=False)
+    # Deferred (Groupings Ph5): legacy FK to topics removed; kept to avoid DROP-column rebuild.
     topic_id: Mapped[int | None] = mapped_column(Integer, nullable=True)
     origin_session_id: Mapped[int | None] = mapped_column(Integer, nullable=True)
 

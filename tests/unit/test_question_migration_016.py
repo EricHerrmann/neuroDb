@@ -116,7 +116,7 @@ def test_migration_is_idempotent():
         conn.commit()
 
 
-def test_existing_topic_id_fk_preserved():
+def test_existing_topic_id_value_preserved():
     engine = _make_engine()
     with engine.connect() as conn:
         _create_topics_table(conn)
@@ -143,4 +143,4 @@ def test_existing_topic_id_fk_preserved():
         row = conn.execute(text(
             "SELECT topic_id FROM research_questions WHERE question='q?'"
         )).fetchone()
-        assert row[0] == topic_id, "topic_id FK was removed or cleared"
+        assert row[0] == topic_id, "topic_id value was removed or cleared"

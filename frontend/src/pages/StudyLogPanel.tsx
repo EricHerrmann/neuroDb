@@ -3,8 +3,10 @@ import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 
 import { api } from '../api/client'
 import type { ChatSession, CreateStudyNoteRequest, StudyNote } from '../api/types'
+import PlanCard from '../components/PlanCard'
+import PlanDetailView from '../components/PlanDetail'
 
-type View = 'study-tags' | 'chat-history'
+type View = 'study-tags' | 'chat-history' | 'plans'
 const SOURCE_OPTIONS = ['openneuro', 'allen_brain', 'neurovault', 'dandi', 'pubmed', 'arxiv']
 
 const EMPTY_FORM = {
@@ -406,6 +408,78 @@ function ChatHistoryView() {
   )
 }
 
+function PlansView() {
+  const queryClient = useQueryClient()
+  const { data: plans = [] } = useQuery({ queryKey: ['plans'], queryFn: () => api.getPlans() })
+  const [selectedId, setSelectedId] = useState<number | null>(null)
+
+  const { data: detail } = useQuery({
+    queryKey: ['plan', selectedId],
+    queryFn: () => api.getPlan(selectedId as number),
+    enabled: selectedId != null,
+  })
+
+  const invalidate = () => {
+    queryClient.invalidateQueries({ queryKey: ['plans'] })
+    if (selectedId != null) queryClient.invalidateQueries({ queryKey: ['plan', selectedId] })
+  }
+
+  const confirmPlan = useMutation({ mutationFn: (id: number) => api.confirmPlan(id), onSuccess: invalidate })
+  const deletePlan = useMutation({
+    mutationFn: (id: number) => api.deletePlan(id),
+    onSuccess: () => {
+      setSelectedId(null)
+      invalidate()
+    },
+  })
+  const stepProgress = useMutation({
+    mutationFn: ({ stepId, progress }: { stepId: number; progress: string }) =>
+      api.patchPlanStep(selectedId as number, stepId, { progress }),
+    onSuccess: invalidate,
+  })
+  const stepLifecycle = useMutation({
+    mutationFn: ({ stepId, action }: { stepId: number; action: 'confirm' | 'dismiss' }) =>
+      api.patchPlanStep(selectedId as number, stepId, { lifecycle_action: action }),
+    onSuccess: invalidate,
+  })
+  const confirmChanges = useMutation({
+    mutationFn: (id: number) => api.confirmPlanChanges(id),
+    onSuccess: invalidate,
+  })
+  const dismissChanges = useMutation({
+    mutationFn: (id: number) => api.dismissPlanChanges(id),
+    onSuccess: invalidate,
+  })
+
+  if (plans.length === 0) {
+    return <div style={{ fontSize: 12, color: '#64748b' }}>No learning plans yet.</div>
+  }
+
+  return (
+    <div>
+      {plans.map(plan => (
+        <PlanCard
+          key={plan.id}
+          plan={plan}
+          selected={plan.id === selectedId}
+          onSelect={() => setSelectedId(plan.id === selectedId ? null : plan.id)}
+          onConfirm={() => confirmPlan.mutate(plan.id)}
+          onDismiss={() => deletePlan.mutate(plan.id)}
+        />
+      ))}
+      {detail && (
+        <PlanDetailView
+          plan={detail}
+          onStepProgress={(stepId, progress) => stepProgress.mutate({ stepId, progress })}
+          onStepLifecycle={(stepId, action) => stepLifecycle.mutate({ stepId, action })}
+          onConfirmChanges={() => confirmChanges.mutate(detail.id)}
+          onDismissChanges={() => dismissChanges.mutate(detail.id)}
+        />
+      )}
+    </div>
+  )
+}
+
 export default function StudyLogPanel() {
   const [view, setView] = useState<View>('study-tags')
 
@@ -420,9 +494,12 @@ export default function StudyLogPanel() {
         >
           <option value="study-tags">Study Tags</option>
           <option value="chat-history">Chat History</option>
+          <option value="plans">Plans</option>
         </select>
       </div>
-      {view === 'study-tags' ? <StudyTagsView /> : <ChatHistoryView />}
+      {view === 'study-tags' && <StudyTagsView />}
+      {view === 'chat-history' && <ChatHistoryView />}
+      {view === 'plans' && <PlansView />}
     </div>
   )
 }

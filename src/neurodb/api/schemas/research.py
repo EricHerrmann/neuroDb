@@ -147,3 +147,15 @@ class CreateGroupingRequest(BaseModel):
 class PatchGroupingRequest(BaseModel):
     parent_id: int | None = None
     status: str | None = None
+
+
+class StepProgressUpdate(BaseModel):
+    progress: str | None = None
+    note: str | None = None
+    lifecycle_action: str | None = None  # 'confirm' | 'dismiss' for a single proposed step
+
+
+class PlanPatch(BaseModel):
+    title: str | None = None
+    status: str | None = None
+    step_order: list[int] | None = None

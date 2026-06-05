@@ -534,3 +534,38 @@ class GroupingLink(Base):
     anchor_id: Mapped[int] = mapped_column(Integer, nullable=False)
     status: Mapped[str] = mapped_column(String(16), nullable=False, default="confirmed", index=True)
     created_at: Mapped[str] = mapped_column(String(32), nullable=False)
+
+
+class LearningPlan(Base):
+    """A multi-step study plan proposed by an agent and confirmed by the user."""
+    __tablename__ = "learning_plans"
+
+    id: Mapped[int] = mapped_column(Integer, Sequence("learning_plans_id_seq"), primary_key=True)
+    title: Mapped[str] = mapped_column(Text, nullable=False)
+    origin_prompt: Mapped[str] = mapped_column(Text, nullable=False)
+    origin_agent: Mapped[str] = mapped_column(String(16), nullable=False)  # 'tutor' | 'research'
+    origin_session_id: Mapped[int | None] = mapped_column(Integer, nullable=True)
+    research_question_id: Mapped[int | None] = mapped_column(Integer, nullable=True)
+    status: Mapped[str] = mapped_column(String(16), nullable=False, default="proposed")
+    created_at: Mapped[str] = mapped_column(String(32), nullable=False)
+    updated_at: Mapped[str] = mapped_column(String(32), nullable=False)
+
+
+class PlanStep(Base):
+    """An ordered step within a learning plan: a 'read' source or an 'action' task."""
+    __tablename__ = "plan_steps"
+
+    id: Mapped[int] = mapped_column(Integer, Sequence("plan_steps_id_seq"), primary_key=True)
+    plan_id: Mapped[int] = mapped_column(Integer, nullable=False, index=True)
+    order_index: Mapped[int] = mapped_column(Integer, nullable=False)
+    step_type: Mapped[str] = mapped_column(String(16), nullable=False)  # 'read' | 'action'
+    paper_id: Mapped[int | None] = mapped_column(Integer, nullable=True)
+    source_ref: Mapped[str | None] = mapped_column(Text, nullable=True)  # JSON for proposed reads
+    action_text: Mapped[str | None] = mapped_column(Text, nullable=True)
+    lifecycle: Mapped[str] = mapped_column(
+        String(16), nullable=False, default="proposed", index=True
+    )
+    progress: Mapped[str] = mapped_column(String(16), nullable=False, default="todo")
+    note: Mapped[str | None] = mapped_column(Text, nullable=True)
+    created_at: Mapped[str] = mapped_column(String(32), nullable=False)
+    updated_at: Mapped[str] = mapped_column(String(32), nullable=False)

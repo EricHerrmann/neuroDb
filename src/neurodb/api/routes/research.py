@@ -22,9 +22,11 @@ from neurodb.api.schemas.research import (
     Hypothesis,
     HypothesisReviewItem,
     PatchLinkStatusRequest,
+    PlanPatch,
     ResearchGapItem,
     ResearchQuestion,
     ResearchQuestionDetail,
+    StepProgressUpdate,
     UpdateQuestionRequest,
 )
 from neurodb.api.tasks import TaskRecord
@@ -655,3 +657,70 @@ def patch_grouping_route(
         g = get_grouping(session, grouping_id)
         return GroupingItem(id=g.id, type=g.type, name=g.name,
                             parent_id=g.parent_id, status=g.status, description=g.description)
+
+
+# --- Learning Plans -------------------------------------------------------
+
+from neurodb.research import learning_plans as lp  # noqa: E402
+
+
+@router.get("/plans")
+def list_plans_route(engine: Engine = Depends(get_engine), status: str | None = None):
+    return lp.list_plans(engine, status=status)
+
+
+@router.get("/plans/{plan_id}")
+def get_plan_route(plan_id: int, engine: Engine = Depends(get_engine)):
+    plan = lp.get_plan(engine, plan_id)
+    if plan is None:
+        raise HTTPException(status_code=404, detail="Plan not found")
+    return plan
+
+
+@router.post("/plans/{plan_id}/confirm")
+def confirm_plan_route(plan_id: int, engine: Engine = Depends(get_engine)):
+    try:
+        return lp.confirm_plan(engine, plan_id)
+    except ValueError as exc:
+        raise HTTPException(status_code=422, detail=str(exc))
+
+
+@router.post("/plans/{plan_id}/confirm-changes")
+def confirm_changes_route(plan_id: int, engine: Engine = Depends(get_engine)):
+    return lp.confirm_pending_changes(engine, plan_id)
+
+
+@router.post("/plans/{plan_id}/dismiss-changes")
+def dismiss_changes_route(plan_id: int, engine: Engine = Depends(get_engine)):
+    return lp.dismiss_pending_changes(engine, plan_id)
+
+
+@router.patch("/plans/{plan_id}")
+def patch_plan_route(plan_id: int, body: PlanPatch, engine: Engine = Depends(get_engine)):
+    plan = lp.update_plan(engine, plan_id, title=body.title,
+                          status=body.status, step_order=body.step_order)
+    if plan is None:
+        raise HTTPException(status_code=404, detail="Plan not found")
+    return plan
+
+
+@router.patch("/plans/{plan_id}/steps/{step_id}")
+def patch_step_route(plan_id: int, step_id: int, body: StepProgressUpdate,
+                     engine: Engine = Depends(get_engine)):
+    if body.lifecycle_action == "confirm":
+        lp.confirm_step(engine, step_id)
+    elif body.lifecycle_action == "dismiss":
+        lp.dismiss_step(engine, step_id)
+    if body.progress is not None or body.note is not None:
+        lp.set_step_progress(engine, step_id, body.progress or "todo", note=body.note)
+    plan = lp.get_plan(engine, plan_id)
+    if plan is None:
+        raise HTTPException(status_code=404, detail="Plan not found")
+    return plan
+
+
+@router.delete("/plans/{plan_id}")
+def delete_plan_route(plan_id: int, engine: Engine = Depends(get_engine)):
+    if not lp.delete_plan(engine, plan_id):
+        raise HTTPException(status_code=404, detail="Plan not found")
+    return {"status": "deleted", "id": plan_id}

@@ -551,7 +551,9 @@ class NeuroResearchAgent(BaseAgent):
         if block.tool_name == "suggest_dataset_import":
             return self._execute_suggest_dataset_import(block.tool_input)
         if block.tool_name == "propose_learning_plan":
-            return execute_propose_learning_plan(self._engine, block.tool_input, origin_agent="research")
+            return execute_propose_learning_plan(
+                self._engine, block.tool_input, origin_agent="research"
+            )
         if block.tool_name == "update_learning_plan":
             return execute_update_learning_plan(self._engine, block.tool_input)
         return execute_tool(block.tool_name, block.tool_input, self._engine, self._vector_store)

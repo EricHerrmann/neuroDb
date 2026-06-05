@@ -7,7 +7,7 @@ enforced here.
 from __future__ import annotations
 
 import json
-from datetime import datetime, timezone
+from datetime import UTC, datetime
 
 from sqlalchemy import select
 from sqlalchemy.engine import Engine
@@ -20,7 +20,7 @@ from neurodb.schema import GroupingLink, LearningPlan, Paper, PlanStep
 
 
 def _now() -> str:
-    return datetime.now(timezone.utc).isoformat()
+    return datetime.now(UTC).isoformat()
 
 
 def _step_dict(s: PlanStep) -> dict:
@@ -39,6 +39,16 @@ def _percent_complete(steps: list[PlanStep]) -> int:
         return 0
     done = [s for s in denom if s.progress == "done"]
     return round(100 * len(done) / len(denom))
+
+
+def _pending_change_count(steps: list[PlanStep]) -> int:
+    return sum(1 for s in steps if s.lifecycle in ("proposed", "proposed_removal"))
+
+
+def _plan_steps(session: Session, plan_id: int) -> list[PlanStep]:
+    return session.execute(
+        select(PlanStep).where(PlanStep.plan_id == plan_id)
+    ).scalars().all()
 
 
 def _add_steps(session: Session, plan_id: int, steps: list[dict], start_index: int) -> None:
@@ -89,7 +99,7 @@ def get_plan(engine: Engine, plan_id: int) -> dict | None:
             "origin_agent": plan.origin_agent, "research_question_id": plan.research_question_id,
             "status": plan.status, "created_at": plan.created_at, "updated_at": plan.updated_at,
             "percent_complete": _percent_complete(steps),
-            "pending_change_count": sum(1 for s in steps if s.lifecycle in ("proposed", "proposed_removal")),
+            "pending_change_count": _pending_change_count(steps),
             "groupings": groupings,
             "steps": [_step_dict(s) for s in steps],
         }
@@ -154,7 +164,7 @@ def confirm_plan(engine: Engine, plan_id: int) -> dict:
         plan = session.get(LearningPlan, plan_id)
         if plan is None or plan.status != "proposed":
             raise ValueError(f"Plan {plan_id} is not in 'proposed' state")
-        steps = session.execute(select(PlanStep).where(PlanStep.plan_id == plan_id)).scalars().all()
+        steps = _plan_steps(session, plan_id)
         _confirm_step_rows(session, steps)
         plan.status = "active"
         plan.updated_at = _now()
@@ -168,7 +178,7 @@ def dismiss_plan(engine: Engine, plan_id: int) -> bool:
         plan = session.get(LearningPlan, plan_id)
         if plan is None:
             return False
-        for s in session.execute(select(PlanStep).where(PlanStep.plan_id == plan_id)).scalars().all():
+        for s in _plan_steps(session, plan_id):
             session.delete(s)
         session.delete(plan)
         session.commit()
@@ -191,13 +201,15 @@ def list_plans(engine: Engine, status: str | None = None) -> list[dict]:
                 "origin_agent": plan.origin_agent, "created_at": plan.created_at,
                 "percent_complete": _percent_complete(steps),
                 "step_count": sum(1 for s in steps if s.lifecycle == "confirmed"),
-                "pending_change_count": sum(1 for s in steps if s.lifecycle in ("proposed", "proposed_removal")),
+                "pending_change_count": _pending_change_count(steps),
             })
         return out
 
 
 def _max_order_index(session: Session, plan_id: int) -> int:
-    rows = session.execute(select(PlanStep.order_index).where(PlanStep.plan_id == plan_id)).scalars().all()
+    rows = session.execute(
+        select(PlanStep.order_index).where(PlanStep.plan_id == plan_id)
+    ).scalars().all()
     return max(rows) if rows else -1
 
 
@@ -208,7 +220,8 @@ def propose_plan_update(engine: Engine, *, plan_id: int, add_steps: list[dict] |
         if plan is None:
             raise ValueError(f"Plan {plan_id} not found")
         if add_steps:
-            _add_steps(session, plan_id, add_steps, start_index=_max_order_index(session, plan_id) + 1)
+            next_index = _max_order_index(session, plan_id) + 1
+            _add_steps(session, plan_id, add_steps, start_index=next_index)
         for step_id in (remove_step_ids or []):
             step = session.get(PlanStep, step_id)
             if step is not None and step.plan_id == plan_id and step.lifecycle == "confirmed":
@@ -221,7 +234,7 @@ def propose_plan_update(engine: Engine, *, plan_id: int, add_steps: list[dict] |
 
 def confirm_pending_changes(engine: Engine, plan_id: int) -> dict:
     with get_session(engine) as session:
-        steps = session.execute(select(PlanStep).where(PlanStep.plan_id == plan_id)).scalars().all()
+        steps = _plan_steps(session, plan_id)
         _confirm_step_rows(session, steps)
         plan = session.get(LearningPlan, plan_id)
         if plan is not None:
@@ -232,7 +245,7 @@ def confirm_pending_changes(engine: Engine, plan_id: int) -> dict:
 
 def dismiss_pending_changes(engine: Engine, plan_id: int) -> dict:
     with get_session(engine) as session:
-        steps = session.execute(select(PlanStep).where(PlanStep.plan_id == plan_id)).scalars().all()
+        steps = _plan_steps(session, plan_id)
         for s in steps:
             if s.lifecycle == "proposed":
                 session.delete(s)
@@ -311,7 +324,7 @@ def delete_plan(engine: Engine, plan_id: int) -> bool:
         plan = session.get(LearningPlan, plan_id)
         if plan is None:
             return False
-        for s in session.execute(select(PlanStep).where(PlanStep.plan_id == plan_id)).scalars().all():
+        for s in _plan_steps(session, plan_id):
             session.delete(s)
         session.delete(plan)
         session.commit()

@@ -322,7 +322,9 @@ class NeuroTutorAgent(BaseAgent):
         if block.tool_name == "get_grouping_bundle":
             return self._execute_get_grouping_bundle(block.tool_input)
         if block.tool_name == "propose_learning_plan":
-            return execute_propose_learning_plan(self._engine, block.tool_input, origin_agent="tutor")
+            return execute_propose_learning_plan(
+                self._engine, block.tool_input, origin_agent="tutor"
+            )
         if block.tool_name == "update_learning_plan":
             return execute_update_learning_plan(self._engine, block.tool_input)
         return execute_tool(block.tool_name, block.tool_input, self._engine, self._vector_store)

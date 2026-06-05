@@ -836,7 +836,9 @@ def _migration_022_learning_plans(conn) -> None:
         )
     """))
     conn.execute(text("CREATE INDEX IF NOT EXISTS ix_plan_steps_plan_id ON plan_steps (plan_id)"))
-    conn.execute(text("CREATE INDEX IF NOT EXISTS ix_plan_steps_lifecycle ON plan_steps (lifecycle)"))
+    conn.execute(text(
+        "CREATE INDEX IF NOT EXISTS ix_plan_steps_lifecycle ON plan_steps (lifecycle)"
+    ))
 
 
 _MIGRATIONS: dict[int, callable] = {

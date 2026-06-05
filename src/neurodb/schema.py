@@ -560,9 +560,11 @@ class PlanStep(Base):
     order_index: Mapped[int] = mapped_column(Integer, nullable=False)
     step_type: Mapped[str] = mapped_column(String(16), nullable=False)  # 'read' | 'action'
     paper_id: Mapped[int | None] = mapped_column(Integer, nullable=True)
-    source_ref: Mapped[str | None] = mapped_column(Text, nullable=True)  # JSON for proposed read steps
+    source_ref: Mapped[str | None] = mapped_column(Text, nullable=True)  # JSON for proposed reads
     action_text: Mapped[str | None] = mapped_column(Text, nullable=True)
-    lifecycle: Mapped[str] = mapped_column(String(16), nullable=False, default="proposed", index=True)
+    lifecycle: Mapped[str] = mapped_column(
+        String(16), nullable=False, default="proposed", index=True
+    )
     progress: Mapped[str] = mapped_column(String(16), nullable=False, default="todo")
     note: Mapped[str | None] = mapped_column(Text, nullable=True)
     created_at: Mapped[str] = mapped_column(String(32), nullable=False)

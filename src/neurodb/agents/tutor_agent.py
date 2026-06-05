@@ -10,6 +10,11 @@ from sqlalchemy import Engine
 from neurodb.agents.base import BaseAgent
 from neurodb.agents.db_agent import TOOLS as _DB_TOOLS
 from neurodb.agents.db_agent import execute_tool
+from neurodb.agents.learning_plan_tools import (
+    LEARNING_PLAN_TOOLS,
+    execute_propose_learning_plan,
+    execute_update_learning_plan,
+)
 from neurodb.db import get_session
 from neurodb.discovery_tools import (
     READ_ONLY_DISCOVERY_TOOLS,
@@ -277,7 +282,12 @@ class NeuroTutorAgent(BaseAgent):
         self._literature_client = literature_client
 
     def _get_active_tools(self) -> list[dict]:
-        return list(_TUTOR_TOOLS) + list(READ_ONLY_DISCOVERY_TOOLS) + list(_DB_TOOLS)
+        return (
+            list(_TUTOR_TOOLS)
+            + list(LEARNING_PLAN_TOOLS)
+            + list(READ_ONLY_DISCOVERY_TOOLS)
+            + list(_DB_TOOLS)
+        )
 
     def _build_system_prompt(self) -> str:
         system = f"{_TUTOR_SYSTEM_PROMPT}\n\n{_context_prompt_rules(self._context_mode)}"
@@ -311,6 +321,10 @@ class NeuroTutorAgent(BaseAgent):
             return self._execute_search_topics(block.tool_input)
         if block.tool_name == "get_grouping_bundle":
             return self._execute_get_grouping_bundle(block.tool_input)
+        if block.tool_name == "propose_learning_plan":
+            return execute_propose_learning_plan(self._engine, block.tool_input, origin_agent="tutor")
+        if block.tool_name == "update_learning_plan":
+            return execute_update_learning_plan(self._engine, block.tool_input)
         return execute_tool(block.tool_name, block.tool_input, self._engine, self._vector_store)
 
     def _execute_queue_source(self, inputs: dict) -> str:

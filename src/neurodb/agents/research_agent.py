@@ -8,6 +8,11 @@ from sqlalchemy import Engine
 from neurodb.agents.base import BaseAgent
 from neurodb.agents.db_agent import TOOLS as _DB_TOOLS
 from neurodb.agents.db_agent import execute_tool
+from neurodb.agents.learning_plan_tools import (
+    LEARNING_PLAN_TOOLS,
+    execute_propose_learning_plan,
+    execute_update_learning_plan,
+)
 from neurodb.discovery_tools import (
     READ_ONLY_DISCOVERY_TOOLS,
     run_inspect_external_dataset,
@@ -405,7 +410,12 @@ class NeuroResearchAgent(BaseAgent):
         self._current_date = current_date
 
     def _get_active_tools(self) -> list[dict]:
-        return list(_RESEARCH_TOOLS) + list(READ_ONLY_DISCOVERY_TOOLS) + list(_READ_ONLY_DB_TOOLS)
+        return (
+            list(_RESEARCH_TOOLS)
+            + list(LEARNING_PLAN_TOOLS)
+            + list(READ_ONLY_DISCOVERY_TOOLS)
+            + list(_READ_ONLY_DB_TOOLS)
+        )
 
     def _build_system_prompt(self) -> str:
         current_date = self._current_date or date.today().isoformat()
@@ -540,6 +550,10 @@ class NeuroResearchAgent(BaseAgent):
             return self._execute_nominate_paper(block.tool_input)
         if block.tool_name == "suggest_dataset_import":
             return self._execute_suggest_dataset_import(block.tool_input)
+        if block.tool_name == "propose_learning_plan":
+            return execute_propose_learning_plan(self._engine, block.tool_input, origin_agent="research")
+        if block.tool_name == "update_learning_plan":
+            return execute_update_learning_plan(self._engine, block.tool_input)
         return execute_tool(block.tool_name, block.tool_input, self._engine, self._vector_store)
 
     def _execute_search_knowledge_library(self, inputs: dict) -> str:

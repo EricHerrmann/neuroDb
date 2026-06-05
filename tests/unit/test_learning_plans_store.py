@@ -1,10 +1,20 @@
 import json
+from unittest.mock import patch
 
+import pytest
 from sqlalchemy import create_engine
 from sqlalchemy.pool import StaticPool
 
 from neurodb.db import init_db
 from neurodb.research.learning_plans import propose_plan, get_plan, list_plans
+
+
+@pytest.fixture(autouse=True)
+def _no_matcher():
+    # propose_plan triggers the grouping matcher (provider-backed); keep unit
+    # tests hermetic and fast by stubbing it.
+    with patch("neurodb.research.learning_plans.run_suggest_groupings"):
+        yield
 
 
 def _engine():

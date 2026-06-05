@@ -1,9 +1,18 @@
+from unittest.mock import patch
+
+import pytest
 from sqlalchemy import create_engine, func, select
 from sqlalchemy.pool import StaticPool
 
 from neurodb.db import init_db, get_session
 from neurodb.schema import Paper
 from neurodb.research.learning_plans import propose_plan, confirm_plan, dismiss_plan, get_plan
+
+
+@pytest.fixture(autouse=True)
+def _no_matcher():
+    with patch("neurodb.research.learning_plans.run_suggest_groupings"):
+        yield
 
 
 def _engine():

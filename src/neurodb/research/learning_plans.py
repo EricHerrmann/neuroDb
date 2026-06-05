@@ -14,7 +14,9 @@ from sqlalchemy.engine import Engine
 from sqlalchemy.orm import Session
 
 from neurodb.db import get_session
-from neurodb.schema import LearningPlan, Paper, PlanStep
+from neurodb.db.grouping_store import get_groupings_for_anchor
+from neurodb.research.grouping_matcher import run_suggest_groupings
+from neurodb.schema import GroupingLink, LearningPlan, Paper, PlanStep
 
 
 def _now() -> str:
@@ -66,6 +68,10 @@ def propose_plan(engine: Engine, *, title: str, origin_prompt: str, origin_agent
         plan_id = plan.id
         _add_steps(session, plan_id, steps, start_index=0)
         session.commit()
+    run_suggest_groupings(
+        engine, anchor_type="learning_plan", anchor_id=plan_id,
+        anchor_text=f"{title}\n{origin_prompt}", gtypes=("topic", "concept"),
+    )
     return {"id": plan_id, "status": "proposed", "step_count": len(steps)}
 
 
@@ -77,14 +83,29 @@ def get_plan(engine: Engine, plan_id: int) -> dict | None:
         steps = session.execute(
             select(PlanStep).where(PlanStep.plan_id == plan_id).order_by(PlanStep.order_index)
         ).scalars().all()
+        groupings = get_groupings_for_anchor(session, "learning_plan", plan_id)
         return {
             "id": plan.id, "title": plan.title, "origin_prompt": plan.origin_prompt,
             "origin_agent": plan.origin_agent, "research_question_id": plan.research_question_id,
             "status": plan.status, "created_at": plan.created_at, "updated_at": plan.updated_at,
             "percent_complete": _percent_complete(steps),
             "pending_change_count": sum(1 for s in steps if s.lifecycle in ("proposed", "proposed_removal")),
+            "groupings": groupings,
             "steps": [_step_dict(s) for s in steps],
         }
+
+
+def plans_sharing_grouping(engine: Engine, grouping_id: int) -> int:
+    """Count distinct learning plans linked (confirmed) to a grouping."""
+    with get_session(engine) as session:
+        rows = session.execute(
+            select(GroupingLink.anchor_id).where(
+                GroupingLink.grouping_id == grouping_id,
+                GroupingLink.anchor_type == "learning_plan",
+                GroupingLink.status == "confirmed",
+            )
+        ).scalars().all()
+        return len(set(rows))
 
 
 def _resolve_read_paper(session: Session, source: dict) -> int:

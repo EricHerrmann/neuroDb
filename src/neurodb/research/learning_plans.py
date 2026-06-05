@@ -14,7 +14,7 @@ from sqlalchemy.engine import Engine
 from sqlalchemy.orm import Session
 
 from neurodb.db import get_session
-from neurodb.schema import LearningPlan, PlanStep
+from neurodb.schema import LearningPlan, Paper, PlanStep
 
 
 def _now() -> str:
@@ -85,6 +85,73 @@ def get_plan(engine: Engine, plan_id: int) -> dict | None:
             "pending_change_count": sum(1 for s in steps if s.lifecycle in ("proposed", "proposed_removal")),
             "steps": [_step_dict(s) for s in steps],
         }
+
+
+def _resolve_read_paper(session: Session, source: dict) -> int:
+    """Dedup a read-step source into papers; return paper_id. Mirrors queue_source.
+
+    Imported lazily: normalize_title lives in agents.tutor_agent, which (via the
+    shared learning-plan tools) imports this module — a top-level import here
+    would create a circular import.
+    """
+    from neurodb.agents.tutor_agent import normalize_title
+
+    title = (source.get("title") or "").strip()
+    normalized = normalize_title(title)
+    existing = session.execute(
+        select(Paper).where(Paper.normalized_title == normalized)
+    ).scalar_one_or_none()
+    if existing is not None:
+        return existing.id
+    row = Paper(
+        title=title, normalized_title=normalized, doi=None, url=None,
+        source_type=source.get("source_type") or "paper",
+        topic_context=source.get("topic_context") or "",
+        status="pending", queued_at=_now(),
+    )
+    session.add(row)
+    session.flush()
+    return row.id
+
+
+def _confirm_step_rows(session: Session, steps: list[PlanStep]) -> None:
+    """Activate proposed steps in place, resolving read papers; delete proposed_removal."""
+    for s in steps:
+        if s.lifecycle == "proposed":
+            if s.step_type == "read" and s.paper_id is None and s.source_ref:
+                s.paper_id = _resolve_read_paper(session, json.loads(s.source_ref))
+                s.source_ref = None
+            s.lifecycle = "confirmed"
+            s.updated_at = _now()
+        elif s.lifecycle == "proposed_removal":
+            session.delete(s)
+
+
+def confirm_plan(engine: Engine, plan_id: int) -> dict:
+    """Confirm a proposed plan: status->active, all proposed steps->confirmed."""
+    with get_session(engine) as session:
+        plan = session.get(LearningPlan, plan_id)
+        if plan is None or plan.status != "proposed":
+            raise ValueError(f"Plan {plan_id} is not in 'proposed' state")
+        steps = session.execute(select(PlanStep).where(PlanStep.plan_id == plan_id)).scalars().all()
+        _confirm_step_rows(session, steps)
+        plan.status = "active"
+        plan.updated_at = _now()
+        session.commit()
+    return get_plan(engine, plan_id)
+
+
+def dismiss_plan(engine: Engine, plan_id: int) -> bool:
+    """Delete a proposed plan and its steps. No Knowledge Library side effects."""
+    with get_session(engine) as session:
+        plan = session.get(LearningPlan, plan_id)
+        if plan is None:
+            return False
+        for s in session.execute(select(PlanStep).where(PlanStep.plan_id == plan_id)).scalars().all():
+            session.delete(s)
+        session.delete(plan)
+        session.commit()
+        return True
 
 
 def list_plans(engine: Engine, status: str | None = None) -> list[dict]:

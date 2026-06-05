@@ -1,0 +1,55 @@
+from sqlalchemy import create_engine, func, select
+from sqlalchemy.pool import StaticPool
+
+from neurodb.db import init_db, get_session
+from neurodb.schema import Paper
+from neurodb.research.learning_plans import propose_plan, confirm_plan, dismiss_plan, get_plan
+
+
+def _engine():
+    eng = create_engine("sqlite:///:memory:", connect_args={"check_same_thread": False}, poolclass=StaticPool)
+    init_db(eng)
+    return eng
+
+
+def _steps():
+    return [
+        {"type": "read", "source": {"title": "LTP Review", "source_type": "paper", "topic_context": "plasticity"}},
+        {"type": "action", "action_text": "Summarize"},
+    ]
+
+
+def _paper_count(eng):
+    with get_session(eng) as s:
+        return s.execute(select(func.count()).select_from(Paper)).scalar_one()
+
+
+def test_confirm_activates_and_resolves_read_paper():
+    eng = _engine()
+    pid = propose_plan(eng, title="P", origin_prompt="p", origin_agent="tutor", steps=_steps())["id"]
+    assert _paper_count(eng) == 0  # nothing queued at propose time
+    confirm_plan(eng, pid)
+    plan = get_plan(eng, pid)
+    assert plan["status"] == "active"
+    assert all(s["lifecycle"] == "confirmed" for s in plan["steps"])
+    read = next(s for s in plan["steps"] if s["step_type"] == "read")
+    assert read["paper_id"] is not None and read["source_ref"] is None
+    assert _paper_count(eng) == 1
+
+
+def test_confirm_dedups_existing_paper():
+    eng = _engine()
+    # Two plans referencing the same source title -> one paper.
+    p1 = propose_plan(eng, title="A", origin_prompt="a", origin_agent="tutor", steps=_steps())["id"]
+    p2 = propose_plan(eng, title="B", origin_prompt="b", origin_agent="tutor", steps=_steps())["id"]
+    confirm_plan(eng, p1)
+    confirm_plan(eng, p2)
+    assert _paper_count(eng) == 1
+
+
+def test_dismiss_proposed_plan_leaves_no_papers():
+    eng = _engine()
+    pid = propose_plan(eng, title="P", origin_prompt="p", origin_agent="tutor", steps=_steps())["id"]
+    assert dismiss_plan(eng, pid) is True
+    assert get_plan(eng, pid) is None
+    assert _paper_count(eng) == 0

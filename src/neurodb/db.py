@@ -801,6 +801,44 @@ def _migration_021_drop_legacy_groupings_tables(conn) -> None:
         conn.execute(text(f"DROP TABLE IF EXISTS {table}"))
 
 
+def _migration_022_learning_plans(conn) -> None:
+    """Create learning_plans and plan_steps tables (Learning Plans feature)."""
+    conn.execute(text("""
+        CREATE TABLE IF NOT EXISTS learning_plans (
+            id INTEGER PRIMARY KEY,
+            title TEXT NOT NULL,
+            origin_prompt TEXT NOT NULL,
+            origin_agent VARCHAR(16) NOT NULL,
+            origin_session_id INTEGER,
+            research_question_id INTEGER,
+            status VARCHAR(16) NOT NULL DEFAULT 'proposed',
+            created_at VARCHAR(32) NOT NULL,
+            updated_at VARCHAR(32) NOT NULL
+        )
+    """))
+    conn.execute(text(
+        "CREATE INDEX IF NOT EXISTS ix_learning_plans_status ON learning_plans (status)"
+    ))
+    conn.execute(text("""
+        CREATE TABLE IF NOT EXISTS plan_steps (
+            id INTEGER PRIMARY KEY,
+            plan_id INTEGER NOT NULL,
+            order_index INTEGER NOT NULL,
+            step_type VARCHAR(16) NOT NULL,
+            paper_id INTEGER,
+            source_ref TEXT,
+            action_text TEXT,
+            lifecycle VARCHAR(16) NOT NULL DEFAULT 'proposed',
+            progress VARCHAR(16) NOT NULL DEFAULT 'todo',
+            note TEXT,
+            created_at VARCHAR(32) NOT NULL,
+            updated_at VARCHAR(32) NOT NULL
+        )
+    """))
+    conn.execute(text("CREATE INDEX IF NOT EXISTS ix_plan_steps_plan_id ON plan_steps (plan_id)"))
+    conn.execute(text("CREATE INDEX IF NOT EXISTS ix_plan_steps_lifecycle ON plan_steps (lifecycle)"))
+
+
 _MIGRATIONS: dict[int, callable] = {
     1: _migration_001_study_note_unique,
     2: _migration_002_model_call_log,
@@ -823,6 +861,7 @@ _MIGRATIONS: dict[int, callable] = {
     19: _migration_019_resync_grouping_sequences,
     20: _migration_020_literature_search_arxiv_count,
     21: _migration_021_drop_legacy_groupings_tables,
+    22: _migration_022_learning_plans,
 }
 
 

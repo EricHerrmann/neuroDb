@@ -44,5 +44,6 @@ _migration_018_seed_grouping_hierarchy = _db_legacy._migration_018_seed_grouping
 _migration_019_resync_grouping_sequences = _db_legacy._migration_019_resync_grouping_sequences
 _migration_020_literature_search_arxiv_count = _db_legacy._migration_020_literature_search_arxiv_count
 _migration_021_drop_legacy_groupings_tables = _db_legacy._migration_021_drop_legacy_groupings_tables
+_migration_022_learning_plans = _db_legacy._migration_022_learning_plans
 
 __all__ = ["get_engine", "init_db", "seed_learning_sources", "create_views", "get_session"]

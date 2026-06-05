@@ -173,3 +173,125 @@ def list_plans(engine: Engine, status: str | None = None) -> list[dict]:
                 "pending_change_count": sum(1 for s in steps if s.lifecycle in ("proposed", "proposed_removal")),
             })
         return out
+
+
+def _max_order_index(session: Session, plan_id: int) -> int:
+    rows = session.execute(select(PlanStep.order_index).where(PlanStep.plan_id == plan_id)).scalars().all()
+    return max(rows) if rows else -1
+
+
+def propose_plan_update(engine: Engine, *, plan_id: int, add_steps: list[dict] | None = None,
+                        remove_step_ids: list[int] | None = None) -> dict:
+    with get_session(engine) as session:
+        plan = session.get(LearningPlan, plan_id)
+        if plan is None:
+            raise ValueError(f"Plan {plan_id} not found")
+        if add_steps:
+            _add_steps(session, plan_id, add_steps, start_index=_max_order_index(session, plan_id) + 1)
+        for step_id in (remove_step_ids or []):
+            step = session.get(PlanStep, step_id)
+            if step is not None and step.plan_id == plan_id and step.lifecycle == "confirmed":
+                step.lifecycle = "proposed_removal"
+                step.updated_at = _now()
+        plan.updated_at = _now()
+        session.commit()
+    return get_plan(engine, plan_id)
+
+
+def confirm_pending_changes(engine: Engine, plan_id: int) -> dict:
+    with get_session(engine) as session:
+        steps = session.execute(select(PlanStep).where(PlanStep.plan_id == plan_id)).scalars().all()
+        _confirm_step_rows(session, steps)
+        plan = session.get(LearningPlan, plan_id)
+        if plan is not None:
+            plan.updated_at = _now()
+        session.commit()
+    return get_plan(engine, plan_id)
+
+
+def dismiss_pending_changes(engine: Engine, plan_id: int) -> dict:
+    with get_session(engine) as session:
+        steps = session.execute(select(PlanStep).where(PlanStep.plan_id == plan_id)).scalars().all()
+        for s in steps:
+            if s.lifecycle == "proposed":
+                session.delete(s)
+            elif s.lifecycle == "proposed_removal":
+                s.lifecycle = "confirmed"
+                s.updated_at = _now()
+        session.commit()
+    return get_plan(engine, plan_id)
+
+
+def set_step_progress(engine: Engine, step_id: int, progress: str, note: str | None = None) -> bool:
+    if progress not in ("todo", "in_progress", "done", "skipped"):
+        raise ValueError(f"Invalid progress: {progress!r}")
+    with get_session(engine) as session:
+        step = session.get(PlanStep, step_id)
+        if step is None:
+            return False
+        step.progress = progress
+        if note is not None:
+            step.note = note
+        step.updated_at = _now()
+        session.commit()
+        return True
+
+
+def confirm_step(engine: Engine, step_id: int) -> bool:
+    with get_session(engine) as session:
+        step = session.get(PlanStep, step_id)
+        if step is None or step.lifecycle not in ("proposed", "proposed_removal"):
+            return False
+        _confirm_step_rows(session, [step])
+        session.commit()
+        return True
+
+
+def dismiss_step(engine: Engine, step_id: int) -> bool:
+    with get_session(engine) as session:
+        step = session.get(PlanStep, step_id)
+        if step is None:
+            return False
+        if step.lifecycle == "proposed":
+            session.delete(step)
+        elif step.lifecycle == "proposed_removal":
+            step.lifecycle = "confirmed"
+            step.updated_at = _now()
+        else:
+            return False
+        session.commit()
+        return True
+
+
+def update_plan(engine: Engine, plan_id: int, *, title: str | None = None,
+                status: str | None = None, step_order: list[int] | None = None) -> dict | None:
+    if status is not None and status not in ("active", "paused", "done"):
+        raise ValueError(f"Invalid status: {status!r}")
+    with get_session(engine) as session:
+        plan = session.get(LearningPlan, plan_id)
+        if plan is None:
+            return None
+        if title is not None:
+            plan.title = title
+        if status is not None:
+            plan.status = status
+        if step_order:
+            for index, sid in enumerate(step_order):
+                step = session.get(PlanStep, sid)
+                if step is not None and step.plan_id == plan_id:
+                    step.order_index = index
+        plan.updated_at = _now()
+        session.commit()
+    return get_plan(engine, plan_id)
+
+
+def delete_plan(engine: Engine, plan_id: int) -> bool:
+    with get_session(engine) as session:
+        plan = session.get(LearningPlan, plan_id)
+        if plan is None:
+            return False
+        for s in session.execute(select(PlanStep).where(PlanStep.plan_id == plan_id)).scalars().all():
+            session.delete(s)
+        session.delete(plan)
+        session.commit()
+        return True

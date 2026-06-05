@@ -16,6 +16,8 @@ import type {
   PaperItem,
   LearningSourceItem,
   ModelInfo,
+  PlanDetail,
+  PlanSummary,
   Preferences,
   QuestionConceptLink,
   QuestionTopicLink,
@@ -218,4 +220,18 @@ export const api = {
     post<ResearchGapItem>(`/api/research/gaps/${id}/resolve`),
   archiveGap: (id: number) =>
     post<ResearchGapItem>(`/api/research/gaps/${id}/archive`),
+  getPlans: (status?: string) =>
+    get<PlanSummary[]>(status ? `/api/research/plans?status=${status}` : '/api/research/plans'),
+  getPlan: (id: number) => get<PlanDetail>(`/api/research/plans/${id}`),
+  confirmPlan: (id: number) => post<PlanDetail>(`/api/research/plans/${id}/confirm`),
+  confirmPlanChanges: (id: number) => post<PlanDetail>(`/api/research/plans/${id}/confirm-changes`),
+  dismissPlanChanges: (id: number) => post<PlanDetail>(`/api/research/plans/${id}/dismiss-changes`),
+  patchPlan: (id: number, body: { title?: string; status?: string; step_order?: number[] }) =>
+    patch<PlanDetail>(`/api/research/plans/${id}`, body),
+  patchPlanStep: (
+    id: number,
+    stepId: number,
+    body: { progress?: string; note?: string; lifecycle_action?: string },
+  ) => patch<PlanDetail>(`/api/research/plans/${id}/steps/${stepId}`, body),
+  deletePlan: (id: number) => del(`/api/research/plans/${id}`),
 }

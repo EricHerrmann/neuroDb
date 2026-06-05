@@ -283,3 +283,42 @@ export interface CreateQuestionRequest {
   topic_context?: string
   origin_session_id?: number
 }
+
+export interface PlanStep {
+  id: number
+  plan_id: number
+  order_index: number
+  step_type: 'read' | 'action'
+  paper_id: number | null
+  source_ref: string | null
+  action_text: string | null
+  lifecycle: 'proposed' | 'confirmed' | 'proposed_removal'
+  progress: 'todo' | 'in_progress' | 'done' | 'skipped'
+  note: string | null
+}
+
+export interface PlanGroupingLink {
+  id: number
+  type: string
+  name: string
+  link_status: string
+}
+
+export interface PlanSummary {
+  id: number
+  title: string
+  status: string
+  origin_agent: string
+  percent_complete: number
+  step_count: number
+  pending_change_count: number
+}
+
+export interface PlanDetail extends PlanSummary {
+  origin_prompt: string
+  research_question_id: number | null
+  created_at: string
+  updated_at: string
+  steps: PlanStep[]
+  groupings: PlanGroupingLink[]
+}

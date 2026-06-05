@@ -18,7 +18,9 @@ def _no_matcher():
 
 
 def _client():
-    engine = create_engine("sqlite:///:memory:", connect_args={"check_same_thread": False}, poolclass=StaticPool)
+    engine = create_engine(
+        "sqlite:///:memory:", connect_args={"check_same_thread": False}, poolclass=StaticPool,
+    )
     init_db(engine)
     app = FastAPI()
     app.state.engine = engine
@@ -53,6 +55,7 @@ def test_step_progress_and_delete():
                        steps=[{"type": "action", "action_text": "x"}])["id"]
     client.post(f"/api/research/plans/{pid}/confirm")
     step_id = client.get(f"/api/research/plans/{pid}").json()["steps"][0]["id"]
-    assert client.patch(f"/api/research/plans/{pid}/steps/{step_id}", json={"progress": "done"}).status_code == 200
+    resp = client.patch(f"/api/research/plans/{pid}/steps/{step_id}", json={"progress": "done"})
+    assert resp.status_code == 200
     assert client.get(f"/api/research/plans/{pid}").json()["percent_complete"] == 100
     assert client.delete(f"/api/research/plans/{pid}").status_code == 200

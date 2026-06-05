@@ -6,7 +6,7 @@ from sqlalchemy import create_engine
 from sqlalchemy.pool import StaticPool
 
 from neurodb.db import init_db
-from neurodb.research.learning_plans import propose_plan, get_plan, list_plans
+from neurodb.research.learning_plans import get_plan, list_plans, propose_plan
 
 
 @pytest.fixture(autouse=True)
@@ -18,14 +18,21 @@ def _no_matcher():
 
 
 def _engine():
-    eng = create_engine("sqlite:///:memory:", connect_args={"check_same_thread": False}, poolclass=StaticPool)
+    eng = create_engine(
+        "sqlite:///:memory:", connect_args={"check_same_thread": False}, poolclass=StaticPool,
+    )
     init_db(eng)
     return eng
 
 
 def _steps():
     return [
-        {"type": "read", "source": {"title": "LTP Review", "source_type": "paper", "topic_context": "plasticity"}},
+        {
+            "type": "read",
+            "source": {
+                "title": "LTP Review", "source_type": "paper", "topic_context": "plasticity",
+            },
+        },
         {"type": "action", "action_text": "Summarize the mechanism"},
     ]
 

@@ -5,10 +5,11 @@ import pytest
 from sqlalchemy import create_engine
 from sqlalchemy.pool import StaticPool
 
-from neurodb.db import init_db
 from neurodb.agents.learning_plan_tools import (
-    LEARNING_PLAN_TOOLS, execute_propose_learning_plan, execute_update_learning_plan,
+    LEARNING_PLAN_TOOLS,
+    execute_propose_learning_plan,
 )
+from neurodb.db import init_db
 from neurodb.research.learning_plans import get_plan
 
 
@@ -19,7 +20,9 @@ def _no_matcher():
 
 
 def _engine():
-    eng = create_engine("sqlite:///:memory:", connect_args={"check_same_thread": False}, poolclass=StaticPool)
+    eng = create_engine(
+        "sqlite:///:memory:", connect_args={"check_same_thread": False}, poolclass=StaticPool,
+    )
     init_db(eng)
     return eng
 

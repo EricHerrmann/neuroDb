@@ -3,13 +3,15 @@ from unittest.mock import patch
 from sqlalchemy import create_engine
 from sqlalchemy.pool import StaticPool
 
-from neurodb.db import init_db, get_session
+from neurodb.db import get_session, init_db
 from neurodb.db.grouping_store import get_or_create_grouping, link_grouping
-from neurodb.research.learning_plans import propose_plan, get_plan, plans_sharing_grouping
+from neurodb.research.learning_plans import get_plan, plans_sharing_grouping, propose_plan
 
 
 def _engine():
-    eng = create_engine("sqlite:///:memory:", connect_args={"check_same_thread": False}, poolclass=StaticPool)
+    eng = create_engine(
+        "sqlite:///:memory:", connect_args={"check_same_thread": False}, poolclass=StaticPool,
+    )
     init_db(eng)
     return eng
 

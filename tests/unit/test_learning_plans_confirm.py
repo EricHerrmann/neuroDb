@@ -4,9 +4,9 @@ import pytest
 from sqlalchemy import create_engine, func, select
 from sqlalchemy.pool import StaticPool
 
-from neurodb.db import init_db, get_session
+from neurodb.db import get_session, init_db
+from neurodb.research.learning_plans import confirm_plan, dismiss_plan, get_plan, propose_plan
 from neurodb.schema import Paper
-from neurodb.research.learning_plans import propose_plan, confirm_plan, dismiss_plan, get_plan
 
 
 @pytest.fixture(autouse=True)
@@ -16,14 +16,21 @@ def _no_matcher():
 
 
 def _engine():
-    eng = create_engine("sqlite:///:memory:", connect_args={"check_same_thread": False}, poolclass=StaticPool)
+    eng = create_engine(
+        "sqlite:///:memory:", connect_args={"check_same_thread": False}, poolclass=StaticPool,
+    )
     init_db(eng)
     return eng
 
 
 def _steps():
     return [
-        {"type": "read", "source": {"title": "LTP Review", "source_type": "paper", "topic_context": "plasticity"}},
+        {
+            "type": "read",
+            "source": {
+                "title": "LTP Review", "source_type": "paper", "topic_context": "plasticity",
+            },
+        },
         {"type": "action", "action_text": "Summarize"},
     ]
 
@@ -35,7 +42,9 @@ def _paper_count(eng):
 
 def test_confirm_activates_and_resolves_read_paper():
     eng = _engine()
-    pid = propose_plan(eng, title="P", origin_prompt="p", origin_agent="tutor", steps=_steps())["id"]
+    pid = propose_plan(
+        eng, title="P", origin_prompt="p", origin_agent="tutor", steps=_steps()
+    )["id"]
     assert _paper_count(eng) == 0  # nothing queued at propose time
     confirm_plan(eng, pid)
     plan = get_plan(eng, pid)
@@ -58,7 +67,9 @@ def test_confirm_dedups_existing_paper():
 
 def test_dismiss_proposed_plan_leaves_no_papers():
     eng = _engine()
-    pid = propose_plan(eng, title="P", origin_prompt="p", origin_agent="tutor", steps=_steps())["id"]
+    pid = propose_plan(
+        eng, title="P", origin_prompt="p", origin_agent="tutor", steps=_steps()
+    )["id"]
     assert dismiss_plan(eng, pid) is True
     assert get_plan(eng, pid) is None
     assert _paper_count(eng) == 0

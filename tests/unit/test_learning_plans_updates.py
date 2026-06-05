@@ -6,9 +6,15 @@ from sqlalchemy.pool import StaticPool
 
 from neurodb.db import init_db
 from neurodb.research.learning_plans import (
-    propose_plan, confirm_plan, get_plan, propose_plan_update,
-    confirm_pending_changes, dismiss_pending_changes, set_step_progress,
-    update_plan, delete_plan,
+    confirm_pending_changes,
+    confirm_plan,
+    delete_plan,
+    dismiss_pending_changes,
+    get_plan,
+    propose_plan,
+    propose_plan_update,
+    set_step_progress,
+    update_plan,
 )
 
 
@@ -19,7 +25,9 @@ def _no_matcher():
 
 
 def _engine():
-    eng = create_engine("sqlite:///:memory:", connect_args={"check_same_thread": False}, poolclass=StaticPool)
+    eng = create_engine(
+        "sqlite:///:memory:", connect_args={"check_same_thread": False}, poolclass=StaticPool,
+    )
     init_db(eng)
     return eng
 

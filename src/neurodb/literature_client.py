@@ -19,7 +19,7 @@ from neurodb.schema import LiteratureSearch
 _PUBMED_ESEARCH_URL = "https://eutils.ncbi.nlm.nih.gov/entrez/eutils/esearch.fcgi"
 _PUBMED_EFETCH_URL = "https://eutils.ncbi.nlm.nih.gov/entrez/eutils/efetch.fcgi"
 _SEMANTIC_SCHOLAR_URL = "https://api.semanticscholar.org/graph/v1/paper/search"
-_ARXIV_API_URL = "http://export.arxiv.org/api/query"
+_ARXIV_API_URL = "https://export.arxiv.org/api/query"
 _ARXIV_NS = {
     "atom": "http://www.w3.org/2005/Atom",
     "arxiv": "http://arxiv.org/schemas/atom",
@@ -33,16 +33,23 @@ class LiteratureSearchClient:
         self,
         engine: Engine,
         http_client: Any | None = None,
-        timeout: float = 5.0,
+        timeout: float = 10.0,
     ) -> None:
         self._engine = engine
-        self._http = http_client or httpx.Client(timeout=timeout)
+        self._http = http_client or httpx.Client(timeout=timeout, follow_redirects=True)
         self._timeout = timeout
 
-    def search(self, query: str, limit: int = 10) -> list[dict]:
-        pubmed_results = self._search_pubmed(query, limit)
-        semantic_results = self._search_semantic_scholar(query, limit)
-        arxiv_results = self._search_arxiv(query, limit)
+    def search(self, query: str, limit: int = 10) -> dict:
+        """Search all providers and return an envelope.
+
+        The envelope distinguishes "no matches" (a provider returned zero rows)
+        from "provider failed" (a request raised). Callers — and the agents that
+        serialize this to the model — must never treat an empty/failed search as
+        if it returned real sources.
+        """
+        pubmed_results, pubmed_error = self._search_pubmed(query, limit)
+        semantic_results, semantic_error = self._search_semantic_scholar(query, limit)
+        arxiv_results, arxiv_error = self._search_arxiv(query, limit)
         results = _dedup_by_doi(pubmed_results + semantic_results + arxiv_results)
         self._log_search(
             query,
@@ -51,9 +58,18 @@ class LiteratureSearchClient:
             len(arxiv_results),
             results,
         )
-        return results
+        return {
+            "query": query,
+            "result_count": len(results),
+            "results": results,
+            "providers": {
+                "pubmed": _provider_status(pubmed_results, pubmed_error),
+                "semantic_scholar": _provider_status(semantic_results, semantic_error),
+                "arxiv": _provider_status(arxiv_results, arxiv_error),
+            },
+        }
 
-    def _search_pubmed(self, query: str, limit: int) -> list[dict]:
+    def _search_pubmed(self, query: str, limit: int) -> tuple[list[dict], str | None]:
         params = {
             "db": "pubmed",
             "term": query,
@@ -73,7 +89,7 @@ class LiteratureSearchClient:
             search_response.raise_for_status()
             pmids = search_response.json().get("esearchresult", {}).get("idlist", [])
             if not pmids:
-                return []
+                return [], None
 
             fetch_params = {
                 "db": "pubmed",
@@ -88,11 +104,11 @@ class LiteratureSearchClient:
                 timeout=self._timeout,
             )
             fetch_response.raise_for_status()
-            return _parse_pubmed_xml(fetch_response.text)
-        except Exception:
-            return []
+            return _parse_pubmed_xml(fetch_response.text), None
+        except Exception as exc:
+            return [], _error_message(exc)
 
-    def _search_semantic_scholar(self, query: str, limit: int) -> list[dict]:
+    def _search_semantic_scholar(self, query: str, limit: int) -> tuple[list[dict], str | None]:
         headers = {}
         api_key = os.environ.get("SEMANTIC_SCHOLAR_API_KEY")
         if api_key:
@@ -110,11 +126,12 @@ class LiteratureSearchClient:
                 timeout=self._timeout,
             )
             response.raise_for_status()
-            return [_normalize_semantic_scholar(row) for row in response.json().get("data", [])]
-        except Exception:
-            return []
+            data = response.json().get("data", []) or []
+            return [_normalize_semantic_scholar(row) for row in data], None
+        except Exception as exc:
+            return [], _error_message(exc)
 
-    def _search_arxiv(self, query: str, limit: int) -> list[dict]:
+    def _search_arxiv(self, query: str, limit: int) -> tuple[list[dict], str | None]:
         try:
             response = self._http.get(
                 _ARXIV_API_URL,
@@ -126,9 +143,9 @@ class LiteratureSearchClient:
                 timeout=self._timeout,
             )
             response.raise_for_status()
-            return _parse_arxiv_xml(response.text)
-        except Exception:
-            return []
+            return _parse_arxiv_xml(response.text), None
+        except Exception as exc:
+            return [], _error_message(exc)
 
     def _log_search(
         self,
@@ -149,6 +166,17 @@ class LiteratureSearchClient:
                     searched_at=datetime.now(timezone.utc).isoformat(),
                 )
             )
+
+
+def _provider_status(results: list[dict], error: str | None) -> dict:
+    """Summarize one provider's outcome: error vs. successful (possibly empty)."""
+    if error is not None:
+        return {"status": "error", "count": 0, "error": error}
+    return {"status": "ok", "count": len(results), "error": None}
+
+
+def _error_message(exc: Exception) -> str:
+    return f"{type(exc).__name__}: {exc}"
 
 
 def _parse_pubmed_xml(xml_text: str) -> list[dict]:

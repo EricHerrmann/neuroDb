@@ -291,6 +291,9 @@ export interface PlanStep {
   step_type: 'read' | 'action'
   paper_id: number | null
   source_ref: string | null
+  source_title: string | null
+  source_type: string | null
+  topic_context: string | null
   action_text: string | null
   lifecycle: 'proposed' | 'confirmed' | 'proposed_removal'
   progress: 'todo' | 'in_progress' | 'done' | 'skipped'

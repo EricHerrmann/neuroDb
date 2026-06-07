@@ -21,7 +21,7 @@ interface ActivityRailProps {
 
 const PANELS = [
   { path: '/suggestions', label: 'Suggestions', Icon: Lightbulb },
-  { path: '/study-log', label: 'Study Log', Icon: ClipboardList },
+  { path: '/study-log', label: 'Study Plan', Icon: ClipboardList },
   { path: '/datasets', label: 'Datasets', Icon: Database },
   { path: '/registry', label: 'Registry', Icon: Package },
   { path: '/knowledge-library', label: 'Knowledge Library', Icon: BookOpen },

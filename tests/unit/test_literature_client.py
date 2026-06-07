@@ -118,10 +118,13 @@ def test_search_parses_pubmed_and_semantic_scholar_and_dedups_by_doi():
                 },
             ]
         }),
+        _Response(text="<feed xmlns='http://www.w3.org/2005/Atom'></feed>"),
     ])
 
-    results = LiteratureSearchClient(engine, http_client=fake).search("LTP")
+    out = LiteratureSearchClient(engine, http_client=fake).search("LTP")
+    results = out["results"]
 
+    assert out["result_count"] == 2
     assert [row["doi"] for row in results] == ["10.1000/ltp", "10.1000/review"]
     assert results[0]["source"] == "pubmed"
     assert results[1]["source"] == "semantic_scholar"
@@ -133,6 +136,10 @@ def test_search_parses_pubmed_and_semantic_scholar_and_dedups_by_doi():
     # Semantic Scholar request must ask for the url field.
     s2_call = next(c for c in fake.calls if "semanticscholar" in c[0])
     assert "url" in s2_call[1]["params"]["fields"].split(",")
+
+    # Provider statuses report success with per-source counts.
+    assert out["providers"]["pubmed"] == {"status": "ok", "count": 1, "error": None}
+    assert out["providers"]["semantic_scholar"] == {"status": "ok", "count": 2, "error": None}
 
     with Session(engine) as session:
         row = session.query(LiteratureSearch).one()
@@ -157,14 +164,16 @@ def test_semantic_scholar_prefers_source_url_over_doi():
                 "publicationTypes": ["JournalArticle"],
             }]
         }),
+        _Response(text="<feed xmlns='http://www.w3.org/2005/Atom'></feed>"),
     ])
 
-    results = LiteratureSearchClient(engine, http_client=fake).search("plasticity")
+    out = LiteratureSearchClient(engine, http_client=fake).search("plasticity")
 
-    assert results[0]["url"] == "https://www.semanticscholar.org/paper/abc123"
+    assert out["results"][0]["url"] == "https://www.semanticscholar.org/paper/abc123"
 
 
-def test_search_gracefully_logs_when_one_source_times_out():
+def test_provider_failure_is_reported_as_error_not_silent_empty():
+    """A failing provider must surface status=error, distinct from an empty success."""
     engine = _engine()
     fake = _FakeHttp([
         httpx.TimeoutException("pubmed down"),
@@ -178,16 +187,39 @@ def test_search_gracefully_logs_when_one_source_times_out():
                 "publicationTypes": ["JournalArticle"],
             }]
         }),
+        _Response(text="<feed xmlns='http://www.w3.org/2005/Atom'></feed>"),
     ])
 
-    results = LiteratureSearchClient(engine, http_client=fake).search("plasticity")
+    out = LiteratureSearchClient(engine, http_client=fake).search("plasticity")
 
-    assert len(results) == 1
-    assert results[0]["source"] == "semantic_scholar"
+    assert out["result_count"] == 1
+    assert out["results"][0]["source"] == "semantic_scholar"
+    # PubMed failed -> error status with a message; arXiv succeeded with zero hits.
+    assert out["providers"]["pubmed"]["status"] == "error"
+    assert out["providers"]["pubmed"]["error"]
+    assert out["providers"]["pubmed"]["count"] == 0
+    assert out["providers"]["semantic_scholar"]["status"] == "ok"
+    assert out["providers"]["arxiv"] == {"status": "ok", "count": 0, "error": None}
     with Session(engine) as session:
         row = session.query(LiteratureSearch).one()
         assert row.pubmed_count == 0
         assert row.semantic_scholar_count == 1
+
+
+def test_all_providers_empty_yields_zero_results_all_ok():
+    """No matches anywhere is a successful empty search, not an error."""
+    engine = _engine()
+    fake = _FakeHttp([
+        _Response({"esearchresult": {"idlist": []}}),
+        _Response({"data": []}),
+        _Response(text="<feed xmlns='http://www.w3.org/2005/Atom'></feed>"),
+    ])
+
+    out = LiteratureSearchClient(engine, http_client=fake).search("no such topic")
+
+    assert out["result_count"] == 0
+    assert out["results"] == []
+    assert all(p["status"] == "ok" for p in out["providers"].values())
 
 
 def test_parse_arxiv_xml_normalizes_entries():
@@ -218,11 +250,12 @@ def test_search_merges_arxiv_and_logs_arxiv_count():
         _Response(text=ARXIV_XML),
     ])
 
-    results = LiteratureSearchClient(engine, http_client=fake).search("plasticity")
+    out = LiteratureSearchClient(engine, http_client=fake).search("plasticity")
 
-    arxiv_rows = [row for row in results if row["source"] == "arxiv"]
+    arxiv_rows = [row for row in out["results"] if row["source"] == "arxiv"]
     assert len(arxiv_rows) == 2
     assert arxiv_rows[1]["url"] == "https://arxiv.org/abs/2402.05678v2"
+    assert out["providers"]["arxiv"] == {"status": "ok", "count": 2, "error": None}
 
     with Session(engine) as session:
         row = session.query(LiteratureSearch).one()
@@ -237,8 +270,24 @@ def test_search_degrades_gracefully_when_arxiv_fails():
         httpx.TimeoutException("arxiv down"),
     ])
 
-    results = LiteratureSearchClient(engine, http_client=fake).search("plasticity")
+    out = LiteratureSearchClient(engine, http_client=fake).search("plasticity")
 
-    assert results == []
+    assert out["result_count"] == 0
+    assert out["providers"]["arxiv"]["status"] == "error"
     with Session(engine) as session:
         assert session.query(LiteratureSearch).one().arxiv_count == 0
+
+
+def test_arxiv_endpoint_uses_https_and_client_follows_redirects():
+    """arXiv's http endpoint 301-redirects; the client must use https and follow redirects."""
+    from neurodb.literature_client import _ARXIV_API_URL
+
+    assert _ARXIV_API_URL.startswith("https://")
+    client = LiteratureSearchClient(_engine())
+    assert client._http.follow_redirects is True
+
+
+def test_default_timeout_is_ten_seconds():
+    """Generous default timeout so slow PubMed efetch does not silently return empty."""
+    client = LiteratureSearchClient(_engine())
+    assert client._timeout == 10.0

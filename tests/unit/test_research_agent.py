@@ -110,6 +110,27 @@ def test_research_prompt_includes_current_date_and_prior_context():
     assert "readable Markdown" in prompt
     assert "bold emphasis" in prompt
     assert "simple Markdown tables" in prompt
+    assert "call propose_learning_plan" in prompt
+    assert "Do not call nominate_paper separately for read-step sources" in prompt
+    assert "stop calling tools" in prompt
+
+
+def test_research_propose_learning_plan_terminal_response_stops_tool_loop():
+    agent = _agent()
+    terminal = agent._build_terminal_tool_response([{
+        "tool": "propose_learning_plan",
+        "input": {
+            "title": "Research plan",
+            "origin_prompt": "Build a plan",
+            "steps": [{"type": "action", "action_text": "Write a synthesis"}],
+        },
+        "result": json.dumps({"id": 9, "status": "proposed", "step_count": 1}),
+    }])
+
+    assert terminal == (
+        "Learning plan proposed — Plan ID: 9. "
+        "1 step awaiting approval in Study Plan."
+    )
 
 
 def test_nominate_paper_updates_existing_title_match_with_new_url():
@@ -153,6 +174,21 @@ def test_research_prompt_includes_context_mode_and_bundle():
 
     assert "Context mode: Strictly grounded" in prompt
     assert "NeuroDb context mode: grounded" in prompt
+
+
+def test_research_prompt_includes_agent_behavior_file(tmp_path, monkeypatch):
+    behavior_path = tmp_path / "agent_behavior.md"
+    behavior_path.write_text(
+        "Do not flatter the user. Challenge assumptions with evidence.",
+        encoding="utf-8",
+    )
+    monkeypatch.setenv("NEURODB_AGENT_BEHAVIOR_PATH", str(behavior_path))
+
+    prompt = _agent(current_date="2026-05-19")._build_system_prompt()
+
+    assert "Additional agent behavior instructions:" in prompt
+    assert "Do not flatter the user" in prompt
+    assert "Challenge assumptions with evidence" in prompt
 
 
 def test_research_agent_has_larger_default_tool_budget():
@@ -326,15 +362,26 @@ def test_search_knowledge_library_dispatch_uses_store():
 def test_search_literature_dispatch_uses_literature_client():
     class _LiteratureClient:
         def search(self, query):
-            return [{"title": "LTP Review", "query": query}]
+            return {
+                "query": query,
+                "result_count": 1,
+                "results": [{"title": "LTP Review", "query": query}],
+                "providers": {
+                    "pubmed": {"status": "ok", "count": 1, "error": None},
+                    "semantic_scholar": {"status": "ok", "count": 0, "error": None},
+                    "arxiv": {"status": "ok", "count": 0, "error": None},
+                },
+            }
 
     agent = _agent(literature_client=_LiteratureClient())
 
-    result = json.loads(agent._execute_tool_block(
+    envelope = json.loads(agent._execute_tool_block(
         _block("search_literature", {"query": "hippocampal LTP"})
     ))
 
-    assert result[0]["title"] == "LTP Review"
+    assert envelope["result_count"] == 1
+    assert envelope["results"][0]["title"] == "LTP Review"
+    assert envelope["providers"]["pubmed"]["status"] == "ok"
 
 
 def test_inspect_external_dataset_dispatch_uses_discovery_tool():
@@ -424,7 +471,7 @@ def test_research_agent_query_db_uses_read_only_db_tool():
     assert result == [{"count": 0}]
 
 
-def test_research_agent_uses_4096_max_tokens_by_default():
+def test_research_agent_uses_8192_max_tokens_by_default():
     engine = _engine()
     client = MagicMock()
     final_message = SimpleNamespace(
@@ -436,7 +483,8 @@ def test_research_agent_uses_4096_max_tokens_by_default():
     agent = NeuroResearchAgent(client, engine)
     list(agent.chat_stream("test", []))
 
-    assert client.messages.stream.call_args[1]["max_tokens"] == 4096
+    # 8192 so research turns don't truncate mid-tool-call (was 4096).
+    assert client.messages.stream.call_args[1]["max_tokens"] == 8192
 
 
 # ---------------------------------------------------------------------------

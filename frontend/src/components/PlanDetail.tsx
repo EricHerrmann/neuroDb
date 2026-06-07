@@ -19,11 +19,12 @@ function StepRow({
   onStepProgress: (stepId: number, progress: string) => void
   onStepLifecycle: (stepId: number, action: 'confirm' | 'dismiss') => void
 }) {
+  const sourceLabel = step.source_title ?? (
+    step.paper_id != null ? `source #${step.paper_id}` : 'pending source'
+  )
   const label =
     step.step_type === 'read'
-      ? step.paper_id != null
-        ? `Read: source #${step.paper_id}`
-        : 'Read (pending source)'
+      ? `Read: ${sourceLabel}`
       : step.action_text ?? '(action)'
 
   const removal = step.lifecycle === 'proposed_removal'

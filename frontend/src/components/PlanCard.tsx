@@ -85,6 +85,20 @@ export default function PlanCard({ plan, selected, onSelect, onConfirm, onDismis
           </button>
         </div>
       )}
+
+      {plan.status !== 'proposed' && (
+        <div style={{ display: 'flex', gap: 6, marginTop: 6 }}>
+          <button
+            onClick={e => {
+              e.stopPropagation()
+              onDismiss()
+            }}
+            style={{ fontSize: 11, padding: '2px 8px', cursor: 'pointer' }}
+          >
+            Delete
+          </button>
+        </div>
+      )}
     </div>
   )
 }

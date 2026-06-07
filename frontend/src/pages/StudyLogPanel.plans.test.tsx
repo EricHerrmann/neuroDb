@@ -36,4 +36,21 @@ describe('StudyLogPanel — Plans section', () => {
     expect(screen.getByText('Plasticity primer')).toBeTruthy()
     expect(screen.getByText(/proposed/i)).toBeTruthy()
   })
+
+  it('renders a delete action for active plans', () => {
+    const plan = {
+      id: 2,
+      title: 'Plasticity follow-through',
+      status: 'active',
+      origin_agent: 'tutor',
+      percent_complete: 20,
+      step_count: 5,
+      pending_change_count: 0,
+    }
+    render(<StudyLogPanel />, { wrapper: makeWrapper([plan]) })
+    fireEvent.change(screen.getByRole('combobox'), { target: { value: 'plans' } })
+
+    expect(screen.getByText('Plasticity follow-through')).toBeTruthy()
+    expect(screen.getByRole('button', { name: 'Delete' })).toBeTruthy()
+  })
 })

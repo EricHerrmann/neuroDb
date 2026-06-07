@@ -40,7 +40,7 @@ def test_get_model_for_task_standard_tier():
     provider, model_id, max_tokens = get_model_for_task("agent.loop.research")
     assert provider == "anthropic"
     assert "claude" in model_id.lower()
-    assert max_tokens == 4096
+    assert max_tokens == 8192
 
 
 def test_get_model_for_task_routing_section_selects_openai(monkeypatch):
@@ -55,7 +55,7 @@ def test_get_model_for_task_routing_section_selects_openai(monkeypatch):
 
     assert provider == "openai"
     assert model_id == "gpt-5.4"
-    assert max_tokens == 4096
+    assert max_tokens == 8192
 
 
 def test_get_model_for_task_routing_section_selects_gemini(monkeypatch):
@@ -70,7 +70,7 @@ def test_get_model_for_task_routing_section_selects_gemini(monkeypatch):
 
     assert provider == "gemini"
     assert model_id == "gemini-3.5-flash"
-    assert max_tokens == 4096
+    assert max_tokens == 8192
 
 
 def test_get_model_for_task_routing_section_unknown_provider_raises(monkeypatch):
@@ -105,7 +105,8 @@ def test_get_task_config_returns_tier_and_tokens():
     tier, max_tokens = get_task_config("agent.loop.neuro_tutor")
 
     assert tier == "standard"
-    assert max_tokens == 4096
+    # 8192 so tutor study-plan turns don't truncate mid-tool-call (was 4096).
+    assert max_tokens == 8192
 
 
 def test_provider_fallback_order_deduplicates_primary():

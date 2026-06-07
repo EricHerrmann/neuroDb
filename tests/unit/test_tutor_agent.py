@@ -247,6 +247,38 @@ def test_update_source_metadata_terminal_response_stops_tool_loop():
     assert terminal == f"Updated Knowledge Library source {queued['id']}: url."
 
 
+def test_propose_learning_plan_terminal_response_stops_tool_loop():
+    agent = _agent()
+    terminal = agent._build_terminal_tool_response([{
+        "tool": "propose_learning_plan",
+        "input": {
+            "title": "Plasticity plan",
+            "origin_prompt": "Build a plan",
+            "steps": [{"type": "action", "action_text": "Write a synthesis"}],
+        },
+        "result": json.dumps({"id": 7, "status": "proposed", "step_count": 1}),
+    }])
+
+    assert terminal == (
+        "Learning plan proposed — Plan ID: 7. "
+        "1 step awaiting approval in Study Plan."
+    )
+
+
+def test_update_learning_plan_terminal_response_stops_tool_loop():
+    agent = _agent()
+    terminal = agent._build_terminal_tool_response([{
+        "tool": "update_learning_plan",
+        "input": {"plan_id": 7, "add_steps": [{"type": "action", "action_text": "x"}]},
+        "result": json.dumps({"id": 7, "pending_change_count": 2}),
+    }])
+
+    assert terminal == (
+        "Learning plan update proposed — Plan ID: 7. "
+        "2 pending changes awaiting approval in Study Plan."
+    )
+
+
 def test_search_knowledge_library_uses_store():
     store = _store()
     store.add_summary(1, "LTP Review", None, "plasticity", "Hippocampus LTP summary")
@@ -264,15 +296,24 @@ def test_search_literature_uses_literature_client():
 
         def search(self, query):
             self.queries.append(query)
-            return [{
-                "title": "Hippocampal long-term potentiation and memory",
-                "doi": "10.1000/ltp",
-                "abstract": "LTP abstract",
-                "source_type": "paper",
-                "year": 2024,
-                "citation_count": 10,
-                "source": "pubmed",
-            }]
+            return {
+                "query": query,
+                "result_count": 1,
+                "results": [{
+                    "title": "Hippocampal long-term potentiation and memory",
+                    "doi": "10.1000/ltp",
+                    "abstract": "LTP abstract",
+                    "source_type": "paper",
+                    "year": 2024,
+                    "citation_count": 10,
+                    "source": "pubmed",
+                }],
+                "providers": {
+                    "pubmed": {"status": "ok", "count": 1, "error": None},
+                    "semantic_scholar": {"status": "error", "count": 0, "error": "429"},
+                    "arxiv": {"status": "ok", "count": 0, "error": None},
+                },
+            }
 
     literature_client = _LiteratureClient()
     agent = NeuroTutorAgent(
@@ -282,11 +323,15 @@ def test_search_literature_uses_literature_client():
         literature_client=literature_client,
     )
 
-    results = json.loads(agent._execute_search_literature({"query": "LTP plasticity"}))
+    envelope = json.loads(agent._execute_search_literature({"query": "LTP plasticity"}))
 
     assert literature_client.queries == ["LTP plasticity"]
-    assert results[0]["source"] == "pubmed"
-    assert results[0]["doi"] == "10.1000/ltp"
+    # The honesty signal (result_count + per-provider status) must reach the model
+    # unmodified so it can distinguish real hits from empty/failed searches.
+    assert envelope["result_count"] == 1
+    assert envelope["results"][0]["source"] == "pubmed"
+    assert envelope["results"][0]["doi"] == "10.1000/ltp"
+    assert envelope["providers"]["semantic_scholar"]["status"] == "error"
 
 
 def test_search_external_dispatch_uses_discovery_tool():
@@ -340,6 +385,9 @@ def test_system_prompt_contains_tutor_instructions():
     assert "readable markdown" in prompt
     assert "bold emphasis" in prompt
     assert "simple markdown tables" in prompt
+    assert "call propose_learning_plan" in prompt
+    assert "do not call queue_source separately for read-step sources" in prompt
+    assert "stop calling tools" in prompt
 
 
 def test_tutor_prompt_includes_context_mode_and_bundle():
@@ -353,6 +401,21 @@ def test_tutor_prompt_includes_context_mode_and_bundle():
 
     assert "Context mode: Strictly grounded" in prompt
     assert "NeuroDb context mode: grounded" in prompt
+
+
+def test_tutor_prompt_includes_agent_behavior_file(tmp_path, monkeypatch):
+    behavior_path = tmp_path / "agent_behavior.md"
+    behavior_path.write_text(
+        "Do not flatter the user. Challenge assumptions with evidence.",
+        encoding="utf-8",
+    )
+    monkeypatch.setenv("NEURODB_AGENT_BEHAVIOR_PATH", str(behavior_path))
+
+    prompt = _agent()._build_system_prompt()
+
+    assert "Additional agent behavior instructions:" in prompt
+    assert "Do not flatter the user" in prompt
+    assert "Challenge assumptions with evidence" in prompt
 
 
 def test_search_topics_and_get_grouping_bundle_in_tool_list():

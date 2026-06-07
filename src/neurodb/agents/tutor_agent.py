@@ -8,10 +8,12 @@ from datetime import UTC, datetime
 from sqlalchemy import Engine
 
 from neurodb.agents.base import BaseAgent
+from neurodb.agents.behavior_instructions import load_agent_behavior_instructions
 from neurodb.agents.db_agent import TOOLS as _DB_TOOLS
 from neurodb.agents.db_agent import execute_tool
 from neurodb.agents.learning_plan_tools import (
     LEARNING_PLAN_TOOLS,
+    build_learning_plan_terminal_response,
     execute_propose_learning_plan,
     execute_update_learning_plan,
 )
@@ -39,9 +41,10 @@ _TUTOR_SYSTEM_PROMPT = (
     "knowledge alone. "
     "To retrieve local context for a topic, call search_topics to find the topic grouping ID, "
     "then get_grouping_bundle to retrieve related papers, concepts, notes, and datasets. "
-    "Whenever you cite or recommend an external resource such as a paper, review, preprint, textbook, "
-    "or website, call queue_source with the title, source type, and topic context so the user "
-    "can review it later. If the user explicitly asks you to correct metadata on an existing "
+    "Whenever you cite or recommend an external resource such as a paper, review, preprint, "
+    "textbook, or website outside a proposed learning plan, call queue_source with the title, "
+    "source type, and topic context so the user can review it later. If the user explicitly "
+    "asks you to correct metadata on an existing "
     "Knowledge Library source, call update_source_metadata with the source ID and corrected "
     "metadata instead of calling queue_source again. To discover candidate learning resources, "
     "call search_literature. When the user asks to search external sites for papers, "
@@ -51,6 +54,13 @@ _TUTOR_SYSTEM_PROMPT = (
     "dataset ID, call inspect_external_dataset. Do not say you cannot search or browse "
     "external sites when one of these tools fits the request; if the tool returns no "
     "results or an error, report that result plainly. "
+    "search_literature returns an envelope with result_count, a results list, and a "
+    "providers map giving each source's status (ok or error). Treat only the items in "
+    "results as found papers. If result_count is 0, state that the search returned no "
+    "results and name any providers whose status is error (for example rate-limited or "
+    "timed out); never invent papers, DOIs, or citation counts to fill an empty or "
+    "failed search, and never say sources were found, queued, or saved when result_count "
+    "is 0. "
     "Never fabricate paper titles, DOIs, dataset IDs, counts, or source details. "
     "Never write that a source is queued, in the Knowledge Library, approved, local, "
     "or cited from NeuroDb unless that state came from a successful tool result in this "
@@ -69,7 +79,14 @@ _TUTOR_SYSTEM_PROMPT = (
     "If a dataset is 'sparse', note the evidence gap rather than presenting the record "
     "as a learning resource; suggest the user request enrichment if the topic is relevant. "
     "Treat 'research_context_ready' and 'analysis_ready' datasets as suitable learning "
-    "resources and cite them with appropriate confidence."
+    "resources and cite them with appropriate confidence. "
+    "When the user asks for a study plan, learning plan, reading sequence, curriculum, "
+    "or multi-step path, call propose_learning_plan with the full ordered read/action "
+    "step list. Do not call queue_source separately for read-step sources that are only "
+    "part of the proposed plan; plan read sources are queued only after the user approves "
+    "the plan in Study Plan. When the user asks to modify an existing plan, call "
+    "update_learning_plan. After a successful propose_learning_plan or update_learning_plan "
+    "call, stop calling tools and summarize the saved plan or pending change."
 )
 
 _TUTOR_TOOLS = [
@@ -290,7 +307,12 @@ class NeuroTutorAgent(BaseAgent):
         )
 
     def _build_system_prompt(self) -> str:
-        system = f"{_TUTOR_SYSTEM_PROMPT}\n\n{_context_prompt_rules(self._context_mode)}"
+        prompt_parts = [_TUTOR_SYSTEM_PROMPT]
+        behavior_instructions = load_agent_behavior_instructions()
+        if behavior_instructions:
+            prompt_parts.append(behavior_instructions)
+        prompt_parts.append(_context_prompt_rules(self._context_mode))
+        system = "\n\n".join(prompt_parts)
         if self._context_bundle and self._context_bundle.get("prompt_block"):
             system = f"{system}\n\n{self._context_bundle['prompt_block']}"
         if self.prior_context:
@@ -456,6 +478,8 @@ class NeuroTutorAgent(BaseAgent):
         if not tool_trace:
             return None
         last = tool_trace[-1]
+        if last.get("tool") in {"propose_learning_plan", "update_learning_plan"}:
+            return build_learning_plan_terminal_response(last)
         if last.get("tool") != "update_source_metadata":
             return None
         try:
@@ -472,8 +496,6 @@ class NeuroTutorAgent(BaseAgent):
         if status == "not_found":
             return result.get("message") or f"No Knowledge Library source found for id {source_id}."
         return None
-
-
 def _context_prompt_rules(mode: str) -> str:
     if mode == "general":
         return (

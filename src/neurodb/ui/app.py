@@ -186,7 +186,7 @@ with col_chat:
 with col_workspace:
     tab_suggestions, tab_study, tab_datasets, tab_registry, tab_knowledge, tab_research, tab_sql = st.tabs([
         "Suggestions",
-        "Study Log",
+        "Study Plan",
         "Datasets",
         "Registry",
         "Knowledge Library",

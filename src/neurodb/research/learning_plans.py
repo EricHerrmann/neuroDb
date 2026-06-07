@@ -23,12 +23,39 @@ def _now() -> str:
     return datetime.now(UTC).isoformat()
 
 
-def _step_dict(s: PlanStep) -> dict:
+def _source_metadata(s: PlanStep, paper_by_id: dict[int, Paper] | None = None) -> dict:
+    if s.step_type != "read":
+        return {"source_title": None, "source_type": None, "topic_context": None}
+
+    if s.paper_id is not None and paper_by_id:
+        paper = paper_by_id.get(s.paper_id)
+        if paper is not None:
+            return {
+                "source_title": paper.title,
+                "source_type": paper.source_type,
+                "topic_context": paper.topic_context,
+            }
+
+    if s.source_ref:
+        try:
+            source = json.loads(s.source_ref)
+        except json.JSONDecodeError:
+            source = {}
+        return {
+            "source_title": source.get("title"),
+            "source_type": source.get("source_type"),
+            "topic_context": source.get("topic_context"),
+        }
+
+    return {"source_title": None, "source_type": None, "topic_context": None}
+
+
+def _step_dict(s: PlanStep, paper_by_id: dict[int, Paper] | None = None) -> dict:
     return {
         "id": s.id, "plan_id": s.plan_id, "order_index": s.order_index,
         "step_type": s.step_type, "paper_id": s.paper_id, "source_ref": s.source_ref,
         "action_text": s.action_text, "lifecycle": s.lifecycle, "progress": s.progress,
-        "note": s.note,
+        "note": s.note, **_source_metadata(s, paper_by_id),
     }
 
 
@@ -93,6 +120,11 @@ def get_plan(engine: Engine, plan_id: int) -> dict | None:
         steps = session.execute(
             select(PlanStep).where(PlanStep.plan_id == plan_id).order_by(PlanStep.order_index)
         ).scalars().all()
+        paper_ids = [s.paper_id for s in steps if s.paper_id is not None]
+        papers = session.execute(
+            select(Paper).where(Paper.id.in_(paper_ids))
+        ).scalars().all() if paper_ids else []
+        paper_by_id = {paper.id: paper for paper in papers}
         groupings = get_groupings_for_anchor(session, "learning_plan", plan_id)
         return {
             "id": plan.id, "title": plan.title, "origin_prompt": plan.origin_prompt,
@@ -101,7 +133,7 @@ def get_plan(engine: Engine, plan_id: int) -> dict | None:
             "percent_complete": _percent_complete(steps),
             "pending_change_count": _pending_change_count(steps),
             "groupings": groupings,
-            "steps": [_step_dict(s) for s in steps],
+            "steps": [_step_dict(s, paper_by_id) for s in steps],
         }
 
 

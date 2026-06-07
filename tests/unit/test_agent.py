@@ -436,6 +436,59 @@ def test_chat_yields_token_limit_error_when_max_tokens_fires():
     assert messages == []
 
 
+def test_chat_stream_budget_exhaustion_forces_final_answer_from_evidence():
+    """On iteration-budget exhaustion the agent makes one tools-free call so the
+    user gets an answer drawn from gathered evidence, not a dropped turn."""
+    engine = _engine_with_dataset()
+    mock_client = MagicMock()
+
+    def _stream(**kwargs):
+        if kwargs.get("tools"):
+            return _Stream([], _response("tool_use", [
+                _tool_use_block("t1", "query_db", {"sql": "SELECT 1"})
+            ]))
+        # No tools offered -> the model must answer from the evidence so far.
+        return _Stream(
+            [_text_delta_event("Answer from the evidence so far.")],
+            _response("end_turn", [_text_block("Answer from the evidence so far.")]),
+        )
+
+    mock_client.messages.stream.side_effect = _stream
+
+    agent = NeuroDbAgent(mock_client, engine, max_tool_iterations=2)
+    messages = []
+    events = list(agent.chat_stream("synthesize", messages))
+
+    assert events[-1]["type"] == "done"
+    assert events[-1]["text"] == "Answer from the evidence so far."
+    assert not any(e.get("type") == "error" for e in events)
+    assert not any("maximum tool iterations" in str(e.get("text", "")) for e in events)
+    # The turn is preserved (not rolled back) so the user can continue from it.
+    assert messages and messages[-1]["role"] == "assistant"
+
+
+def test_chat_budget_exhaustion_forces_final_answer_from_evidence():
+    engine = _engine_with_dataset()
+    mock_client = MagicMock()
+
+    def _create(**kwargs):
+        if kwargs.get("tools"):
+            return _response("tool_use", [
+                _tool_use_block("t1", "query_db", {"sql": "SELECT 1"})
+            ])
+        return _response("end_turn", [_text_block("Answer from the evidence so far.")])
+
+    mock_client.messages.create.side_effect = _create
+
+    agent = NeuroDbAgent(mock_client, engine, max_tool_iterations=2)
+    messages = []
+    chunks = list(agent.chat("synthesize", messages))
+
+    assert any("Answer from the evidence so far." in c for c in chunks)
+    assert not any("maximum tool iterations" in c for c in chunks)
+    assert messages and messages[-1]["role"] == "assistant"
+
+
 def test_agent_uses_max_tokens_constructor_param_in_stream_calls():
     engine = _engine_with_dataset()
     mock_client = MagicMock()

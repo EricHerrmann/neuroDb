@@ -52,7 +52,24 @@ def test_confirm_activates_and_resolves_read_paper():
     assert all(s["lifecycle"] == "confirmed" for s in plan["steps"])
     read = next(s for s in plan["steps"] if s["step_type"] == "read")
     assert read["paper_id"] is not None and read["source_ref"] is None
+    assert read["source_title"] == "LTP Review"
+    assert read["source_type"] == "paper"
+    assert read["topic_context"] == "plasticity"
     assert _paper_count(eng) == 1
+
+
+def test_get_plan_exposes_proposed_read_source_metadata():
+    eng = _engine()
+    pid = propose_plan(
+        eng, title="P", origin_prompt="p", origin_agent="tutor", steps=_steps()
+    )["id"]
+
+    read = next(s for s in get_plan(eng, pid)["steps"] if s["step_type"] == "read")
+
+    assert read["paper_id"] is None
+    assert read["source_title"] == "LTP Review"
+    assert read["source_type"] == "paper"
+    assert read["topic_context"] == "plasticity"
 
 
 def test_confirm_dedups_existing_paper():

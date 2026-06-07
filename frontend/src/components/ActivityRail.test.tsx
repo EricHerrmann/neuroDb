@@ -22,6 +22,7 @@ describe('ActivityRail', () => {
       </MemoryRouter>,
     )
     expect(screen.getAllByRole('link')).toHaveLength(7)
+    expect(screen.getByTitle('Study Plan')).toBeTruthy()
   })
 
   it('suggestions link has aria-current=page at /suggestions route', () => {

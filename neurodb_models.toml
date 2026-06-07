@@ -120,15 +120,17 @@ max_tokens = 2048
 
 [tasks."agent.loop.neuro_tutor"]
 tier = "standard"
-max_tokens = 4096
+# 8192: tutor turns emit long study plans alongside tool calls; 4096 truncated
+# responses mid-tool-call.
+max_tokens = 8192
 
 [tasks."agent.loop.neuro_research"]
 tier = "standard"
-max_tokens = 4096
+max_tokens = 8192
 
 [tasks."agent.loop.research"]
 tier = "standard"
-max_tokens = 4096
+max_tokens = 8192
 
 [tasks."agent.loop.unknown"]
 tier = "standard"

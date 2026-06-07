@@ -31,7 +31,7 @@ LEARNING_PLAN_TOOLS = [
         "description": (
             "Propose a multi-step study plan for the user to review. Steps are ordered; "
             "each is a 'read' (a source to read) or an 'action' (a task). The plan is saved "
-            "as 'proposed' until the user approves it in the Study Log."
+            "as 'proposed' until the user approves it in the Study Plan."
         ),
         "input_schema": {
             "type": "object",
@@ -78,3 +78,24 @@ def execute_update_learning_plan(engine: Engine, inputs: dict) -> str:
         add_steps=inputs.get("add_steps"), remove_step_ids=inputs.get("remove_step_ids"),
     )
     return json.dumps({"id": out["id"], "pending_change_count": out["pending_change_count"]})
+
+
+def build_learning_plan_terminal_response(tool_event: dict) -> str | None:
+    try:
+        result = json.loads(tool_event["result"])
+    except json.JSONDecodeError:
+        return None
+    plan_id = result.get("id")
+    if tool_event.get("tool") == "propose_learning_plan":
+        step_count = result.get("step_count", 0)
+        return (
+            f"Learning plan proposed — Plan ID: {plan_id}. "
+            f"{step_count} step{'s' if step_count != 1 else ''} awaiting approval "
+            "in Study Plan."
+        )
+    pending = result.get("pending_change_count", 0)
+    return (
+        f"Learning plan update proposed — Plan ID: {plan_id}. "
+        f"{pending} pending change{'s' if pending != 1 else ''} awaiting approval "
+        "in Study Plan."
+    )

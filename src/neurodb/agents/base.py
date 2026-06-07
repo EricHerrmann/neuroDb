@@ -152,6 +152,25 @@ class BaseAgent(ABC):
 
             break
 
+        # Budget exhausted: force one tools-free call so the model answers from the
+        # evidence already gathered, instead of dropping the turn entirely.
+        started = perf_counter()
+        final = self._model_client.create_message(
+            model=self._model,
+            max_tokens=self._max_tokens,
+            system=system,
+            tools=[],
+            messages=messages,
+        )
+        elapsed_ms = int((perf_counter() - started) * 1000)
+        self._record_model_call(final, self._max_tool_iterations + 1, elapsed_ms)
+        if final.stop_reason == "end_turn":
+            messages.append({"role": "assistant", "content": _blocks_to_dicts(final.content)})
+            for block in final.content:
+                if block.type == "text":
+                    yield block.text
+            return
+
         yield self._handle_iteration_budget_exhausted(
             messages,
             checkpoint,
@@ -273,6 +292,32 @@ class BaseAgent(ABC):
                 return
 
             break
+
+        # Budget exhausted: stream one tools-free synthesis from gathered evidence.
+        text_fragments.clear()
+        started = perf_counter()
+        with self._model_client.stream_message(
+            model=self._model,
+            max_tokens=self._max_tokens,
+            system=system,
+            tools=[],
+            messages=messages,
+        ) as stream:
+            for delta in stream:
+                if delta.get("type") == "text_delta":
+                    text_fragments.append(delta["text"])
+                    yield delta
+            final = stream.get_final_message()
+        elapsed_ms = int((perf_counter() - started) * 1000)
+        self._record_model_call(final, self._max_tool_iterations + 1, elapsed_ms)
+        if final.stop_reason == "end_turn":
+            messages.append({"role": "assistant", "content": _blocks_to_dicts(final.content)})
+            yield {
+                "type": "done",
+                "text": "".join(b.text for b in final.content if b.type == "text" and b.text),
+                "stop_reason": "budget_synthesis",
+            }
+            return
 
         message = self._handle_iteration_budget_exhausted(
             messages,

@@ -6,10 +6,12 @@ from datetime import date
 from sqlalchemy import Engine
 
 from neurodb.agents.base import BaseAgent
+from neurodb.agents.behavior_instructions import load_agent_behavior_instructions
 from neurodb.agents.db_agent import TOOLS as _DB_TOOLS
 from neurodb.agents.db_agent import execute_tool
 from neurodb.agents.learning_plan_tools import (
     LEARNING_PLAN_TOOLS,
+    build_learning_plan_terminal_response,
     execute_propose_learning_plan,
     execute_update_learning_plan,
 )
@@ -54,6 +56,12 @@ _RESEARCH_SYSTEM_PROMPT = (
     "status. Before finalizing an answer that mentions papers, DOIs, datasets, claims, "
     "evidence links, or queued sources, audit those references against tool results "
     "and local context; if a reference cannot be verified, say that plainly. "
+    "search_literature returns an envelope with result_count, a results list, and a "
+    "providers map giving each source's status (ok or error). Treat only the items in "
+    "results as found papers. If result_count is 0, state that the search returned no "
+    "results and name any providers whose status is error; never invent papers, DOIs, or "
+    "citation counts to fill an empty or failed search, and never say sources were found, "
+    "queued, or saved when result_count is 0. "
     "When the user asks you to check "
     "an external dataset URL or source-native id, call inspect_external_dataset instead "
     "of saying you cannot browse. When the user asks to find external datasets by topic, "
@@ -74,7 +82,15 @@ _RESEARCH_SYSTEM_PROMPT = (
     "When local context includes datasets, treat only 'research_context_ready' or "
     "'analysis_ready' datasets as supporting evidence for claims. Label 'sparse' and "
     "'partial' datasets as insufficient for claims and record them as evidence gaps "
-    "using add_gap rather than citing them as support."
+    "using add_gap rather than citing them as support. "
+    "When the user asks for a study plan, learning plan, reading sequence, curriculum, "
+    "or multi-step path, call propose_learning_plan with the full ordered read/action "
+    "step list. Do not call nominate_paper separately for read-step sources that are "
+    "only part of the proposed plan; plan read sources are queued only after the user "
+    "approves the plan in Study Plan. When the user asks to modify an existing plan, "
+    "call update_learning_plan. After a successful propose_learning_plan or "
+    "update_learning_plan call, stop calling tools and summarize the saved plan or "
+    "pending change."
 )
 
 _RESEARCH_TOOLS = [
@@ -419,11 +435,15 @@ class NeuroResearchAgent(BaseAgent):
 
     def _build_system_prompt(self) -> str:
         current_date = self._current_date or date.today().isoformat()
-        system = (
-            f"{_RESEARCH_SYSTEM_PROMPT}\n\n"
-            f"{_context_prompt_rules(self._context_mode)}\n\n"
-            f"Current date: {current_date}"
-        )
+        prompt_parts = [_RESEARCH_SYSTEM_PROMPT]
+        behavior_instructions = load_agent_behavior_instructions()
+        if behavior_instructions:
+            prompt_parts.append(behavior_instructions)
+        prompt_parts.extend([
+            _context_prompt_rules(self._context_mode),
+            f"Current date: {current_date}",
+        ])
+        system = "\n\n".join(prompt_parts)
         if self._context_bundle and self._context_bundle.get("prompt_block"):
             system = f"{system}\n\n{self._context_bundle['prompt_block']}"
         if self.prior_context:
@@ -728,6 +748,9 @@ class NeuroResearchAgent(BaseAgent):
     def _build_terminal_tool_response(self, tool_trace: list[dict]) -> str | None:
         if not tool_trace:
             return None
+        last = tool_trace[-1]
+        if last.get("tool") in {"propose_learning_plan", "update_learning_plan"}:
+            return build_learning_plan_terminal_response(last)
         last_tool = next(
             (tool for tool in reversed(tool_trace) if tool["tool"] == "draft_hypothesis"),
             None,

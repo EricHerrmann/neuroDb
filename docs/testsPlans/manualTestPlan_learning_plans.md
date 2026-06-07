@@ -2,13 +2,13 @@
 
 **Epoch scope:** Research — tests agent-proposed multi-step study plans, the
 proposed→confirmed lifecycle, per-step progress, agent-proposed updates,
-grouping cross-reference, and the Study Log "Plans" section.
+grouping cross-reference, and the Study Plan "Plans" section.
 
 **Status:** Pending verification
 **Tester:** Eric Herrmann
 **Scope:** `learning_plans`/`plan_steps` data model, `propose_learning_plan` /
 `update_learning_plan` tools on both the tutor and research agents, the
-`/api/research/plans` routes, and the Study Log Plans UI.
+`/api/research/plans` routes, and the Study Plan panel.
 
 **Design spec:** `docs/superpowers/specs/2026-06-05-learning-plans-design.md`
 **Implementation plan:** `docs/superpowers/plans/2026-06-05-learning-plans.md`
@@ -62,7 +62,7 @@ All commands run from the repo root (`/home/oldha/projects/neuroDb`) unless note
 
 ### T1 — Tutor proposes a plan
 In a **Neuro-Tutor** chat, explore a topic (e.g. long-term potentiation) and ask
-for a multi-step study plan. Open the Study Log → **Plans**.
+for a multi-step study plan. Open the Study Plan → **Plans**.
 **Pass:** a card appears with status **PROPOSED**, the proposed steps are listed
 in the detail view, and suggested topic chips are present.
 
@@ -74,7 +74,8 @@ Repeat T1 from a **Research** agent chat.
 ### T3 — Confirm a proposed plan
 Click **Confirm** on a proposed plan that contains at least one `read` step.
 **Pass:** status changes to **ACTIVE**; the read step's source now appears in the
-Knowledge Library (queued/pending); topic chips are confirmable.
+Knowledge Library (queued/pending); the read step still displays the source
+title in the plan detail view; topic chips are confirmable.
 
 ### T4 — Dismiss leaves no artifacts
 On a *different* proposed plan that contains a `read` step, click **Dismiss**.
@@ -99,7 +100,7 @@ Create two plans that share a topic and confirm that topic on both.
 (`GET /api/research/plans/{id}` groupings + the cross-reference count).
 
 ### T8 — Edit / pause / delete
-From the Plans panel, rename a plan, pause it, then delete it.
+From the Study Plan panel, rename a plan, pause it, then delete it.
 **Pass:** the title and status update; the plan is removed after delete.
 
 ---

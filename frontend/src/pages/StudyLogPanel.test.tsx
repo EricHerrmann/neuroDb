@@ -22,6 +22,7 @@ describe('StudyLogPanel', () => {
 
   it('renders view dropdown with Study Tags selected by default', () => {
     render(<StudyLogPanel />, { wrapper: makeWrapper() })
+    expect(screen.getByText('Study Plan')).toBeTruthy()
     const select = screen.getByRole('combobox')
     expect((select as HTMLSelectElement).value).toBe('study-tags')
   })

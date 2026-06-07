@@ -124,7 +124,7 @@ def _tag_form_section(engine: Engine) -> None:
 
 
 def render(engine: Engine) -> None:
-    st.header("Study Log")
+    st.header("Study Plan")
     _browse_section(engine)
     st.divider()
     _tag_form_section(engine)

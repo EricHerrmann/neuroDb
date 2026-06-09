@@ -1,25 +1,28 @@
 # NeuroDb — UI Epoch Plan
 
-**Status:** UI-5 P1/P2/P3 complete; common manual verification passed and signed off 2026-05-23
-**Last updated:** 2026-05-23
-**Epoch directory:** `src/neurodb/ui/`
+**Status:** UI-4 complete; Streamlit is deprecated and retained only as a legacy compatibility surface
+**Last updated:** 2026-06-09
+**Epoch directories:** `frontend/`, `src/neurodb/api/`, legacy `src/neurodb/ui/`
 **Architecture reference:** `docs/superpowers/specs/2026-05-07-epoch-architecture-design.md`
 
 ---
 
 ## Active Work
 
-UI-5 P1/P2/P3 implementation and common manual verification are complete. See
-`docs/superpowers/plans/2026-05-13-ui5-p3-polish.md` and
-`docs/testsPlans/completedAndPassedTestPlans/manualTestPlan_ui5_common_parity.md`.
+UI-4 Streamlit deprecation is complete. The primary UI is the FastAPI + React
+workbench. The Streamlit app remains only as a legacy compatibility surface and
+must not receive new workflows.
 
 ---
 
 ## Epoch Goal
 
-Own the UI shell, routing, pane layout, streaming rendering, and workbench state. Current implementation is Streamlit. Target is a FastAPI + React workbench shell — migration is incremental with Streamlit retained until parity.
+Own the UI shell, routing, pane layout, streaming rendering, and workbench state.
+The primary implementation is the FastAPI + React workbench. The previous
+Streamlit app is deprecated after React parity and retained only for short-term
+compatibility.
 
-**Active work:** None in the UI epoch; current project focus has moved to the Tech Debt epoch.
+**Active work:** None in the UI epoch; current project focus remains Learning Plans.
 
 ---
 
@@ -37,18 +40,18 @@ Own the UI shell, routing, pane layout, streaming rendering, and workbench state
 | UI-5 P2 | Core workflow parity — chat observability/formatting, study-log delete/filter, dataset filter/metadata, research lifecycle, KL summary/duplicates | Complete | 509 Python + 50 frontend + build + common manual T3-T5 | 2026-05-23 | `docs/testsPlans/completedAndPassedTestPlans/manualTestPlan_ui5_common_parity.md` |
 | UI-5 P3 | Polish parity — prior context banner, study-log edit/source alignment, dataset inline tag, registry content, KL DOI links, SQL hints | Complete | 515 Python + 57 frontend + build + common manual T6-T8 | 2026-05-23 | `docs/testsPlans/completedAndPassedTestPlans/manualTestPlan_ui5_common_parity.md` |
 | UI-5 Enhancements | Beyond-parity improvements deferred from UI-5 P3 scope | Planned | — | — | — |
-| UI-4 | Streamlit retirement decision | Planned (after UI-5) | — | — | — |
+| UI-4 | Streamlit deprecation decision — React/FastAPI is primary; Streamlit is legacy compatibility only | Complete | 42 focused Python checks | 2026-06-09 | — |
 
 Completed test plan: `docs/testsPlans/completedAndPassedTestPlans/manualTestPlan_ui5_common_parity.md` (8 evals covering UI-5 P1/P2/P3).
 Deferred detail plans: `docs/testsPlans/deferredTestPlans/manualTestPlan_ui5_p1_data_integrity.md` and `docs/testsPlans/deferredTestPlans/manualTestPlan_ui5_p2_core_workflow.md`. UI-5 signed off 2026-05-23.
 
 ---
 
-## Open Backlog
+## Resolved Backlog
 
 | Log ID | Issue |
 |--------|-------|
-| LOG-013 | UI shell rearchitecture — deferred post-LT-3; addressed by UI-0 ADR and UI-1 plan |
+| LOG-013 | UI shell rearchitecture — resolved by FastAPI + React migration and Streamlit deprecation |
 
 ### UI-5 Backlog (Draft — See Spec for Full Detail)
 
@@ -129,6 +132,7 @@ Identified in 2026-05-12 Streamlit vs React comparison. Organized by capability,
 | 2026-05-11 | Activity rail and resizable panes deferred from UI-2 to UI-2B | UI-2 is a clean infrastructure migration — same layout as Streamlit, all 7 panels working. Layout redesign is a separate concern and would conflate two orthogonal changes. |
 | 2026-05-11 | Activity rail replaces both Sidebar and PanelNav | Sidebar held only agent mode (→ chat header) and session history (→ Study Log panel already covers this). Consolidating nav into a single 40px rail maximises horizontal space for chat and panel content. |
 | 2026-05-11 | Right panel collapsible to zero via react-resizable-panels | Full-width chat mode useful for long reading sessions; clicking any rail icon re-expands. Constrained-only resize was simpler but the collapse feature is one prop (`collapsible`) with no extra complexity. |
+| 2026-06-09 | Streamlit deprecated after React parity | UI-5 parity and common manual testing passed; new UI workflows and fixes target FastAPI + React. Streamlit remains runnable only through the `legacy-ui` extra for compatibility. |
 | (deferred) | Provider selection UI for tier routing | Settings panel with three provider dropdowns (Economy, Standard, Premium) — deferred until FastAPI + React shell exists; current control is editing `neurodb_models.toml` `[routing]` section directly |
 
 Historical options analysis and pros/cons: `docs/archive/UI_EpochPlan_historical.md`
@@ -163,8 +167,8 @@ Historical options analysis and pros/cons: `docs/archive/UI_EpochPlan_historical
 
 | Layer | Current | Target | Phase |
 |-------|---------|--------|-------|
-| UI shell | Streamlit | React (Vite or framework) | UI-2 |
-| Backend API | None (direct Python calls) | FastAPI | UI-1 |
-| Agent streaming | Streamlit rerun | SSE or WebSocket | UI-1 |
-| State management | `st.session_state` | React component + server state | UI-2 |
-| SQL workspace | Streamlit textarea | React panel (Monaco deferred) | UI-3 |
+| UI shell | React workbench; Streamlit deprecated | React (Vite) | UI-2/UI-4 |
+| Backend API | FastAPI | FastAPI | UI-1 |
+| Agent streaming | SSE | SSE or WebSocket | UI-1 |
+| State management | React component + server state; legacy Streamlit uses `st.session_state` | React component + server state | UI-2 |
+| SQL workspace | React panel | React panel (Monaco deferred) | UI-3 |

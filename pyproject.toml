@@ -18,9 +18,13 @@ dependencies = [
     "sqlalchemy>=2.0.49,<3.0",
     "anthropic>=0.50.0,<1.0",
     "python-dotenv>=1.0.0,<2.0",
-    "streamlit>=1.56.0,<2.0",
     "openai>=2.0,<3.0",
     "uvicorn>=0.34,<1.0",
+]
+
+[project.optional-dependencies]
+legacy-ui = [
+    "streamlit>=1.56.0,<2.0",
 ]
 
 [project.scripts]
@@ -32,6 +36,7 @@ dev = [
     "pytest>=9.0.3",
     "pytest-cov>=7.1.0",
     "ruff>=0.15.10",
+    "streamlit>=1.56.0,<2.0",
 ]
 
 [build-system]

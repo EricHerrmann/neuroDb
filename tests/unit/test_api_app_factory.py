@@ -5,7 +5,7 @@ from unittest.mock import patch
 from neurodb.api.app import _build_runtime_stores, _chroma_path_for_db
 
 
-def test_chroma_path_for_duckdb_matches_streamlit_convention():
+def test_chroma_path_for_duckdb_matches_legacy_ui_convention():
     assert _chroma_path_for_db("neurodb.duckdb") == "neurodb_chroma"
     assert _chroma_path_for_db("/tmp/manual.duckdb") == "/tmp/manual_chroma"
     assert _chroma_path_for_db("/tmp/manual") == "/tmp/manual_chroma"
@@ -66,7 +66,10 @@ def test_build_runtime_stores_passes_summary_route_to_session_manager():
         patch("neurodb.knowledge_store.KnowledgeLibraryStore"),
         patch("neurodb.session_manager.AgentContextStore") as context_cls,
         patch("neurodb.session_manager.SessionManager") as session_cls,
-        patch("neurodb.config.provider_factory.build_provider_clients", return_value={"anthropic": object()}),
+        patch(
+            "neurodb.config.provider_factory.build_provider_clients",
+            return_value={"anthropic": object()},
+        ),
         patch("neurodb.config.task_router.TaskRouter", FakeTaskRouter),
     ):
         context_store = context_cls.return_value

@@ -73,7 +73,7 @@ def _chroma_path_for_db(db_path: str) -> str:
 
 
 def _build_runtime_stores(db_path: str, engine: Engine) -> dict:
-    """Build the same Chroma-backed runtime stores used by the Streamlit app."""
+    """Build Chroma-backed runtime stores shared by API and legacy UI paths."""
     from neurodb.config.provider_factory import build_provider_clients
     from neurodb.config.task_router import RoutingError, TaskRouter
     from neurodb.embedder import Embedder

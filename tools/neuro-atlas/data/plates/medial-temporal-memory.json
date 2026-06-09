@@ -1,0 +1,14 @@
+{
+  "id": "medial-temporal-memory",
+  "filename": "medialBrain.jpg",
+  "displayName": "Medial Temporal Memory System",
+  "category": "medial temporal lobe",
+  "regions": [
+    { "term": "hippocampus",               "cx": 54.0, "cy": 54.0, "r": 9.0, "label": "Hippocampus" },
+    { "term": "amygdala",                  "cx": 24.0, "cy": 76.0, "r": 7.0, "label": "Amygdala" },
+    { "term": "perirhinal cortex",         "cx": 16.0, "cy": 84.0, "r": 7.0, "label": "Perirhinal cortex" },
+    { "term": "entorhinal cortex",         "cx": 38.0, "cy": 88.0, "r": 7.0, "label": "Entorhinal cortex" },
+    { "term": "parahippocampal cortex",    "cx": 48.0, "cy": 73.0, "r": 8.0, "label": "Parahippocampal cortex" },
+    { "term": "medial temporal lobe",      "cx": 34.0, "cy": 77.0, "r": 18.0, "label": "Medial temporal lobe" }
+  ]
+}

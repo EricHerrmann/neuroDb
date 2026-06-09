@@ -1,0 +1,20 @@
+{
+  "id": "ca1-ca3-detail",
+  "filename": "CA1CA3Detail.jpg",
+  "displayName": "CA1/CA3 Hippocampal Detail",
+  "category": "hippocampus",
+  "regions": [
+    { "term": "ca1",                     "cx": 69.0, "cy": 42.0, "r": 6.0, "label": "CA1" },
+    { "term": "ca2",                     "cx": 79.0, "cy": 24.0, "r": 5.0, "label": "CA2" },
+    { "term": "ca3",                     "cx": 63.0, "cy": 16.0, "r": 6.0, "label": "CA3" },
+    { "term": "ca4",                     "cx": 44.0, "cy": 33.0, "r": 6.0, "label": "CA4" },
+    { "term": "dentate gyrus",           "cx": 23.0, "cy": 42.0, "r": 6.5, "label": "Dentate gyrus" },
+    { "term": "subiculum",               "cx": 44.0, "cy": 54.0, "r": 7.0, "label": "Subiculum" },
+    { "term": "hippocampus proper",      "cx": 79.0, "cy": 58.0, "r": 6.0, "label": "Hippocampus proper" },
+    { "term": "parahippocampal gyrus",   "cx": 49.0, "cy": 83.0, "r": 8.0, "label": "Parahippocampal gyrus" },
+    { "term": "fimbria",                 "cx": 13.0, "cy": 16.0, "r": 5.0, "label": "Fimbria" },
+    { "term": "choroid plexus",          "cx": 39.0, "cy": 10.0, "r": 5.0, "label": "Choroid plexus" },
+    { "term": "lateral ventricle",       "cx": 89.0, "cy": 9.0, "r": 5.0, "label": "Lateral ventricle" },
+    { "term": "splenial sulcus",         "cx": 89.0, "cy": 88.0, "r": 5.0, "label": "Splenial sulcus" }
+  ]
+}

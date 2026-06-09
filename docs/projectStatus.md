@@ -1,6 +1,6 @@
 # NeuroDb — Project Status
 
-**Last updated:** 2026-06-06
+**Last updated:** 2026-06-09
 **Active focus:** Learning Plans — implementation complete; manual verification pending. Agent-proposed multi-step study plans with a proposed→confirmed lifecycle, per-step progress, agent-proposed updates, grouping cross-reference, readable confirmed read-step titles, and a Study Plan panel are built behind migration 022. Backend 853 tests green; frontend 107 tests green and build clean. Manual gate is `docs/testsPlans/manualTestPlan_learning_plans.md`.
 **Next:** Sign off Learning Plans via its manual test plan, then pick up the literature source registry spec. Deferred: drop the now-unused dead columns `research_questions.topic_id` and `study_notes.topic_id`/`concept_id` (retained to avoid a DuckDB table rebuild).
 **Goal alignment:** Two co-equal goals in a feedback loop — accumulate neuroscience understanding grounded in real data (Goal 1), and conduct structured neuroscience investigations using existing public datasets and good scientific method (Goal 2). See `NeuroDbGoals.md`.
@@ -15,7 +15,7 @@
 | Agent Core | `src/neurodb/agents/` | Stable; Phase 4 context-mode mechanics implemented and signed off 2026-05-21; Config Control Phase 6 added provider capability gating; Memory Refocus Completion added context budgets and retrieval telemetry | Coordinate provider live-tool validation with Config Control |
 | Tutor | `src/neurodb/tutor/` | MVP complete (LT-1/2/3); Learning and Research Memory Refocus complete through Phase 6; Phase 2/3 manual verification and Phase 4 context-mode prompt behavior signed off 2026-05-21; active model visibility resolved in Config Control Phase 6 | Open backlog: LOG-001 |
 | Research | `src/neurodb/research/` | Scaffolded (LT-3); Phase 3 claims/evidence/gaps complete; Phase 2/3 manual signed off 2026-05-21; Phase 4 grounded/contextual behavior signed off 2026-05-21; lifecycle UI gaps from LOG-037, LOG-048, and LOG-061 resolved in Phase 5b; queue/tool gaps from LOG-045 and LOG-053 resolved; dataset usefulness surfaced to agents in Memory Refocus Completion; Unified Groupings Phases 1–5 complete and signed off 2026-06-04; Research Question Phase 1 complete via the unified groupings engine and final Phase 5 post-drop T3 verification; Learning Plans implemented behind migration 022 (store, agent tools on tutor + research, `/api/research/plans` routes, Study Plan UI) — manual verification pending | Sign off Learning Plans; then literature source registry; deferred: drop unused legacy dead columns |
-| UI | `src/neurodb/ui/`, `src/neurodb/api/`, `frontend/` | UI-3 signed off 2026-05-13; UI-5 P1/P2/P3 complete and common manual testing passed 2026-05-23; Phase 4 API preference and stream contract signed off 2026-05-21; Phase 5a signed off 2026-05-21; Phase 5b signed off 2026-05-23 (T1-T7 passed); DuckDB FK update limitation resolved via migration 012; LOG-060 moved to monitor after likely renderer fix | No active UI phase; monitor LOG-060 recurrence |
+| UI | `frontend/`, `src/neurodb/api/`, legacy `src/neurodb/ui/` | UI-3 signed off 2026-05-13; UI-5 P1/P2/P3 complete and common manual testing passed 2026-05-23; UI-4 Streamlit deprecation complete 2026-06-09; React/FastAPI is primary; Streamlit is legacy compatibility only; LOG-060 moved to monitor after likely renderer fix | No active UI phase; monitor LOG-060 recurrence |
 | Config Control | `src/neurodb/config/` | Phase 5B complete; Phase 6 complete and signed off 2026-05-23 with focused backend, call-site, frontend, ruff, compile, and manual T1-T5 checks passing | No active Config Control phase |
 | Tech Debt | Cross-cutting | Planned — TD-1 CLI argument normalization started from LOG-057; TD-5 abstraction/extensibility review logged | TD-1 parser coverage, TD-2 keyword-only helper APIs, TD-5 reusable abstractions |
 
@@ -39,7 +39,7 @@ Source of truth for model IDs: `neurodb_models.toml`.
 
 ## Open Issues
 
-See `docs/testLog.md`. Current open items: LOG-001 (textbook dropdown ambiguity), LOG-013 (UI shell rearchitecture), LOG-050 (Gemini premium testing deferred), LOG-051 (UI icon pane association), LOG-057 (argument order tech debt). Monitor item: LOG-060 (chat-turn hang, likely frontend streamed-Markdown renderer loop fixed; watch for recurrence).
+See `docs/testLog.md`. Current open items: LOG-001 (textbook dropdown ambiguity), LOG-050 (Gemini premium testing deferred), LOG-051 (UI icon pane association), LOG-057 (argument order tech debt). Monitor item: LOG-060 (chat-turn hang, likely frontend streamed-Markdown renderer loop fixed; watch for recurrence).
 
 ---
 
@@ -64,7 +64,7 @@ See `docs/testLog.md`. Current open items: LOG-001 (textbook dropdown ambiguity)
 | `docs/Research_EpochPlan.md` | Research epoch plan — NeuroResearchAgent, hypothesis tools, hypothesis review, open backlog |
 | `docs/ConfigControl_EpochPlan.md` | Config Control epoch plan — routing phases, provider adapters, telemetry |
 | `docs/DB_EpochPlan.md` | DB epoch plan — connectors, schema ownership, phases 0–9 |
-| `docs/UI_EpochPlan.md` | UI epoch plan — Streamlit MVP, FastAPI/React migration path, phases UI-0–5 |
+| `docs/UI_EpochPlan.md` | UI epoch plan — FastAPI/React primary workbench, deprecated Streamlit compatibility surface, phases UI-0–5 |
 | `docs/TechDebt_EpochPlan.md` | Tech Debt epoch plan — argument-order safety, keyword-only APIs, parser helpers, request/config objects, reusable abstractions |
 | **Active Plans / Specs** | |
 | `docs/testsPlans/manualTestPlan_citation_phase1_abstract_grounding.md` | Citation-grade Phase 1 manual test plan — T1-T5 abstract capture, abstract-grounded summary, tier/vintage/currency disclosure; pending implementation |

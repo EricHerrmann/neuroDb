@@ -1,9 +1,14 @@
-"""
-NeuroDb Explorer — local neuroscience dataset browser.
+"""Deprecated Streamlit UI for NeuroDb.
 
-Run with:
+Primary UI:
+    uv run uvicorn neurodb.api.app:app_factory --factory --port 8001
+    cd frontend && npm run dev
+
+Legacy compatibility UI:
+    uv sync --extra legacy-ui
     uv run streamlit run src/neurodb/ui/app.py -- --db neurodb.duckdb
 """
+# ruff: noqa: E402,I001
 import sys
 
 from dotenv import load_dotenv
@@ -17,7 +22,11 @@ from neurodb.embedder import Embedder
 from neurodb.vector_store import VectorStore
 
 st.set_page_config(page_title="NeuroDb Explorer", layout="wide")
-st.info("The React workbench at http://localhost:5173 is now the primary UI. This Streamlit app will be retired in UI-4.")
+st.warning(
+    "Deprecated legacy UI. The React workbench at http://localhost:5173 is the "
+    "primary NeuroDb UI; new workflows and fixes should target FastAPI + React. "
+    "This Streamlit app remains only for compatibility during retirement."
+)
 
 
 def _inject_ui_styles() -> None:
@@ -184,15 +193,25 @@ with col_chat:
     render_panel(engine, transcript_height=480)
 
 with col_workspace:
-    tab_suggestions, tab_study, tab_datasets, tab_registry, tab_knowledge, tab_research, tab_sql = st.tabs([
-        "Suggestions",
-        "Study Plan",
-        "Datasets",
-        "Registry",
-        "Knowledge Library",
-        "Research",
-        "SQL",
-    ])
+    (
+        tab_suggestions,
+        tab_study,
+        tab_datasets,
+        tab_registry,
+        tab_knowledge,
+        tab_research,
+        tab_sql,
+    ) = st.tabs(
+        [
+            "Suggestions",
+            "Study Plan",
+            "Datasets",
+            "Registry",
+            "Knowledge Library",
+            "Research",
+            "SQL",
+        ]
+    )
 
     with tab_suggestions:
         from neurodb.ui.pages.suggestions import render

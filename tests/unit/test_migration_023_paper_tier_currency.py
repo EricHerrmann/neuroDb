@@ -27,9 +27,15 @@ def test_adds_columns_idempotently():
         ))
         _migration_023_paper_tier_currency(conn)
         _migration_023_paper_tier_currency(conn)  # second run must not raise
+        conn.execute(text("INSERT INTO papers (id, title) VALUES (1, 'Test Paper')"))
+        row = conn.execute(
+            text("SELECT data_tier, currency_status FROM papers WHERE id = 1")
+        ).fetchone()
         conn.commit()
     cols = {c["name"] for c in inspect(eng).get_columns("papers")}
     assert {"data_tier", "currency_status"} <= cols
+    assert row[0] == "metadata"  # DEFAULT clause populates new rows
+    assert row[1] == "current"
 
 
 def test_full_migration_chain_includes_023():

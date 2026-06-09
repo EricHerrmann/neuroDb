@@ -382,12 +382,14 @@ def test_summary_prompt_includes_abstract_when_present():
     prompt = _summary_prompt(row)
     assert "CREB overexpression biases engram allocation." in prompt
     assert "Abstract:" in prompt
+    assert "Summarize PRIMARILY" in prompt
 
 
 def test_summary_prompt_omits_abstract_label_when_absent():
     row = _paper(abstract=None)
     prompt = _summary_prompt(row)
     assert "Abstract:" not in prompt
+    assert "Summarize PRIMARILY" not in prompt
 
 
 def test_fallback_summary_uses_abstract_when_present():

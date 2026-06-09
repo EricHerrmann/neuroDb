@@ -598,5 +598,5 @@ def test_search_results_carry_temporal_descriptor():
 def test_system_prompt_includes_disclosure_rules():
     agent = _agent()
     prompt = agent._build_system_prompt()
-    assert "tier" in prompt.lower()
+    assert "state its tier" in prompt.lower()
     assert "post-training-cutoff" in prompt.lower()

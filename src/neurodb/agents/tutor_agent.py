@@ -474,10 +474,8 @@ class NeuroTutorAgent(BaseAgent):
         )
         for result in results:
             meta = result.get("metadata") or {}
-            raw_year = str(meta.get("year") or "")
-            year = int(raw_year) if raw_year.isdigit() else None
             result["temporal"] = temporal_descriptor(
-                year, meta.get("currency_status", "current")
+                _parse_year(meta.get("year")), meta.get("currency_status", "current")
             )
         return json.dumps(results)
 

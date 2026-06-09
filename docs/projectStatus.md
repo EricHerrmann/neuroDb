@@ -74,6 +74,7 @@ See `docs/testLog.md`. Current open items: LOG-001 (textbook dropdown ambiguity)
 | **Deferred / Upcoming** | |
 | `docs/superpowers/specs/2026-06-02-literature-source-registry-design.md` | Literature source backend registry design (Tutor epoch, Tech Debt TD-5) — SourceBackend protocol + registry list + JSON source_counts column so a new lit source is one file + one line; now unblocked (Groupings Phase 5 + Research Question Phase 1 complete) |
 | `docs/superpowers/specs/2026-06-09-citation-grade-data-access-design.md` | Citation-grade data access design (Tutor epoch) — eight invariants: tiered ingestion (metadata/abstract/full_text), parse-quality gate, end-to-end provenance, retrieval threshold, quote verification, grounding disclosure, citable-intent full-text trigger, temporal trust modifier (vintage/cutoff/currency); swappable embedder; Phase 1 abstract grounding + Phase 2 full-text/provenance; pending user review |
+| `docs/superpowers/plans/2026-06-09-citation-grade-phase1-abstract-grounding.md` | Citation-grade Phase 1 implementation plan — 8 tasks (manual plan, migration 023 data_tier/currency_status, temporal_descriptor helper, queue_source abstract/year capture, abstract-grounded summary, Chroma metadata, disclosure prompt/enrichment, verification); ready to execute |
 | `docs/citationGradeDesign.md` | Verbatim discussion capture that motivated the citation-grade data access spec (superseded by the 2026-06-09 design) |
 | **History** | |
 | `docs/archive/completedPhases.md` | Completed phases and tech debt sprints — full history |

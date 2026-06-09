@@ -67,6 +67,7 @@ See `docs/testLog.md`. Current open items: LOG-001 (textbook dropdown ambiguity)
 | `docs/UI_EpochPlan.md` | UI epoch plan — Streamlit MVP, FastAPI/React migration path, phases UI-0–5 |
 | `docs/TechDebt_EpochPlan.md` | Tech Debt epoch plan — argument-order safety, keyword-only APIs, parser helpers, request/config objects, reusable abstractions |
 | **Active Plans / Specs** | |
+| `docs/testsPlans/manualTestPlan_citation_phase1_abstract_grounding.md` | Citation-grade Phase 1 manual test plan — T1-T5 abstract capture, abstract-grounded summary, tier/vintage/currency disclosure; pending implementation |
 | `docs/superpowers/specs/2026-06-05-learning-plans-design.md` | Learning Plans build-ready design spec — data model, proposed→confirmed lifecycle, read-paper-on-confirm, grouping anchor cross-reference, shared agent tools, API surface, Study Plan surface |
 | `docs/superpowers/plans/2026-06-05-learning-plans.md` | Learning Plans implementation plan — 9 tasks (migration 022, store, confirm/dismiss, updates, grouping integration, agent tools, API routes, Study Plan UI, manual gate); implemented 2026-06-05, manual verification pending |
 | `docs/superpowers/plans/2026-06-06-study-plan-workspace.md` | Study Plan workspace phased implementation plan — readable steps/naming, sectioned plans, plan-linked notes/chats, plan-primary workspace, agent plan operations |

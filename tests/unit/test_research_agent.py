@@ -150,15 +150,18 @@ def test_nominate_paper_updates_existing_title_match_with_new_url():
         "abstract": "Review candidate for CLS theory.",
     }))
 
+    # Adding an abstract to a metadata-tier paper upgrades its data_tier,
+    # so "data_tier" is reported alongside the directly-updated fields.
     assert second == {
         "status": "updated",
         "id": first["id"],
-        "updated_fields": ["url", "abstract"],
+        "updated_fields": ["url", "abstract", "data_tier"],
     }
     with Session(engine) as session:
         row = session.get(Paper, first["id"])
         assert row.url == "https://example.org/bridging-neuroscience-ai"
         assert row.abstract == "Review candidate for CLS theory."
+        assert row.data_tier == "abstract"
 
 
 def test_research_prompt_includes_context_mode_and_bundle():

@@ -6,7 +6,7 @@ from fastapi.testclient import TestClient
 from sqlalchemy import create_engine, text
 from sqlalchemy.pool import StaticPool
 
-from neurodb.api.routes.knowledge_library import router
+from neurodb.api.routes.knowledge_library import router, _summary_prompt, _fallback_summary
 from neurodb.db import get_session
 from neurodb.db.grouping_store import get_or_create_grouping, link_grouping
 from neurodb.schema import Base, Claim, GroupingLink, Paper
@@ -365,3 +365,31 @@ def test_approve_with_summary_returns_task_id():
 
     assert resp.status_code == 200
     assert resp.json()["task_id"]
+
+
+def _paper(**kw):
+    base = dict(
+        title="CREB and engram allocation", normalized_title="creb",
+        source_type="paper", topic_context="memory", status="approved",
+        queued_at="now",
+    )
+    base.update(kw)
+    return Paper(**base)
+
+
+def test_summary_prompt_includes_abstract_when_present():
+    row = _paper(abstract="CREB overexpression biases engram allocation.")
+    prompt = _summary_prompt(row)
+    assert "CREB overexpression biases engram allocation." in prompt
+    assert "Abstract:" in prompt
+
+
+def test_summary_prompt_omits_abstract_label_when_absent():
+    row = _paper(abstract=None)
+    prompt = _summary_prompt(row)
+    assert "Abstract:" not in prompt
+
+
+def test_fallback_summary_uses_abstract_when_present():
+    row = _paper(abstract="CREB overexpression biases engram allocation.")
+    assert "CREB overexpression biases engram allocation." in _fallback_summary(row)

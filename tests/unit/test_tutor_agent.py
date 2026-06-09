@@ -7,7 +7,11 @@ import chromadb
 from sqlalchemy import create_engine
 from sqlalchemy.orm import Session
 
-from neurodb.agents.tutor_agent import NeuroTutorAgent, normalize_title
+from neurodb.agents.tutor_agent import (
+    NeuroTutorAgent,
+    merge_existing_paper_metadata,
+    normalize_title,
+)
 from neurodb.db.grouping_store import get_or_create_grouping
 from neurodb.knowledge_store import KnowledgeLibraryStore
 from neurodb.schema import Base, Grouping, GroupingLink, Paper
@@ -510,9 +514,6 @@ def test_queue_source_tool_lists_preprint_type():
     assert "preprint" in desc.lower()
 
 
-from neurodb.agents.tutor_agent import merge_existing_paper_metadata
-
-
 def test_queue_source_persists_abstract_year_and_tier():
     engine = _engine()
     agent = _agent(engine)
@@ -545,7 +546,24 @@ def test_queue_source_without_abstract_is_metadata_tier():
         row = session.query(Paper).filter_by(
             normalized_title=normalize_title("Some untitled-abstract paper")
         ).one()
+        assert row.abstract is None
         assert row.data_tier == "metadata"
+
+
+def test_queue_source_tolerates_unparseable_year():
+    engine = _engine()
+    agent = _agent(engine)
+    agent._execute_queue_source({
+        "title": "Bad year paper",
+        "source_type": "paper",
+        "topic_context": "x",
+        "year": "circa 2020",
+    })
+    with Session(engine) as session:
+        row = session.query(Paper).filter_by(
+            normalized_title=normalize_title("Bad year paper")
+        ).one()
+        assert row.year is None
 
 
 def test_merge_upgrades_tier_when_abstract_added():

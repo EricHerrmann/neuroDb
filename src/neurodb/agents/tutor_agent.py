@@ -214,6 +214,16 @@ def normalize_title(title: str) -> str:
     return re.sub(r"\s+", " ", value).strip()
 
 
+def _parse_year(raw) -> int | None:
+    """Coerce an LLM-supplied year to int, or None if missing/unparseable."""
+    if raw in (None, ""):
+        return None
+    try:
+        return int(raw)
+    except (ValueError, TypeError):
+        return None
+
+
 def merge_existing_paper_metadata(paper: Paper, inputs: dict) -> list[str]:
     """Fill missing review metadata when a queued source is re-submitted."""
     updates: list[str] = []
@@ -404,7 +414,7 @@ class NeuroTutorAgent(BaseAgent):
                 status="pending",
                 queued_at=datetime.now(UTC).isoformat(),
                 abstract=abstract,
-                year=int(inputs["year"]) if inputs.get("year") else None,
+                year=_parse_year(inputs.get("year")),
                 authors_json=json.dumps(authors) if authors else None,
                 data_tier="abstract" if abstract else "metadata",
                 currency_status="current",

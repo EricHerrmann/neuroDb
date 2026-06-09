@@ -7,6 +7,8 @@ import streamlit as st
 from sqlalchemy import Engine
 
 from neurodb.db import get_session
+from neurodb.knowledge_summary import fallback_summary as _fallback_summary
+from neurodb.knowledge_summary import summary_prompt
 from neurodb.model_telemetry import add_model_call_log
 from neurodb.schema import Paper
 
@@ -178,15 +180,7 @@ def _generate_summary(row: Paper, engine: Engine | None = None) -> tuple[str, di
         started = perf_counter()
         messages = [{
             "role": "user",
-            "content": (
-                "Create a concise structured neuroscience learning summary for this source.\n"
-                f"Title: {row.title}\n"
-                f"Source type: {row.source_type}\n"
-                f"DOI: {row.doi or 'unknown'}\n"
-                f"URL: {row.url or 'unknown'}\n"
-                f"Topic context: {row.topic_context}\n\n"
-                "Use sections: Key concepts, Relevance to neuroscience, Open questions."
-            ),
+            "content": summary_prompt(row),
         }]
         if model_client is not None:
             response = model_client.create_message(
@@ -221,10 +215,3 @@ def _generate_summary(row: Paper, engine: Engine | None = None) -> tuple[str, di
     return _fallback_summary(row), None
 
 
-def _fallback_summary(row: Paper) -> str:
-    return (
-        f"Key concepts: {row.title} was queued as a {row.source_type} while discussing "
-        f"{row.topic_context}.\n\n"
-        "Relevance to neuroscience: This source was approved for future Neuro-Tutor retrieval.\n\n"
-        "Open questions: Add a richer Claude-generated summary when API access is available."
-    )

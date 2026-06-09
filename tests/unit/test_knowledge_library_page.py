@@ -75,6 +75,7 @@ def _make_knowledge_source(**kwargs):
         doi="10.1000/xyz",
         url="https://example.com",
         topic_context="spatial navigation",
+        abstract=None,
     )
     defaults.update(kwargs)
     return SimpleNamespace(**defaults)
@@ -213,3 +214,13 @@ def test_generate_summary_without_api_key_returns_no_telemetry():
 
     assert "Key concepts" in summary
     assert telemetry is None
+
+
+def test_ui_uses_shared_abstract_aware_summary():
+    # The Streamlit approve path must ground summaries in the abstract via the
+    # same shared helpers the API route uses (spec Phase 1).
+    from neurodb.knowledge_summary import fallback_summary, summary_prompt
+    from neurodb.ui.pages import knowledge_library
+
+    assert knowledge_library._fallback_summary is fallback_summary
+    assert knowledge_library.summary_prompt is summary_prompt

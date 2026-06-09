@@ -15,6 +15,8 @@ from neurodb.api.deps import get_engine, get_knowledge_store, get_task_store
 from neurodb.api.schemas.knowledge_library import PaperGroupingLink, PaperItem
 from neurodb.api.tasks import TaskRecord
 from neurodb.db import get_session
+from neurodb.knowledge_summary import fallback_summary as _fallback_summary
+from neurodb.knowledge_summary import summary_prompt as _summary_prompt
 from neurodb.schema import (
     Claim,
     DatasetPacketPaper,
@@ -478,24 +480,6 @@ def _table_has_columns(session, table_name: str, column_names: list[str]) -> boo
     return set(column_names).issubset(actual)
 
 
-def _summary_prompt(row: Paper) -> str:
-    lines = [
-        "Create a concise structured neuroscience learning summary for this source.",
-        f"Title: {row.title}",
-        f"Source type: {row.source_type}",
-        f"DOI: {row.doi or 'unknown'}",
-        f"URL: {row.url or 'unknown'}",
-        f"Topic context: {row.topic_context}",
-    ]
-    if row.abstract:
-        lines.append("")
-        lines.append("Summarize PRIMARILY from this abstract, not the title:")
-        lines.append(f"Abstract: {row.abstract}")
-    lines.append("")
-    lines.append("Use sections: Key concepts, Relevance to neuroscience, Open questions.")
-    return "\n".join(lines)
-
-
 def _generate_summary(row: Paper, engine: Engine | None = None) -> str:
     try:
         from neurodb.config.provider_factory import build_provider_clients
@@ -522,21 +506,6 @@ def _generate_summary(row: Paper, engine: Engine | None = None) -> str:
         logger.exception("Summary generation failed for source %d", row.id)
         return f"{_fallback_summary(row)}\n\nSummary generation note: {exc}"
     return _fallback_summary(row)
-
-
-def _fallback_summary(row: Paper) -> str:
-    if row.abstract:
-        key = f"Key concepts (from abstract): {row.abstract}"
-    else:
-        key = (
-            f"Key concepts: {row.title} was queued as a {row.source_type} while "
-            f"discussing {row.topic_context}."
-        )
-    return (
-        f"{key}\n\n"
-        "Relevance to neuroscience: This source was approved for future Neuro-Tutor retrieval.\n\n"
-        "Open questions: Add a richer model-generated summary when provider access is available."
-    )
 
 
 def _dedup_threshold() -> float:

@@ -25,5 +25,7 @@ class PaperItem(BaseModel):
     summary: str | None = None
     abstract: str | None = None
     year: int | None = None
+    data_tier: str = "metadata"
+    currency_status: str = "current"
     warnings: list[str] = []
     grouping_links: list[PaperGroupingLink] = Field(default_factory=list)

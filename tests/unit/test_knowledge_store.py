@@ -76,3 +76,30 @@ def test_add_summary_upserts_existing_source_id():
     assert len(results) == 1
     assert results[0]["metadata"]["title"] == "New"
 
+
+def test_add_summary_records_tier_year_currency():
+    import uuid
+
+    import chromadb
+
+    from neurodb.knowledge_store import KnowledgeLibraryStore
+
+    class _StubEmbedder:
+        def embed(self, texts):
+            return [[0.2, 0.3, 0.4, 0.5] for _ in texts]
+
+    store = KnowledgeLibraryStore(
+        client=chromadb.EphemeralClient(),
+        embedder=_StubEmbedder(),
+        collection_name=f"t_meta_{uuid.uuid4().hex}",
+    )
+    store.add_summary(
+        source_id=7, title="T", doi=None, topic_context="memory",
+        summary="s", data_tier="abstract", year=2024, currency_status="current",
+    )
+    results = store.search("memory", n=1)
+    meta = results[0]["metadata"]
+    assert meta["data_tier"] == "abstract"
+    assert meta["year"] == "2024"
+    assert meta["currency_status"] == "current"
+

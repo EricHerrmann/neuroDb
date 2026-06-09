@@ -41,6 +41,10 @@ class KnowledgeLibraryStore:
         doi: str | None,
         topic_context: str,
         summary: str,
+        *,
+        data_tier: str = "metadata",
+        year: int | None = None,
+        currency_status: str = "current",
     ) -> str:
         """Add or replace an approved source summary and return the Chroma doc ID."""
         doc_id = f"knowledge_source:{source_id}"
@@ -49,6 +53,9 @@ class KnowledgeLibraryStore:
             "title": title,
             "doi": doi or "",
             "topic_context": topic_context,
+            "data_tier": data_tier,
+            "year": str(year) if year else "",
+            "currency_status": currency_status,
         }
         kwargs = {
             "ids": [doc_id],

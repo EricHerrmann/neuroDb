@@ -80,6 +80,9 @@ def approve_source(
             doi=_doi,
             topic_context=_topic,
             summary=_summary or "",
+            data_tier=item.data_tier,
+            year=item.year,
+            currency_status=item.currency_status,
         )
         _update_paper_fields(source_id, engine, chroma_id=chroma_id)
     except Exception as exc:
@@ -217,6 +220,9 @@ def _approve_with_summary(source_id: int, engine: Engine, knowledge_store) -> di
         "doi": item.doi,
         "topic_context": item.topic_context,
         "summary": item.summary or "",
+        "data_tier": item.data_tier,
+        "year": item.year,
+        "currency_status": item.currency_status,
     }
 
     chroma_id = knowledge_store.add_summary(
@@ -225,6 +231,9 @@ def _approve_with_summary(source_id: int, engine: Engine, knowledge_store) -> di
         doi=values["doi"],
         topic_context=values["topic_context"],
         summary=values["summary"],
+        data_tier=values["data_tier"],
+        year=values["year"],
+        currency_status=values["currency_status"],
     )
     _update_paper_fields(source_id, engine, chroma_id=chroma_id)
     return {"approved": True, "source_id": source_id, "chroma_id": chroma_id}

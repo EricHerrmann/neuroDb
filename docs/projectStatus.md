@@ -73,6 +73,8 @@ See `docs/testLog.md`. Current open items: LOG-001 (textbook dropdown ambiguity)
 | `docs/testsPlans/manualTestPlan_learning_plans.md` | Learning Plans manual test plan — T1-T8 through the Study Plan panel (tutor/research propose, confirm, dismiss-leaves-no-artifacts, progress, agent update, cross-reference, edit/delete); pending verification |
 | **Deferred / Upcoming** | |
 | `docs/superpowers/specs/2026-06-02-literature-source-registry-design.md` | Literature source backend registry design (Tutor epoch, Tech Debt TD-5) — SourceBackend protocol + registry list + JSON source_counts column so a new lit source is one file + one line; now unblocked (Groupings Phase 5 + Research Question Phase 1 complete) |
+| `docs/superpowers/specs/2026-06-09-citation-grade-data-access-design.md` | Citation-grade data access design (Tutor epoch) — eight invariants: tiered ingestion (metadata/abstract/full_text), parse-quality gate, end-to-end provenance, retrieval threshold, quote verification, grounding disclosure, citable-intent full-text trigger, temporal trust modifier (vintage/cutoff/currency); swappable embedder; Phase 1 abstract grounding + Phase 2 full-text/provenance; pending user review |
+| `docs/citationGradeDesign.md` | Verbatim discussion capture that motivated the citation-grade data access spec (superseded by the 2026-06-09 design) |
 | **History** | |
 | `docs/archive/completedPhases.md` | Completed phases and tech debt sprints — full history |
 | `docs/superpowers/specs/2026-06-02-learning-plans-design.md` | SUPERSEDED by the 2026-06-05 build-ready Learning Plans spec — original feature capture & design (retained for history) |

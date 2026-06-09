@@ -508,3 +508,53 @@ def test_queue_source_tool_lists_preprint_type():
     queue_tool = next(t for t in _TUTOR_TOOLS if t["name"] == "queue_source")
     desc = queue_tool["input_schema"]["properties"]["source_type"]["description"]
     assert "preprint" in desc.lower()
+
+
+from neurodb.agents.tutor_agent import merge_existing_paper_metadata
+
+
+def test_queue_source_persists_abstract_year_and_tier():
+    engine = _engine()
+    agent = _agent(engine)
+    agent._execute_queue_source({
+        "title": "Engram allocation in the amygdala",
+        "source_type": "paper",
+        "topic_context": "memory allocation",
+        "abstract": "We show CREB controls engram allocation.",
+        "year": 2024,
+    })
+    with Session(engine) as session:
+        row = session.query(Paper).filter_by(
+            normalized_title=normalize_title("Engram allocation in the amygdala")
+        ).one()
+        assert row.abstract == "We show CREB controls engram allocation."
+        assert row.year == 2024
+        assert row.data_tier == "abstract"
+        assert row.currency_status == "current"
+
+
+def test_queue_source_without_abstract_is_metadata_tier():
+    engine = _engine()
+    agent = _agent(engine)
+    agent._execute_queue_source({
+        "title": "Some untitled-abstract paper",
+        "source_type": "paper",
+        "topic_context": "x",
+    })
+    with Session(engine) as session:
+        row = session.query(Paper).filter_by(
+            normalized_title=normalize_title("Some untitled-abstract paper")
+        ).one()
+        assert row.data_tier == "metadata"
+
+
+def test_merge_upgrades_tier_when_abstract_added():
+    paper = Paper(
+        title="t", normalized_title="t", source_type="paper",
+        topic_context="c", status="pending", queued_at="now",
+        data_tier="metadata", currency_status="current",
+    )
+    updates = merge_existing_paper_metadata(paper, {"abstract": "real abstract text"})
+    assert "abstract" in updates
+    assert "data_tier" in updates
+    assert paper.data_tier == "abstract"

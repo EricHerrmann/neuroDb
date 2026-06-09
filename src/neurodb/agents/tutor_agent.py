@@ -135,6 +135,16 @@ _TUTOR_TOOLS = [
                     "items": {"type": "string"},
                     "description": "Topic names to link to this source.",
                 },
+                "abstract": {
+                    "type": "string",
+                    "description": "Abstract text from the search result, if available.",
+                },
+                "year": {"type": "integer", "description": "Publication year, if known."},
+                "authors": {
+                    "type": "array",
+                    "items": {"type": "string"},
+                    "description": "Author names, if known.",
+                },
             },
             "required": ["title", "source_type", "topic_context"],
         },
@@ -216,6 +226,9 @@ def merge_existing_paper_metadata(paper: Paper, inputs: dict) -> list[str]:
     if year and not paper.year:
         paper.year = int(year)
         updates.append("year")
+    if "abstract" in updates and paper.data_tier == "metadata":
+        paper.data_tier = "abstract"
+        updates.append("data_tier")
     return updates
 
 
@@ -379,6 +392,8 @@ class NeuroTutorAgent(BaseAgent):
                     )
                 return json.dumps(result)
 
+            abstract = (inputs.get("abstract") or "").strip() or None
+            authors = inputs.get("authors") or []
             row = Paper(
                 title=title,
                 normalized_title=normalized,
@@ -388,6 +403,11 @@ class NeuroTutorAgent(BaseAgent):
                 topic_context=inputs["topic_context"],
                 status="pending",
                 queued_at=datetime.now(UTC).isoformat(),
+                abstract=abstract,
+                year=int(inputs["year"]) if inputs.get("year") else None,
+                authors_json=json.dumps(authors) if authors else None,
+                data_tier="abstract" if abstract else "metadata",
+                currency_status="current",
             )
             session.add(row)
             session.flush()

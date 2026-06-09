@@ -351,7 +351,10 @@ def test_research_agent_stream_finishes_after_successful_draft_hypothesis_tool()
 def test_search_knowledge_library_dispatch_uses_store():
     class _Store:
         def search(self, query, n=5):
-            return [{"query": query, "n": n}]
+            return [{
+                "query": query, "n": n,
+                "metadata": {"year": "2026", "currency_status": "current"},
+            }]
 
     agent = _agent(knowledge_store=_Store())
 
@@ -359,7 +362,31 @@ def test_search_knowledge_library_dispatch_uses_store():
         _block("search_knowledge_library", {"query": "LTP", "n_results": 2})
     ))
 
-    assert result == [{"query": "LTP", "n": 2}]
+    assert result[0]["query"] == "LTP"
+    assert result[0]["n"] == 2
+    # Research retrieval is enriched with the same temporal descriptor as the tutor.
+    assert result[0]["temporal"]["cutoff_relation"] == "post_cutoff"
+
+
+def test_nominate_paper_with_abstract_is_abstract_tier():
+    engine = _engine()
+    agent = _agent(engine)
+    res = json.loads(agent._execute_nominate_paper({
+        "title": "Sharp-wave ripples and systems consolidation",
+        "source_type": "paper",
+        "topic_context": "consolidation",
+        "abstract": "Ripples drive systems-level memory consolidation.",
+    }))
+    with Session(engine) as session:
+        row = session.get(Paper, res["id"])
+        assert row.data_tier == "abstract"
+        assert row.currency_status == "current"
+
+
+def test_research_prompt_includes_disclosure_rules():
+    prompt = _agent()._build_system_prompt()
+    assert "state its tier" in prompt.lower()
+    assert "post-training-cutoff" in prompt.lower()
 
 
 def test_search_literature_dispatch_uses_literature_client():

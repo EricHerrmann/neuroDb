@@ -28,6 +28,7 @@ from neurodb.research_tools import (
     get_knowledge_growth_metrics,
     record_research_question,
 )
+from neurodb.temporal import TEMPORAL_DISCLOSURE_RULES, attach_temporal
 
 _MODEL = os.environ.get("NEURODB_RESEARCH_MODEL", "claude-sonnet-4-6")
 _RESEARCH_MAX_TOOL_ITERATIONS = int(
@@ -441,6 +442,7 @@ class NeuroResearchAgent(BaseAgent):
             prompt_parts.append(behavior_instructions)
         prompt_parts.extend([
             _context_prompt_rules(self._context_mode),
+            TEMPORAL_DISCLOSURE_RULES,
             f"Current date: {current_date}",
         ])
         system = "\n\n".join(prompt_parts)
@@ -581,10 +583,11 @@ class NeuroResearchAgent(BaseAgent):
     def _execute_search_knowledge_library(self, inputs: dict) -> str:
         if self._knowledge_store is None:
             return json.dumps({"error": "Knowledge library not available."})
-        return json.dumps(self._knowledge_store.search(
+        results = self._knowledge_store.search(
             inputs["query"],
             n=inputs.get("n_results", 5),
-        ))
+        )
+        return json.dumps(attach_temporal(results))
 
     def _execute_search_literature(self, inputs: dict) -> str:
         if self._literature_client is None:
@@ -718,6 +721,7 @@ class NeuroResearchAgent(BaseAgent):
                     "id": existing.id,
                     "updated_fields": updated_fields,
                 })
+            abstract = (inputs.get("abstract") or "").strip() or None
             row = PaperModel(
                 title=title,
                 normalized_title=normalized,
@@ -725,9 +729,11 @@ class NeuroResearchAgent(BaseAgent):
                 url=(inputs.get("url") or None),
                 source_type=inputs["source_type"],
                 topic_context=inputs["topic_context"],
-                abstract=(inputs.get("abstract") or None),
+                abstract=abstract,
                 status="pending",
                 queued_at=datetime.now(UTC).isoformat(),
+                data_tier="abstract" if abstract else "metadata",
+                currency_status="current",
             )
             session.add(row)
             session.flush()

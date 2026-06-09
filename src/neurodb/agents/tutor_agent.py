@@ -25,7 +25,7 @@ from neurodb.discovery_tools import (
 )
 from neurodb.knowledge_store import KnowledgeLibraryStore
 from neurodb.schema import Paper
-from neurodb.temporal import temporal_descriptor
+from neurodb.temporal import TEMPORAL_DISCLOSURE_RULES, attach_temporal, parse_year
 
 _MODEL = os.environ.get("NEURODB_AGENT_MODEL", "claude-sonnet-4-6")
 
@@ -88,15 +88,6 @@ _TUTOR_SYSTEM_PROMPT = (
     "the plan in Study Plan. When the user asks to modify an existing plan, call "
     "update_learning_plan. After a successful propose_learning_plan or update_learning_plan "
     "call, stop calling tools and summarize the saved plan or pending change."
-)
-
-_TEMPORAL_DISCLOSURE_RULES = (
-    "Source disclosure: when you use a Knowledge Library source, state its tier "
-    "(full text, abstract, or metadata) and its vintage (year). If a source is "
-    "post-training-cutoff (cutoff_relation = post_cutoff), say you have no training "
-    "prior for it and are relying on the stored text. If a source carries a temporal "
-    "warning (superseded, retracted, or contested), surface that warning instead of "
-    "presenting it as a clean citation."
 )
 
 _TUTOR_TOOLS = [
@@ -224,16 +215,6 @@ def normalize_title(title: str) -> str:
     return re.sub(r"\s+", " ", value).strip()
 
 
-def _parse_year(raw) -> int | None:
-    """Coerce an LLM-supplied year to int, or None if missing/unparseable."""
-    if raw in (None, ""):
-        return None
-    try:
-        return int(raw)
-    except (ValueError, TypeError):
-        return None
-
-
 def merge_existing_paper_metadata(paper: Paper, inputs: dict) -> list[str]:
     """Fill missing review metadata when a queued source is re-submitted."""
     updates: list[str] = []
@@ -242,9 +223,9 @@ def merge_existing_paper_metadata(paper: Paper, inputs: dict) -> list[str]:
         if value and not getattr(paper, field):
             setattr(paper, field, value)
             updates.append(field)
-    year = inputs.get("year")
+    year = parse_year(inputs.get("year"))
     if year and not paper.year:
-        paper.year = int(year)
+        paper.year = year
         updates.append("year")
     if "abstract" in updates and paper.data_tier == "metadata":
         paper.data_tier = "abstract"
@@ -260,9 +241,9 @@ def find_paper_metadata_conflicts(paper: Paper, inputs: dict) -> list[dict]:
         current = getattr(paper, field)
         if submitted and current and submitted != current:
             conflicts.append({"field": field, "current": current, "submitted": submitted})
-    year = inputs.get("year")
-    if year and paper.year and int(year) != paper.year:
-        conflicts.append({"field": "year", "current": paper.year, "submitted": int(year)})
+    year = parse_year(inputs.get("year"))
+    if year and paper.year and year != paper.year:
+        conflicts.append({"field": "year", "current": paper.year, "submitted": year})
     return conflicts
 
 
@@ -283,10 +264,9 @@ def replace_existing_paper_metadata(paper: Paper, inputs: dict) -> tuple[list[st
             current_values[field] = value
             updated_fields.append(field)
     if "year" in inputs:
-        raw_year = inputs.get("year")
-        if not raw_year:
+        value = parse_year(inputs.get("year"))
+        if value is None:
             return updated_fields, previous_values, current_values
-        value = int(raw_year)
         if value != paper.year:
             previous_values["year"] = paper.year
             paper.year = value
@@ -345,7 +325,7 @@ class NeuroTutorAgent(BaseAgent):
         if behavior_instructions:
             prompt_parts.append(behavior_instructions)
         prompt_parts.append(_context_prompt_rules(self._context_mode))
-        prompt_parts.append(_TEMPORAL_DISCLOSURE_RULES)
+        prompt_parts.append(TEMPORAL_DISCLOSURE_RULES)
         system = "\n\n".join(prompt_parts)
         if self._context_bundle and self._context_bundle.get("prompt_block"):
             system = f"{system}\n\n{self._context_bundle['prompt_block']}"
@@ -425,7 +405,7 @@ class NeuroTutorAgent(BaseAgent):
                 status="pending",
                 queued_at=datetime.now(UTC).isoformat(),
                 abstract=abstract,
-                year=_parse_year(inputs.get("year")),
+                year=parse_year(inputs.get("year")),
                 authors_json=json.dumps(authors) if authors else None,
                 data_tier="abstract" if abstract else "metadata",
                 currency_status="current",
@@ -472,12 +452,7 @@ class NeuroTutorAgent(BaseAgent):
             inputs["query"],
             n=inputs.get("n_results", 5),
         )
-        for result in results:
-            meta = result.get("metadata") or {}
-            result["temporal"] = temporal_descriptor(
-                _parse_year(meta.get("year")), meta.get("currency_status", "current")
-            )
-        return json.dumps(results)
+        return json.dumps(attach_temporal(results))
 
     def _execute_search_literature(self, inputs: dict) -> str:
         if self._literature_client is None:

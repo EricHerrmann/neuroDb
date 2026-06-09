@@ -600,3 +600,20 @@ def test_system_prompt_includes_disclosure_rules():
     prompt = agent._build_system_prompt()
     assert "state its tier" in prompt.lower()
     assert "post-training-cutoff" in prompt.lower()
+
+
+def test_search_surfaces_currency_warning_for_retracted_source():
+    engine = _engine()
+    store = _store()
+    store.add_summary(
+        source_id=1, title="Retracted paper", doi=None, topic_context="memory",
+        summary="grounded summary", data_tier="abstract", year=2020,
+        currency_status="retracted",
+    )
+    agent = NeuroTutorAgent(
+        client=MagicMock(), engine=engine, vector_store=None, knowledge_store=store,
+    )
+    results = json.loads(agent._execute_search_knowledge_library({"query": "memory"}))
+    warning = results[0]["temporal"]["warning"]
+    assert warning is not None
+    assert "retracted" in warning.lower()

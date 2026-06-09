@@ -264,6 +264,14 @@ class Paper(Base):
     abstract: Mapped[str | None] = mapped_column(Text, nullable=True)
     authors_json: Mapped[str | None] = mapped_column(Text, nullable=True)
     year: Mapped[int | None] = mapped_column(Integer, nullable=True)
+    data_tier: Mapped[str] = mapped_column(
+        String(16), nullable=False, default="metadata",
+        server_default="metadata", index=True,
+    )
+    currency_status: Mapped[str] = mapped_column(
+        String(16), nullable=False, default="current",
+        server_default="current", index=True,
+    )
 
 
 class ChatSession(Base):

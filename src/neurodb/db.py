@@ -841,6 +841,18 @@ def _migration_022_learning_plans(conn) -> None:
     ))
 
 
+def _migration_023_paper_tier_currency(conn) -> None:
+    """Add data_tier and currency_status to papers (citation-grade Phase 1)."""
+    for ddl in (
+        "ALTER TABLE papers ADD COLUMN data_tier VARCHAR(16) DEFAULT 'metadata'",
+        "ALTER TABLE papers ADD COLUMN currency_status VARCHAR(16) DEFAULT 'current'",
+    ):
+        try:
+            conn.execute(text(ddl))
+        except Exception:
+            pass  # column already exists
+
+
 _MIGRATIONS: dict[int, callable] = {
     1: _migration_001_study_note_unique,
     2: _migration_002_model_call_log,
@@ -864,6 +876,7 @@ _MIGRATIONS: dict[int, callable] = {
     20: _migration_020_literature_search_arxiv_count,
     21: _migration_021_drop_legacy_groupings_tables,
     22: _migration_022_learning_plans,
+    23: _migration_023_paper_tier_currency,
 }
 
 

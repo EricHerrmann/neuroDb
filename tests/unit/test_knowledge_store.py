@@ -78,21 +78,7 @@ def test_add_summary_upserts_existing_source_id():
 
 
 def test_add_summary_records_tier_year_currency():
-    import uuid
-
-    import chromadb
-
-    from neurodb.knowledge_store import KnowledgeLibraryStore
-
-    class _StubEmbedder:
-        def embed(self, texts):
-            return [[0.2, 0.3, 0.4, 0.5] for _ in texts]
-
-    store = KnowledgeLibraryStore(
-        client=chromadb.EphemeralClient(),
-        embedder=_StubEmbedder(),
-        collection_name=f"t_meta_{uuid.uuid4().hex}",
-    )
+    store = _store()
     store.add_summary(
         source_id=7, title="T", doi=None, topic_context="memory",
         summary="s", data_tier="abstract", year=2024, currency_status="current",

@@ -25,6 +25,7 @@ from neurodb.discovery_tools import (
 )
 from neurodb.knowledge_store import KnowledgeLibraryStore
 from neurodb.schema import Paper
+from neurodb.temporal import temporal_descriptor
 
 _MODEL = os.environ.get("NEURODB_AGENT_MODEL", "claude-sonnet-4-6")
 
@@ -87,6 +88,15 @@ _TUTOR_SYSTEM_PROMPT = (
     "the plan in Study Plan. When the user asks to modify an existing plan, call "
     "update_learning_plan. After a successful propose_learning_plan or update_learning_plan "
     "call, stop calling tools and summarize the saved plan or pending change."
+)
+
+_TEMPORAL_DISCLOSURE_RULES = (
+    "Source disclosure: when you use a Knowledge Library source, state its tier "
+    "(full text, abstract, or metadata) and its vintage (year). If a source is "
+    "post-training-cutoff (cutoff_relation = post_cutoff), say you have no training "
+    "prior for it and are relying on the stored text. If a source carries a temporal "
+    "warning (superseded, retracted, or contested), surface that warning instead of "
+    "presenting it as a clean citation."
 )
 
 _TUTOR_TOOLS = [
@@ -335,6 +345,7 @@ class NeuroTutorAgent(BaseAgent):
         if behavior_instructions:
             prompt_parts.append(behavior_instructions)
         prompt_parts.append(_context_prompt_rules(self._context_mode))
+        prompt_parts.append(_TEMPORAL_DISCLOSURE_RULES)
         system = "\n\n".join(prompt_parts)
         if self._context_bundle and self._context_bundle.get("prompt_block"):
             system = f"{system}\n\n{self._context_bundle['prompt_block']}"
@@ -461,6 +472,13 @@ class NeuroTutorAgent(BaseAgent):
             inputs["query"],
             n=inputs.get("n_results", 5),
         )
+        for result in results:
+            meta = result.get("metadata") or {}
+            raw_year = str(meta.get("year") or "")
+            year = int(raw_year) if raw_year.isdigit() else None
+            result["temporal"] = temporal_descriptor(
+                year, meta.get("currency_status", "current")
+            )
         return json.dumps(results)
 
     def _execute_search_literature(self, inputs: dict) -> str:

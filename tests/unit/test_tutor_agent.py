@@ -576,3 +576,27 @@ def test_merge_upgrades_tier_when_abstract_added():
     assert "abstract" in updates
     assert "data_tier" in updates
     assert paper.data_tier == "abstract"
+
+
+def test_search_results_carry_temporal_descriptor():
+    engine = _engine()
+    store = _store()
+    store.add_summary(
+        source_id=1, title="Recent paper", doi=None, topic_context="memory",
+        summary="grounded summary", data_tier="abstract", year=2026,
+        currency_status="current",
+    )
+    agent = NeuroTutorAgent(
+        client=MagicMock(), engine=engine, vector_store=None, knowledge_store=store,
+    )
+    raw = agent._execute_search_knowledge_library({"query": "memory"})
+    results = json.loads(raw)
+    assert results[0]["temporal"]["cutoff_relation"] == "post_cutoff"
+    assert results[0]["temporal"]["vintage"] == "2026"
+
+
+def test_system_prompt_includes_disclosure_rules():
+    agent = _agent()
+    prompt = agent._build_system_prompt()
+    assert "tier" in prompt.lower()
+    assert "post-training-cutoff" in prompt.lower()

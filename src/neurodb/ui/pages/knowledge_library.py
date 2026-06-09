@@ -108,6 +108,9 @@ def _approve_source(engine: Engine, source_id: int) -> None:
                 doi=row.doi,
                 topic_context=row.topic_context,
                 summary=summary,
+                data_tier=row.data_tier,
+                year=row.year,
+                currency_status=row.currency_status,
             )
 
 

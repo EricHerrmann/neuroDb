@@ -17,6 +17,7 @@ Use `Log ID` for cross-references across Open, Resolved, triage, sprint planning
 | LOG-001 | P6-selector | Tutor | Low | Textbook dropdown appears pre-selected without explicit user action — agent context state is ambiguous | Deferred post-LT-3 |
 | LOG-050 | gemini-premium-testing-deferred | Config | Low | Further manual testing against premium Gemini models deferred | Deferred |
 | LOG-051 | ui-icon-pane-association | UI | Low | Hard to associate activity-rail icons with right pane content; needs stronger tooltips and icon reorder with Research first | UI polish |
+| LOG-072 | verify-quote-semantic-recall | Tutor | Low | `execute_verify_quote` matches a quote by semantically searching the quote text (n=20, all papers) then filtering by `source_id`; a genuinely-present quote can fail verification if its chunk is crowded out of the top-20 by other papers' chunks | Phase 2a follow-up (spec §12 fallback) |
 
 ---
 
@@ -27,6 +28,7 @@ Use `Log ID` for cross-references across Open, Resolved, triage, sprint planning
 | LOG-050 | 2026-05-09 | gemini-premium-testing-deferred | Config | Low | Gemini/Google account is billing-enabled for premium tier; all wiring issues surfaced this session (GOOGLE_API_KEY rename, null streaming tokens) were fixed. Further testing against premium Gemini models deferred. | Config Phase 4 manual testing |
 | LOG-051 | 2026-05-12 | ui-icon-pane-association | UI | Low | UI epoch feature: hard to associate activity-rail icons with the related right pane and know what is available in each pane; increase tooltips or associations, and reorganize icons with Research at top, then Study Log. | User logged during UI-3 manual/ad hoc review |
 | LOG-057 | 2026-05-13 | args-position-dependent | Tech Debt | Medium | CLI and Python function arguments should not be brittle or position-dependent; review the codebase for positional CLI globals and multi-argument function calls, then determine options to fix with keyword-only APIs, structured request objects, shared parser helpers, and inheritable patterns. | User logged during CLI/manual-test review |
+| LOG-072 | 2026-06-10 | verify-quote-semantic-recall | Tutor | Low | Citation-grade Phase 2a final-review finding #3. `execute_verify_quote` (`src/neurodb/agents/full_text_tools.py`) verifies a quote by semantic-searching the quote text across `knowledge_chunks` (n=20, all papers) and filtering by `source_id`; if 20+ chunks from other papers outrank the target paper's quote-bearing chunk, a genuinely-present verbatim quote fails verification. Low probability (querying with the exact quote makes the target chunk a strong match), but removable. Fix per spec §12: read `paper_chunks` rows directly from the DB by `source_id` (thread the engine into `execute_verify_quote`) and run `verify_quote` against those, instead of semantic search. | Logged 2026-06-10 from the Phase 2a holistic code review |
 
 ---
 

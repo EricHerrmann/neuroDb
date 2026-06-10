@@ -1,21 +1,149 @@
-# Manual Test Plan — Citation-Grade Phase 2a: Structured Full-Text RAG
+# Manual Test Plan — Citation-Grade Phase 2a + Learning Plans (combined)
 
-**Feature:** Acquire structured full text, chunk/embed it, retrieve quotable passages, verify quotes.
-**Spec:** docs/superpowers/specs/2026-06-10-citation-grade-phase2a-structured-fulltext-design.md
+**Why combined:** both phases reached "implementation complete, manual verification pending" without a sign-off pass. This single plan runs both gates in one browser/server session so the app only has to be stood up once.
+
+- **Part A — Citation-Grade Phase 2a (FT1–FT8):** structured-source full-text acquisition, chunk/embed, quotable retrieval, fail-closed quote verification.
+  - Spec: `docs/superpowers/specs/2026-06-10-citation-grade-phase2a-structured-fulltext-design.md`
+- **Part B — Learning Plans (LP1–LP8):** agent-proposed multi-step study plans, the proposed→confirmed lifecycle, per-step progress, agent-proposed updates, grouping cross-reference, and the Study Plan "Plans" section.
+  - Spec: `docs/superpowers/specs/2026-06-05-learning-plans-design.md` · Plan: `docs/superpowers/plans/2026-06-05-learning-plans.md`
+
+**Status:** Pending verification · **Tester:** Eric Herrmann
+
+All commands run from the repo root (`/home/oldha/projects/neuroDb`) unless noted.
+
+---
 
 ## Prerequisites
-1. **Automated suite green.** Run `uv run pytest tests/ -q`. Pass criterion: no new failures beyond those tracked in `docs/testLog.md`.
-2. API/React app running against a local DuckDB + Chroma with `.env` loaded.
 
-## Tests
-- **T1 — Acquire arXiv full text.** Approve a paper whose URL is an arXiv abstract page. Click "Acquire full text". Verify the tier badge becomes "full text" and status "verified".
-- **T2 — Acquire PMC (OA) full text.** Same for a PMC open-access paper (JATS). Verify "full text"/"verified".
-- **T3 — Non-OA / publisher HTML rejected.** Acquire a paper whose URL is a publisher HTML/PDF page. Verify it stays "abstract", status "unavailable", with the Phase-2b deferral message.
-- **T4 — User-supplied text.** Paste/upload `.md` text for a paper with no fetchable source. Verify "full text"/"verified".
-- **T5 — Grounded quote.** In a tutor chat, ask the agent to quote a passage from a verified paper. Verify the quote renders with a source+section anchor and a `[verified]` marker.
-- **T6 — Honest absence.** Ask the agent to quote about a topic absent from any acquired paper. Verify it says it has no grounded full-text support rather than inventing a quote.
-- **T7 — Unverified backstop.** Induce the agent to present a quote it did not verify (e.g., a paraphrase in quotes). Verify the response carries the ⚠ unverified notice.
-- **T8 — Idempotent re-acquire.** Re-run "Acquire full text" on a verified paper. Verify no duplicate chunks (chunk count unchanged) and status stays "verified".
+1. **Automated suite green (run first).** No new failures beyond those tracked in `docs/testLog.md`:
 
-## Pass/Fail
-All of T1–T8 behave as described; no regression in queue/approve/search flows.
+   ```bash
+   uv run pytest tests/ -q
+   ```
+
+   Pass: only the tracked pre-existing failures remain (at authoring: `test_neuro_atlas_data.py` ×2; 928 passed).
+
+2. **Frontend gate.**
+
+   ```bash
+   cd frontend && npm test -- --run && npm run build
+   ```
+
+   Pass: all Vitest tests pass; the `tsc -b && vite build` build is clean.
+
+3. **Start the backend** against a disposable DB so checks do not alter the main working DB:
+
+   ```bash
+   NEURODB_DB_PATH=neurodb_manual.duckdb \
+     uv run uvicorn neurodb.api.app:app_factory --factory --port 8001
+   ```
+
+4. **Start the frontend** (second terminal):
+
+   ```bash
+   cd frontend && npm run dev
+   ```
+
+   Open the dev URL Vite prints (default `http://localhost:5173`). Ensure `.env` holds a working model API key so the agents can run; a local Chroma store is created alongside the disposable DB for Part A.
+
+> These cases cover the browser workflow, real server/DB/Chroma wiring, and agent
+> tool-calling that the automated unit/integration tests do not exercise.
+
+---
+
+## Part A — Citation-Grade Phase 2a (Full-Text RAG)
+
+### FT1 — Acquire arXiv full text
+Approve a paper whose URL is an arXiv abstract page. Click **Acquire full text**.
+**Pass:** the tier badge becomes **full text** and status shows **verified**.
+
+### FT2 — Acquire PMC (OA) full text
+Same for a PMC open-access paper (JATS).
+**Pass:** **full text** / **verified**.
+
+### FT3 — Non-OA / publisher HTML rejected
+Acquire a paper whose URL is a publisher HTML/PDF page.
+**Pass:** it stays at **abstract** tier, status **unavailable**, and the Phase-2b deferral message is shown.
+
+### FT4 — User-supplied text
+Paste/upload `.md` text for a paper with no fetchable source.
+**Pass:** **full text** / **verified**.
+
+### FT5 — Grounded quote
+In a **Neuro-Tutor** chat, ask the agent to quote a passage from a verified paper.
+**Pass:** the quote renders with a source + section anchor and a `[verified]` marker.
+
+### FT6 — Honest absence
+Ask the agent to quote about a topic absent from any acquired paper.
+**Pass:** it states it has no grounded full-text support rather than inventing a quote.
+
+### FT7 — Unverified backstop
+Induce the agent to present a quote it did not verify (e.g., a paraphrase in quotes).
+**Pass:** the response carries the ⚠ unverified notice.
+
+### FT8 — Idempotent re-acquire
+Re-run **Acquire full text** on a verified paper.
+**Pass:** no duplicate chunks (chunk count unchanged) and status stays **verified**.
+
+**Part A pass/fail:** all of FT1–FT8 behave as described; no regression in queue/approve/search flows.
+
+---
+
+## Part B — Learning Plans
+
+### LP1 — Tutor proposes a plan
+In a **Neuro-Tutor** chat, explore a topic (e.g. long-term potentiation) and ask for a multi-step study plan. Open the Study Plan → **Plans**.
+**Pass:** a card appears with status **PROPOSED**, the proposed steps are listed in the detail view, and suggested topic chips are present.
+
+### LP2 — Research agent proposes a plan
+Repeat LP1 from a **Research** agent chat.
+**Pass:** a new plan appears whose `origin_agent` is `research` (confirm via `GET /api/research/plans` if needed).
+
+### LP3 — Confirm a proposed plan
+Click **Confirm** on a proposed plan that contains at least one `read` step.
+**Pass:** status changes to **ACTIVE**; the read step's source now appears in the Knowledge Library (queued/pending); the read step still displays the source title in the plan detail view; topic chips are confirmable.
+
+### LP4 — Dismiss leaves no artifacts
+On a *different* proposed plan that contains a `read` step, click **Dismiss**.
+**Pass:** the plan disappears from the list, and its read source did **not** appear in the Knowledge Library.
+
+### LP5 — Step progress drives completion
+On an active plan, change confirmed-step progress controls (`todo` → `in_progress` → `done`, and one to `skipped`).
+**Pass:** the % complete bar updates; a `skipped` step is excluded from the denominator (does not lower completion).
+
+### LP6 — Agent proposes an update
+Ask an agent to add and/or remove a step on an existing active plan.
+**Pass:** the detail view shows pending additions (and struck-through `proposed_removal` steps) with a pending-changes badge. **Confirm changes** applies them; **Dismiss changes** reverts (additions dropped, removals kept).
+
+### LP7 — Cross-reference
+Create two plans that share a topic and confirm that topic on both.
+**Pass:** the shared topic surfaces as appearing across both plans (`GET /api/research/plans/{id}` groupings + the cross-reference count).
+
+### LP8 — Edit / pause / delete
+From the Study Plan panel, rename a plan, pause it, then delete it.
+**Pass:** the title and status update; the plan is removed after delete.
+
+**Part B pass/fail:** all of LP1–LP8 behave as described.
+
+---
+
+## Sign-off
+
+| Case | Result | Notes |
+|------|--------|-------|
+| FT1  |        |       |
+| FT2  |        |       |
+| FT3  |        |       |
+| FT4  |        |       |
+| FT5  |        |       |
+| FT6  |        |       |
+| FT7  |        |       |
+| FT8  |        |       |
+| LP1  |        |       |
+| LP2  |        |       |
+| LP3  |        |       |
+| LP4  |        |       |
+| LP5  |        |       |
+| LP6  |        |       |
+| LP7  |        |       |
+| LP8  |        |       |

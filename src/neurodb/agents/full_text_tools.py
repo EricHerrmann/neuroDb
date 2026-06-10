@@ -44,7 +44,9 @@ FULL_TEXT_TOOLS = [
 DEFAULT_MIN_SCORE = 0.25
 
 
-def execute_search_full_text(chunk_store, inputs: dict, *, min_score: float = DEFAULT_MIN_SCORE) -> str:
+def execute_search_full_text(
+    chunk_store, inputs: dict, *, min_score: float = DEFAULT_MIN_SCORE
+) -> str:
     if chunk_store is None:
         return json.dumps({"grounded": False, "message": "Full-text store not available."})
     passages = chunk_store.search(

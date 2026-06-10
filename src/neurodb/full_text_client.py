@@ -7,6 +7,7 @@ parsing and no generic-HTML scraping — those are deferred to Phase 2b.
 from __future__ import annotations
 
 import re
+import xml.etree.ElementTree as ET
 from dataclasses import dataclass
 from html.parser import HTMLParser
 from typing import Protocol
@@ -150,6 +151,70 @@ class ArxivSourceBackend:
         if not sections:
             return None
         return FullTextResult("arxiv_html", sections, full_text)
+
+
+def parse_jats(xml_text: str) -> tuple[list[Section], str]:
+    """Extract <sec><title>+text from JATS XML into offset-correct Sections."""
+    root = ET.fromstring(xml_text)
+    blocks: list[tuple[str | None, str]] = []
+    for sec in root.iter("sec"):
+        title_el = sec.find("title")
+        label = (title_el.text or "").strip() if title_el is not None else None
+        texts = [t.strip() for t in sec.itertext() if t.strip()]
+        # drop the title text (first item) from the body if present
+        body = " ".join(texts[1:] if label and texts and texts[0] == label else texts)
+        blocks.append((label, body))
+    return sections_from_labeled_blocks(blocks)
+
+
+class PmcJatsBackend:
+    name = "pmc"
+
+    def _pmcid(self, paper, http) -> str | None:
+        # Resolve a PMCID via the NCBI ID converter from a PMID or DOI in url/doi.
+        ident = None
+        for value in (getattr(paper, "doi", None), getattr(paper, "url", None)):
+            if value and ("PMC" in value or "/pmc/" in value):
+                m = re.search(r"PMC[0-9]+", value)
+                if m:
+                    return m.group(0)
+            if value:
+                ident = ident or value
+        if not ident:
+            return None
+        resp = http.get(
+            "https://www.ncbi.nlm.nih.gov/pmc/utils/idconv/v1.0/",
+            params={"ids": ident, "format": "json", "tool": "neurodb"},
+        )
+        resp.raise_for_status()
+        records = resp.json().get("records", [])
+        if records and records[0].get("pmcid"):
+            return records[0]["pmcid"]
+        return None
+
+    def can_handle(self, paper, supplied: SuppliedInput | None) -> bool:
+        for value in (getattr(paper, "doi", None), getattr(paper, "url", None)):
+            if value:
+                return True
+        return False
+
+    def _result_from_jats(self, xml_text: str) -> FullTextResult | None:
+        sections, full_text = parse_jats(xml_text)
+        if not sections:
+            return None
+        return FullTextResult("jats", sections, full_text)
+
+    def fetch(self, paper, http, supplied: SuppliedInput | None) -> FullTextResult | None:
+        pmcid = self._pmcid(paper, http)
+        if not pmcid:
+            return None
+        resp = http.get(
+            "https://eutils.ncbi.nlm.nih.gov/entrez/eutils/efetch.fcgi",
+            params={"db": "pmc", "id": pmcid.replace("PMC", ""), "rettype": "full",
+                    "retmode": "xml", "tool": "neurodb"},
+        )
+        resp.raise_for_status()
+        return self._result_from_jats(resp.text)
 
 
 def _split_markdown(md: str) -> list[tuple[str | None, str]]:

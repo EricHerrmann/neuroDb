@@ -773,3 +773,17 @@ def test_extract_question_topics_handler_calls_grouping_matcher():
     assert kwargs["anchor_id"] == 42
     assert kwargs["anchor_text"] == "How does sleep affect plasticity?"
     assert kwargs["gtypes"] == ("topic", "concept")
+
+
+def test_full_text_tools_registered():
+    agent = _agent()
+    names = {t["name"] for t in agent._get_active_tools()}
+    assert {"search_full_text", "verify_quote"} <= names
+
+
+def test_prompt_states_quote_verification_contract():
+    agent = _agent()
+    prompt = agent._build_system_prompt().lower()
+    assert "search_full_text" in prompt
+    assert "verify_quote" in prompt
+    assert "unverified" in prompt

@@ -617,3 +617,17 @@ def test_search_surfaces_currency_warning_for_retracted_source():
     warning = results[0]["temporal"]["warning"]
     assert warning is not None
     assert "retracted" in warning.lower()
+
+
+def test_full_text_tools_registered():
+    agent = _agent()
+    names = {t["name"] for t in agent._get_active_tools()}
+    assert {"search_full_text", "verify_quote"} <= names
+
+
+def test_prompt_states_quote_verification_contract():
+    agent = _agent()
+    prompt = agent._build_system_prompt().lower()
+    assert "search_full_text" in prompt
+    assert "verify_quote" in prompt
+    assert "unverified" in prompt

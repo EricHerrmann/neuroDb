@@ -9,6 +9,11 @@ from neurodb.agents.base import BaseAgent
 from neurodb.agents.behavior_instructions import load_agent_behavior_instructions
 from neurodb.agents.db_agent import TOOLS as _DB_TOOLS
 from neurodb.agents.db_agent import execute_tool
+from neurodb.agents.full_text_tools import (
+    FULL_TEXT_TOOLS,
+    execute_search_full_text,
+    execute_verify_quote,
+)
 from neurodb.agents.learning_plan_tools import (
     LEARNING_PLAN_TOOLS,
     build_learning_plan_terminal_response,
@@ -91,7 +96,15 @@ _RESEARCH_SYSTEM_PROMPT = (
     "approves the plan in Study Plan. When the user asks to modify an existing plan, "
     "call update_learning_plan. After a successful propose_learning_plan or "
     "update_learning_plan call, stop calling tools and summarize the saved plan or "
-    "pending change."
+    "pending change. "
+    "When the user wants a quotation, specific claim, figure, or method from a paper, "
+    "call search_full_text and quote ONLY text it returns, rendering each quote with its "
+    "source title and section. If search_full_text returns grounded=false, say you have no "
+    "grounded full-text support rather than quoting from memory. Before presenting any "
+    "verbatim quote, call verify_quote with the exact text and source_id; tag a quote "
+    "[verified: Title section] ONLY after verify_quote returns matched=true. Any quoted "
+    "text you did not or could not verify must be tagged [unverified - from memory]. "
+    "Verified is earned from the tool result, never asserted on your own."
 )
 
 _RESEARCH_TOOLS = [
@@ -398,6 +411,7 @@ class NeuroResearchAgent(BaseAgent):
         knowledge_store: KnowledgeLibraryStore | None = None,
         literature_client=None,
         context_store=None,
+        chunk_store=None,
         current_date: str | None = None,
         max_tool_iterations: int = _RESEARCH_MAX_TOOL_ITERATIONS,
         max_tokens: int = _RESEARCH_MAX_TOKENS,
@@ -424,6 +438,7 @@ class NeuroResearchAgent(BaseAgent):
         self._knowledge_store = knowledge_store
         self._literature_client = literature_client
         self._context_store = context_store
+        self._chunk_store = chunk_store
         self._current_date = current_date
 
     def _get_active_tools(self) -> list[dict]:
@@ -432,6 +447,7 @@ class NeuroResearchAgent(BaseAgent):
             + list(LEARNING_PLAN_TOOLS)
             + list(READ_ONLY_DISCOVERY_TOOLS)
             + list(_READ_ONLY_DB_TOOLS)
+            + list(FULL_TEXT_TOOLS)
         )
 
     def _build_system_prompt(self) -> str:
@@ -578,6 +594,10 @@ class NeuroResearchAgent(BaseAgent):
             )
         if block.tool_name == "update_learning_plan":
             return execute_update_learning_plan(self._engine, block.tool_input)
+        if block.tool_name == "search_full_text":
+            return execute_search_full_text(self._chunk_store, block.tool_input)
+        if block.tool_name == "verify_quote":
+            return execute_verify_quote(self._chunk_store, block.tool_input)
         return execute_tool(block.tool_name, block.tool_input, self._engine, self._vector_store)
 
     def _execute_search_knowledge_library(self, inputs: dict) -> str:

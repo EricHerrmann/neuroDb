@@ -87,6 +87,9 @@ export interface PaperItem {
   summary: string | null
   abstract: string | null
   year: number | null
+  data_tier?: string
+  full_text_status?: string | null
+  text_source?: string | null
   grouping_links?: PaperGroupingLink[]
   warnings?: string[]
 }

@@ -27,5 +27,7 @@ class PaperItem(BaseModel):
     year: int | None = None
     data_tier: str = "metadata"
     currency_status: str = "current"
+    full_text_status: str | None = None
+    text_source: str | None = None
     warnings: list[str] = []
     grouping_links: list[PaperGroupingLink] = Field(default_factory=list)

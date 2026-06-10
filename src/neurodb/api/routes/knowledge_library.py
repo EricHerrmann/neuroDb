@@ -7,14 +7,17 @@ import threading
 import uuid
 from datetime import UTC, datetime, timedelta
 
+import httpx
 from fastapi import APIRouter, Depends, HTTPException
 from pydantic import BaseModel
 from sqlalchemy import Engine, text
 
-from neurodb.api.deps import get_engine, get_knowledge_store, get_task_store
+from neurodb.api.deps import get_chunk_store, get_engine, get_knowledge_store, get_task_store
 from neurodb.api.schemas.knowledge_library import PaperGroupingLink, PaperItem
 from neurodb.api.tasks import TaskRecord
+from neurodb.chunking import chunk_sections
 from neurodb.db import get_session
+from neurodb.full_text_client import AcquireFailure, SuppliedInput, acquire
 from neurodb.knowledge_summary import fallback_summary as _fallback_summary
 from neurodb.knowledge_summary import summary_prompt as _summary_prompt
 from neurodb.schema import (
@@ -24,6 +27,7 @@ from neurodb.schema import (
     Grouping,
     GroupingLink,
     Paper,
+    PaperChunk,
     StudyNote,
 )
 
@@ -41,6 +45,12 @@ class DuplicateCandidate(BaseModel):
 
 class DuplicateCheckResponse(BaseModel):
     candidates: list[DuplicateCandidate]
+
+
+class AcquireFullTextRequest(BaseModel):
+    url: str | None = None
+    text: str | None = None
+    format: str | None = None
 
 
 @router.get("", response_model=list[PaperItem])
@@ -195,6 +205,74 @@ def remove_source(
             logger.exception("ChromaDB removal failed for source %d", source_id)
 
     return item
+
+
+@router.post("/{source_id}/acquire-full-text", response_model=PaperItem)
+def acquire_full_text(
+    source_id: int,
+    body: AcquireFullTextRequest | None = None,
+    engine: Engine = Depends(get_engine),
+    chunk_store=Depends(get_chunk_store),
+) -> PaperItem:
+    body = body or AcquireFullTextRequest()
+    supplied = SuppliedInput(url=body.url, text=body.text, format=body.format)
+
+    with get_session(engine) as session:
+        paper = session.get(Paper, source_id)
+        if paper is None:
+            raise HTTPException(status_code=404, detail="Source not found")
+        if paper.status != "approved":
+            raise HTTPException(status_code=400, detail="Approve the source first")
+        # Snapshot fields needed after session closes (expire_on_commit=False keeps them)
+        paper_title = paper.title
+        paper_year = paper.year
+        paper_currency = paper.currency_status
+
+    with httpx.Client(timeout=20.0, follow_redirects=True) as http:
+        result = acquire(paper, http, supplied)
+
+    warnings: list[str] = []
+    if isinstance(result, AcquireFailure):
+        _update_paper_fields(source_id, engine, full_text_status=result.status)
+        warnings.append(result.message)
+    else:
+        chunks = chunk_sections(result.sections)
+        if chunk_store is not None:
+            chunk_store.delete_paper(source_id)
+            chunk_store.add_chunks(
+                paper_id=source_id,
+                title=paper_title,
+                year=paper_year,
+                currency_status=paper_currency,
+                text_source=result.text_source,
+                chunks=chunks,
+            )
+        created_at = datetime.now(UTC).isoformat()
+        with get_session(engine) as session:
+            session.query(PaperChunk).filter(PaperChunk.paper_id == source_id).delete()
+            for c in chunks:
+                session.add(PaperChunk(
+                    paper_id=source_id,
+                    chunk_index=c.chunk_index,
+                    text=c.text,
+                    section=c.section,
+                    char_start=c.char_start,
+                    char_end=c.char_end,
+                    text_source=result.text_source,
+                    chroma_id=f"chunk:{source_id}:{c.chunk_index}",
+                    created_at=created_at,
+                ))
+        _update_paper_fields(
+            source_id, engine,
+            full_text_status="verified",
+            text_source=result.text_source,
+            data_tier="full_text",
+        )
+
+    with get_session(engine) as session:
+        row = session.get(Paper, source_id)
+        item = _paper_item_from_row(row, session)
+    return item.model_copy(update={"warnings": warnings})
 
 
 def _set_status(source_id: int, status: str, engine: Engine) -> PaperItem:

@@ -142,6 +142,121 @@ describe('KnowledgeLibraryPanel', () => {
     expect(screen.getByText('2020')).toBeTruthy()
   })
 
+  it('renders tier badge from data_tier', () => {
+    render(<KnowledgeLibraryPanel />, {
+      wrapper: makeWrapper([{
+        id: 1,
+        title: 'Full Text Paper',
+        doi: null,
+        url: null,
+        source_type: 'paper',
+        topic_context: 'plasticity',
+        status: 'approved',
+        queued_at: '2026-01-01',
+        reviewed_at: '2026-01-02',
+        summary: null,
+        data_tier: 'full_text',
+      }]),
+    })
+    expect(screen.getByTitle('Data tier: full_text')).toBeTruthy()
+    expect(screen.getByText('full text')).toBeTruthy()
+  })
+
+  it('renders metadata tier badge for papers without data_tier', () => {
+    render(<KnowledgeLibraryPanel />, {
+      wrapper: makeWrapper([{
+        id: 2,
+        title: 'Metadata Paper',
+        doi: null,
+        url: null,
+        source_type: 'paper',
+        topic_context: 'plasticity',
+        status: 'approved',
+        queued_at: '2026-01-01',
+        reviewed_at: '2026-01-02',
+        summary: null,
+      }]),
+    })
+    expect(screen.getByTitle('Data tier: metadata')).toBeTruthy()
+    expect(screen.getByText('metadata')).toBeTruthy()
+  })
+
+  it('shows Acquire full text button for approved papers', () => {
+    render(<KnowledgeLibraryPanel />, {
+      wrapper: makeWrapper([{
+        id: 3,
+        title: 'Approved Paper',
+        doi: null,
+        url: null,
+        source_type: 'paper',
+        topic_context: 'memory',
+        status: 'approved',
+        queued_at: '2026-01-01',
+        reviewed_at: '2026-01-02',
+        summary: null,
+        data_tier: 'metadata',
+      }]),
+    })
+    expect(screen.getByText('Acquire full text')).toBeTruthy()
+  })
+
+  it('POSTs to acquire-full-text endpoint and refreshes on button click', async () => {
+    const fetchMock = vi.fn().mockImplementation((path: string, init?: RequestInit) => {
+      if (path.includes('/acquire-full-text') && init?.method === 'POST') {
+        return Promise.resolve({
+          ok: true,
+          status: 200,
+          json: async () => ({
+            id: 4,
+            title: 'Acquired Paper',
+            doi: null,
+            url: null,
+            source_type: 'paper',
+            topic_context: 'memory',
+            status: 'approved',
+            queued_at: '2026-01-01',
+            reviewed_at: '2026-01-02',
+            summary: null,
+            data_tier: 'full_text',
+            full_text_status: 'verified',
+          }),
+        })
+      }
+      // Refresh query
+      return Promise.resolve({
+        ok: true,
+        status: 200,
+        json: async () => [],
+      })
+    })
+    vi.stubGlobal('fetch', fetchMock)
+
+    render(<KnowledgeLibraryPanel />, {
+      wrapper: makeWrapper([{
+        id: 4,
+        title: 'Acquired Paper',
+        doi: null,
+        url: null,
+        source_type: 'paper',
+        topic_context: 'memory',
+        status: 'approved',
+        queued_at: '2026-01-01',
+        reviewed_at: '2026-01-02',
+        summary: null,
+        data_tier: 'metadata',
+      }]),
+    })
+
+    fireEvent.click(screen.getByText('Acquire full text'))
+
+    await waitFor(() => {
+      expect(fetchMock).toHaveBeenCalledWith(
+        expect.stringContaining('/acquire-full-text'),
+        expect.objectContaining({ method: 'POST' }),
+      )
+    })
+  })
+
   it('starts summary task when approve has no duplicates', async () => {
     const fetchMock = vi.fn().mockImplementation((path: string, init?: RequestInit) => {
       if (path.includes('/duplicates')) {

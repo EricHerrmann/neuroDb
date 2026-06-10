@@ -116,6 +116,41 @@ function SourceReviewDetails({ item }: { item: PaperItem }) {
   )
 }
 
+const TIER_LABELS: Record<string, string> = {
+  full_text: 'full text',
+  abstract: 'abstract',
+  metadata: 'metadata',
+}
+
+const TIER_COLORS: Record<string, { background: string; color: string; border: string }> = {
+  full_text: { background: '#dcfce7', color: '#166534', border: '#bbf7d0' },
+  abstract: { background: '#dbeafe', color: '#1e40af', border: '#bfdbfe' },
+  metadata: { background: '#f1f5f9', color: '#475569', border: '#cbd5e1' },
+}
+
+function TierBadge({ tier }: { tier: string | undefined }) {
+  const key = tier ?? 'metadata'
+  const label = TIER_LABELS[key] ?? key
+  const colors = TIER_COLORS[key] ?? TIER_COLORS.metadata
+  return (
+    <span
+      title={`Data tier: ${key}`}
+      style={{
+        fontSize: 10,
+        lineHeight: '16px',
+        padding: '1px 6px',
+        border: `1px solid ${colors.border}`,
+        background: colors.background,
+        color: colors.color,
+        borderRadius: 10,
+        fontWeight: 600,
+      }}
+    >
+      {label}
+    </span>
+  )
+}
+
 export default function KnowledgeLibraryPanel() {
   const [statusFilter, setStatusFilter] = useState('all')
   const [approveWarnings, setApproveWarnings] = useState<Record<number, string>>({})
@@ -159,6 +194,10 @@ export default function KnowledgeLibraryPanel() {
     mutationFn: (id: number) => api.removeSource(id),
     onSuccess: () => queryClient.invalidateQueries({ queryKey: ['knowledge-library'] }),
   })
+  const acquireFullText = useMutation({
+    mutationFn: (id: number) => api.acquireFullText(id),
+    onSuccess: () => queryClient.invalidateQueries({ queryKey: ['knowledge-library'] }),
+  })
 
   if (isLoading) return <div style={{ padding: 12 }}>Loading...</div>
   if (isError) {
@@ -189,10 +228,21 @@ export default function KnowledgeLibraryPanel() {
           key={item.id}
           style={{ border: '1px solid #e2e8f0', borderRadius: 8, padding: 12, marginBottom: 8 }}
         >
-          <div style={{ fontWeight: 600, fontSize: 13 }}>{item.title}</div>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 6, flexWrap: 'wrap' }}>
+            <span style={{ fontWeight: 600, fontSize: 13 }}>{item.title}</span>
+            <TierBadge tier={item.data_tier} />
+          </div>
           <div style={{ fontSize: 11, color: '#64748b', margin: '2px 0' }}>
             {item.source_type} · {item.topic_context.slice(0, 80)}
           </div>
+          {item.full_text_status && (
+            <div style={{ fontSize: 11, color: item.full_text_status === 'verified' ? '#166534' : '#92400e', margin: '2px 0' }}>
+              Full text: {item.full_text_status}
+              {item.full_text_status === 'unavailable' && item.warnings?.[0] && (
+                <span style={{ marginLeft: 4, color: '#92400e' }}>— {item.warnings[0]}</span>
+              )}
+            </div>
+          )}
           <GroupingLinks item={item} />
           {item.doi && <div style={{ fontSize: 11 }}>DOI: <DoiValue doi={item.doi} /></div>}
           {item.url && (
@@ -238,10 +288,22 @@ export default function KnowledgeLibraryPanel() {
               </button>
             </div>
           ) : item.status !== 'removed' ? (
-            <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginTop: 4 }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginTop: 4, flexWrap: 'wrap' }}>
               <span style={{ fontSize: 11, color: '#94a3b8' }}>
                 {item.status} · {item.reviewed_at?.slice(0, 10) ?? ''}
               </span>
+              {item.status === 'approved' && (
+                <button
+                  onClick={() => acquireFullText.mutate(item.id)}
+                  disabled={acquireFullText.isPending}
+                  style={{
+                    fontSize: 11, padding: '2px 8px', cursor: 'pointer',
+                    background: '#0f172a', color: '#fff', border: 'none', borderRadius: 4,
+                  }}
+                >
+                  {acquireFullText.isPending ? 'Acquiring…' : 'Acquire full text'}
+                </button>
+              )}
               <button
                 onClick={() => remove.mutate(item.id)}
                 disabled={remove.isPending}

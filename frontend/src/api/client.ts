@@ -137,6 +137,8 @@ export const api = {
     post<PaperItem>(`/api/knowledge-library/${id}/reject`),
   removeSource: (id: number) =>
     post<PaperItem>(`/api/knowledge-library/${id}/remove`),
+  acquireFullText: (id: number) =>
+    post<PaperItem>(`/api/knowledge-library/${id}/acquire-full-text`, {}),
   getResearchMetrics: () => get<ResearchMetrics>('/api/research/metrics'),
   getResearchQuestions: (statuses: string[] = []) => {
     const params = new URLSearchParams()

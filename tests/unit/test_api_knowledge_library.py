@@ -12,29 +12,30 @@ from neurodb.db.grouping_store import get_or_create_grouping, link_grouping
 from neurodb.schema import Base, Claim, GroupingLink, Paper
 
 
-def _make_app(engine, knowledge_store=None):
+def _make_app(engine, knowledge_store=None, chunk_store=None):
     app = FastAPI()
     app.state.engine = engine
     app.state.knowledge_store = knowledge_store if knowledge_store is not None else MagicMock()
     app.state.tasks = {}
+    app.state.chunk_store = chunk_store
     app.include_router(router, prefix="/api/knowledge-library")
     return app
 
 
-def _make_client(knowledge_store=None):
+def _make_client(knowledge_store=None, chunk_store=None):
     engine = create_engine(
         "sqlite:///:memory:",
         connect_args={"check_same_thread": False},
         poolclass=StaticPool,
     )
     Base.metadata.create_all(engine)
-    return TestClient(_make_app(engine, knowledge_store)), engine
+    return TestClient(_make_app(engine, knowledge_store, chunk_store)), engine
 
 
-def _make_duckdb_client(knowledge_store=None):
+def _make_duckdb_client(knowledge_store=None, chunk_store=None):
     engine = create_engine("duckdb:///:memory:", poolclass=StaticPool)
     Base.metadata.create_all(engine)
-    return TestClient(_make_app(engine, knowledge_store)), engine
+    return TestClient(_make_app(engine, knowledge_store, chunk_store)), engine
 
 
 def _insert_source(engine, title: str = "Test Source", status: str = "pending"):
@@ -395,3 +396,54 @@ def test_summary_prompt_omits_abstract_label_when_absent():
 def test_fallback_summary_uses_abstract_when_present():
     row = _paper(abstract="CREB overexpression biases engram allocation.")
     assert "CREB overexpression biases engram allocation." in _fallback_summary(row)
+
+
+def _insert_approved_source(engine, title="Approved Paper", url=None, doi=None):
+    """Insert a paper directly in approved status; returns the paper id."""
+    with get_session(engine) as session:
+        paper = Paper(
+            title=title,
+            normalized_title=title.lower(),
+            source_type="paper",
+            topic_context="neuroscience",
+            status="approved",
+            queued_at="2026-01-01T00:00:00",
+            reviewed_at="2026-01-02T00:00:00",
+            url=url,
+            doi=doi,
+        )
+        session.add(paper)
+        session.flush()
+        return paper.id
+
+
+def test_acquire_full_text_user_supplied():
+    """User-supplied text routes through acquire step 1; no network call needed."""
+    client, engine = _make_client()
+    source_id = _insert_approved_source(engine, title="DG Pattern Separation")
+
+    resp = client.post(
+        f"/api/knowledge-library/{source_id}/acquire-full-text",
+        json={"text": "# Intro\nThe dentate gyrus supports pattern separation.", "format": "md"},
+    )
+
+    assert resp.status_code == 200
+    data = resp.json()
+    assert data["full_text_status"] == "verified"
+    assert data["data_tier"] == "full_text"
+
+
+def test_acquire_full_text_no_source_is_unavailable():
+    """Paper with no url and no doi returns unavailable without any network call."""
+    client, engine = _make_client()
+    source_id = _insert_approved_source(engine, title="No Source Paper", url=None, doi=None)
+
+    resp = client.post(
+        f"/api/knowledge-library/{source_id}/acquire-full-text",
+        json={},
+    )
+
+    assert resp.status_code == 200
+    data = resp.json()
+    assert data["full_text_status"] == "unavailable"
+    assert data["data_tier"] != "full_text"

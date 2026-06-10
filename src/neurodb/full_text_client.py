@@ -217,6 +217,80 @@ class PmcJatsBackend:
         return self._result_from_jats(resp.text)
 
 
+FULL_TEXT_BACKENDS: list[FullTextBackend] = [
+    UserSuppliedBackend(),
+    ArxivSourceBackend(),
+    PmcJatsBackend(),
+]
+
+
+def acquire(paper, http, supplied: SuppliedInput | None = None):
+    """Return a FullTextResult on success, else an AcquireFailure (never raises for routing)."""
+    # 1) explicit user-supplied text
+    if supplied and supplied.text and supplied.text.strip():
+        return UserSuppliedBackend().fetch(paper, http, supplied) or AcquireFailure(
+            "failed", "fetch_error", "Supplied text could not be parsed."
+        )
+
+    # 2) structured backends keyed off identifiers
+    # arXiv: only attempt when an arXiv ID is extractable
+    _arxiv = ArxivSourceBackend()
+    if _arxiv._arxiv_id(paper) is not None:
+        try:
+            result = _arxiv.fetch(paper, http, supplied)
+        except Exception as exc:
+            return AcquireFailure("failed", "fetch_error", f"{type(exc).__name__}: {exc}")
+        if result:
+            return result
+
+    # PMC: pre-resolve the PMCID first; skip entirely if none resolves
+    if http is not None:
+        _pmc = PmcJatsBackend()
+        try:
+            pmcid = _pmc._pmcid(paper, http)
+        except Exception:
+            pmcid = None
+        if pmcid is not None:
+            try:
+                result = _pmc.fetch(paper, http, supplied)
+            except Exception as exc:
+                return AcquireFailure("failed", "fetch_error", f"{type(exc).__name__}: {exc}")
+            if result:
+                return result
+            # PMCID resolved but JATS body was empty — not open-access
+            return AcquireFailure(
+                "unavailable", "not_oa",
+                "No open-access full text available for this source.",
+            )
+
+    # 3) raw URL content-type sniff
+    candidate = (supplied.url if supplied else None) or getattr(paper, "url", None)
+    if candidate and http is not None:
+        try:
+            resp = http.get(candidate)
+            resp.raise_for_status()
+        except Exception as exc:
+            return AcquireFailure("failed", "fetch_error", f"{type(exc).__name__}: {exc}")
+        ctype = (resp.headers.get("Content-Type") or "").lower()
+        if "text/plain" in ctype or "text/markdown" in ctype:
+            fmt = "md" if "markdown" in ctype else "txt"
+            return UserSuppliedBackend().fetch(
+                paper, http, SuppliedInput(text=resp.text, format=fmt)
+            ) or AcquireFailure("failed", "fetch_error", "Empty document.")
+        if "xml" in ctype:
+            return PmcJatsBackend()._result_from_jats(resp.text) or AcquireFailure(
+                "failed", "fetch_error", "Empty JATS document."
+            )
+        if "html" in ctype or "pdf" in ctype:
+            return AcquireFailure(
+                "unavailable", "needs_parser_phase2b",
+                "This looks like a publisher HTML/PDF page — full-text capture for "
+                "those arrives in Phase 2b. Paste the text or supply a .txt/.md/JATS file.",
+            )
+
+    return AcquireFailure("unavailable", "no_source", "No structured full-text source found.")
+
+
 def _split_markdown(md: str) -> list[tuple[str | None, str]]:
     blocks: list[tuple[str | None, str]] = []
     label: str | None = None

@@ -20,6 +20,7 @@ def _make_app(engine):
     app.state.vector_store = None
     app.state.knowledge_store = None
     app.state.context_store = None
+    app.state.chunk_store = None
     app.include_router(router, prefix="/api")
     return app
 
@@ -200,6 +201,7 @@ def test_build_agent_passes_chroma_stores_to_research_agent():
         engine="engine",
         vector_store="vector-store",
         knowledge_store="knowledge-store",
+        chunk_store=None,
         context_store="context-store",
         prior_context="prior",
         model_provider="anthropic",
@@ -262,6 +264,7 @@ def test_chat_turn_passes_context_store_to_agent_builder():
     app.state.vector_store = "vector-store"
     app.state.knowledge_store = "knowledge-store"
     app.state.context_store = "context-store"
+    app.state.chunk_store = None
     app.include_router(router, prefix="/api")
     client = TestClient(app)
 
@@ -286,6 +289,7 @@ def test_chat_turn_passes_context_store_to_agent_builder():
         "",
         "contextual",
         ANY,
+        chunk_store=None,
     )
 
 
@@ -319,6 +323,7 @@ def test_chat_turn_passes_request_context_mode_and_focus_to_bundle_builder():
     app.state.vector_store = "vector-store"
     app.state.knowledge_store = "knowledge-store"
     app.state.context_store = "context-store"
+    app.state.chunk_store = None
     app.include_router(router, prefix="/api")
     client = TestClient(app)
 

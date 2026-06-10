@@ -549,3 +549,29 @@ def test_neurotutoragent_reads_neurodb_agent_model_env_var():
         reloaded = importlib.reload(mod)
         assert reloaded._MODEL == "claude-haiku-4-5"
     importlib.reload(mod)
+
+
+# ---------------------------------------------------------------------------
+# BaseAgent._append_quote_warnings helper (Phase 2a backstop)
+# ---------------------------------------------------------------------------
+
+from neurodb.agents.base import BaseAgent
+
+
+def test_append_quote_warnings_flags_unverified():
+    messages = [
+        {"role": "assistant", "content": [
+            {"type": "tool_use", "id": "t1", "name": "verify_quote",
+             "input": {"text": "hippocampus consolidates"}}]},
+        {"role": "user", "content": [
+            {"type": "tool_result", "tool_use_id": "t1",
+             "content": '{"matched": true}'}]},
+    ]
+    answer = 'As stated, "the cerebellum coordinates movement precisely here".'
+    out = BaseAgent._append_quote_warnings(answer, messages)
+    assert "⚠" in out and "cerebellum coordinates movement" in out
+
+
+def test_append_quote_warnings_noop_without_quotes():
+    out = BaseAgent._append_quote_warnings("No quotes at all here.", [])
+    assert out == "No quotes at all here."

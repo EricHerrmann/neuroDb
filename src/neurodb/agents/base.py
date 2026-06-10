@@ -75,6 +75,16 @@ class BaseAgent(ABC):
         """Return a final assistant response when a tool result completes the turn."""
         return None
 
+    @staticmethod
+    def _append_quote_warnings(answer_text: str, messages: list[dict]) -> str:
+        from neurodb.quote_verify import build_quote_ledger, reconcile_quotes
+
+        ledger = build_quote_ledger(messages)
+        warnings = reconcile_quotes(answer_text, ledger)
+        if not warnings:
+            return answer_text
+        return answer_text + "\n\n" + "\n".join(warnings)
+
     def chat(self, user_message: str, messages: list[dict]) -> Generator[str, None, None]:
         """Run one user turn and rollback appended API messages on failure."""
         checkpoint = len(messages)
@@ -107,9 +117,10 @@ class BaseAgent(ABC):
             messages.append({"role": "assistant", "content": _blocks_to_dicts(response.content)})
 
             if response.stop_reason == "end_turn":
-                for block in response.content:
-                    if block.type == "text":
-                        yield block.text
+                answer = "".join(
+                    block.text for block in response.content if block.type == "text"
+                )
+                yield self._append_quote_warnings(answer, messages)
                 return
 
             if response.stop_reason == "tool_use":
@@ -227,9 +238,13 @@ class BaseAgent(ABC):
                     for block in response.content
                     if block.type == "text"
                 ]
+                answer = "".join(t for t in text_blocks if t)
+                suffix = self._append_quote_warnings(answer, messages)[len(answer):]
+                if suffix.strip():
+                    yield {"type": "text_delta", "text": suffix}
                 yield {
                     "type": "done",
-                    "text": "".join(t for t in text_blocks if t),
+                    "text": answer + suffix,
                     "stop_reason": response.stop_reason,
                 }
                 return

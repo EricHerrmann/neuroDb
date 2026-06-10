@@ -14,6 +14,7 @@ def _make_app(engine):
     app.state.vector_store = None
     app.state.knowledge_store = None
     app.state.context_store = None
+    app.state.chunk_store = None
     app.include_router(router, prefix="/api/research")
     return app
 

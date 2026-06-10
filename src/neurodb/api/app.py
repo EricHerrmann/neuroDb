@@ -15,6 +15,7 @@ def create_app(
     knowledge_store=None,
     context_store=None,
     session_manager=None,
+    chunk_store=None,
 ) -> FastAPI:
     """Create and configure FastAPI app with stores and routes."""
     app = FastAPI(title="NeuroDb API")
@@ -23,6 +24,7 @@ def create_app(
     app.state.knowledge_store = knowledge_store
     app.state.context_store = context_store
     app.state.session_manager = session_manager
+    app.state.chunk_store = chunk_store
     app.state.tasks = {}
 
     from neurodb.api.routes import (
@@ -74,6 +76,7 @@ def _chroma_path_for_db(db_path: str) -> str:
 
 def _build_runtime_stores(db_path: str, engine: Engine) -> dict:
     """Build Chroma-backed runtime stores shared by API and legacy UI paths."""
+    from neurodb.chunk_store import ChunkStore
     from neurodb.config.provider_factory import build_provider_clients
     from neurodb.config.task_router import RoutingError, TaskRouter
     from neurodb.embedder import Embedder
@@ -85,6 +88,7 @@ def _build_runtime_stores(db_path: str, engine: Engine) -> dict:
     embedder = Embedder()
     vector_store = VectorStore(path=chroma_path, embedder=embedder)
     knowledge_store = KnowledgeLibraryStore(path=chroma_path, embedder=embedder)
+    chunk_store = ChunkStore(path=chroma_path, embedder=embedder)
     context_store = AgentContextStore(path=chroma_path)
 
     route = None
@@ -107,6 +111,7 @@ def _build_runtime_stores(db_path: str, engine: Engine) -> dict:
     return {
         "vector_store": vector_store,
         "knowledge_store": knowledge_store,
+        "chunk_store": chunk_store,
         "context_store": context_store,
         "session_manager": SessionManager(context_store, **session_kwargs),
     }

@@ -40,6 +40,7 @@ def _build_agent(
     prior_context: str = "",
     context_mode: str = DEFAULT_CONTEXT_MODE,
     context_bundle: dict | None = None,
+    chunk_store=None,
     ):
     router_obj = TaskRouter(providers)
     route = router_obj.route(f"agent.loop.{agent_mode}", engine=engine)
@@ -51,6 +52,7 @@ def _build_agent(
             engine=engine,
             vector_store=vector_store,
             knowledge_store=knowledge_store,
+            chunk_store=chunk_store,
             context_store=context_store,
             prior_context=prior_context,
             model_provider=route.provider,
@@ -64,6 +66,7 @@ def _build_agent(
             engine=engine,
             vector_store=vector_store,
             knowledge_store=knowledge_store,
+            chunk_store=chunk_store,
             prior_context=prior_context,
             model_provider=route.provider,
             context_mode=context_mode,
@@ -184,6 +187,7 @@ def chat_turn(
         prior_context,
         context_mode,
         context_bundle,
+        chunk_store=stores.get("chunk_store"),
     )
 
     return StreamingResponse(

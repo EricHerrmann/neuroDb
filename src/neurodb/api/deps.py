@@ -21,10 +21,15 @@ def get_knowledge_store(request: Request):
     return request.app.state.knowledge_store
 
 
+def get_chunk_store(request: Request):
+    return request.app.state.chunk_store
+
+
 def get_research_stores(request: Request) -> dict:
     return {
         "vector_store": request.app.state.vector_store,
         "knowledge_store": request.app.state.knowledge_store,
+        "chunk_store": request.app.state.chunk_store,
         "context_store": request.app.state.context_store,
     }
 

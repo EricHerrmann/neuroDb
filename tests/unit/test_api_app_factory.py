@@ -18,6 +18,7 @@ def test_build_runtime_stores_initializes_chroma_backed_stores():
         patch("neurodb.embedder.Embedder") as embedder_cls,
         patch("neurodb.vector_store.VectorStore") as vector_cls,
         patch("neurodb.knowledge_store.KnowledgeLibraryStore") as knowledge_cls,
+        patch("neurodb.chunk_store.ChunkStore") as chunk_cls,
         patch("neurodb.session_manager.AgentContextStore") as context_cls,
         patch("neurodb.session_manager.SessionManager") as session_cls,
         patch("neurodb.config.provider_factory.build_provider_clients", return_value={}),
@@ -25,6 +26,7 @@ def test_build_runtime_stores_initializes_chroma_backed_stores():
         embedder = embedder_cls.return_value
         vector_store = vector_cls.return_value
         knowledge_store = knowledge_cls.return_value
+        chunk_store = chunk_cls.return_value
         context_store = context_cls.return_value
         session_manager = session_cls.return_value
 
@@ -32,11 +34,13 @@ def test_build_runtime_stores_initializes_chroma_backed_stores():
 
     vector_cls.assert_called_once_with(path="neurodb_chroma", embedder=embedder)
     knowledge_cls.assert_called_once_with(path="neurodb_chroma", embedder=embedder)
+    chunk_cls.assert_called_once_with(path="neurodb_chroma", embedder=embedder)
     context_cls.assert_called_once_with(path="neurodb_chroma")
     session_cls.assert_called_once_with(context_store, engine=engine)
     assert stores == {
         "vector_store": vector_store,
         "knowledge_store": knowledge_store,
+        "chunk_store": chunk_store,
         "context_store": context_store,
         "session_manager": session_manager,
     }

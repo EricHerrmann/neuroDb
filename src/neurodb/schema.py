@@ -272,6 +272,29 @@ class Paper(Base):
         String(16), nullable=False, default="current",
         server_default="current", index=True,
     )
+    full_text_status: Mapped[str | None] = mapped_column(String(16), nullable=True)
+    text_source: Mapped[str | None] = mapped_column(String(32), nullable=True)
+
+
+class PaperChunk(Base):
+    """A retrieval unit of a paper's full text, with section/offset provenance."""
+    __tablename__ = "paper_chunks"
+
+    id: Mapped[int] = mapped_column(
+        Integer, Sequence("paper_chunks_id_seq"), primary_key=True
+    )
+    # NOTE: paper_id is a plain indexed column, NOT an enforced ForeignKey.
+    # DuckDB rejects UPDATE on any column of an FK-referenced row, and the
+    # approve/acquire flow UPDATEs papers (status, chroma_id, full_text_status).
+    paper_id: Mapped[int] = mapped_column(Integer, nullable=False, index=True)
+    chunk_index: Mapped[int] = mapped_column(Integer, nullable=False)
+    text: Mapped[str] = mapped_column(Text, nullable=False)
+    section: Mapped[str | None] = mapped_column(String(256), nullable=True)
+    char_start: Mapped[int | None] = mapped_column(Integer, nullable=True)
+    char_end: Mapped[int | None] = mapped_column(Integer, nullable=True)
+    text_source: Mapped[str] = mapped_column(String(32), nullable=False)
+    chroma_id: Mapped[str] = mapped_column(String(128), nullable=False)
+    created_at: Mapped[str] = mapped_column(String(32), nullable=False)
 
 
 class ChatSession(Base):

@@ -853,6 +853,41 @@ def _migration_023_paper_tier_currency(conn) -> None:
             pass  # column already exists
 
 
+def _migration_024_paper_chunks(conn) -> None:
+    """Add full-text provenance columns and the paper_chunks table (Phase 2a)."""
+    for ddl in (
+        "ALTER TABLE papers ADD COLUMN full_text_status VARCHAR(16)",
+        "ALTER TABLE papers ADD COLUMN text_source VARCHAR(32)",
+    ):
+        try:
+            conn.execute(text(ddl))
+        except Exception:
+            pass  # column already exists
+    try:
+        conn.execute(text(
+            """
+            CREATE TABLE IF NOT EXISTS paper_chunks (
+                id INTEGER PRIMARY KEY,
+                paper_id INTEGER NOT NULL,
+                chunk_index INTEGER NOT NULL,
+                text TEXT NOT NULL,
+                section VARCHAR(256),
+                char_start INTEGER,
+                char_end INTEGER,
+                text_source VARCHAR(32) NOT NULL,
+                chroma_id VARCHAR(128) NOT NULL,
+                created_at VARCHAR(32) NOT NULL
+            )
+            """
+        ))
+        conn.execute(text(
+            "CREATE INDEX IF NOT EXISTS ix_paper_chunks_paper_id "
+            "ON paper_chunks (paper_id)"
+        ))
+    except Exception:
+        pass
+
+
 _MIGRATIONS: dict[int, callable] = {
     1: _migration_001_study_note_unique,
     2: _migration_002_model_call_log,
@@ -877,6 +912,7 @@ _MIGRATIONS: dict[int, callable] = {
     21: _migration_021_drop_legacy_groupings_tables,
     22: _migration_022_learning_plans,
     23: _migration_023_paper_tier_currency,
+    24: _migration_024_paper_chunks,
 }
 
 

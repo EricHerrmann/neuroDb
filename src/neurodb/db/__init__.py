@@ -46,5 +46,6 @@ _migration_020_literature_search_arxiv_count = _db_legacy._migration_020_literat
 _migration_021_drop_legacy_groupings_tables = _db_legacy._migration_021_drop_legacy_groupings_tables
 _migration_022_learning_plans = _db_legacy._migration_022_learning_plans
 _migration_023_paper_tier_currency = _db_legacy._migration_023_paper_tier_currency
+_migration_024_paper_chunks = _db_legacy._migration_024_paper_chunks
 
 __all__ = ["get_engine", "init_db", "seed_learning_sources", "create_views", "get_session"]

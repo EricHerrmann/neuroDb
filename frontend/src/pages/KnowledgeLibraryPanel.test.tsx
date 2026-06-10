@@ -257,6 +257,61 @@ describe('KnowledgeLibraryPanel', () => {
     })
   })
 
+  it('shows deferral reason when acquire returns unavailable with a warning', async () => {
+    const updatedItem = {
+      id: 5,
+      title: 'No PDF Paper',
+      doi: null,
+      url: null,
+      source_type: 'paper',
+      topic_context: 'memory',
+      status: 'approved',
+      queued_at: '2026-01-01',
+      reviewed_at: '2026-01-02',
+      summary: null,
+      data_tier: 'metadata',
+      full_text_status: 'unavailable',
+      warnings: [],
+    }
+    const fetchMock = vi.fn().mockImplementation((path: string, init?: RequestInit) => {
+      if (path.includes('/acquire-full-text') && init?.method === 'POST') {
+        return Promise.resolve({
+          ok: true,
+          status: 200,
+          json: async () => ({
+            ...updatedItem,
+            warnings: ['No public PDF found; deferred for manual upload.'],
+          }),
+        })
+      }
+      // Refresh query returns the updated item (warnings not persisted, but full_text_status is)
+      return Promise.resolve({ ok: true, status: 200, json: async () => [updatedItem] })
+    })
+    vi.stubGlobal('fetch', fetchMock)
+
+    render(<KnowledgeLibraryPanel />, {
+      wrapper: makeWrapper([{
+        id: 5,
+        title: 'No PDF Paper',
+        doi: null,
+        url: null,
+        source_type: 'paper',
+        topic_context: 'memory',
+        status: 'approved',
+        queued_at: '2026-01-01',
+        reviewed_at: '2026-01-02',
+        summary: null,
+        data_tier: 'metadata',
+      }]),
+    })
+
+    fireEvent.click(screen.getByText('Acquire full text'))
+
+    await waitFor(() => {
+      expect(screen.getByText(/No public PDF found; deferred for manual upload/)).toBeTruthy()
+    })
+  })
+
   it('starts summary task when approve has no duplicates', async () => {
     const fetchMock = vi.fn().mockImplementation((path: string, init?: RequestInit) => {
       if (path.includes('/duplicates')) {

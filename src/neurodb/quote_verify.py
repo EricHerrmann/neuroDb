@@ -45,6 +45,21 @@ class LedgerEntry:
     matched: bool
 
 
+def _result_text(content) -> str:
+    """Extract the JSON text from a tool_result content (string or list-of-blocks)."""
+    if isinstance(content, str):
+        return content
+    if isinstance(content, list):
+        parts = []
+        for block in content:
+            if isinstance(block, dict):
+                parts.append(block.get("text") or block.get("content") or "")
+            elif isinstance(block, str):
+                parts.append(block)
+        return "".join(parts)
+    return ""
+
+
 def build_quote_ledger(messages: list[dict]) -> list[LedgerEntry]:
     """Extract verify_quote calls + their matched results from the turn's messages."""
     pending: dict[str, str] = {}  # tool_use_id -> quoted text
@@ -61,8 +76,7 @@ def build_quote_ledger(messages: list[dict]) -> list[LedgerEntry]:
             elif block.get("type") == "tool_result":
                 tid = block.get("tool_use_id")
                 if tid in pending:
-                    raw = block.get("content")
-                    text = raw if isinstance(raw, str) else json.dumps(raw)
+                    text = _result_text(block.get("content"))
                     try:
                         results[tid] = bool(json.loads(text).get("matched"))
                     except Exception:

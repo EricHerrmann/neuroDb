@@ -447,3 +447,66 @@ def test_acquire_full_text_no_source_is_unavailable():
     data = resp.json()
     assert data["full_text_status"] == "unavailable"
     assert data["data_tier"] != "full_text"
+
+
+def _make_stub_chunk_store():
+    """Return a real ephemeral ChunkStore with a stub embedder for unit tests."""
+    import uuid as _uuid
+
+    import chromadb
+
+    from neurodb.chunk_store import ChunkStore
+
+    class _StubEmbedder:
+        def embed(self, texts):
+            return [[0.1, 0.2, 0.3] for _ in texts]
+
+    return ChunkStore(
+        client=chromadb.EphemeralClient(),
+        embedder=_StubEmbedder(),
+        collection_name=f"ck_{_uuid.uuid4().hex}",
+    )
+
+
+def _assert_chunk_idempotency(client, engine, chunk_store, source_id):
+    """Shared idempotency assertion: acquire twice, count must not grow."""
+    body = {
+        "text": "# Intro\nThe dentate gyrus supports pattern separation.\n\n## Methods\nWe recorded CA3.",
+        "format": "md",
+    }
+    r1 = client.post(f"/api/knowledge-library/{source_id}/acquire-full-text", json=body)
+    assert r1.status_code == 200
+    assert r1.json()["data_tier"] == "full_text"
+
+    with get_session(engine) as s:
+        from neurodb.schema import PaperChunk
+        n1 = s.query(PaperChunk).filter(PaperChunk.paper_id == source_id).count()
+    assert n1 >= 1
+
+    # Re-acquire — must not duplicate rows in DB or Chroma.
+    client.post(f"/api/knowledge-library/{source_id}/acquire-full-text", json=body)
+
+    with get_session(engine) as s:
+        from neurodb.schema import PaperChunk
+        n2 = s.query(PaperChunk).filter(PaperChunk.paper_id == source_id).count()
+    assert n2 == n1
+
+    hits = [h for h in chunk_store.search("dentate", n=50, min_score=-1.0)
+            if h["source_id"] == source_id]
+    assert len(hits) == n1
+
+
+def test_acquire_full_text_stores_chunks_and_is_idempotent_sqlite():
+    """SQLite backend: real ChunkStore stores chunks and re-acquire is idempotent."""
+    chunk_store = _make_stub_chunk_store()
+    client, engine = _make_client(chunk_store=chunk_store)
+    source_id = _insert_approved_source(engine, title="DG Pattern Separation")
+    _assert_chunk_idempotency(client, engine, chunk_store, source_id)
+
+
+def test_acquire_full_text_stores_chunks_and_is_idempotent_duckdb():
+    """DuckDB backend: guards the delete-then-insert ordering on the real analytical backend."""
+    chunk_store = _make_stub_chunk_store()
+    client, engine = _make_duckdb_client(chunk_store=chunk_store)
+    source_id = _insert_approved_source(engine, title="DG Pattern Separation DuckDB")
+    _assert_chunk_idempotency(client, engine, chunk_store, source_id)

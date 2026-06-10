@@ -155,6 +155,7 @@ export default function KnowledgeLibraryPanel() {
   const [statusFilter, setStatusFilter] = useState('all')
   const [approveWarnings, setApproveWarnings] = useState<Record<number, string>>({})
   const [duplicateWarnings, setDuplicateWarnings] = useState<Record<number, DuplicateCandidate[]>>({})
+  const [acquireWarnings, setAcquireWarnings] = useState<Record<number, string>>({})
   const [taskId, setTaskId] = useState<string | null>(null)
   const queryClient = useQueryClient()
 
@@ -196,7 +197,18 @@ export default function KnowledgeLibraryPanel() {
   })
   const acquireFullText = useMutation({
     mutationFn: (id: number) => api.acquireFullText(id),
-    onSuccess: () => queryClient.invalidateQueries({ queryKey: ['knowledge-library'] }),
+    onSuccess: (data, id) => {
+      queryClient.invalidateQueries({ queryKey: ['knowledge-library'] })
+      if (data.full_text_status === 'unavailable' && data.warnings?.[0]) {
+        setAcquireWarnings(prev => ({ ...prev, [id]: data.warnings![0] }))
+      } else {
+        setAcquireWarnings(prev => {
+          const next = { ...prev }
+          delete next[id]
+          return next
+        })
+      }
+    },
   })
 
   if (isLoading) return <div style={{ padding: 12 }}>Loading...</div>
@@ -238,8 +250,8 @@ export default function KnowledgeLibraryPanel() {
           {item.full_text_status && (
             <div style={{ fontSize: 11, color: item.full_text_status === 'verified' ? '#166534' : '#92400e', margin: '2px 0' }}>
               Full text: {item.full_text_status}
-              {item.full_text_status === 'unavailable' && item.warnings?.[0] && (
-                <span style={{ marginLeft: 4, color: '#92400e' }}>— {item.warnings[0]}</span>
+              {item.full_text_status === 'unavailable' && (acquireWarnings[item.id] || item.warnings?.[0]) && (
+                <span style={{ marginLeft: 4, color: '#92400e' }}>— {acquireWarnings[item.id] ?? item.warnings![0]}</span>
               )}
             </div>
           )}

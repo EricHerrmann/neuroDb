@@ -8,6 +8,7 @@ from __future__ import annotations
 
 import re
 from dataclasses import dataclass
+from html.parser import HTMLParser
 from typing import Protocol
 
 from neurodb.chunking import Section
@@ -78,6 +79,77 @@ class UserSuppliedBackend:
         if not sections:
             return None
         return FullTextResult("user_supplied", sections, full_text)
+
+
+_ARXIV_ID_RE = re.compile(r"arxiv\.org/(?:abs|pdf|html)/([0-9]{4}\.[0-9]{4,5}(?:v[0-9]+)?)")
+
+
+class _SectionHTMLParser(HTMLParser):
+    """Collect (heading, text) blocks from arXiv-style HTML."""
+
+    def __init__(self):
+        super().__init__()
+        self.blocks: list[tuple[str | None, str]] = []
+        self._label: str | None = None
+        self._buf: list[str] = []
+        self._in_heading = False
+        self._heading: list[str] = []
+
+    def handle_starttag(self, tag, attrs):
+        if tag in ("h1", "h2", "h3"):
+            if self._buf:
+                self.blocks.append((self._label, " ".join(self._buf).strip()))
+                self._buf = []
+            self._in_heading = True
+            self._heading = []
+
+    def handle_endtag(self, tag):
+        if tag in ("h1", "h2", "h3") and self._in_heading:
+            self._in_heading = False
+            self._label = " ".join(self._heading).strip() or None
+
+    def handle_data(self, data):
+        if self._in_heading:
+            self._heading.append(data)
+        elif data.strip():
+            self._buf.append(data.strip())
+
+    def close(self):
+        super().close()
+        if self._buf:
+            self.blocks.append((self._label, " ".join(self._buf).strip()))
+
+
+class ArxivSourceBackend:
+    name = "arxiv"
+
+    def _arxiv_id(self, paper) -> str | None:
+        for value in (getattr(paper, "url", None), getattr(paper, "doi", None)):
+            if not value:
+                continue
+            m = _ARXIV_ID_RE.search(value)
+            if m:
+                return m.group(1)
+        return None
+
+    def can_handle(self, paper, supplied: SuppliedInput | None) -> bool:
+        return self._arxiv_id(paper) is not None
+
+    def fetch(self, paper, http, supplied: SuppliedInput | None) -> FullTextResult | None:
+        arxiv_id = self._arxiv_id(paper)
+        if not arxiv_id:
+            return None
+        resp = http.get(f"https://arxiv.org/html/{arxiv_id}")
+        resp.raise_for_status()
+        parser = _SectionHTMLParser()
+        parser.feed(resp.text)
+        parser.close()
+        if not parser.blocks:
+            return None
+        sections, full_text = sections_from_labeled_blocks(parser.blocks)
+        if not sections:
+            return None
+        return FullTextResult("arxiv_html", sections, full_text)
 
 
 def _split_markdown(md: str) -> list[tuple[str | None, str]]:

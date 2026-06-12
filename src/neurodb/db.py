@@ -888,6 +888,41 @@ def _migration_024_paper_chunks(conn) -> None:
         pass
 
 
+def _migration_025_phase2b(conn) -> None:
+    """Phase 2b: parse confidence, page anchors, and the parse staging table."""
+    for ddl in (
+        "ALTER TABLE papers ADD COLUMN parse_confidence DOUBLE",
+        "ALTER TABLE paper_chunks ADD COLUMN page INTEGER",
+    ):
+        try:
+            conn.execute(text(ddl))
+        except Exception:
+            pass  # column already exists
+    try:
+        conn.execute(text(
+            """
+            CREATE TABLE IF NOT EXISTS paper_fulltext_staging (
+                id INTEGER PRIMARY KEY,
+                source_id INTEGER NOT NULL,
+                text_source VARCHAR(32) NOT NULL,
+                parse_confidence DOUBLE,
+                fetched_url TEXT,
+                artifact_json TEXT NOT NULL,
+                created_at VARCHAR(32) NOT NULL
+            )
+            """
+        ))
+        conn.execute(text(
+            "CREATE INDEX IF NOT EXISTS ix_fulltext_staging_source_id "
+            "ON paper_fulltext_staging (source_id)"
+        ))
+        conn.execute(text(
+            "CREATE SEQUENCE IF NOT EXISTS paper_fulltext_staging_id_seq START 1"
+        ))
+    except Exception:
+        pass
+
+
 _MIGRATIONS: dict[int, callable] = {
     1: _migration_001_study_note_unique,
     2: _migration_002_model_call_log,
@@ -913,6 +948,7 @@ _MIGRATIONS: dict[int, callable] = {
     22: _migration_022_learning_plans,
     23: _migration_023_paper_tier_currency,
     24: _migration_024_paper_chunks,
+    25: _migration_025_phase2b,
 }
 
 

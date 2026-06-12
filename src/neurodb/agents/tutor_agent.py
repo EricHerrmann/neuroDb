@@ -1,9 +1,6 @@
 """NeuroTutorAgent for neuroscience learning with a curated knowledge library."""
 import json
 import os
-import re
-import unicodedata
-from datetime import UTC, datetime
 
 from sqlalchemy import Engine
 
@@ -22,6 +19,16 @@ from neurodb.agents.learning_plan_tools import (
     execute_propose_learning_plan,
     execute_update_learning_plan,
 )
+
+# Re-exported for backward compatibility; the shared write path now lives in
+# neurodb.agents.source_queue and is used by both the tutor and research agents.
+from neurodb.agents.source_queue import (  # noqa: F401
+    find_paper_metadata_conflicts,
+    merge_existing_paper_metadata,
+    normalize_title,
+    queue_or_update_paper,
+    replace_existing_paper_metadata,
+)
 from neurodb.db import get_session
 from neurodb.discovery_tools import (
     READ_ONLY_DISCOVERY_TOOLS,
@@ -30,7 +37,7 @@ from neurodb.discovery_tools import (
 )
 from neurodb.knowledge_store import KnowledgeLibraryStore
 from neurodb.schema import Paper
-from neurodb.temporal import TEMPORAL_DISCLOSURE_RULES, attach_temporal, parse_year
+from neurodb.temporal import TEMPORAL_DISCLOSURE_RULES, attach_temporal
 
 _MODEL = os.environ.get("NEURODB_AGENT_MODEL", "claude-sonnet-4-6")
 
@@ -221,73 +228,6 @@ _TUTOR_TOOLS = [
     },
 ]
 
-def normalize_title(title: str) -> str:
-    """Normalize titles for exact deduplication."""
-    value = unicodedata.normalize("NFKD", title.strip().lower())
-    value = re.sub(r"[^\w\s]", "", value)
-    return re.sub(r"\s+", " ", value).strip()
-
-
-def merge_existing_paper_metadata(paper: Paper, inputs: dict) -> list[str]:
-    """Fill missing review metadata when a queued source is re-submitted."""
-    updates: list[str] = []
-    for field in ("doi", "url", "abstract"):
-        value = (inputs.get(field) or "").strip()
-        if value and not getattr(paper, field):
-            setattr(paper, field, value)
-            updates.append(field)
-    year = parse_year(inputs.get("year"))
-    if year and not paper.year:
-        paper.year = year
-        updates.append("year")
-    if "abstract" in updates and paper.data_tier == "metadata":
-        paper.data_tier = "abstract"
-        updates.append("data_tier")
-    return updates
-
-
-def find_paper_metadata_conflicts(paper: Paper, inputs: dict) -> list[dict]:
-    """Return submitted metadata values that conflict with an existing paper record."""
-    conflicts: list[dict] = []
-    for field in ("doi", "url", "abstract"):
-        submitted = (inputs.get(field) or "").strip()
-        current = getattr(paper, field)
-        if submitted and current and submitted != current:
-            conflicts.append({"field": field, "current": current, "submitted": submitted})
-    year = parse_year(inputs.get("year"))
-    if year and paper.year and year != paper.year:
-        conflicts.append({"field": "year", "current": paper.year, "submitted": year})
-    return conflicts
-
-
-def replace_existing_paper_metadata(paper: Paper, inputs: dict) -> tuple[list[str], dict, dict]:
-    """Replace explicitly corrected review metadata on an existing paper."""
-    updated_fields: list[str] = []
-    previous_values: dict = {}
-    current_values: dict = {}
-    for field in ("doi", "url", "abstract"):
-        if field not in inputs:
-            continue
-        value = (inputs.get(field) or "").strip()
-        if not value:
-            continue
-        if value != getattr(paper, field):
-            previous_values[field] = getattr(paper, field)
-            setattr(paper, field, value)
-            current_values[field] = value
-            updated_fields.append(field)
-    if "year" in inputs:
-        value = parse_year(inputs.get("year"))
-        if value is None:
-            return updated_fields, previous_values, current_values
-        if value != paper.year:
-            previous_values["year"] = paper.year
-            paper.year = value
-            current_values["year"] = value
-            updated_fields.append("year")
-    return updated_fields, previous_values, current_values
-
-
 class NeuroTutorAgent(BaseAgent):
     """Learning agent with Knowledge Library search and source queuing."""
 
@@ -386,61 +326,15 @@ class NeuroTutorAgent(BaseAgent):
         return execute_tool(block.tool_name, block.tool_input, self._engine, self._vector_store)
 
     def _execute_queue_source(self, inputs: dict) -> str:
-        title = inputs["title"].strip()
-        normalized = normalize_title(title)
-        doi = (inputs.get("doi") or "").strip() or None
-
+        self._backfill_source_metadata(inputs)
         with get_session(self._engine) as session:
-            existing = session.query(Paper).filter_by(doi=doi).first() if doi else None
-            if existing is None:
-                existing = session.query(Paper).filter_by(
-                    normalized_title=normalized
-                ).first()
-            if existing is not None:
-                updated_fields = merge_existing_paper_metadata(existing, inputs)
-                conflicts = find_paper_metadata_conflicts(existing, inputs)
-                session.flush()
-                result = {
-                    "status": "updated" if updated_fields else "already_exists",
-                    "id": existing.id,
-                    "updated_fields": updated_fields,
-                }
-                if conflicts:
-                    result["conflicts"] = conflicts
-                    result["next_action"] = (
-                        "Call update_source_metadata if the user explicitly asked to "
-                        "correct this existing source."
-                    )
-                return json.dumps(result)
-
-            abstract = (inputs.get("abstract") or "").strip() or None
-            authors = inputs.get("authors") or []
-            row = Paper(
-                title=title,
-                normalized_title=normalized,
-                doi=doi,
-                url=(inputs.get("url") or None),
-                source_type=inputs["source_type"],
-                topic_context=inputs["topic_context"],
-                status="pending",
-                queued_at=datetime.now(UTC).isoformat(),
-                abstract=abstract,
-                year=parse_year(inputs.get("year")),
-                authors_json=json.dumps(authors) if authors else None,
-                data_tier="abstract" if abstract else "metadata",
-                currency_status="current",
+            result = queue_or_update_paper(session, inputs, link_topics=True)
+        if result.get("conflicts"):
+            result["next_action"] = (
+                "Call update_source_metadata if the user explicitly asked to "
+                "correct this existing source."
             )
-            session.add(row)
-            session.flush()
-            paper_id = row.id
-            topics = inputs.get("topics") or []
-            if topics:
-                from neurodb.db.grouping_store import get_or_create_grouping, link_grouping
-
-                for topic_name in topics:
-                    grouping = get_or_create_grouping(session, "topic", topic_name)
-                    link_grouping(session, grouping.id, "paper", paper_id, status="confirmed")
-            return json.dumps({"status": "queued", "id": paper_id})
+        return json.dumps(result)
 
     def _execute_update_source_metadata(self, inputs: dict) -> str:
         source_id = int(inputs["source_id"])
@@ -479,7 +373,9 @@ class NeuroTutorAgent(BaseAgent):
             from neurodb.literature_client import LiteratureSearchClient
 
             self._literature_client = LiteratureSearchClient(self._engine)
-        return json.dumps(self._literature_client.search(inputs["query"]))
+        envelope = self._literature_client.search(inputs["query"])
+        self._index_literature_results(envelope)
+        return json.dumps(envelope)
 
     def _execute_search_topics(self, inputs: dict) -> str:
         if self._context_bundle and self._context_bundle.get("topic_bundle"):

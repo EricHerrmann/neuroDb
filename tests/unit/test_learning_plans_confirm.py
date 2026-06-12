@@ -72,6 +72,31 @@ def test_get_plan_exposes_proposed_read_source_metadata():
     assert read["topic_context"] == "plasticity"
 
 
+def test_confirm_captures_read_source_abstract_tier():
+    # A read-step source that carries an abstract must be captured at abstract
+    # tier through the shared write path, not silently dropped to metadata.
+    eng = _engine()
+    steps = [{
+        "type": "read",
+        "source": {
+            "title": "Engram review",
+            "source_type": "review",
+            "topic_context": "engrams",
+            "abstract": "Engram cells encode memory traces.",
+            "year": 2022,
+        },
+    }]
+    pid = propose_plan(
+        eng, title="P", origin_prompt="p", origin_agent="tutor", steps=steps
+    )["id"]
+    confirm_plan(eng, pid)
+    with get_session(eng) as s:
+        row = s.execute(select(Paper)).scalars().one()
+        assert row.abstract == "Engram cells encode memory traces."
+        assert row.year == 2022
+        assert row.data_tier == "abstract"
+
+
 def test_confirm_dedups_existing_paper():
     eng = _engine()
     # Two plans referencing the same source title -> one paper.

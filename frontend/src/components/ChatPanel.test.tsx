@@ -44,6 +44,15 @@ describe('ChatPanel', () => {
     expect((select as HTMLSelectElement).value).toBe('neuro_tutor')
   })
 
+  it('renders a three-line message entry field', () => {
+    render(<ChatPanel agentMode="neuro_tutor" />, { wrapper: makeWrapper() })
+
+    const entry = screen.getByPlaceholderText('Type a message...')
+
+    expect(entry.tagName).toBe('TEXTAREA')
+    expect((entry as HTMLTextAreaElement).rows).toBe(3)
+  })
+
   it('renders prior context banner when active context exists', async () => {
     const fetchMock = vi.fn().mockImplementation((path: string) => {
       if (path === '/api/sessions/active-context') {

@@ -209,6 +209,35 @@ def test_approve_source_preserves_grouping_links_with_duckdb():
         assert link is not None
 
 
+def test_detach_paper_links_does_not_detach_grouping_links():
+    # grouping_links has no FK to papers, so the DuckDB FK-update workaround must
+    # NOT detach/re-insert them. That unnecessary delete+reinsert churn is what
+    # corrupted the ART index. They must stay in place, untouched.
+    from neurodb.api.routes.knowledge_library import _detach_paper_links
+    engine = create_engine("duckdb:///:memory:", poolclass=StaticPool)
+    Base.metadata.create_all(engine)
+    with get_session(engine) as session:
+        paper = Paper(
+            title="Linked", normalized_title="linked", source_type="paper",
+            topic_context="x", status="pending", queued_at="2026-01-01T00:00:00",
+        )
+        session.add(paper)
+        session.flush()
+        pid = paper.id
+        grouping = get_or_create_grouping(session, "topic", "t")
+        link_grouping(session, grouping.id, "paper", pid, status="confirmed")
+
+    with get_session(engine) as session:
+        preserved = _detach_paper_links(session, pid)
+
+    assert preserved.get("grouping_links", []) == []  # not staged for re-insert
+    with get_session(engine) as session:
+        remaining = session.query(GroupingLink).filter_by(
+            anchor_type="paper", anchor_id=pid
+        ).count()
+    assert remaining == 1  # never deleted
+
+
 def test_approve_source_preserves_claims_with_duckdb():
     mock_ks = MagicMock()
     mock_ks.add_summary.return_value = "knowledge_source:1"

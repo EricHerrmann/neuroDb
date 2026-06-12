@@ -179,6 +179,8 @@ cython_debug/
 *.db-journal
 *.duckdb
 *.duckdb.wal
+*.duckdb.bak*
+*.duckdb.corrupt*
 neurodb_chroma/
 *_chroma/
 neurodb_prefs.json

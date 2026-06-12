@@ -51,6 +51,11 @@ class BaseAgent(ABC):
             or f"agent.loop.{telemetry_mode or 'unknown'}"
         )
         self._model_provider = model_provider
+        # Literature search results from this conversation, indexed by
+        # ("doi", ...) and ("title", ...) so the queue/nominate write path can
+        # deterministically backfill the abstract/year the model omits instead
+        # of defaulting a paper to metadata tier.
+        self._recent_literature: dict[tuple[str, str], dict] = {}
         if model_client is not None:
             self._model_client = model_client
         elif client is not None:
@@ -70,6 +75,49 @@ class BaseAgent(ABC):
     @abstractmethod
     def _execute_tool_block(self, block: ContentBlock) -> str:
         """Execute a tool call and return text for tool_result."""
+
+    def _index_literature_results(self, envelope: dict) -> None:
+        """Record this turn's search results so the queue/nominate write path can
+        backfill the abstract/year the model omits. Capture must not depend on
+        the LLM forwarding optional fields it was given in the tool result."""
+        from neurodb.agents.source_queue import normalize_title
+
+        results = envelope.get("results") if isinstance(envelope, dict) else None
+        for item in results or []:
+            abstract = (item.get("abstract") or "").strip()
+            year = item.get("year")
+            if not abstract and year is None:
+                continue
+            record = {"abstract": abstract or None, "year": year}
+            doi = (item.get("doi") or "").strip().lower()
+            if doi:
+                self._recent_literature[("doi", doi)] = record
+            title = item.get("title")
+            if title:
+                self._recent_literature[("title", normalize_title(title))] = record
+
+    def _backfill_source_metadata(self, inputs: dict) -> None:
+        """Fill a queue/nominate call's missing abstract/year from the turn's
+        search results, matched by DOI first then normalized title. Values the
+        agent supplied itself win; an unmatched source stays metadata tier."""
+        from neurodb.agents.source_queue import normalize_title
+
+        has_abstract = bool((inputs.get("abstract") or "").strip())
+        has_year = inputs.get("year") not in (None, "")
+        if has_abstract and has_year:
+            return
+        record = None
+        doi = (inputs.get("doi") or "").strip().lower()
+        if doi:
+            record = self._recent_literature.get(("doi", doi))
+        if record is None and inputs.get("title"):
+            record = self._recent_literature.get(("title", normalize_title(inputs["title"])))
+        if record is None:
+            return
+        if not has_abstract and record.get("abstract"):
+            inputs["abstract"] = record["abstract"]
+        if not has_year and record.get("year") is not None:
+            inputs["year"] = record["year"]
 
     def _build_terminal_tool_response(self, tool_trace: list[dict]) -> str | None:
         """Return a final assistant response when a tool result completes the turn."""

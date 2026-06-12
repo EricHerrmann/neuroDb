@@ -151,30 +151,25 @@ def plans_sharing_grouping(engine: Engine, grouping_id: int) -> int:
 
 
 def _resolve_read_paper(session: Session, source: dict) -> int:
-    """Dedup a read-step source into papers; return paper_id. Mirrors queue_source.
+    """Dedup a read-step source into papers; return paper_id.
 
-    Imported lazily: normalize_title lives in agents.tutor_agent, which (via the
-    shared learning-plan tools) imports this module — a top-level import here
-    would create a circular import.
+    Routes through the shared `queue_or_update_paper` write path so a confirmed
+    read step captures any abstract/year/doi the source carries (same tier rules
+    as agent queuing) instead of always landing at metadata tier. Imported
+    lazily to keep this module import-light during plan-tool loading.
     """
-    from neurodb.agents.tutor_agent import normalize_title
+    from neurodb.agents.source_queue import queue_or_update_paper
 
-    title = (source.get("title") or "").strip()
-    normalized = normalize_title(title)
-    existing = session.execute(
-        select(Paper).where(Paper.normalized_title == normalized)
-    ).scalar_one_or_none()
-    if existing is not None:
-        return existing.id
-    row = Paper(
-        title=title, normalized_title=normalized, doi=None, url=None,
-        source_type=source.get("source_type") or "paper",
-        topic_context=source.get("topic_context") or "",
-        status="pending", queued_at=_now(),
-    )
-    session.add(row)
-    session.flush()
-    return row.id
+    result = queue_or_update_paper(session, {
+        "title": (source.get("title") or "").strip(),
+        "source_type": source.get("source_type") or "paper",
+        "topic_context": source.get("topic_context") or "",
+        "doi": source.get("doi"),
+        "url": source.get("url"),
+        "abstract": source.get("abstract"),
+        "year": source.get("year"),
+    })
+    return result["id"]
 
 
 def _confirm_step_rows(session: Session, steps: list[PlanStep]) -> None:

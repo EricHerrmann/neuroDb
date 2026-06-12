@@ -257,17 +257,21 @@ export default function ChatPanel({ agentMode }: { agentMode: AgentModeValue }) 
           flexShrink: 0,
         }}
       >
-        <input
+        <textarea
           value={input}
           onChange={event => setInput(event.target.value)}
           placeholder="Type a message..."
           disabled={isStreaming}
+          rows={3}
           style={{
             flex: 1,
             padding: '8px 10px',
             border: '1px solid #cbd5e1',
             borderRadius: 6,
             fontSize: 13,
+            fontFamily: 'inherit',
+            lineHeight: 1.4,
+            resize: 'vertical',
           }}
         />
         <button

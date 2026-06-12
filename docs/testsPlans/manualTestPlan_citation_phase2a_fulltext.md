@@ -23,7 +23,7 @@ All commands run from the repo root (`/home/oldha/projects/neuroDb`) unless note
    uv run pytest tests/ -q
    ```
 
-   Pass: only the tracked pre-existing failures remain (at authoring: `test_neuro_atlas_data.py` ×2; 928 passed).
+   Pass: all backend tests pass. Current verified baseline: 940 passed on 2026-06-12.
 
 2. **Frontend gate.**
 

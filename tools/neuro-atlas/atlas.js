@@ -31,13 +31,13 @@ function buildSearchIndex() {
 // ─── Boot ─────────────────────────────────────────────────────────────────────
 async function init() {
   try {
-    const manifest = await fetch('data/manifest.json').then(r => {
+    const manifest = await fetch('data/manifest.json', { cache: 'no-store' }).then(r => {
       if (!r.ok) throw new Error(`manifest fetch failed: ${r.status}`);
       return r.json();
     });
     const results = await Promise.all(
       manifest.plates.map(id =>
-        fetch(`data/plates/${id}.json`)
+        fetch(`data/plates/${id}.json`, { cache: 'no-store' })
           .then(r => r.ok ? r.json() : Promise.reject(new Error(`${r.status}`)))
           .catch(err => { console.warn(`Skipping plate "${id}": ${err.message}`); return null; })
       )

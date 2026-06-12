@@ -360,7 +360,21 @@ _RESEARCH_TOOLS = [
                 },
                 "url": {"type": "string"},
                 "doi": {"type": "string"},
-                "abstract": {"type": "string"},
+                "abstract": {
+                    "type": "string",
+                    "description": "Abstract text from the search result, if available.",
+                },
+                "year": {"type": "integer", "description": "Publication year, if known."},
+                "authors": {
+                    "type": "array",
+                    "items": {"type": "string"},
+                    "description": "Author names, if known.",
+                },
+                "topics": {
+                    "type": "array",
+                    "items": {"type": "string"},
+                    "description": "Topic names to link to this source.",
+                },
             },
             "required": ["title", "source_type", "topic_context"],
         },
@@ -614,7 +628,9 @@ class NeuroResearchAgent(BaseAgent):
             from neurodb.literature_client import LiteratureSearchClient
 
             self._literature_client = LiteratureSearchClient(self._engine)
-        return json.dumps(self._literature_client.search(inputs["query"]))
+        envelope = self._literature_client.search(inputs["query"])
+        self._index_literature_results(envelope)
+        return json.dumps(envelope)
 
     def _execute_extract_claims(self, inputs: dict) -> dict:
         from neurodb.db import get_session
@@ -720,44 +736,13 @@ class NeuroResearchAgent(BaseAgent):
             }
 
     def _execute_nominate_paper(self, inputs: dict) -> str:
-        from datetime import UTC, datetime
-        from neurodb.agents.tutor_agent import merge_existing_paper_metadata, normalize_title
+        from neurodb.agents.source_queue import queue_or_update_paper
         from neurodb.db import get_session
-        from neurodb.schema import Paper as PaperModel
 
-        title = inputs["title"].strip()
-        normalized = normalize_title(title)
-        doi = (inputs.get("doi") or "").strip() or None
-
+        self._backfill_source_metadata(inputs)
         with get_session(self._engine) as session:
-            existing = session.query(PaperModel).filter_by(doi=doi).first() if doi else None
-            if existing is None:
-                existing = session.query(PaperModel).filter_by(normalized_title=normalized).first()
-            if existing is not None:
-                updated_fields = merge_existing_paper_metadata(existing, inputs)
-                session.flush()
-                return json.dumps({
-                    "status": "updated" if updated_fields else "already_exists",
-                    "id": existing.id,
-                    "updated_fields": updated_fields,
-                })
-            abstract = (inputs.get("abstract") or "").strip() or None
-            row = PaperModel(
-                title=title,
-                normalized_title=normalized,
-                doi=doi,
-                url=(inputs.get("url") or None),
-                source_type=inputs["source_type"],
-                topic_context=inputs["topic_context"],
-                abstract=abstract,
-                status="pending",
-                queued_at=datetime.now(UTC).isoformat(),
-                data_tier="abstract" if abstract else "metadata",
-                currency_status="current",
-            )
-            session.add(row)
-            session.flush()
-            return json.dumps({"status": "queued", "id": row.id})
+            result = queue_or_update_paper(session, inputs, link_topics=True)
+        return json.dumps(result)
 
     def _execute_suggest_dataset_import(self, inputs: dict) -> str:
         from neurodb.discovery_tools import run_suggest_import

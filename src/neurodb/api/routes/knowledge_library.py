@@ -338,10 +338,12 @@ def _update_paper_fields(source_id: int, engine: Engine, **fields) -> PaperItem:
 def _update_paper_fields_duckdb(source_id: int, engine: Engine, **fields) -> PaperItem:
     """Update Paper fields while preserving paper references.
 
-    DuckDB currently rejects UPDATEs to a parent row when child rows reference it
-    through a foreign key, even when the primary key is unchanged. Knowledge
-    Library approval commonly touches papers that already have topic/concept or
-    claim links, so preserve those rows around the UPDATE.
+    DuckDB rejects UPDATEs to a parent row when child rows reference it through a
+    foreign key, even when the primary key is unchanged. Only the tables that
+    actually FK to papers are detached and restored around the UPDATE
+    (claims, study_notes, evidence_links, dataset_packet_papers). grouping_links
+    has no such FK, so it is left untouched — detaching it churned and corrupted
+    its ART unique index on DuckDB.
     """
     with get_session(engine) as session:
         _get_paper_or_404(session, source_id)
@@ -425,11 +427,6 @@ def _detach_paper_links(session, paper_id: int) -> dict[str, list[dict]]:
             "created_at",
         ],
     )
-    has_grouping_links = _table_has_columns(
-        session,
-        "grouping_links",
-        ["id", "grouping_id", "anchor_type", "anchor_id", "status", "created_at"],
-    )
     claims = session.query(Claim).filter_by(paper_id=paper_id).all() if has_claims else []
     claim_ids = [claim.id for claim in claims]
     study_notes = (
@@ -451,23 +448,12 @@ def _detach_paper_links(session, paper_id: int) -> dict[str, list[dict]]:
             )
         evidence_links = evidence_query.all()
     links: dict[str, list[dict]] = {
-        "grouping_links": [
-            {
-                "id": link.id,
-                "grouping_id": link.grouping_id,
-                "anchor_type": link.anchor_type,
-                "anchor_id": link.anchor_id,
-                "status": link.status,
-                "created_at": link.created_at,
-            }
-            for link in (
-                session.query(GroupingLink)
-                .filter_by(anchor_type="paper", anchor_id=paper_id)
-                .all()
-                if has_grouping_links
-                else []
-            )
-        ],
+        # grouping_links has no foreign key to papers, so the DuckDB FK-update
+        # workaround does not need to detach it. Deleting + re-inserting these
+        # rows (with explicit ids) on every approve/remove churned the ART unique
+        # index and corrupted it, so we intentionally leave grouping_links in
+        # place — the paper UPDATE is not blocked by them.
+        "grouping_links": [],
         "dataset_packet_papers": [
             {"id": link.id, "packet_id": link.packet_id, "paper_id": link.paper_id}
             for link in session.query(DatasetPacketPaper).filter_by(paper_id=paper_id).all()
@@ -512,11 +498,6 @@ def _detach_paper_links(session, paper_id: int) -> dict[str, list[dict]]:
             for link in evidence_links
         ],
     }
-    if has_grouping_links:
-        for link in session.query(GroupingLink).filter_by(
-            anchor_type="paper", anchor_id=paper_id
-        ).all():
-            session.delete(link)
     for link in evidence_links:
         session.delete(link)
     for model, enabled in [
@@ -533,8 +514,8 @@ def _detach_paper_links(session, paper_id: int) -> dict[str, list[dict]]:
 
 
 def _restore_paper_links(session, links: dict[str, list[dict]]) -> None:
-    for values in links.get("grouping_links", []):
-        session.add(GroupingLink(**values))
+    # grouping_links are intentionally not detached (see _detach_paper_links),
+    # so there is nothing to restore for them.
     for values in links["dataset_packet_papers"]:
         session.add(DatasetPacketPaper(**values))
     for values in links["claims"]:

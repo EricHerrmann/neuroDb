@@ -383,6 +383,83 @@ def test_nominate_paper_with_abstract_is_abstract_tier():
         assert row.currency_status == "current"
 
 
+class _BackfillLiteratureClient:
+    def __init__(self, result: dict):
+        self._result = result
+
+    def search(self, query):
+        return {
+            "query": query,
+            "result_count": 1,
+            "results": [self._result],
+            "providers": {},
+        }
+
+
+def test_nominate_paper_backfills_abstract_from_prior_search():
+    # Same deterministic-capture guarantee as the tutor path: the model omits the
+    # abstract on nominate, so it is backfilled from the turn's search results.
+    engine = _engine()
+    agent = _agent(engine, literature_client=_BackfillLiteratureClient({
+        "title": "Sharp-wave ripples drive consolidation",
+        "doi": None,
+        "abstract": "Ripples coordinate hippocampal-cortical replay.",
+        "year": 2018,
+        "source_type": "paper",
+        "source": "pubmed",
+    }))
+    agent._execute_search_literature({"query": "ripples consolidation"})
+    res = json.loads(agent._execute_nominate_paper({
+        "title": "Sharp-wave ripples drive consolidation",
+        "source_type": "paper",
+        "topic_context": "consolidation",
+    }))
+    with Session(engine) as session:
+        row = session.get(Paper, res["id"])
+        assert row.abstract == "Ripples coordinate hippocampal-cortical replay."
+        assert row.year == 2018
+        assert row.data_tier == "abstract"
+
+
+def test_nominate_paper_stores_year_at_parity_with_tutor():
+    engine = _engine()
+    agent = _agent(engine)
+    res = json.loads(agent._execute_nominate_paper({
+        "title": "A dated nomination",
+        "source_type": "paper",
+        "topic_context": "x",
+        "year": 2020,
+        "abstract": "abstract text",
+    }))
+    with Session(engine) as session:
+        row = session.get(Paper, res["id"])
+        assert row.year == 2020
+
+
+def test_nominate_paper_reports_conflict_at_parity_with_tutor():
+    engine = _engine()
+    agent = _agent(engine)
+    agent._execute_nominate_paper({
+        "title": "Conflict nomination", "source_type": "paper",
+        "topic_context": "x", "doi": "10.1/c", "abstract": "first abstract",
+    })
+    res = json.loads(agent._execute_nominate_paper({
+        "title": "Conflict nomination", "source_type": "paper",
+        "topic_context": "x", "doi": "10.1/c", "abstract": "different abstract",
+    }))
+    assert any(c["field"] == "abstract" for c in res.get("conflicts", []))
+
+
+def test_nominate_paper_schema_includes_year_and_topics():
+    props = None
+    for tool in _agent()._get_active_tools():
+        if tool["name"] == "nominate_paper":
+            props = tool["input_schema"]["properties"]
+    assert props is not None
+    assert "year" in props
+    assert "topics" in props
+
+
 def test_research_prompt_includes_disclosure_rules():
     prompt = _agent()._build_system_prompt()
     assert "state its tier" in prompt.lower()

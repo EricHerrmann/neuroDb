@@ -578,6 +578,136 @@ def test_merge_upgrades_tier_when_abstract_added():
     assert paper.data_tier == "abstract"
 
 
+class _BackfillLiteratureClient:
+    """Returns a single result so queue_source can backfill from the turn's search."""
+
+    def __init__(self, result: dict):
+        self._result = result
+
+    def search(self, query):
+        return {
+            "query": query,
+            "result_count": 1,
+            "results": [self._result],
+            "providers": {},
+        }
+
+
+def test_queue_source_backfills_abstract_from_prior_search_by_title():
+    # arXiv/PubMed papers carry abstracts in search results but the agent often
+    # omits them on queue. The abstract must be captured deterministically.
+    engine = _engine()
+    agent = NeuroTutorAgent(
+        MagicMock(), engine, knowledge_store=_store(),
+        literature_client=_BackfillLiteratureClient({
+            "title": "Engram cells retain memory under retrograde amnesia",
+            "doi": None,  # arXiv/PubMed preprints frequently have no DOI
+            "abstract": "Engram cells persist and remain reactivatable under amnesia.",
+            "year": 2015,
+            "source_type": "paper",
+            "source": "pubmed",
+        }),
+    )
+    agent._execute_search_literature({"query": "engram retrograde amnesia"})
+    agent._execute_queue_source({
+        "title": "Engram cells retain memory under retrograde amnesia",
+        "source_type": "paper",
+        "topic_context": "memory consolidation",
+    })
+    with Session(engine) as session:
+        row = session.query(Paper).filter_by(
+            normalized_title=normalize_title(
+                "Engram cells retain memory under retrograde amnesia"
+            )
+        ).one()
+        assert row.abstract == "Engram cells persist and remain reactivatable under amnesia."
+        assert row.year == 2015
+        assert row.data_tier == "abstract"
+
+
+def test_queue_source_backfills_abstract_from_prior_search_by_doi():
+    engine = _engine()
+    agent = NeuroTutorAgent(
+        MagicMock(), engine, knowledge_store=_store(),
+        literature_client=_BackfillLiteratureClient({
+            "title": "Hippocampal LTP and memory",
+            "doi": "10.1000/ltp",
+            "abstract": "LTP underlies memory formation.",
+            "year": 2024,
+            "source_type": "paper",
+            "source": "semantic_scholar",
+        }),
+    )
+    agent._execute_search_literature({"query": "LTP memory"})
+    # Agent re-titles the source slightly but carries the DOI through.
+    agent._execute_queue_source({
+        "title": "Hippocampal long-term potentiation & memory",
+        "doi": "10.1000/ltp",
+        "source_type": "paper",
+        "topic_context": "synaptic plasticity",
+    })
+    with Session(engine) as session:
+        row = session.query(Paper).filter_by(doi="10.1000/ltp").one()
+        assert row.abstract == "LTP underlies memory formation."
+        assert row.data_tier == "abstract"
+
+
+def test_queue_source_agent_abstract_takes_precedence_over_backfill():
+    engine = _engine()
+    agent = NeuroTutorAgent(
+        MagicMock(), engine, knowledge_store=_store(),
+        literature_client=_BackfillLiteratureClient({
+            "title": "Engram allocation",
+            "doi": None,
+            "abstract": "Truncated search-result abstract...",
+            "year": 2020,
+            "source_type": "paper",
+            "source": "arxiv",
+        }),
+    )
+    agent._execute_search_literature({"query": "engram allocation"})
+    agent._execute_queue_source({
+        "title": "Engram allocation",
+        "source_type": "paper",
+        "topic_context": "allocation",
+        "abstract": "Fuller abstract the agent supplied itself.",
+    })
+    with Session(engine) as session:
+        row = session.query(Paper).filter_by(
+            normalized_title=normalize_title("Engram allocation")
+        ).one()
+        assert row.abstract == "Fuller abstract the agent supplied itself."
+        assert row.data_tier == "abstract"
+
+
+def test_queue_source_stays_metadata_when_no_prior_search_match():
+    # AG3: a genuinely abstract-less source must remain metadata tier (the flag).
+    engine = _engine()
+    agent = NeuroTutorAgent(
+        MagicMock(), engine, knowledge_store=_store(),
+        literature_client=_BackfillLiteratureClient({
+            "title": "Some other paper entirely",
+            "doi": "10.1/other",
+            "abstract": "Unrelated abstract.",
+            "year": 2019,
+            "source_type": "paper",
+            "source": "pubmed",
+        }),
+    )
+    agent._execute_search_literature({"query": "unrelated"})
+    agent._execute_queue_source({
+        "title": "A textbook with no abstract anywhere",
+        "source_type": "textbook",
+        "topic_context": "x",
+    })
+    with Session(engine) as session:
+        row = session.query(Paper).filter_by(
+            normalized_title=normalize_title("A textbook with no abstract anywhere")
+        ).one()
+        assert row.abstract is None
+        assert row.data_tier == "metadata"
+
+
 def test_search_results_carry_temporal_descriptor():
     engine = _engine()
     store = _store()

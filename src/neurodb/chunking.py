@@ -10,6 +10,7 @@ class Section:
     text: str
     char_start: int
     char_end: int
+    page: int | None = None
 
 
 @dataclass
@@ -19,6 +20,7 @@ class Chunk:
     section: str | None
     char_start: int
     char_end: int
+    page: int | None = None
 
 
 def chunk_sections(
@@ -37,7 +39,7 @@ def chunk_sections(
             continue
         if len(sec.text) <= max_chars:
             chunks.append(
-                Chunk(index, sec.text, sec.label, sec.char_start, sec.char_end)
+                Chunk(index, sec.text, sec.label, sec.char_start, sec.char_end, sec.page)
             )
             index += 1
             continue
@@ -47,7 +49,7 @@ def chunk_sections(
             if not piece.strip():
                 break
             start = sec.char_start + pos
-            chunks.append(Chunk(index, piece, sec.label, start, start + len(piece)))
+            chunks.append(Chunk(index, piece, sec.label, start, start + len(piece), sec.page))
             index += 1
             pos += step
     return chunks

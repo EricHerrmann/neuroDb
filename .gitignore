@@ -183,6 +183,7 @@ cython_debug/
 *.duckdb.corrupt*
 neurodb_chroma/
 *_chroma/
+knowledge_library_files/
 neurodb_prefs.json
 
 # Frontend generated artifacts

@@ -1,0 +1,40 @@
+import pytest
+from neurodb import library_store
+
+
+@pytest.fixture
+def lib(tmp_path, monkeypatch):
+    monkeypatch.setenv("NEURODB_LIBRARY_DIR", str(tmp_path))
+    return tmp_path
+
+
+def test_lists_only_supported_top_level_files(lib):
+    (lib / "a.pdf").write_bytes(b"%PDF-1.4")
+    (lib / "b.txt").write_text("hi")
+    (lib / "c.exe").write_bytes(b"x")
+    (lib / "sub").mkdir()
+    (lib / "sub" / "d.pdf").write_bytes(b"x")
+    names = {f["name"] for f in library_store.list_library_files()}
+    assert names == {"a.pdf", "b.txt"}
+
+
+def test_resolve_valid_file(lib):
+    (lib / "paper.pdf").write_bytes(b"%PDF-1.4")
+    p = library_store.resolve_library_path("paper.pdf")
+    assert p is not None and p.name == "paper.pdf"
+
+
+def test_resolve_rejects_traversal(lib, tmp_path):
+    secret = tmp_path.parent / "secret.pdf"
+    secret.write_bytes(b"%PDF")
+    assert library_store.resolve_library_path("../secret.pdf") is None
+
+
+def test_resolve_rejects_absolute(lib):
+    assert library_store.resolve_library_path("/etc/passwd") is None
+
+
+def test_resolve_missing_and_unsupported(lib):
+    (lib / "x.exe").write_bytes(b"x")
+    assert library_store.resolve_library_path("nope.pdf") is None
+    assert library_store.resolve_library_path("x.exe") is None

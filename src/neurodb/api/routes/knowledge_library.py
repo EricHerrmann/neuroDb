@@ -236,43 +236,34 @@ def acquire_full_text(
         _update_paper_fields(source_id, engine, full_text_status=result.status)
         warnings.append(result.message)
     else:
-        chunks = chunk_sections(result.sections)
-        if chunk_store is not None:
-            chunk_store.delete_paper(source_id)
-            chunk_store.add_chunks(
-                paper_id=source_id,
-                title=paper_title,
-                year=paper_year,
-                currency_status=paper_currency,
-                text_source=result.text_source,
-                chunks=chunks,
-            )
-        created_at = datetime.now(UTC).isoformat()
-        with get_session(engine) as session:
-            session.query(PaperChunk).filter(PaperChunk.paper_id == source_id).delete()
-            for c in chunks:
-                session.add(PaperChunk(
-                    paper_id=source_id,
-                    chunk_index=c.chunk_index,
-                    text=c.text,
-                    section=c.section,
-                    char_start=c.char_start,
-                    char_end=c.char_end,
-                    text_source=result.text_source,
-                    chroma_id=f"chunk:{source_id}:{c.chunk_index}",
-                    created_at=created_at,
-                ))
-        _update_paper_fields(
-            source_id, engine,
-            full_text_status="verified",
-            text_source=result.text_source,
-            data_tier="full_text",
-        )
+        _commit_chunks(source_id, engine, chunk_store, sections=result.sections,
+                       text_source=result.text_source, title=paper_title, year=paper_year,
+                       currency=paper_currency)
+        _update_paper_fields(source_id, engine, full_text_status="verified",
+                             text_source=result.text_source, data_tier="full_text")
 
     with get_session(engine) as session:
         row = session.get(Paper, source_id)
         item = _paper_item_from_row(row, session)
     return item.model_copy(update={"warnings": warnings})
+
+
+def _commit_chunks(source_id, engine, chunk_store, *, sections, text_source,
+                   title, year, currency):
+    chunks = chunk_sections(sections)
+    if chunk_store is not None:
+        chunk_store.delete_paper(source_id)
+        chunk_store.add_chunks(paper_id=source_id, title=title, year=year,
+                               currency_status=currency, text_source=text_source, chunks=chunks)
+    created_at = datetime.now(UTC).isoformat()
+    with get_session(engine) as session:
+        session.query(PaperChunk).filter(PaperChunk.paper_id == source_id).delete()
+        for c in chunks:
+            session.add(PaperChunk(
+                paper_id=source_id, chunk_index=c.chunk_index, text=c.text, section=c.section,
+                char_start=c.char_start, char_end=c.char_end, page=c.page,
+                text_source=text_source, chroma_id=f"chunk:{source_id}:{c.chunk_index}",
+                created_at=created_at))
 
 
 def _set_status(source_id: int, status: str, engine: Engine) -> PaperItem:

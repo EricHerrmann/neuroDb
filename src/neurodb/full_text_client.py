@@ -224,6 +224,25 @@ FULL_TEXT_BACKENDS: list[FullTextBackend] = [
 ]
 
 
+def classify_for_phase2b(paper, supplied: "SuppliedInput | None" = None) -> str:
+    """Route a paper to the structured 2a path or the 2b fallback.
+
+    "structured" when 2a can plausibly handle it (user-supplied text, an arXiv id, or a
+    PMC-resolvable id); "phase2b" otherwise (publisher landing page, or a user-supplied URL).
+    """
+    if supplied and supplied.text and supplied.text.strip():
+        return "structured"
+    if supplied and supplied.url:
+        return "phase2b"
+    if ArxivSourceBackend()._arxiv_id(paper) is not None:
+        return "structured"
+    url = getattr(paper, "url", "") or ""
+    doi = getattr(paper, "doi", "") or ""
+    if "PMC" in url or "PMC" in doi or "/pmc/" in url:
+        return "structured"
+    return "phase2b"
+
+
 def acquire(paper, http, supplied: SuppliedInput | None = None):
     """Return a FullTextResult on success, else an AcquireFailure (never raises for routing)."""
     # 1) explicit user-supplied text

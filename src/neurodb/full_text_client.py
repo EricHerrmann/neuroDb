@@ -27,6 +27,7 @@ class SuppliedInput:
     url: str | None = None
     text: str | None = None
     format: str | None = None  # txt | md | jats
+    path: str | None = None  # local library file path (local-file source)
 
 
 @dataclass
@@ -232,7 +233,7 @@ def classify_for_phase2b(paper, supplied: "SuppliedInput | None" = None) -> str:
     """
     if supplied and supplied.text and supplied.text.strip():
         return "structured"
-    if supplied and supplied.url:
+    if supplied and (supplied.url or supplied.path):
         return "phase2b"
     if ArxivSourceBackend()._arxiv_id(paper) is not None:
         return "structured"

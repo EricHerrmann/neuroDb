@@ -352,6 +352,20 @@ def _phase2b_parse(paper: Paper, supplied: SuppliedInput) -> ParsedArtifact | No
     from neurodb.oa_locator import find_pdf_url
     from neurodb.pdf_parser import parse_pdf
 
+    if supplied and supplied.path:
+        from pathlib import Path
+        p = Path(supplied.path)
+        try:
+            if p.suffix.lower() == ".pdf":
+                artifact = parse_pdf(p.read_bytes())
+            else:  # .html/.htm
+                artifact = extract_html(p.read_text(errors="replace"))
+            artifact.fetched_url = p.name
+            return artifact
+        except Exception:
+            logger.exception("Phase 2b local-file parse failed for %s", supplied.path)
+            return None
+
     unpaywall_email = os.environ.get("UNPAYWALL_EMAIL")
     s2_pdf_url = getattr(paper, "open_access_pdf", None)
 

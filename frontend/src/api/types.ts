@@ -338,6 +338,12 @@ export interface PlanSummary {
   pending_change_count: number
 }
 
+export interface LibraryFile {
+  name: string
+  size: number
+  modified: number
+}
+
 export interface PlanDetail extends PlanSummary {
   origin_prompt: string
   research_question_id: number | null

@@ -5,11 +5,12 @@ import { afterEach, describe, it, expect, vi } from 'vitest'
 
 import KnowledgeLibraryPanel from './KnowledgeLibraryPanel'
 
-function makeWrapper(data: unknown) {
+function makeWrapper(data: unknown, libraryFiles: unknown = []) {
   const qc = new QueryClient({
     defaultOptions: { queries: { retry: false, staleTime: Infinity } },
   })
   qc.setQueryData(['knowledge-library', 'all'], data)
+  qc.setQueryData(['library-files'], libraryFiles)
   return ({ children }: { children: React.ReactNode }) =>
     React.createElement(QueryClientProvider, { client: qc }, children)
 }
@@ -380,6 +381,126 @@ describe('KnowledgeLibraryPanel', () => {
     })
     // Should show a link/URL input affordance for recovery
     expect(screen.getByPlaceholderText(/PDF or HTML URL/i)).toBeTruthy()
+  })
+
+  it('lists library files in the supply-link dropdown for an unavailable paper', () => {
+    render(<KnowledgeLibraryPanel />, {
+      wrapper: makeWrapper(
+        [{
+          id: 20,
+          title: 'File Picker Paper',
+          doi: null,
+          url: null,
+          source_type: 'paper',
+          topic_context: 'plasticity',
+          status: 'approved',
+          queued_at: '2026-01-01',
+          reviewed_at: '2026-01-02',
+          summary: null,
+          data_tier: 'metadata',
+          full_text_status: 'unavailable',
+        }],
+        [
+          { name: 'paper-a.pdf', size: 12345, modified: 1700000000 },
+          { name: 'paper-b.pdf', size: 67890, modified: 1700001000 },
+        ],
+      ),
+    })
+
+    // Dropdown should be present and list both files
+    const select = screen.getByRole('combobox', { name: /pick library file/i })
+    expect(select).toBeTruthy()
+    expect(screen.getByRole('option', { name: 'paper-a.pdf' })).toBeTruthy()
+    expect(screen.getByRole('option', { name: 'paper-b.pdf' })).toBeTruthy()
+  })
+
+  it('calls acquire with source_path when a library file is selected and acquire is clicked', async () => {
+    const fetchMock = vi.fn().mockImplementation((path: string, init?: RequestInit) => {
+      if (path.includes('/acquire-full-text') && init?.method === 'POST') {
+        return Promise.resolve({
+          ok: true,
+          status: 200,
+          json: async () => ({
+            id: 21,
+            title: 'Path Paper',
+            doi: null,
+            url: null,
+            source_type: 'paper',
+            topic_context: 'memory',
+            status: 'approved',
+            queued_at: '2026-01-01',
+            reviewed_at: '2026-01-02',
+            summary: null,
+            data_tier: 'full_text',
+            full_text_status: 'verified',
+          }),
+        })
+      }
+      return Promise.resolve({ ok: true, status: 200, json: async () => [] })
+    })
+    vi.stubGlobal('fetch', fetchMock)
+
+    render(<KnowledgeLibraryPanel />, {
+      wrapper: makeWrapper(
+        [{
+          id: 21,
+          title: 'Path Paper',
+          doi: null,
+          url: null,
+          source_type: 'paper',
+          topic_context: 'memory',
+          status: 'approved',
+          queued_at: '2026-01-01',
+          reviewed_at: '2026-01-02',
+          summary: null,
+          data_tier: 'metadata',
+          full_text_status: 'unavailable',
+        }],
+        [{ name: 'chosen.pdf', size: 1000, modified: 1700000000 }],
+      ),
+    })
+
+    // Select the library file from the dropdown
+    const select = screen.getByRole('combobox', { name: /pick library file/i })
+    fireEvent.change(select, { target: { value: 'chosen.pdf' } })
+
+    // Click the acquire button
+    fireEvent.click(screen.getByText(/Supply link \/ upload PDF/i))
+
+    await waitFor(() => {
+      const acquireCalls = fetchMock.mock.calls.filter(
+        (args: unknown[]) =>
+          (args[0] as string).includes('/acquire-full-text') &&
+          (args[1] as RequestInit)?.method === 'POST',
+      )
+      expect(acquireCalls.length).toBeGreaterThan(0)
+      const body = JSON.parse((acquireCalls[0][1] as RequestInit).body as string)
+      expect(body).toEqual({ source_path: 'chosen.pdf' })
+    })
+  })
+
+  it('shows empty-library hint when listLibraryFiles returns empty array', () => {
+    render(<KnowledgeLibraryPanel />, {
+      wrapper: makeWrapper(
+        [{
+          id: 22,
+          title: 'Empty Library Paper',
+          doi: null,
+          url: null,
+          source_type: 'paper',
+          topic_context: 'plasticity',
+          status: 'approved',
+          queued_at: '2026-01-01',
+          reviewed_at: '2026-01-02',
+          summary: null,
+          data_tier: 'metadata',
+          full_text_status: 'unavailable',
+        }],
+        [],
+      ),
+    })
+
+    expect(screen.getByText(/No files in library — drop a file in knowledge_library_files\//)).toBeTruthy()
   })
 
   it('starts summary task when approve has no duplicates', async () => {

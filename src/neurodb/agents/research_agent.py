@@ -104,7 +104,10 @@ _RESEARCH_SYSTEM_PROMPT = (
     "verbatim quote, call verify_quote with the exact text and source_id; tag a quote "
     "[verified: Title section] ONLY after verify_quote returns matched=true. Any quoted "
     "text you did not or could not verify must be tagged [unverified - from memory]. "
-    "Verified is earned from the tool result, never asserted on your own."
+    "Verified is earned from the tool result, never asserted on your own. "
+    "When a quote's source was extracted from a PDF or web page (text_source pdf_* or "
+    "html_extracted), note that and include the page number when present, so the reader "
+    "knows it is not from a publisher-clean structured source."
 )
 
 _RESEARCH_TOOLS = [

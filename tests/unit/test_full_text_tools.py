@@ -35,6 +35,18 @@ def test_search_returns_grounded_passage():
     out = json.loads(execute_search_full_text(_store(), {"query": "hippocampus"}, min_score=0.0))
     assert out["grounded"] is True
     assert out["passages"][0]["section"] == "Intro"
+    assert "page" in out["passages"][0]
+
+
+def test_search_returns_page_in_passage():
+    s = ChunkStore(client=chromadb.EphemeralClient(), embedder=_StubEmbedder(),
+                   collection_name=f"chunks_{uuid.uuid4().hex}")
+    s.add_chunks(paper_id=42, title="PDFPaper", year=2023, currency_status="current",
+                 text_source="pdf_pymupdf",
+                 chunks=[Chunk(0, "the hippocampus consolidates memory", "Intro", 0, 35, page=7)])
+    out = json.loads(execute_search_full_text(s, {"query": "hippocampus"}, min_score=0.0))
+    assert out["grounded"] is True
+    assert out["passages"][0]["page"] == 7
 
 
 def test_search_below_threshold_is_honest_absence():

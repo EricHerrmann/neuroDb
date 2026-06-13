@@ -46,6 +46,7 @@ class ChunkStore:
                 "year": str(year) if year else "",
                 "currency_status": currency_status,
                 "data_tier": "full_text",
+                "page": str(c.page) if c.page is not None else "",
             }
             for c in chunks
         ]
@@ -93,6 +94,7 @@ class ChunkStore:
                 "text_source": meta.get("text_source", ""),
                 "year": meta.get("year") or "",
                 "currency_status": meta.get("currency_status", "current"),
+                "page": int(meta["page"]) if meta.get("page") else None,
                 "score": score,
             })
         return out

@@ -331,7 +331,9 @@ def fulltext_review(
 
     with get_session(engine) as session:
         row = session.get(Paper, source_id)
-        return _paper_item_from_row(row, session)
+        # staging was just deleted; pass explicitly to avoid a sentinel auto-fetch
+        # opening a nested session inside this DuckDB session.
+        return _paper_item_from_row(row, session, staged=None)
 
 
 def _load_paper(engine: Engine, source_id: int) -> Paper:

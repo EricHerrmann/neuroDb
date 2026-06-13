@@ -274,6 +274,7 @@ class Paper(Base):
     )
     full_text_status: Mapped[str | None] = mapped_column(String(16), nullable=True)
     text_source: Mapped[str | None] = mapped_column(String(32), nullable=True)
+    parse_confidence: Mapped[float | None] = mapped_column(Float, nullable=True)
 
 
 class PaperChunk(Base):
@@ -292,8 +293,24 @@ class PaperChunk(Base):
     section: Mapped[str | None] = mapped_column(String(256), nullable=True)
     char_start: Mapped[int | None] = mapped_column(Integer, nullable=True)
     char_end: Mapped[int | None] = mapped_column(Integer, nullable=True)
+    page: Mapped[int | None] = mapped_column(Integer, nullable=True)
     text_source: Mapped[str] = mapped_column(String(32), nullable=False)
     chroma_id: Mapped[str] = mapped_column(String(128), nullable=False)
+    created_at: Mapped[str] = mapped_column(String(32), nullable=False)
+
+
+class PaperFulltextStaging(Base):
+    """A parsed full-text artifact awaiting human review. Insert/delete only (no FK)."""
+    __tablename__ = "paper_fulltext_staging"
+
+    id: Mapped[int] = mapped_column(
+        Integer, Sequence("paper_fulltext_staging_id_seq"), primary_key=True
+    )
+    source_id: Mapped[int] = mapped_column(Integer, nullable=False, index=True)
+    text_source: Mapped[str] = mapped_column(String(32), nullable=False)
+    parse_confidence: Mapped[float | None] = mapped_column(Float, nullable=True)
+    fetched_url: Mapped[str | None] = mapped_column(Text, nullable=True)
+    artifact_json: Mapped[str] = mapped_column(Text, nullable=False)
     created_at: Mapped[str] = mapped_column(String(32), nullable=False)
 
 

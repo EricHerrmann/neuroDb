@@ -312,6 +312,76 @@ describe('KnowledgeLibraryPanel', () => {
     })
   })
 
+  it('verified item shows Re-acquire and does NOT show plain Acquire full text', () => {
+    render(<KnowledgeLibraryPanel />, {
+      wrapper: makeWrapper([{
+        id: 10,
+        title: 'Verified Paper',
+        doi: null,
+        url: null,
+        source_type: 'paper',
+        topic_context: 'plasticity',
+        status: 'approved',
+        queued_at: '2026-01-01',
+        reviewed_at: '2026-01-02',
+        summary: null,
+        data_tier: 'full_text',
+        full_text_status: 'verified',
+      }]),
+    })
+    expect(screen.getByText('Re-acquire')).toBeTruthy()
+    expect(screen.queryByText('Acquire full text')).toBeNull()
+  })
+
+  it('needs_review item shows Review parse button', () => {
+    render(<KnowledgeLibraryPanel />, {
+      wrapper: makeWrapper([{
+        id: 11,
+        title: 'Staged Paper',
+        doi: null,
+        url: null,
+        source_type: 'paper',
+        topic_context: 'plasticity',
+        status: 'approved',
+        queued_at: '2026-01-01',
+        reviewed_at: '2026-01-02',
+        summary: null,
+        data_tier: 'full_text',
+        full_text_status: 'needs_review',
+        parse_confidence: 0.85,
+        fulltext_staging: {
+          source_id: 'src-1',
+          text_source: 'pdf',
+          parse_confidence: 0.85,
+          fetched_url: 'https://example.com/paper.pdf',
+          sections: [{ label: 'Abstract', text: 'Some text', char_start: 0, char_end: 9, page: 1 }],
+        },
+      }]),
+    })
+    expect(screen.getByText('Review parse')).toBeTruthy()
+  })
+
+  it('unavailable item offers supply-link affordance', () => {
+    render(<KnowledgeLibraryPanel />, {
+      wrapper: makeWrapper([{
+        id: 12,
+        title: 'Unavailable Paper',
+        doi: null,
+        url: null,
+        source_type: 'paper',
+        topic_context: 'plasticity',
+        status: 'approved',
+        queued_at: '2026-01-01',
+        reviewed_at: '2026-01-02',
+        summary: null,
+        data_tier: 'metadata',
+        full_text_status: 'unavailable',
+      }]),
+    })
+    // Should show a link/URL input affordance for recovery
+    expect(screen.getByPlaceholderText(/PDF or HTML URL/i)).toBeTruthy()
+  })
+
   it('starts summary task when approve has no duplicates', async () => {
     const fetchMock = vi.fn().mockImplementation((path: string, init?: RequestInit) => {
       if (path.includes('/duplicates')) {

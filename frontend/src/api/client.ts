@@ -31,6 +31,8 @@ import type {
   TaskResponse,
 } from './types'
 
+export type FullTextReviewDecision = 'confirm' | 'reject'
+
 async function get<T>(path: string): Promise<T> {
   const res = await fetch(path)
   if (!res.ok) throw new Error(`${res.status} ${res.statusText}`)
@@ -139,6 +141,10 @@ export const api = {
     post<PaperItem>(`/api/knowledge-library/${id}/remove`),
   acquireFullText: (id: number) =>
     post<PaperItem>(`/api/knowledge-library/${id}/acquire-full-text`, {}),
+  acquireFullTextWithUrl: (id: number, sourceUrl: string) =>
+    post<PaperItem>(`/api/knowledge-library/${id}/acquire-full-text`, { source_url: sourceUrl }),
+  reviewFullText: (id: number, decision: FullTextReviewDecision) =>
+    post<PaperItem>(`/api/knowledge-library/${id}/fulltext-review`, { decision }),
   getResearchMetrics: () => get<ResearchMetrics>('/api/research/metrics'),
   getResearchQuestions: (statuses: string[] = []) => {
     const params = new URLSearchParams()

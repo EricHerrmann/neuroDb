@@ -1,10 +1,10 @@
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 
 import { api } from '../api/client'
 import TaskStatus from '../components/TaskStatus'
 import { useTask } from '../hooks/useTask'
-import type { DuplicateCandidate, PaperItem } from '../api/types'
+import type { DuplicateCandidate, FullTextStaging, PaperItem } from '../api/types'
 
 function doiHref(doi: string): string | null {
   if (doi.startsWith('10.')) return `https://doi.org/${doi}`
@@ -151,18 +151,186 @@ function TierBadge({ tier }: { tier: string | undefined }) {
   )
 }
 
+function FullTextStatusBadge() {
+  return (
+    <span
+      title="Full text verified"
+      style={{
+        fontSize: 10,
+        lineHeight: '16px',
+        padding: '1px 6px',
+        border: '1px solid #bbf7d0',
+        background: '#dcfce7',
+        color: '#166534',
+        borderRadius: 10,
+        fontWeight: 600,
+      }}
+    >
+      full text verified
+    </span>
+  )
+}
+
+function SupplyLinkInput({
+  value,
+  onChange,
+  onSubmit,
+  isPending,
+}: {
+  value: string
+  onChange: (v: string) => void
+  onSubmit: () => void
+  isPending: boolean
+}) {
+  return (
+    <div style={{ display: 'flex', gap: 4, marginTop: 4, alignItems: 'center', flexWrap: 'wrap' }}>
+      <input
+        type="url"
+        placeholder="PDF or HTML URL"
+        value={value}
+        onChange={e => onChange(e.target.value)}
+        style={{
+          fontSize: 11,
+          padding: '2px 6px',
+          border: '1px solid #cbd5e1',
+          borderRadius: 4,
+          minWidth: 220,
+        }}
+      />
+      <button
+        onClick={onSubmit}
+        disabled={isPending || !value.trim()}
+        style={{
+          fontSize: 11,
+          padding: '2px 8px',
+          cursor: isPending || !value.trim() ? 'default' : 'pointer',
+          background: '#0f172a',
+          color: '#fff',
+          border: 'none',
+          borderRadius: 4,
+          opacity: isPending || !value.trim() ? 0.5 : 1,
+        }}
+      >
+        {isPending ? 'Acquiring…' : 'Supply link / upload PDF'}
+      </button>
+    </div>
+  )
+}
+
+function ParseReviewPanel({
+  staging,
+  parseConfidence,
+  onConfirm,
+  onReject,
+  isPending,
+}: {
+  staging: FullTextStaging
+  parseConfidence: number | null | undefined
+  onConfirm: () => void
+  onReject: () => void
+  isPending: boolean
+}) {
+  const confidencePct =
+    parseConfidence != null ? `${Math.round(parseConfidence * 100)}%` : 'unknown'
+  return (
+    <div
+      style={{
+        background: '#f8fafc',
+        border: '1px solid #e2e8f0',
+        borderRadius: 6,
+        padding: 10,
+        marginTop: 8,
+        fontSize: 12,
+      }}
+    >
+      <div style={{ fontWeight: 700, marginBottom: 6 }}>Parse review</div>
+      <div style={{ marginBottom: 4 }}>
+        <strong>Confidence:</strong> {confidencePct}
+        {staging.fetched_url && (
+          <span style={{ marginLeft: 8 }}>
+            <strong>Source:</strong>{' '}
+            <a href={staging.fetched_url} target="_blank" rel="noreferrer" style={{ color: '#1d4ed8' }}>
+              {staging.fetched_url}
+            </a>
+          </span>
+        )}
+      </div>
+      {staging.sections.length > 0 && (
+        <details style={{ marginTop: 4 }}>
+          <summary style={{ cursor: 'pointer', color: '#475569' }}>
+            {staging.sections.length} section{staging.sections.length !== 1 ? 's' : ''} parsed
+          </summary>
+          <div style={{ marginTop: 6, display: 'grid', gap: 4 }}>
+            {staging.sections.map((sec, idx) => (
+              <div key={idx} style={{ borderLeft: '2px solid #e2e8f0', paddingLeft: 8 }}>
+                <div style={{ fontWeight: 600, color: '#475569' }}>{sec.label}</div>
+                <div style={{ color: '#64748b', whiteSpace: 'pre-wrap', maxHeight: 80, overflow: 'hidden' }}>
+                  {sec.text.slice(0, 200)}{sec.text.length > 200 ? '…' : ''}
+                </div>
+              </div>
+            ))}
+          </div>
+        </details>
+      )}
+      <div style={{ display: 'flex', gap: 6, marginTop: 8 }}>
+        <button
+          onClick={onConfirm}
+          disabled={isPending}
+          style={{
+            fontSize: 11,
+            padding: '2px 10px',
+            cursor: isPending ? 'default' : 'pointer',
+            background: '#166534',
+            color: '#fff',
+            border: 'none',
+            borderRadius: 4,
+          }}
+        >
+          Confirm
+        </button>
+        <button
+          onClick={onReject}
+          disabled={isPending}
+          style={{
+            fontSize: 11,
+            padding: '2px 10px',
+            cursor: isPending ? 'default' : 'pointer',
+            background: '#dc2626',
+            color: '#fff',
+            border: 'none',
+            borderRadius: 4,
+          }}
+        >
+          Reject
+        </button>
+      </div>
+    </div>
+  )
+}
+
 export default function KnowledgeLibraryPanel() {
   const [statusFilter, setStatusFilter] = useState('all')
   const [approveWarnings, setApproveWarnings] = useState<Record<number, string>>({})
   const [duplicateWarnings, setDuplicateWarnings] = useState<Record<number, DuplicateCandidate[]>>({})
   const [acquireWarnings, setAcquireWarnings] = useState<Record<number, string>>({})
+  const [supplyLinkInputs, setSupplyLinkInputs] = useState<Record<number, string>>({})
+  const [reviewPanelOpen, setReviewPanelOpen] = useState<Record<number, boolean>>({})
+  const [hasPending, setHasPending] = useState(false)
   const [taskId, setTaskId] = useState<string | null>(null)
   const queryClient = useQueryClient()
 
   const { data = [], isLoading, isError, error } = useQuery({
     queryKey: ['knowledge-library', statusFilter],
     queryFn: () => api.getKnowledgeLibrary(statusFilter),
+    // Poll when any item is in pending full_text_status
+    refetchInterval: hasPending ? 5000 : false,
   })
+
+  // Track whether any item needs polling
+  useEffect(() => {
+    const anyPending = data.some(item => item.full_text_status === 'pending')
+    setHasPending(anyPending)
+  }, [data])
 
   const taskState = useTask(taskId, 180000, () => {
     queryClient.invalidateQueries({ queryKey: ['knowledge-library'] })
@@ -195,19 +363,48 @@ export default function KnowledgeLibraryPanel() {
     mutationFn: (id: number) => api.removeSource(id),
     onSuccess: () => queryClient.invalidateQueries({ queryKey: ['knowledge-library'] }),
   })
+
+  function handleAcquireResult(data: PaperItem, id: number) {
+    queryClient.invalidateQueries({ queryKey: ['knowledge-library'] })
+    if (data.full_text_status === 'unavailable' && data.warnings?.[0]) {
+      setAcquireWarnings(prev => ({ ...prev, [id]: data.warnings![0] }))
+    } else {
+      setAcquireWarnings(prev => {
+        const next = { ...prev }
+        delete next[id]
+        return next
+      })
+    }
+  }
+
   const acquireFullText = useMutation({
     mutationFn: (id: number) => api.acquireFullText(id),
-    onSuccess: (data, id) => {
+    onSuccess: (data, id) => handleAcquireResult(data, id),
+  })
+
+  const acquireFullTextWithUrl = useMutation({
+    mutationFn: ({ id, url }: { id: number; url: string }) =>
+      api.acquireFullTextWithUrl(id, url),
+    onSuccess: (data, { id }) => {
+      setSupplyLinkInputs(prev => {
+        const next = { ...prev }
+        delete next[id]
+        return next
+      })
+      handleAcquireResult(data, id)
+    },
+  })
+
+  const reviewFullText = useMutation({
+    mutationFn: ({ id, decision }: { id: number; decision: 'confirm' | 'reject' }) =>
+      api.reviewFullText(id, decision),
+    onSuccess: (_data, { id }) => {
+      setReviewPanelOpen(prev => {
+        const next = { ...prev }
+        delete next[id]
+        return next
+      })
       queryClient.invalidateQueries({ queryKey: ['knowledge-library'] })
-      if (data.full_text_status === 'unavailable' && data.warnings?.[0]) {
-        setAcquireWarnings(prev => ({ ...prev, [id]: data.warnings![0] }))
-      } else {
-        setAcquireWarnings(prev => {
-          const next = { ...prev }
-          delete next[id]
-          return next
-        })
-      }
     },
   })
 
@@ -243,12 +440,13 @@ export default function KnowledgeLibraryPanel() {
           <div style={{ display: 'flex', alignItems: 'center', gap: 6, flexWrap: 'wrap' }}>
             <span style={{ fontWeight: 600, fontSize: 13 }}>{item.title}</span>
             <TierBadge tier={item.data_tier} />
+            {item.full_text_status === 'verified' && <FullTextStatusBadge />}
           </div>
           <div style={{ fontSize: 11, color: '#64748b', margin: '2px 0' }}>
             {item.source_type} · {item.topic_context.slice(0, 80)}
           </div>
-          {item.full_text_status && (
-            <div style={{ fontSize: 11, color: item.full_text_status === 'verified' ? '#166534' : '#92400e', margin: '2px 0' }}>
+          {item.full_text_status && item.full_text_status !== 'verified' && (
+            <div style={{ fontSize: 11, color: '#92400e', margin: '2px 0' }}>
               Full text: {item.full_text_status}
               {item.full_text_status === 'unavailable' && (acquireWarnings[item.id] || item.warnings?.[0]) && (
                 <span style={{ marginLeft: 4, color: '#92400e' }}>— {acquireWarnings[item.id] ?? item.warnings![0]}</span>
@@ -300,29 +498,110 @@ export default function KnowledgeLibraryPanel() {
               </button>
             </div>
           ) : item.status !== 'removed' ? (
-            <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginTop: 4, flexWrap: 'wrap' }}>
-              <span style={{ fontSize: 11, color: '#94a3b8' }}>
-                {item.status} · {item.reviewed_at?.slice(0, 10) ?? ''}
-              </span>
-              {item.status === 'approved' && (
+            <div style={{ marginTop: 4 }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: 8, flexWrap: 'wrap' }}>
+                <span style={{ fontSize: 11, color: '#94a3b8' }}>
+                  {item.status} · {item.reviewed_at?.slice(0, 10) ?? ''}
+                </span>
+                {item.status === 'approved' && (() => {
+                  const fts = item.full_text_status
+                  if (fts === 'pending') {
+                    return (
+                      <span style={{ fontSize: 11, color: '#64748b', fontStyle: 'italic' }}>
+                        Acquiring…
+                      </span>
+                    )
+                  }
+                  if (fts === 'needs_review') {
+                    return (
+                      <button
+                        onClick={() => setReviewPanelOpen(prev => ({ ...prev, [item.id]: !prev[item.id] }))}
+                        style={{
+                          fontSize: 11, padding: '2px 8px', cursor: 'pointer',
+                          background: '#92400e', color: '#fff', border: 'none', borderRadius: 4,
+                        }}
+                      >
+                        Review parse
+                      </button>
+                    )
+                  }
+                  if (fts === 'verified') {
+                    return (
+                      <button
+                        onClick={() => acquireFullText.mutate(item.id)}
+                        disabled={acquireFullText.isPending}
+                        style={{
+                          fontSize: 11, padding: '2px 8px', cursor: 'pointer',
+                          background: '#0f172a', color: '#fff', border: 'none', borderRadius: 4,
+                        }}
+                      >
+                        Re-acquire
+                      </button>
+                    )
+                  }
+                  // metadata | abstract | unavailable | failed | null — show Acquire or recovery
+                  if (fts === 'unavailable' || fts === 'failed') {
+                    return null  // supply-link rendered below
+                  }
+                  // No full_text_status or metadata/abstract tier — primary acquire button
+                  return (
+                    <button
+                      onClick={() => acquireFullText.mutate(item.id)}
+                      disabled={acquireFullText.isPending}
+                      style={{
+                        fontSize: 11, padding: '2px 8px', cursor: 'pointer',
+                        background: '#0f172a', color: '#fff', border: 'none', borderRadius: 4,
+                      }}
+                    >
+                      {acquireFullText.isPending ? 'Acquiring…' : 'Acquire full text'}
+                    </button>
+                  )
+                })()}
                 <button
-                  onClick={() => acquireFullText.mutate(item.id)}
-                  disabled={acquireFullText.isPending}
-                  style={{
-                    fontSize: 11, padding: '2px 8px', cursor: 'pointer',
-                    background: '#0f172a', color: '#fff', border: 'none', borderRadius: 4,
-                  }}
+                  onClick={() => remove.mutate(item.id)}
+                  disabled={remove.isPending}
+                  style={{ fontSize: 11, padding: '2px 6px', cursor: 'pointer', color: '#dc2626' }}
                 >
-                  {acquireFullText.isPending ? 'Acquiring…' : 'Acquire full text'}
+                  Remove
                 </button>
-              )}
-              <button
-                onClick={() => remove.mutate(item.id)}
-                disabled={remove.isPending}
-                style={{ fontSize: 11, padding: '2px 6px', cursor: 'pointer', color: '#dc2626' }}
-              >
-                Remove
-              </button>
+              </div>
+              {/* Supply-link affordance for unavailable/failed recovery, and secondary for metadata/abstract */}
+              {item.status === 'approved' && (() => {
+                const fts = item.full_text_status
+                const showSupplyLink =
+                  fts === 'unavailable' ||
+                  fts === 'failed' ||
+                  fts == null ||
+                  fts === 'metadata' ||
+                  fts === 'abstract'
+                if (!showSupplyLink) return null
+                return (
+                  <SupplyLinkInput
+                    value={supplyLinkInputs[item.id] ?? ''}
+                    onChange={v => setSupplyLinkInputs(prev => ({ ...prev, [item.id]: v }))}
+                    onSubmit={() => {
+                      const url = supplyLinkInputs[item.id] ?? ''
+                      if (url.trim()) {
+                        acquireFullTextWithUrl.mutate({ id: item.id, url: url.trim() })
+                      }
+                    }}
+                    isPending={acquireFullTextWithUrl.isPending}
+                  />
+                )
+              })()}
+              {/* Parse review panel for needs_review items */}
+              {item.status === 'approved' &&
+                item.full_text_status === 'needs_review' &&
+                reviewPanelOpen[item.id] &&
+                item.fulltext_staging && (
+                  <ParseReviewPanel
+                    staging={item.fulltext_staging}
+                    parseConfidence={item.parse_confidence}
+                    onConfirm={() => reviewFullText.mutate({ id: item.id, decision: 'confirm' })}
+                    onReject={() => reviewFullText.mutate({ id: item.id, decision: 'reject' })}
+                    isPending={reviewFullText.isPending}
+                  />
+                )}
             </div>
           ) : (
             <div style={{ fontSize: 11, color: '#94a3b8', marginTop: 4 }}>

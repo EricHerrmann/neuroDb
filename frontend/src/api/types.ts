@@ -74,6 +74,22 @@ export interface LearningSourceContent {
   [key: string]: unknown
 }
 
+export interface FullTextSection {
+  label: string
+  text: string
+  char_start: number
+  char_end: number
+  page: number | null
+}
+
+export interface FullTextStaging {
+  source_id: string
+  text_source: string
+  parse_confidence: number | null
+  fetched_url: string | null
+  sections: FullTextSection[]
+}
+
 export interface PaperItem {
   id: number
   title: string
@@ -89,6 +105,8 @@ export interface PaperItem {
   year: number | null
   data_tier?: string
   full_text_status?: string | null
+  parse_confidence?: number | null
+  fulltext_staging?: FullTextStaging | null
   text_source?: string | null
   grouping_links?: PaperGroupingLink[]
   warnings?: string[]

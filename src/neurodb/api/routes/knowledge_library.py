@@ -59,6 +59,7 @@ class AcquireFullTextRequest(BaseModel):
     text: str | None = None
     format: str | None = None
     source_url: str | None = None  # Phase 2b: user-supplied PDF/HTML link
+    source_path: str | None = None  # Local library file name (relative to library root)
 
 
 class FulltextReviewRequest(BaseModel):
@@ -92,6 +93,12 @@ def get_knowledge_library(
             for item in items
         ]
     return items
+
+
+@router.get("/library-files")
+def library_files() -> list[dict]:
+    from neurodb.library_store import list_library_files
+    return list_library_files()
 
 
 @router.post("/{source_id}/approve", response_model=PaperItem)
@@ -242,9 +249,29 @@ def acquire_full_text(
     chunk_store=Depends(get_chunk_store),
 ) -> PaperItem:
     body = body or AcquireFullTextRequest()
-    # source_url (phase 2b explicit link) takes precedence over url when no text is supplied
-    effective_url = body.url or body.source_url
-    supplied = SuppliedInput(url=effective_url, text=body.text, format=body.format)
+    if body.source_path:
+        from neurodb.library_store import library_root, resolve_library_path
+        resolved = resolve_library_path(body.source_path)
+        if resolved is None:
+            root = library_root()
+            try:
+                inside = (root / body.source_path).resolve().is_relative_to(root)
+            except Exception:
+                inside = False
+            if not inside:
+                raise HTTPException(status_code=400, detail="Invalid file path")
+            raise HTTPException(status_code=404,
+                                detail="File not found in library or unsupported type")
+        ext = resolved.suffix.lower()
+        if ext in (".txt", ".md"):
+            supplied = SuppliedInput(text=resolved.read_text(errors="replace"),
+                                     format="md" if ext == ".md" else "txt")
+        else:  # .pdf/.html/.htm
+            supplied = SuppliedInput(path=str(resolved))
+    else:
+        # source_url (phase 2b explicit link) takes precedence over url when no text is supplied
+        effective_url = body.url or body.source_url
+        supplied = SuppliedInput(url=effective_url, text=body.text, format=body.format)
 
     with get_session(engine) as session:
         paper = session.get(Paper, source_id)

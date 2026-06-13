@@ -34,13 +34,13 @@ def test_unpaywall_pdf_wins():
         (lambda u, p: "unpaywall" in u,
          _Resp(json_data={"best_oa_location": {"url_for_pdf": "http://oa/x.pdf"}})),
     ])
-    assert find_pdf_url(_paper(doi="10.1/x"), http, unpaywall_email="a@b.c",
+    assert find_pdf_url(_paper(doi="10.1000/xyz123"), http, unpaywall_email="a@b.c",
                         s2_pdf_url=None) == "http://oa/x.pdf"
 
 
 def test_s2_openaccess_fallback():
     http = _Http([(lambda u, p: "unpaywall" in u, _Resp(json_data={}))])
-    assert find_pdf_url(_paper(doi="10.1/x"), http, unpaywall_email="a@b.c",
+    assert find_pdf_url(_paper(doi="10.1000/xyz123"), http, unpaywall_email="a@b.c",
                         s2_pdf_url="http://s2/y.pdf") == "http://s2/y.pdf"
 
 

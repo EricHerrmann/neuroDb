@@ -6,7 +6,7 @@ import re
 _DOI = re.compile(r"10\.\d+/[^\s\"'<>]+", re.I)
 _PDF_META = re.compile(
     r'<meta[^>]+name=["\']citation_pdf_url["\'][^>]+content=["\']([^"\']+)["\']', re.I)
-_PDF_ANCHOR = re.compile(r'href=["\']([^"\']+\.pdf[^"\']*)["\']', re.I)
+_PDF_ANCHOR = re.compile(r'href=["\']([^"\']+\.pdf(?:[?#][^"\']*)?)["\']', re.I)
 
 
 def _doi(paper, http, *, email: str | None) -> str | None:
@@ -54,11 +54,12 @@ def _landing_scan(url: str, http) -> str | None:
 
 def find_pdf_url(paper, http, *, unpaywall_email: str | None, s2_pdf_url: str | None) -> str | None:
     """Return the first OA PDF URL found, else None. Order: Unpaywall, S2, landing scan."""
-    doi = _doi(paper, http, email=unpaywall_email)
-    if doi and unpaywall_email:
-        pdf = _unpaywall(doi, http, email=unpaywall_email)
-        if pdf:
-            return pdf
+    if unpaywall_email:
+        doi = _doi(paper, http, email=unpaywall_email)
+        if doi:
+            pdf = _unpaywall(doi, http, email=unpaywall_email)
+            if pdf:
+                return pdf
     if s2_pdf_url:
         return s2_pdf_url
     url = getattr(paper, "url", None)

@@ -215,3 +215,102 @@ This is the UI bug that was fixed in Phase 2b; confirm it does not regress.
 | PB6  |        |       |
 | PB7  |        |       |
 | PB8  |        |       |
+| LF1  |        |       |
+| LF2  |        |       |
+| LF3  |        |       |
+
+---
+
+## Local-file source (LF1–LF3)
+
+**Scope:** These cases cover the drop-folder acquisition path added by the Knowledge Library
+local-file source feature. The backend serves `GET /api/knowledge-library/library-files`, the
+acquire API accepts a `source_path` field, and the UI exposes a file picker in the acquire
+control. Cases verify the full round-trip for a PDF, a Markdown file, and path-traversal
+rejection.
+
+**Spec:** `docs/superpowers/specs/2026-06-13-knowledge-library-local-file-source-design.md`
+**Plan:** `docs/superpowers/plans/2026-06-13-knowledge-library-local-file-source.md`
+
+**Prerequisites:** See the Prerequisites section above — run the automated suite first.
+No additional setup is needed beyond what PB1–PB8 already require, except that at least one
+file must exist in `knowledge_library_files/` before the file-picker tests (placed manually
+as described in each case).
+
+---
+
+### LF1 — Drop-folder PDF: pending → verified with page anchor
+
+Place a real PDF (e.g. a paywalled paper downloaded from a publisher site) into
+`knowledge_library_files/` in the repo root. The filename must end in `.pdf`.
+
+Open the Knowledge Library in the UI. Find any approved paper at `abstract` tier. Click
+**Acquire full text** (or the acquire control for that paper). The acquire control should now
+show a **"Use local file"** section or file-picker dropdown listing the files in the drop
+folder. Select the PDF you placed there. Confirm and submit.
+
+**Pass:**
+- The tile immediately shows a `pending` indicator (spinner or "Acquiring…" label).
+- The background job picks up the file via the `library_store` path (not a raw filesystem
+  path), parses it with PyMuPDF, gates by confidence, and resolves.
+- If parse confidence is high: tier badge becomes **full text**, status **verified**.
+- If parse confidence is medium: status becomes **needs_review** (apply PB4 steps).
+- Ask the Neuro-Tutor agent to quote a passage from the paper. The response includes a
+  source annotation that shows `text_source: pdf_pymupdf` **and** a page number (e.g. `p. 2`).
+- Confirm the `GET /api/knowledge-library/{id}` response shows `full_text_status: verified`
+  and `text_source: pdf_pymupdf`.
+
+---
+
+### LF2 — Drop-folder Markdown file: synchronous verified, quotable passage
+
+Place a `.md` file (e.g. a text-only note or copied abstract) into `knowledge_library_files/`.
+Minimum content: two or three distinct paragraphs (so chunking produces at least two chunks).
+
+Open the Knowledge Library. Find an approved paper. In the acquire control file picker, select
+the `.md` file. Submit.
+
+**Pass:**
+- Acquisition resolves **synchronously** (no background job; the `.txt`/`.md` path goes
+  directly through the user-supplied-text synchronous route).
+- Tile status becomes **verified** without a pending state (or pending resolves in under
+  one second before the UI polls).
+- Tier badge is **full text**.
+- Ask the Neuro-Tutor agent to quote a passage from the file. The response includes the
+  quoted text; no page anchor is expected (Markdown has no page structure).
+- `GET /api/knowledge-library/{id}` shows `full_text_status: verified` and
+  `text_source: user_supplied_text`.
+
+---
+
+### LF3 — Path-traversal guard and missing-file rejection (API)
+
+These are API-level checks. Use `curl` or an HTTP client against the running backend
+(port 8001 or whichever port the server is on).
+
+**Step A — Path-traversal attempt:**
+
+```bash
+curl -s -o /dev/null -w "%{http_code}" \
+  -X POST http://localhost:8001/api/knowledge-library/{paper_id}/acquire \
+  -H "Content-Type: application/json" \
+  -d '{"source_path": "../../etc/passwd"}'
+```
+
+Replace `{paper_id}` with any valid approved paper ID from the library.
+
+**Pass:** HTTP response code is **400**. The response body should contain an error
+indicating the path is rejected or outside the permitted directory. The file is not
+read; no acquisition is started.
+
+**Step B — Missing filename:**
+
+```bash
+curl -s -o /dev/null -w "%{http_code}" \
+  -X POST http://localhost:8001/api/knowledge-library/{paper_id}/acquire \
+  -H "Content-Type: application/json" \
+  -d '{"source_path": "does_not_exist.pdf"}'
+```
+
+**Pass:** HTTP response code is **404**. The response body should indicate the file
+was not found in the drop folder. No acquisition is started.

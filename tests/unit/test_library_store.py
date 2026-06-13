@@ -38,3 +38,14 @@ def test_resolve_missing_and_unsupported(lib):
     (lib / "x.exe").write_bytes(b"x")
     assert library_store.resolve_library_path("nope.pdf") is None
     assert library_store.resolve_library_path("x.exe") is None
+
+
+def test_lists_skips_symlink_escaping_root(lib, tmp_path):
+    outside = tmp_path.parent / "outside.pdf"
+    outside.write_bytes(b"%PDF")
+    try:
+        (lib / "link.pdf").symlink_to(outside)
+    except (OSError, NotImplementedError):
+        import pytest; pytest.skip("symlinks not supported here")
+    names = {f["name"] for f in library_store.list_library_files()}
+    assert "link.pdf" not in names

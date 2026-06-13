@@ -503,6 +503,96 @@ describe('KnowledgeLibraryPanel', () => {
     expect(screen.getByText(/No files in library — drop a file in knowledge_library_files\//)).toBeTruthy()
   })
 
+  it('selecting a library file disables the URL input', () => {
+    render(<KnowledgeLibraryPanel />, {
+      wrapper: makeWrapper(
+        [{
+          id: 30,
+          title: 'Mutex Paper',
+          doi: null,
+          url: null,
+          source_type: 'paper',
+          topic_context: 'plasticity',
+          status: 'approved',
+          queued_at: '2026-01-01',
+          reviewed_at: '2026-01-02',
+          summary: null,
+          data_tier: 'metadata',
+          full_text_status: 'unavailable',
+        }],
+        [{ name: 'chosen.pdf', size: 1000, modified: 1700000000 }],
+      ),
+    })
+
+    const select = screen.getByRole('combobox', { name: /pick library file/i })
+    const urlInput = screen.getByPlaceholderText(/PDF or HTML URL/i) as HTMLInputElement
+
+    fireEvent.change(select, { target: { value: 'chosen.pdf' } })
+
+    expect((urlInput as HTMLInputElement).disabled).toBe(true)
+  })
+
+  it('typing a URL disables the library file select', () => {
+    render(<KnowledgeLibraryPanel />, {
+      wrapper: makeWrapper(
+        [{
+          id: 31,
+          title: 'Mutex Paper 2',
+          doi: null,
+          url: null,
+          source_type: 'paper',
+          topic_context: 'plasticity',
+          status: 'approved',
+          queued_at: '2026-01-01',
+          reviewed_at: '2026-01-02',
+          summary: null,
+          data_tier: 'metadata',
+          full_text_status: 'unavailable',
+        }],
+        [{ name: 'other.pdf', size: 500, modified: 1700000000 }],
+      ),
+    })
+
+    const urlInput = screen.getByPlaceholderText(/PDF or HTML URL/i) as HTMLInputElement
+    const select = screen.getByRole('combobox', { name: /pick library file/i }) as HTMLSelectElement
+
+    fireEvent.change(urlInput, { target: { value: 'https://example.com/paper.pdf' } })
+
+    expect((select as HTMLSelectElement).disabled).toBe(true)
+  })
+
+  it('selecting a library file clears the URL input value', () => {
+    render(<KnowledgeLibraryPanel />, {
+      wrapper: makeWrapper(
+        [{
+          id: 32,
+          title: 'Mutex Paper 3',
+          doi: null,
+          url: null,
+          source_type: 'paper',
+          topic_context: 'plasticity',
+          status: 'approved',
+          queued_at: '2026-01-01',
+          reviewed_at: '2026-01-02',
+          summary: null,
+          data_tier: 'metadata',
+          full_text_status: 'unavailable',
+        }],
+        [{ name: 'clear-test.pdf', size: 500, modified: 1700000000 }],
+      ),
+    })
+
+    const urlInput = screen.getByPlaceholderText(/PDF or HTML URL/i) as HTMLInputElement
+    const select = screen.getByRole('combobox', { name: /pick library file/i })
+
+    // First type a URL, then select a file — URL should be cleared
+    fireEvent.change(urlInput, { target: { value: 'https://example.com/paper.pdf' } })
+    // URL input is now non-empty but we fire the select change directly
+    fireEvent.change(select, { target: { value: 'clear-test.pdf' } })
+
+    expect(urlInput.value).toBe('')
+  })
+
   it('starts summary task when approve has no duplicates', async () => {
     const fetchMock = vi.fn().mockImplementation((path: string, init?: RequestInit) => {
       if (path.includes('/duplicates')) {

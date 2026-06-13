@@ -21,9 +21,12 @@ def list_library_files() -> list[dict]:
     root = library_root()
     files: list[dict] = []
     for p in sorted(root.iterdir()):
-        if p.is_file() and p.suffix.lower() in SUPPORTED_EXTS:
-            st = p.stat()
-            files.append({"name": p.name, "size": st.st_size, "modified": st.st_mtime})
+        if not p.is_file() or p.suffix.lower() not in SUPPORTED_EXTS:
+            continue
+        if not p.resolve().is_relative_to(root):
+            continue
+        st = p.stat()
+        files.append({"name": p.name, "size": st.st_size, "modified": st.st_mtime})
     return files
 
 

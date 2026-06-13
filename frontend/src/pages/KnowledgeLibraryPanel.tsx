@@ -213,6 +213,7 @@ function SupplyLinkInput({
         type="url"
         placeholder="PDF or HTML URL"
         value={value}
+        disabled={selectedFile !== ''}
         onChange={e => onChange(e.target.value)}
         style={{
           fontSize: 11,
@@ -220,16 +221,24 @@ function SupplyLinkInput({
           border: '1px solid #cbd5e1',
           borderRadius: 4,
           minWidth: 220,
+          opacity: selectedFile !== '' ? 0.4 : 1,
         }}
       />
       <select
         value={selectedFile}
-        onChange={e => setSelectedFile(e.target.value)}
+        disabled={value.trim() !== ''}
+        onChange={e => {
+          setSelectedFile(e.target.value)
+          if (e.target.value !== '') {
+            onChange('')
+          }
+        }}
         style={{
           fontSize: 11,
           padding: '2px 6px',
           border: '1px solid #cbd5e1',
           borderRadius: 4,
+          opacity: value.trim() !== '' ? 0.4 : 1,
         }}
         aria-label="Pick library file"
       >

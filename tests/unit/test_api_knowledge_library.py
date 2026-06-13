@@ -463,7 +463,15 @@ def test_acquire_full_text_user_supplied():
 
 
 def test_acquire_full_text_no_source_is_unavailable():
-    """Paper with no url and no doi returns unavailable without any network call."""
+    """Paper with no url and no doi ends up unavailable.
+
+    Papers without any structured source are routed through the phase2b async
+    path (classify_for_phase2b returns 'phase2b'). The background task runs
+    _phase2b_parse which returns None (no OA source found), so run_acquisition
+    sets full_text_status='unavailable'.  Starlette TestClient runs background
+    tasks synchronously, so the terminal state is visible in the DB after the
+    call even though the response body shows 'pending'.
+    """
     client, engine = _make_client()
     source_id = _insert_approved_source(engine, title="No Source Paper", url=None, doi=None)
 
@@ -473,9 +481,12 @@ def test_acquire_full_text_no_source_is_unavailable():
     )
 
     assert resp.status_code == 200
-    data = resp.json()
-    assert data["full_text_status"] == "unavailable"
-    assert data["data_tier"] != "full_text"
+    # Response body reflects the pre-background-task snapshot (may show 'pending').
+    # Check the DB for the terminal state set by the background task.
+    with get_session(engine) as session:
+        paper = session.get(Paper, source_id)
+        assert paper.full_text_status == "unavailable"
+        assert paper.data_tier != "full_text"
 
 
 def _make_stub_chunk_store():

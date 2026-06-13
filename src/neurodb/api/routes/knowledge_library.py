@@ -8,18 +8,22 @@ import uuid
 from datetime import UTC, datetime, timedelta
 
 import httpx
-from fastapi import APIRouter, Depends, HTTPException
+from fastapi import APIRouter, BackgroundTasks, Depends, HTTPException
 from pydantic import BaseModel
 from sqlalchemy import Engine, text
 
 from neurodb.api.deps import get_chunk_store, get_engine, get_knowledge_store, get_task_store
 from neurodb.api.schemas.knowledge_library import PaperGroupingLink, PaperItem
 from neurodb.api.tasks import TaskRecord
-from neurodb.chunking import chunk_sections
+from neurodb.chunking import Section, chunk_sections
 from neurodb.db import get_session
 from neurodb.full_text_client import AcquireFailure, SuppliedInput, acquire
+from neurodb.full_text_client import classify_for_phase2b
+from neurodb.fulltext_staging import delete_staging, read_staging
+from neurodb.fulltext_types import ParsedArtifact
 from neurodb.knowledge_summary import fallback_summary as _fallback_summary
 from neurodb.knowledge_summary import summary_prompt as _summary_prompt
+from neurodb.phase2b import run_acquisition
 from neurodb.schema import (
     Claim,
     DatasetPacketPaper,
@@ -34,6 +38,10 @@ from neurodb.schema import (
 logger = logging.getLogger(__name__)
 
 router = APIRouter()
+
+# Sentinel for _paper_item_from_row's `staged` parameter: distinguishes
+# "caller wants auto-fetch" from "caller explicitly passed None".
+_SENTINEL = object()
 
 
 class DuplicateCandidate(BaseModel):
@@ -51,6 +59,11 @@ class AcquireFullTextRequest(BaseModel):
     url: str | None = None
     text: str | None = None
     format: str | None = None
+    source_url: str | None = None  # Phase 2b: user-supplied PDF/HTML link
+
+
+class FulltextReviewRequest(BaseModel):
+    decision: str  # confirm | reject
 
 
 @router.get("", response_model=list[PaperItem])
@@ -65,7 +78,21 @@ def get_knowledge_library(
         else:
             query = query.filter(Paper.status == status)
         rows = query.order_by(Paper.queued_at.desc()).all()
-        return [_paper_item_from_row(row, session) for row in rows]
+        items = [_paper_item_from_row(row, session, staged=None) for row in rows]
+        review_ids = [row.id for row in rows if row.full_text_status == "needs_review"]
+
+    # read_staging opens its own session; do this after the query session closes
+    # to avoid nested DuckDB transactions.
+    staging_by_id: dict[int, dict | None] = {
+        sid: read_staging(engine, sid) for sid in review_ids
+    }
+    if staging_by_id:
+        items = [
+            item.model_copy(update={"fulltext_staging": staging_by_id[item.id]})
+            if item.id in staging_by_id else item
+            for item in items
+        ]
+    return items
 
 
 @router.post("/{source_id}/approve", response_model=PaperItem)
@@ -210,12 +237,15 @@ def remove_source(
 @router.post("/{source_id}/acquire-full-text", response_model=PaperItem)
 def acquire_full_text(
     source_id: int,
+    background_tasks: BackgroundTasks,
     body: AcquireFullTextRequest | None = None,
     engine: Engine = Depends(get_engine),
     chunk_store=Depends(get_chunk_store),
 ) -> PaperItem:
     body = body or AcquireFullTextRequest()
-    supplied = SuppliedInput(url=body.url, text=body.text, format=body.format)
+    # source_url (phase 2b explicit link) takes precedence over url when no text is supplied
+    effective_url = body.url or body.source_url
+    supplied = SuppliedInput(url=effective_url, text=body.text, format=body.format)
 
     with get_session(engine) as session:
         paper = session.get(Paper, source_id)
@@ -228,6 +258,15 @@ def acquire_full_text(
         paper_year = paper.year
         paper_currency = paper.currency_status
 
+    if classify_for_phase2b(paper, supplied) == "phase2b":
+        # Async path: mark pending, schedule background job, return immediately
+        _update_paper_fields(source_id, engine, full_text_status="pending")
+        background_tasks.add_task(_run_phase2b_job, source_id, engine, chunk_store, supplied)
+        with get_session(engine) as session:
+            row = session.get(Paper, source_id)
+            return _paper_item_from_row(row, session)
+
+    # Synchronous 2a path (unchanged)
     with httpx.Client(timeout=20.0, follow_redirects=True) as http:
         result = acquire(paper, http, supplied)
 
@@ -246,6 +285,116 @@ def acquire_full_text(
         row = session.get(Paper, source_id)
         item = _paper_item_from_row(row, session)
     return item.model_copy(update={"warnings": warnings})
+
+
+@router.post("/{source_id}/fulltext-review", response_model=PaperItem)
+def fulltext_review(
+    source_id: int,
+    body: FulltextReviewRequest,
+    engine: Engine = Depends(get_engine),
+    chunk_store=Depends(get_chunk_store),
+) -> PaperItem:
+    staged = read_staging(engine, source_id)
+    if staged is None:
+        raise HTTPException(status_code=404, detail="No parse awaiting review")
+
+    if body.decision == "confirm":
+        sections = [
+            Section(
+                label=s.get("label"),
+                text=s["text"],
+                char_start=s.get("char_start", 0),
+                char_end=s.get("char_end", len(s["text"])),
+                page=s.get("page"),
+            )
+            for s in staged["sections"]
+        ]
+        with get_session(engine) as session:
+            row = session.get(Paper, source_id)
+            if row is None:
+                raise HTTPException(status_code=404, detail=f"Paper {source_id} not found")
+            title, year, currency = row.title, row.year, row.currency_status
+
+        _commit_chunks(source_id, engine, chunk_store,
+                       sections=sections,
+                       text_source=staged["text_source"],
+                       title=title, year=year, currency=currency)
+        _update_paper_fields(source_id, engine,
+                             full_text_status="verified",
+                             text_source=staged["text_source"],
+                             data_tier="full_text",
+                             parse_confidence=staged.get("parse_confidence"))
+    else:
+        _update_paper_fields(source_id, engine, full_text_status="unavailable")
+
+    delete_staging(engine, source_id)
+
+    with get_session(engine) as session:
+        row = session.get(Paper, source_id)
+        return _paper_item_from_row(row, session)
+
+
+def _load_paper(engine: Engine, source_id: int) -> Paper:
+    """Load a Paper in its own session and return a detached instance."""
+    with get_session(engine) as session:
+        row = session.get(Paper, source_id)
+        if row is None:
+            raise HTTPException(status_code=404, detail=f"Paper {source_id} not found")
+        # Access all attributes we need before session closes
+        session.expunge(row)
+        return row
+
+
+def _phase2b_parse(paper: Paper, supplied: SuppliedInput) -> ParsedArtifact | None:
+    """Attempt OA PDF/HTML acquisition for a paper. Module-level for monkeypatching in tests."""
+    from neurodb.html_extractor import extract_html
+    from neurodb.oa_locator import find_pdf_url
+    from neurodb.pdf_parser import parse_pdf
+
+    unpaywall_email = os.environ.get("UNPAYWALL_EMAIL")
+    s2_pdf_url = getattr(paper, "open_access_pdf", None)
+
+    # Prefer an explicitly-supplied URL over OA discovery
+    source = supplied.url if supplied and supplied.url else None
+
+    if source is None:
+        with httpx.Client(timeout=30.0, follow_redirects=True) as http:
+            source = find_pdf_url(paper, http, unpaywall_email=unpaywall_email,
+                                  s2_pdf_url=s2_pdf_url)
+
+    if source is None:
+        return None
+
+    try:
+        with httpx.Client(timeout=60.0, follow_redirects=True) as http:
+            resp = http.get(source)
+            resp.raise_for_status()
+
+        content_type = (resp.headers.get("Content-Type") or "").lower()
+        is_pdf = "pdf" in content_type or source.lower().endswith(".pdf")
+
+        if is_pdf:
+            artifact = parse_pdf(resp.content)
+        else:
+            artifact = extract_html(resp.text)
+
+        artifact.fetched_url = source
+        return artifact
+    except Exception:
+        logger.exception("Phase 2b parse failed for url=%s", source)
+        return None
+
+
+def _run_phase2b_job(source_id: int, engine: Engine, chunk_store, supplied: SuppliedInput) -> None:
+    """Background job: run the phase2b acquisition pipeline for one paper."""
+    run_acquisition(
+        source_id=source_id,
+        engine=engine,
+        parse=lambda: _phase2b_parse(_load_paper(engine, source_id), supplied),
+        commit_chunks=lambda **kw: _commit_chunks(
+            kw.pop("source_id", source_id), engine, chunk_store, **kw),
+        set_fields=lambda **f: _update_paper_fields(source_id, engine, **f),
+    )
 
 
 def _commit_chunks(source_id, engine, chunk_store, *, sections, text_source,
@@ -349,12 +498,31 @@ def _update_paper_fields_duckdb(source_id: int, engine: Engine, **fields) -> Pap
     finally:
         with get_session(engine) as session:
             _restore_paper_links(session, preserved_links)
+    # Pre-fetch staging before opening the final session.  read_staging opens its
+    # own session, and DuckDB forbids nested transactions.
+    with get_session(engine) as _peek:
+        _row_peek = _get_paper_or_404(_peek, source_id)
+        _needs_staging = _row_peek.full_text_status == "needs_review"
+    staging = read_staging(engine, source_id) if _needs_staging else None
+
     with get_session(engine) as session:
         row = _get_paper_or_404(session, source_id)
-        return _paper_item_from_row(row, session)
+        return _paper_item_from_row(row, session, staged=staging)
 
 
-def _paper_item_from_row(row: Paper, session) -> PaperItem:
+def _paper_item_from_row(row: Paper, session, *,
+                         staged: dict | None = _SENTINEL) -> PaperItem:
+    """Build a PaperItem from a Paper ORM row.
+
+    `staged` is the fulltext_staging dict (or None) to include in the response.
+    Pass the sentinel default to auto-fetch it from the engine when status is
+    needs_review. Pass None explicitly to skip it (e.g. when the staging row
+    was just deleted).
+
+    Auto-fetch opens its own session, so do NOT call with the sentinel from
+    inside a DuckDB transaction (which prohibits nested transactions). In that
+    case, fetch staging first and pass it explicitly.
+    """
     item = PaperItem.model_validate(row)
     links = (
         session.query(GroupingLink, Grouping)
@@ -363,6 +531,14 @@ def _paper_item_from_row(row: Paper, session) -> PaperItem:
         .order_by(Grouping.type.asc(), Grouping.name.asc())
         .all()
     )
+    if staged is _SENTINEL:
+        if row.full_text_status == "needs_review":
+            engine = session.get_bind()
+            staging = read_staging(engine, row.id)
+        else:
+            staging = None
+    else:
+        staging = staged
     return item.model_copy(update={
         "grouping_links": [
             PaperGroupingLink(
@@ -372,7 +548,8 @@ def _paper_item_from_row(row: Paper, session) -> PaperItem:
                 status=link.status,
             )
             for link, grouping in links
-        ]
+        ],
+        "fulltext_staging": staging,
     })
 
 

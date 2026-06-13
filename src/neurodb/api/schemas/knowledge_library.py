@@ -29,5 +29,7 @@ class PaperItem(BaseModel):
     currency_status: str = "current"
     full_text_status: str | None = None
     text_source: str | None = None
+    parse_confidence: float | None = None
     warnings: list[str] = []
     grouping_links: list[PaperGroupingLink] = Field(default_factory=list)
+    fulltext_staging: dict | None = None

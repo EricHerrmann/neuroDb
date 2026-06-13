@@ -31,7 +31,8 @@ def _pymupdf_sections(data: bytes) -> list[Section]:
 def parse_pdf(data: bytes, *, docling_convert: Callable[[bytes], list[Section]] | None = None,
               text_source: str = "pdf_docling") -> ParsedArtifact:
     """Parse a PDF into a ParsedArtifact. Uses the injected docling_convert if provided and it
-    yields sections; otherwise (the default today) uses PyMuPDF. Raises if no text is extractable."""
+    yields sections; otherwise (the default today) uses PyMuPDF.
+    Raises if no text is extractable."""
     if docling_convert is not None:
         try:
             sections = docling_convert(data)

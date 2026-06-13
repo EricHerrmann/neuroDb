@@ -180,7 +180,10 @@ _RESEARCH_TOOLS = [
     },
     {
         "name": "extract_question_topics",
-        "description": "Match a research question against existing topics and concepts; persist pending suggestions the user can confirm.",
+        "description": (
+            "Match a research question against existing topics and concepts; "
+            "persist pending suggestions the user can confirm."
+        ),
         "input_schema": {
             "type": "object",
             "properties": {
@@ -584,7 +587,9 @@ class NeuroResearchAgent(BaseAgent):
                         question_id=block.tool_input.get("question_id"),
                         hypothesis_id=block.tool_input.get("hypothesis_id"),
                     )
-                    return json.dumps({"id": gap.id, "status": gap.status, "gap_type": gap.gap_type})
+                    return json.dumps(
+                        {"id": gap.id, "status": gap.status, "gap_type": gap.gap_type}
+                    )
             except ValueError as exc:
                 return json.dumps({"error": str(exc)})
         if block.tool_name == "resolve_gap":

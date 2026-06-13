@@ -224,7 +224,10 @@ _TUTOR_TOOLS = [
         "input_schema": {
             "type": "object",
             "properties": {
-                "grouping_id": {"type": "integer", "description": "Topic grouping ID from search_topics."},
+                "grouping_id": {
+                    "type": "integer",
+                    "description": "Topic grouping ID from search_topics.",
+                },
             },
             "required": ["grouping_id"],
         },
@@ -432,7 +435,9 @@ class NeuroTutorAgent(BaseAgent):
             fields = ", ".join(result.get("updated_fields") or [])
             return f"Updated Knowledge Library source {source_id}: {fields}."
         if status == "unchanged":
-            return f"Knowledge Library source {source_id} already has that metadata; no changes made."
+            return (
+                f"Knowledge Library source {source_id} already has that metadata; no changes made."
+            )
         if status == "not_found":
             return result.get("message") or f"No Knowledge Library source found for id {source_id}."
         return None

@@ -17,8 +17,7 @@ from neurodb.api.schemas.knowledge_library import PaperGroupingLink, PaperItem
 from neurodb.api.tasks import TaskRecord
 from neurodb.chunking import Section, chunk_sections
 from neurodb.db import get_session
-from neurodb.full_text_client import AcquireFailure, SuppliedInput, acquire
-from neurodb.full_text_client import classify_for_phase2b
+from neurodb.full_text_client import AcquireFailure, SuppliedInput, acquire, classify_for_phase2b
 from neurodb.fulltext_staging import delete_staging, read_staging
 from neurodb.fulltext_types import ParsedArtifact
 from neurodb.knowledge_summary import fallback_summary as _fallback_summary

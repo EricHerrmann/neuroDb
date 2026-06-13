@@ -9,7 +9,9 @@ from neurodb.parse_quality import score
 def extract_html(html: str, *, extractor=None) -> ParsedArtifact:
     if extractor is None:
         import trafilatura
-        extractor = lambda h: trafilatura.extract(h) or ""
+
+        def extractor(h):
+            return trafilatura.extract(h) or ""
     text = (extractor(html) or "").strip()
     sections = ([Section(label=None, text=text, char_start=0, char_end=len(text))]
                 if text else [])

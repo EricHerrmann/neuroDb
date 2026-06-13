@@ -69,9 +69,9 @@ last_verified_at = "2026-06-02"
 [tiers.premium]
 
 [tiers.premium.providers.anthropic]
-model = "claude-opus-4-8"
-eval_status = "baseline"
-last_verified_at = "2026-06-02"
+model = "claude-fable-5"
+eval_status = "candidate"
+last_verified_at = "2026-06-09"
 
 [tiers.premium.providers.openai]
 model = "gpt-5.5"

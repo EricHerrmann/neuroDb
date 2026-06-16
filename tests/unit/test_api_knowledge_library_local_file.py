@@ -78,3 +78,26 @@ def test_acquire_missing_file_404(tmp_path, monkeypatch):
     resp = client.post(f"/api/knowledge-library/{pid}/acquire-full-text",
                        json={"source_path": "ghost.pdf"})
     assert resp.status_code == 404
+
+
+def test_library_files_lists_tex_project(tmp_path, monkeypatch):
+    monkeypatch.setenv("NEURODB_LIBRARY_DIR", str(tmp_path))
+    (tmp_path / "proj").mkdir()
+    (tmp_path / "proj" / "main.tex").write_text(r"\documentclass{article}")
+    client, _ = _make_duckdb_client()
+    resp = client.get("/api/knowledge-library/library-files")
+    assert resp.status_code == 200
+    assert any(f["name"] == "proj" and f.get("kind") == "tex_project" for f in resp.json())
+
+
+def test_phase2b_parse_reads_tex_project(tmp_path):
+    (tmp_path / "main.tex").write_text(
+        r"""\documentclass{article}\begin{document}
+\section{Methods} We measured plasticity across hippocampal neurons in many trials.
+\end{document}"""
+    )
+    art = _phase2b_parse(_paper(), SuppliedInput(path=str(tmp_path)))
+    assert art is not None
+    assert art.text_source == "tex_pylatexenc"
+    assert art.fetched_url == tmp_path.name
+    assert any(s.label == "Methods" for s in art.sections)

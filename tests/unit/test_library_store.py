@@ -49,3 +49,32 @@ def test_lists_skips_symlink_escaping_root(lib, tmp_path):
         import pytest; pytest.skip("symlinks not supported here")
     names = {f["name"] for f in library_store.list_library_files()}
     assert "link.pdf" not in names
+
+
+def test_lists_tex_project_folders(lib):
+    (lib / "proj").mkdir()
+    (lib / "proj" / "main.tex").write_text(r"\documentclass{article}")
+    (lib / "empty").mkdir()  # no .tex -> not a project
+    (lib / "a.pdf").write_bytes(b"%PDF")  # a file, not a project
+    names = {p["name"] for p in library_store.list_library_projects()}
+    assert names == {"proj"}
+    assert all(p["kind"] == "tex_project" for p in library_store.list_library_projects())
+
+
+def test_resolve_tex_project(lib):
+    (lib / "proj").mkdir()
+    (lib / "proj" / "sub").mkdir()
+    (lib / "proj" / "sub" / "paper.tex").write_text(r"\documentclass{article}")
+    p = library_store.resolve_library_project("proj")
+    assert p is not None and p.name == "proj"
+
+
+def test_resolve_project_rejects_non_tex_dir(lib):
+    (lib / "empty").mkdir()
+    (lib / "empty" / "readme.txt").write_text("hi")
+    assert library_store.resolve_library_project("empty") is None
+
+
+def test_resolve_project_rejects_traversal(lib, tmp_path):
+    (tmp_path.parent / "outside").mkdir(exist_ok=True)
+    assert library_store.resolve_library_project("../outside") is None

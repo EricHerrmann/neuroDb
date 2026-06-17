@@ -21,6 +21,7 @@ dependencies = [
     "openai>=2.0,<3.0",
     "uvicorn>=0.34,<1.0",
     "pymupdf>=1.27.2.3",
+    "pylatexenc>=2.10",
     "trafilatura>=2.1.0",
 ]
 

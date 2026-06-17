@@ -4,7 +4,7 @@ import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { api } from '../api/client'
 import TaskStatus from '../components/TaskStatus'
 import { useTask } from '../hooks/useTask'
-import type { DuplicateCandidate, FullTextStaging, PaperItem } from '../api/types'
+import type { DuplicateCandidate, FullTextStaging, LibraryFile, PaperItem } from '../api/types'
 
 function doiHref(doi: string): string | null {
   if (doi.startsWith('10.')) return `https://doi.org/${doi}`
@@ -175,19 +175,45 @@ function SupplyLinkInput({
   value,
   onChange,
   onSubmit,
+  onSubmitPath,
   isPending,
 }: {
   value: string
   onChange: (v: string) => void
   onSubmit: () => void
+  onSubmitPath: (name: string) => void
   isPending: boolean
 }) {
+  const [selectedFile, setSelectedFile] = useState('')
+
+  const {
+    data: libraryFiles = [],
+    refetch: refetchLibraryFiles,
+  } = useQuery<LibraryFile[]>({
+    queryKey: ['library-files'],
+    queryFn: () => api.listLibraryFiles(),
+  })
+
+  const canSubmitUrl = !isPending && value.trim() !== ''
+  const canSubmitFile = !isPending && selectedFile !== ''
+  const canSubmit = canSubmitUrl || canSubmitFile
+
+  function handleAcquire() {
+    if (selectedFile) {
+      onSubmitPath(selectedFile)
+      setSelectedFile('')
+    } else if (value.trim()) {
+      onSubmit()
+    }
+  }
+
   return (
     <div style={{ display: 'flex', gap: 4, marginTop: 4, alignItems: 'center', flexWrap: 'wrap' }}>
       <input
         type="url"
         placeholder="PDF or HTML URL"
         value={value}
+        disabled={selectedFile !== ''}
         onChange={e => onChange(e.target.value)}
         style={{
           fontSize: 11,
@@ -195,20 +221,64 @@ function SupplyLinkInput({
           border: '1px solid #cbd5e1',
           borderRadius: 4,
           minWidth: 220,
+          opacity: selectedFile !== '' ? 0.4 : 1,
         }}
       />
+      <select
+        value={selectedFile}
+        disabled={value.trim() !== ''}
+        onChange={e => {
+          setSelectedFile(e.target.value)
+          if (e.target.value !== '') {
+            onChange('')
+          }
+        }}
+        style={{
+          fontSize: 11,
+          padding: '2px 6px',
+          border: '1px solid #cbd5e1',
+          borderRadius: 4,
+          opacity: value.trim() !== '' ? 0.4 : 1,
+        }}
+        aria-label="Pick library file"
+      >
+        <option value="">— or pick library file —</option>
+        {libraryFiles.map(f => (
+          <option key={f.name} value={f.name}>{f.name}</option>
+        ))}
+      </select>
       <button
-        onClick={onSubmit}
-        disabled={isPending || !value.trim()}
+        onClick={() => refetchLibraryFiles()}
+        title="Refresh library file list"
+        style={{
+          fontSize: 11,
+          padding: '2px 6px',
+          cursor: 'pointer',
+          background: '#f1f5f9',
+          color: '#475569',
+          border: '1px solid #cbd5e1',
+          borderRadius: 4,
+        }}
+      >
+        ↻
+      </button>
+      {libraryFiles.length === 0 && (
+        <span style={{ fontSize: 10, color: '#94a3b8' }}>
+          No files in library — drop a file in knowledge_library_files/
+        </span>
+      )}
+      <button
+        onClick={handleAcquire}
+        disabled={!canSubmit}
         style={{
           fontSize: 11,
           padding: '2px 8px',
-          cursor: isPending || !value.trim() ? 'default' : 'pointer',
+          cursor: !canSubmit ? 'default' : 'pointer',
           background: '#0f172a',
           color: '#fff',
           border: 'none',
           borderRadius: 4,
-          opacity: isPending || !value.trim() ? 0.5 : 1,
+          opacity: !canSubmit ? 0.5 : 1,
         }}
       >
         {isPending ? 'Acquiring…' : 'Supply link / upload PDF'}
@@ -393,6 +463,12 @@ export default function KnowledgeLibraryPanel() {
       })
       handleAcquireResult(data, id)
     },
+  })
+
+  const acquireFullTextWithPath = useMutation({
+    mutationFn: ({ id, path }: { id: number; path: string }) =>
+      api.acquireFullTextWithPath(id, path),
+    onSuccess: (data, { id }) => handleAcquireResult(data, id),
   })
 
   const reviewFullText = useMutation({
@@ -585,7 +661,8 @@ export default function KnowledgeLibraryPanel() {
                         acquireFullTextWithUrl.mutate({ id: item.id, url: url.trim() })
                       }
                     }}
-                    isPending={acquireFullTextWithUrl.isPending}
+                    onSubmitPath={path => acquireFullTextWithPath.mutate({ id: item.id, path })}
+                    isPending={acquireFullTextWithUrl.isPending || acquireFullTextWithPath.isPending}
                   />
                 )
               })()}

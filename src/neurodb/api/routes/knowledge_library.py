@@ -59,6 +59,7 @@ class AcquireFullTextRequest(BaseModel):
     text: str | None = None
     format: str | None = None
     source_url: str | None = None  # Phase 2b: user-supplied PDF/HTML link
+    source_path: str | None = None  # Local library file name (relative to library root)
 
 
 class FulltextReviewRequest(BaseModel):
@@ -92,6 +93,12 @@ def get_knowledge_library(
             for item in items
         ]
     return items
+
+
+@router.get("/library-files")
+def library_files() -> list[dict]:
+    from neurodb.library_store import list_library_files, list_library_projects
+    return list_library_files() + list_library_projects()
 
 
 @router.post("/{source_id}/approve", response_model=PaperItem)
@@ -242,9 +249,35 @@ def acquire_full_text(
     chunk_store=Depends(get_chunk_store),
 ) -> PaperItem:
     body = body or AcquireFullTextRequest()
-    # source_url (phase 2b explicit link) takes precedence over url when no text is supplied
-    effective_url = body.url or body.source_url
-    supplied = SuppliedInput(url=effective_url, text=body.text, format=body.format)
+    if body.source_path:
+        from neurodb.library_store import (
+            library_root, resolve_library_path, resolve_library_project,
+        )
+        project = resolve_library_project(body.source_path)
+        if project is not None:
+            supplied = SuppliedInput(path=str(project))
+        else:
+            resolved = resolve_library_path(body.source_path)
+            if resolved is None:
+                root = library_root()
+                try:
+                    inside = (root / body.source_path).resolve().is_relative_to(root)
+                except Exception:
+                    inside = False
+                if not inside:
+                    raise HTTPException(status_code=400, detail="Invalid file path")
+                raise HTTPException(status_code=404,
+                                    detail="File not found in library or unsupported type")
+            ext = resolved.suffix.lower()
+            if ext in (".txt", ".md"):
+                supplied = SuppliedInput(text=resolved.read_text(errors="replace"),
+                                         format="md" if ext == ".md" else "txt")
+            else:  # .pdf/.html/.htm
+                supplied = SuppliedInput(path=str(resolved))
+    else:
+        # source_url (phase 2b explicit link) takes precedence over url when no text is supplied
+        effective_url = body.url or body.source_url
+        supplied = SuppliedInput(url=effective_url, text=body.text, format=body.format)
 
     with get_session(engine) as session:
         paper = session.get(Paper, source_id)
@@ -351,6 +384,23 @@ def _phase2b_parse(paper: Paper, supplied: SuppliedInput) -> ParsedArtifact | No
     from neurodb.html_extractor import extract_html
     from neurodb.oa_locator import find_pdf_url
     from neurodb.pdf_parser import parse_pdf
+
+    if supplied and supplied.path:
+        from pathlib import Path
+        p = Path(supplied.path)
+        try:
+            if p.is_dir():
+                from neurodb.tex_parser import parse_tex
+                artifact = parse_tex(p)
+            elif p.suffix.lower() == ".pdf":
+                artifact = parse_pdf(p.read_bytes())
+            else:  # .html/.htm
+                artifact = extract_html(p.read_text(errors="replace"))
+            artifact.fetched_url = p.name
+            return artifact
+        except Exception:
+            logger.exception("Phase 2b local-file parse failed for %s", supplied.path)
+            return None
 
     unpaywall_email = os.environ.get("UNPAYWALL_EMAIL")
     s2_pdf_url = getattr(paper, "open_access_pdf", None)

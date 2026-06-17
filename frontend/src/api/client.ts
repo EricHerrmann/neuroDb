@@ -13,6 +13,7 @@ import type {
   GroupingItem,
   Hypothesis,
   HypothesisReviewItem,
+  LibraryFile,
   PaperItem,
   LearningSourceItem,
   ModelInfo,
@@ -143,6 +144,10 @@ export const api = {
     post<PaperItem>(`/api/knowledge-library/${id}/acquire-full-text`, {}),
   acquireFullTextWithUrl: (id: number, sourceUrl: string) =>
     post<PaperItem>(`/api/knowledge-library/${id}/acquire-full-text`, { source_url: sourceUrl }),
+  acquireFullTextWithPath: (id: number, sourcePath: string) =>
+    post<PaperItem>(`/api/knowledge-library/${id}/acquire-full-text`, { source_path: sourcePath }),
+  listLibraryFiles: () =>
+    get<LibraryFile[]>('/api/knowledge-library/library-files'),
   reviewFullText: (id: number, decision: FullTextReviewDecision) =>
     post<PaperItem>(`/api/knowledge-library/${id}/fulltext-review`, { decision }),
   getResearchMetrics: () => get<ResearchMetrics>('/api/research/metrics'),

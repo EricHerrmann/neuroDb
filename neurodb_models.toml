@@ -4,12 +4,12 @@
 # To change active providers, edit [routing] below — no env vars needed.
 
 [routing]
-economy  = "anthropic"
-standard = "anthropic"
-premium  = "anthropic"
+economy  = "openai"
+standard = "openai"
+premium  = "openai"
 economy_fallback  = ["anthropic", "openai", "gemini", "deepseek", "groq"]
-standard_fallback = ["openai", "anthropic", "gemini", "deepseek", "groq"]
-premium_fallback  = ["openai", "anthropic", "gemini", "deepseek", "groq"]
+standard_fallback = ["anthropic", "openai", "gemini", "deepseek", "groq"]
+premium_fallback  = ["anthropic", "openai", "gemini", "deepseek", "groq"]
 
 [tiers.economy]
 

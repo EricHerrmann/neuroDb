@@ -149,6 +149,37 @@ describe('useChat', () => {
     expect(result.current.thinkingState).toBe('idle')
   })
 
+  it('stores provider fallback notices without replacing final answer text', async () => {
+    vi.stubGlobal('fetch', vi.fn().mockResolvedValue(
+      makeSseResponse([
+        {
+          type: 'provider_fallback',
+          text: 'anthropic failed after retries; using openai fallback.',
+          failed_provider: 'anthropic',
+          fallback_provider: 'openai',
+        },
+        { type: 'done', text: 'Fallback answer.' },
+      ]),
+    ))
+    const { result } = renderHook(() => useChat('local_db'), { wrapper: makeWrapper() })
+
+    await act(async () => {
+      await result.current.sendMessage('hi')
+    })
+
+    const last = result.current.messages[result.current.messages.length - 1]
+    expect(last.content).toBe('Fallback answer.')
+    expect(last.notices).toEqual([
+      {
+        id: 'provider-fallback-0',
+        text: 'anthropic failed after retries; using openai fallback.',
+        failedProvider: 'anthropic',
+        fallbackProvider: 'openai',
+      },
+    ])
+    expect(last.streaming).toBe(false)
+  })
+
   it('does not send empty messages', async () => {
     const fetchMock = vi.fn()
     vi.stubGlobal('fetch', fetchMock)

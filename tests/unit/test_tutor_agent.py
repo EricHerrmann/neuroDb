@@ -97,6 +97,41 @@ def test_queue_source_dedups_by_doi():
     assert json.loads(agent._execute_queue_source(params))["status"] == "already_exists"
 
 
+def test_queue_source_surfaces_removed_doi_match():
+    engine = _engine()
+    agent = _agent(engine)
+    params = {
+        "title": "Restorable LTP Paper",
+        "source_type": "paper",
+        "topic_context": "LTP",
+        "doi": "10.1234/restorable-ltp",
+    }
+    first = json.loads(agent._execute_queue_source(params))
+    with Session(engine) as session:
+        row = session.get(Paper, first["id"])
+        row.status = "removed"
+        row.reviewed_at = "2026-01-01T00:00:00"
+        session.commit()
+
+    second = json.loads(agent._execute_queue_source({
+        **params,
+        "abstract": "Full text metadata is now available.",
+        "year": 2022,
+    }))
+
+    assert second["status"] == "removed_exists"
+    assert second["id"] == first["id"]
+    assert second["updated_fields"] == []
+    assert "Removed filter" in second["next_action"]
+    with Session(engine) as session:
+        row = session.get(Paper, first["id"])
+        assert row.status == "removed"
+        assert row.reviewed_at == "2026-01-01T00:00:00"
+        assert row.abstract is None
+        assert row.year is None
+        assert row.data_tier == "metadata"
+
+
 def test_queue_source_dedups_by_normalized_title_without_doi():
     engine = _engine()
     agent = _agent(engine)

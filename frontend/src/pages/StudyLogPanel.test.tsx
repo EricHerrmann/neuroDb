@@ -5,14 +5,19 @@ import { afterEach, describe, it, expect, vi } from 'vitest'
 
 import StudyLogPanel from './StudyLogPanel'
 
-function makeWrapper(studyLog: unknown = [], sessions: unknown = []) {
+function makeWrapper(studyLog: unknown = [], sessions: unknown = [], plans: unknown = []) {
   const qc = new QueryClient({
     defaultOptions: { queries: { retry: false, staleTime: Infinity } },
   })
   qc.setQueryData(['study-log'], studyLog)
   qc.setQueryData(['sessions'], sessions)
+  qc.setQueryData(['plans'], plans)
   return ({ children }: { children: React.ReactNode }) =>
     React.createElement(QueryClientProvider, { client: qc }, children)
+}
+
+function showStudyTags() {
+  fireEvent.change(screen.getByRole('combobox'), { target: { value: 'study-tags' } })
 }
 
 describe('StudyLogPanel', () => {
@@ -20,15 +25,16 @@ describe('StudyLogPanel', () => {
     vi.restoreAllMocks()
   })
 
-  it('renders view dropdown with Study Tags selected by default', () => {
+  it('renders view dropdown with Plans selected by default', () => {
     render(<StudyLogPanel />, { wrapper: makeWrapper() })
     expect(screen.getByText('Study Plan')).toBeTruthy()
     const select = screen.getByRole('combobox')
-    expect((select as HTMLSelectElement).value).toBe('study-tags')
+    expect((select as HTMLSelectElement).value).toBe('plans')
   })
 
   it('shows empty state in Study Tags view', () => {
     render(<StudyLogPanel />, { wrapper: makeWrapper([]) })
+    showStudyTags()
     expect(screen.getByText(/No study tags yet/)).toBeTruthy()
   })
 
@@ -43,6 +49,7 @@ describe('StudyLogPanel', () => {
       tagged_at: '2026-01-15T00:00:00',
     }
     render(<StudyLogPanel />, { wrapper: makeWrapper([tag]) })
+    showStudyTags()
     expect(screen.getByText('LTP')).toBeTruthy()
     expect(screen.getByText('pubmed:123')).toBeTruthy()
   })
@@ -88,11 +95,13 @@ describe('StudyLogPanel', () => {
 
   it('shows Add Tag button in Study Tags view', () => {
     render(<StudyLogPanel />, { wrapper: makeWrapper([]) })
+    showStudyTags()
     expect(screen.getByText('Add Tag')).toBeTruthy()
   })
 
   it('shows inline error when submitting with empty concept_tag', () => {
     render(<StudyLogPanel />, { wrapper: makeWrapper([]) })
+    showStudyTags()
     fireEvent.click(screen.getByText('Add Tag'))
     fireEvent.change(screen.getByPlaceholderText('source_id'), { target: { value: 'ds001' } })
     fireEvent.click(screen.getByText('Save'))
@@ -125,6 +134,7 @@ describe('StudyLogPanel', () => {
     vi.stubGlobal('fetch', fetchMock)
 
     render(<StudyLogPanel />, { wrapper: makeWrapper([]) })
+    showStudyTags()
     fireEvent.click(screen.getByText('Add Tag'))
     fireEvent.change(screen.getByPlaceholderText('source_id'), { target: { value: 'ds001' } })
     fireEvent.change(screen.getByPlaceholderText('concept_tag'), { target: { value: 'LTP' } })
@@ -161,6 +171,7 @@ describe('StudyLogPanel', () => {
     vi.stubGlobal('fetch', fetchMock)
 
     render(<StudyLogPanel />, { wrapper: makeWrapper([]) })
+    showStudyTags()
     fireEvent.click(screen.getByText('Add Tag'))
     fireEvent.change(screen.getByPlaceholderText('source_id'), { target: { value: 'ds001' } })
     fireEvent.change(screen.getByPlaceholderText('concept_tag'), { target: { value: 'LTP' } })
@@ -182,6 +193,7 @@ describe('StudyLogPanel', () => {
       tagged_at: '2026-01-15T00:00:00',
     }
     render(<StudyLogPanel />, { wrapper: makeWrapper([tag]) })
+    showStudyTags()
 
     fireEvent.click(screen.getByText('LTP'))
 
@@ -223,6 +235,7 @@ describe('StudyLogPanel', () => {
       tagged_at: '2026-01-15T00:00:00',
     }
     render(<StudyLogPanel />, { wrapper: makeWrapper([tag]) })
+    showStudyTags()
 
     fireEvent.click(screen.getByText('LTP'))
     fireEvent.change(screen.getByPlaceholderText('concept_tag'), { target: { value: 'LTD' } })

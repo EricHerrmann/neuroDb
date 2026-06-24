@@ -6,10 +6,20 @@ from fastapi.testclient import TestClient
 from sqlalchemy import create_engine, text
 from sqlalchemy.pool import StaticPool
 
-from neurodb.api.routes.knowledge_library import router, _summary_prompt, _fallback_summary
+from neurodb.api.routes.knowledge_library import _fallback_summary, _summary_prompt, router
 from neurodb.db import get_session
 from neurodb.db.grouping_store import get_or_create_grouping, link_grouping
-from neurodb.schema import Base, Claim, GroupingLink, Paper
+from neurodb.schema import (
+    Base,
+    Claim,
+    DatasetPacketPaper,
+    GroupingLink,
+    Paper,
+    PaperChunk,
+    PaperFulltextStaging,
+    PlanStep,
+    StudyNote,
+)
 
 
 def _make_app(engine, knowledge_store=None, chunk_store=None):
@@ -369,6 +379,290 @@ def test_reject_source_has_no_warnings_field_interaction():
     assert resp.json()["status"] == "rejected"
 
 
+def test_remove_source_deletes_unreferenced_paper_and_artifacts():
+    mock_ks = MagicMock()
+    mock_chunks = MagicMock()
+    client, engine = _make_client(mock_ks, mock_chunks)
+    with get_session(engine) as session:
+        paper = Paper(
+            title="Delete Me",
+            normalized_title="delete me",
+            source_type="paper",
+            topic_context="bad reference",
+            status="pending",
+            queued_at="2026-01-01T00:00:00",
+        )
+        session.add(paper)
+        session.flush()
+        source_id = paper.id
+        session.add(PaperChunk(
+            paper_id=source_id,
+            chunk_index=0,
+            text="stale text",
+            section=None,
+            char_start=None,
+            char_end=None,
+            page=None,
+            text_source="pdf",
+            chroma_id="chunk:1:0",
+            created_at="2026-01-01T00:00:00",
+        ))
+        session.add(PaperFulltextStaging(
+            source_id=source_id,
+            text_source="pdf",
+            parse_confidence=0.5,
+            fetched_url=None,
+            artifact_json="{}",
+            created_at="2026-01-01T00:00:00",
+        ))
+
+    resp = client.post(f"/api/knowledge-library/{source_id}/remove")
+
+    assert resp.status_code == 200
+    assert resp.json()["status"] == "deleted"
+    with get_session(engine) as session:
+        assert session.get(Paper, source_id) is None
+        assert session.query(PaperChunk).filter_by(paper_id=source_id).count() == 0
+        assert session.query(PaperFulltextStaging).filter_by(source_id=source_id).count() == 0
+    mock_ks.remove_summary.assert_called_once_with(source_id)
+    mock_chunks.delete_paper.assert_called_once_with(source_id)
+
+
+def test_remove_source_returns_reference_blocker_for_referenced_paper():
+    client, engine = _make_client()
+    with get_session(engine) as session:
+        paper = Paper(
+            title="Referenced Paper",
+            normalized_title="referenced paper",
+            source_type="paper",
+            topic_context="bad reference",
+            status="pending",
+            queued_at="2026-01-01T00:00:00",
+        )
+        session.add(paper)
+        session.flush()
+        source_id = paper.id
+        session.add(Claim(
+            paper_id=source_id,
+            text="stale claim",
+            claim_type="finding",
+            status="candidate",
+            created_at="2026-01-01T00:00:00",
+            updated_at="2026-01-01T00:00:00",
+        ))
+
+    resp = client.post(f"/api/knowledge-library/{source_id}/remove")
+
+    assert resp.status_code == 409
+    detail = resp.json()["detail"]
+    assert detail["error"] == "paper_has_references"
+    assert "referenced elsewhere" in detail["message"]
+    assert detail["blocking_references"]["claims"] == 1
+    assert "delete_with_references" in detail["available_actions"]
+    with get_session(engine) as session:
+        assert session.get(Paper, source_id) is not None
+
+
+def test_remove_source_delete_with_references_deletes_dependents():
+    client, engine = _make_client()
+    with get_session(engine) as session:
+        paper = Paper(
+            title="Cascade Paper",
+            normalized_title="cascade paper",
+            source_type="paper",
+            topic_context="bad reference",
+            status="pending",
+            queued_at="2026-01-01T00:00:00",
+        )
+        session.add(paper)
+        session.flush()
+        source_id = paper.id
+        grouping = get_or_create_grouping(session, "topic", "bad topic")
+        link_grouping(session, grouping.id, "paper", source_id, status="confirmed")
+        session.add(Claim(
+            paper_id=source_id,
+            text="stale claim",
+            claim_type="finding",
+            status="candidate",
+            created_at="2026-01-01T00:00:00",
+            updated_at="2026-01-01T00:00:00",
+        ))
+
+    resp = client.post(
+        f"/api/knowledge-library/{source_id}/remove",
+        json={"action": "delete_with_references"},
+    )
+
+    assert resp.status_code == 200
+    with get_session(engine) as session:
+        assert session.get(Paper, source_id) is None
+        assert session.query(Claim).filter_by(paper_id=source_id).count() == 0
+        assert session.query(GroupingLink).filter_by(
+            anchor_type="paper", anchor_id=source_id,
+        ).count() == 0
+
+
+def test_remove_source_replace_references_with_claim_duckdb():
+    client, engine = _make_duckdb_client()
+    with get_session(engine) as session:
+        old = Paper(
+            title="DuckDB Bad Paper",
+            normalized_title="duckdb bad paper",
+            source_type="paper",
+            topic_context="bad reference",
+            status="pending",
+            queued_at="2026-01-01T00:00:00",
+        )
+        replacement = Paper(
+            title="DuckDB Correct Paper",
+            normalized_title="duckdb correct paper",
+            source_type="paper",
+            topic_context="replacement",
+            status="pending",
+            queued_at="2026-01-01T00:00:00",
+        )
+        session.add_all([old, replacement])
+        session.flush()
+        old_id = old.id
+        replacement_id = replacement.id
+        claim = Claim(
+            paper_id=old_id,
+            text="claim to keep",
+            claim_type="finding",
+            status="candidate",
+            created_at="2026-01-01T00:00:00",
+            updated_at="2026-01-01T00:00:00",
+        )
+        session.add(claim)
+        session.flush()
+        claim_id = claim.id
+
+    blocked = client.post(f"/api/knowledge-library/{old_id}/remove")
+    resp = client.post(
+        f"/api/knowledge-library/{old_id}/remove",
+        json={"action": "replace_references", "replacement_source_id": replacement_id},
+    )
+
+    assert blocked.status_code == 409
+    assert resp.status_code == 200
+    with get_session(engine) as session:
+        assert session.get(Paper, old_id) is None
+        assert session.get(Claim, claim_id).paper_id == replacement_id
+
+
+def test_remove_source_replace_references_moves_links_to_replacement():
+    client, engine = _make_client()
+    with get_session(engine) as session:
+        old = Paper(
+            title="Bad Paper",
+            normalized_title="bad paper",
+            source_type="paper",
+            topic_context="bad reference",
+            status="pending",
+            queued_at="2026-01-01T00:00:00",
+        )
+        replacement = Paper(
+            title="Correct Paper",
+            normalized_title="correct paper",
+            source_type="paper",
+            topic_context="replacement",
+            status="pending",
+            queued_at="2026-01-01T00:00:00",
+        )
+        session.add_all([old, replacement])
+        session.flush()
+        old_id = old.id
+        replacement_id = replacement.id
+        grouping = get_or_create_grouping(session, "topic", "replacement topic")
+        link_grouping(session, grouping.id, "paper", old_id, status="confirmed")
+        claim = Claim(
+            paper_id=old_id,
+            text="claim to keep",
+            claim_type="finding",
+            status="candidate",
+            created_at="2026-01-01T00:00:00",
+            updated_at="2026-01-01T00:00:00",
+        )
+        note = StudyNote(
+            paper_id=old_id,
+            concept_tag="plasticity",
+            tagged_at="2026-01-01T00:00:00",
+        )
+        step = PlanStep(
+            plan_id=1,
+            order_index=1,
+            step_type="read",
+            paper_id=old_id,
+            lifecycle="confirmed",
+            progress="todo",
+            created_at="2026-01-01T00:00:00",
+            updated_at="2026-01-01T00:00:00",
+        )
+        dataset_link = DatasetPacketPaper(packet_id=1, paper_id=old_id)
+        session.add_all([claim, note, step, dataset_link])
+        session.flush()
+        claim_id = claim.id
+        note_id = note.id
+        step_id = step.id
+        dataset_link_id = dataset_link.id
+
+    resp = client.post(
+        f"/api/knowledge-library/{old_id}/remove",
+        json={"action": "replace_references", "replacement_source_id": replacement_id},
+    )
+
+    assert resp.status_code == 200
+    assert resp.json()["replacement_source_id"] == replacement_id
+    with get_session(engine) as session:
+        assert session.get(Paper, old_id) is None
+        assert session.get(Paper, replacement_id) is not None
+        assert session.get(Claim, claim_id).paper_id == replacement_id
+        assert session.get(StudyNote, note_id).paper_id == replacement_id
+        assert session.get(PlanStep, step_id).paper_id == replacement_id
+        assert session.get(DatasetPacketPaper, dataset_link_id).paper_id == replacement_id
+        assert session.query(GroupingLink).filter_by(
+            anchor_type="paper", anchor_id=replacement_id,
+        ).count() == 1
+
+
+def test_restore_source_returns_legacy_removed_paper_to_pending():
+    client, engine = _make_client()
+    with get_session(engine) as session:
+        paper = Paper(
+            title="Legacy Removed Paper",
+            normalized_title="legacy removed paper",
+            source_type="paper",
+            topic_context="stale reference",
+            status="removed",
+            queued_at="2026-01-01T00:00:00",
+            reviewed_at="2026-01-02T00:00:00",
+        )
+        session.add(paper)
+        session.flush()
+        source_id = paper.id
+
+    resp = client.post(f"/api/knowledge-library/{source_id}/restore")
+
+    assert resp.status_code == 200
+    assert resp.json()["status"] == "pending"
+    assert resp.json()["reviewed_at"] is None
+    with get_session(engine) as session:
+        row = session.get(Paper, source_id)
+        assert row.status == "pending"
+        assert row.reviewed_at is None
+
+
+def test_restore_source_rejects_active_paper():
+    client, engine = _make_client()
+    _insert_source(engine, "Active Paper", "pending")
+    source_id = client.get("/api/knowledge-library").json()[0]["id"]
+
+    resp = client.post(f"/api/knowledge-library/{source_id}/restore")
+
+    assert resp.status_code == 409
+    assert "not removed" in resp.json()["detail"]
+
+
 def test_duplicate_check_returns_near_candidates():
     mock_ks = MagicMock()
     mock_ks.search.return_value = [{
@@ -511,7 +805,10 @@ def _make_stub_chunk_store():
 def _assert_chunk_idempotency(client, engine, chunk_store, source_id):
     """Shared idempotency assertion: acquire twice, count must not grow."""
     body = {
-        "text": "# Intro\nThe dentate gyrus supports pattern separation.\n\n## Methods\nWe recorded CA3.",
+        "text": (
+            "# Intro\nThe dentate gyrus supports pattern separation.\n\n"
+            "## Methods\nWe recorded CA3."
+        ),
         "format": "md",
     }
     r1 = client.post(f"/api/knowledge-library/{source_id}/acquire-full-text", json=body)

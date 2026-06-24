@@ -8,10 +8,17 @@ from unittest.mock import ANY, MagicMock, patch
 from fastapi import FastAPI
 from fastapi.testclient import TestClient
 from sqlalchemy import create_engine
+from sqlalchemy import select
+from sqlalchemy.orm import Session
 from sqlalchemy.pool import StaticPool
 
-from neurodb.api.routes.chat import router
-from neurodb.schema import Base
+from neurodb.api.routes.chat import AgentAttempt, router
+from neurodb.config.task_router import ModelRoute
+from neurodb.schema import Base, SystemWarning
+
+
+class _OverloadedError(Exception):
+    status_code = 529
 
 
 def _make_app(engine):
@@ -44,12 +51,24 @@ def _parse_sse_events(text: str) -> list[dict]:
     ]
 
 
+def _make_attempt(agent, provider: str = "anthropic") -> AgentAttempt:
+    route = ModelRoute(
+        task_type="agent.loop.local_db",
+        tier="standard",
+        provider=provider,
+        model_client=MagicMock(),
+        model_id=f"{provider}-model",
+        max_tokens=2048,
+    )
+    return AgentAttempt(route=route, agent=agent)
+
+
 def test_chat_turn_streams_done_event():
     """Mock agent.chat to yield 'hello'; confirm a done event with stop_reason='end_turn'."""
     client = _make_client()
     mock_agent = MagicMock()
     mock_agent.chat.return_value = iter(["hello"])
-    with patch("neurodb.api.routes.chat._build_agent", return_value=mock_agent):
+    with patch("neurodb.api.routes.chat._build_agent_attempt", return_value=_make_attempt(mock_agent)):
         with patch(
             "neurodb.api.routes.chat.build_provider_clients",
             return_value={"anthropic": MagicMock()},
@@ -70,7 +89,7 @@ def test_chat_turn_streams_text_delta_event():
     client = _make_client()
     mock_agent = MagicMock()
     mock_agent.chat.return_value = iter(["chunk1"])
-    with patch("neurodb.api.routes.chat._build_agent", return_value=mock_agent):
+    with patch("neurodb.api.routes.chat._build_agent_attempt", return_value=_make_attempt(mock_agent)):
         with patch(
             "neurodb.api.routes.chat.build_provider_clients",
             return_value={"anthropic": MagicMock()},
@@ -98,7 +117,10 @@ def test_chat_turn_streams_tool_activity_events():
             yield {"type": "tool_result", "tool_name": "query_db", "result": "[{\"x\": 1}]"}
             yield {"type": "done", "text": "Done", "stop_reason": "end_turn"}
 
-    with patch("neurodb.api.routes.chat._build_agent", return_value=StreamingAgent()):
+    with patch(
+        "neurodb.api.routes.chat._build_agent_attempt",
+        return_value=_make_attempt(StreamingAgent()),
+    ):
         with patch(
             "neurodb.api.routes.chat.build_provider_clients",
             return_value={"anthropic": MagicMock()},
@@ -122,7 +144,10 @@ def test_chat_turn_streams_error_event_when_agent_stream_raises():
             yield {"type": "context_summary", "context_mode": "contextual"}
             raise RuntimeError("provider stream failed")
 
-    with patch("neurodb.api.routes.chat._build_agent", return_value=FailingStreamingAgent()):
+    with patch(
+        "neurodb.api.routes.chat._build_agent_attempt",
+        return_value=_make_attempt(FailingStreamingAgent()),
+    ):
         with patch(
             "neurodb.api.routes.chat.build_provider_clients",
             return_value={"anthropic": MagicMock()},
@@ -136,6 +161,93 @@ def test_chat_turn_streams_error_event_when_agent_stream_raises():
     events = _parse_sse_events(resp.text)
     assert [event["type"] for event in events] == ["context_summary", "error"]
     assert "provider stream failed" in events[-1]["text"]
+
+
+def test_chat_turn_falls_back_after_retryable_provider_failure():
+    engine = create_engine(
+        "sqlite:///:memory:",
+        connect_args={"check_same_thread": False},
+        poolclass=StaticPool,
+    )
+    Base.metadata.create_all(engine)
+    client = TestClient(_make_app(engine))
+
+    class FailingAgent:
+        def chat_stream(self, message, history):
+            raise _OverloadedError("Overloaded")
+
+    class SuccessfulAgent:
+        def chat_stream(self, message, history):
+            yield {"type": "done", "text": "fallback answer", "stop_reason": "end_turn"}
+
+    agents = [FailingAgent(), SuccessfulAgent()]
+
+    def build_from_route(agent_mode, route, *args, **kwargs):
+        return agents.pop(0)
+
+    with patch(
+        "neurodb.api.routes.chat.build_provider_clients",
+            return_value={"anthropic": MagicMock(), "openai": MagicMock()},
+    ):
+        with patch("neurodb.api.routes.chat._build_agent_from_route", side_effect=build_from_route):
+            resp = client.post(
+                "/api/chat/turn",
+                json={"message": "hi", "history": [], "agent_mode": "local_db"},
+            )
+
+    assert resp.status_code == 200
+    events = _parse_sse_events(resp.text)
+    assert [event["type"] for event in events] == ["provider_fallback", "done"]
+    assert events[0]["failed_provider"] != events[0]["fallback_provider"]
+    assert "failed after retries" in events[0]["text"]
+    assert events[1]["text"] == "fallback answer"
+
+    with Session(engine) as session:
+        warnings = session.execute(select(SystemWarning)).scalars().all()
+    assert any(row.warning_type == "provider_runtime_failed" for row in warnings)
+    assert any(row.selected_provider == events[0]["fallback_provider"] for row in warnings)
+
+
+def test_chat_turn_continues_through_remaining_runtime_fallbacks():
+    client = _make_client()
+
+    class FailingAgent:
+        def chat_stream(self, message, history):
+            raise _OverloadedError("Overloaded")
+
+    class SuccessfulAgent:
+        def chat_stream(self, message, history):
+            yield {"type": "done", "text": "deepseek answer", "stop_reason": "end_turn"}
+
+    agents = [FailingAgent(), FailingAgent(), SuccessfulAgent()]
+
+    def build_from_route(agent_mode, route, *args, **kwargs):
+        return agents.pop(0)
+
+    with patch(
+        "neurodb.api.routes.chat.build_provider_clients",
+        return_value={
+            "anthropic": MagicMock(),
+            "openai": MagicMock(),
+            "deepseek": MagicMock(),
+        },
+    ):
+        with patch("neurodb.api.routes.chat._build_agent_from_route", side_effect=build_from_route):
+            resp = client.post(
+                "/api/chat/turn",
+                json={"message": "hi", "history": [], "agent_mode": "local_db"},
+            )
+
+    assert resp.status_code == 200
+    events = _parse_sse_events(resp.text)
+    assert [event["type"] for event in events] == [
+        "provider_fallback",
+        "provider_fallback",
+        "done",
+    ]
+    assert events[1]["failed_provider"] == events[0]["fallback_provider"]
+    assert events[1]["fallback_provider"] != events[1]["failed_provider"]
+    assert events[2]["text"] == "deepseek answer"
 
 
 def test_chat_turn_rejects_unknown_agent_mode():
@@ -180,7 +292,7 @@ def test_build_agent_passes_chroma_stores_to_research_agent():
         patch("neurodb.api.routes.chat.TaskRouter") as router_cls,
         patch("neurodb.api.routes.chat.NeuroResearchAgent") as agent_cls,
     ):
-        router_cls.return_value.route.return_value = route
+        router_cls.return_value.route_excluding.return_value = route
         agent = _build_agent(
             "neuro_research",
             engine="engine",
@@ -193,7 +305,11 @@ def test_build_agent_passes_chroma_stores_to_research_agent():
             context_bundle={"mode": "grounded"},
         )
 
-    router_cls.return_value.route.assert_called_once_with("agent.loop.neuro_research", engine="engine")
+    router_cls.return_value.route_excluding.assert_called_once_with(
+        "agent.loop.neuro_research",
+        engine="engine",
+        excluded_providers=None,
+    )
     agent_cls.assert_called_once_with(
         model_client=route.model_client,
         model="research-model",
@@ -225,7 +341,7 @@ def test_build_agent_preserves_external_db_mode():
         patch("neurodb.api.routes.chat.TaskRouter") as router_cls,
         patch("neurodb.api.routes.chat.NeuroDbAgent") as agent_cls,
     ):
-        router_cls.return_value.route.return_value = route
+        router_cls.return_value.route_excluding.return_value = route
         agent = _build_agent(
             "external_db",
             engine="engine",
@@ -238,7 +354,11 @@ def test_build_agent_preserves_external_db_mode():
             context_bundle={"mode": "general"},
         )
 
-    router_cls.return_value.route.assert_called_once_with("agent.loop.external_db", engine="engine")
+    router_cls.return_value.route_excluding.assert_called_once_with(
+        "agent.loop.external_db",
+        engine="engine",
+        excluded_providers=None,
+    )
     agent_cls.assert_called_once_with(
         model_client=route.model_client,
         model="db-model",
@@ -271,7 +391,10 @@ def test_chat_turn_passes_context_store_to_agent_builder():
     mock_agent = MagicMock()
     mock_agent.chat.return_value = iter(["hello"])
     providers = {"anthropic": MagicMock()}
-    with patch("neurodb.api.routes.chat._build_agent", return_value=mock_agent) as build_agent:
+    with patch(
+        "neurodb.api.routes.chat._build_agent_attempt",
+        return_value=_make_attempt(mock_agent),
+    ) as build_agent:
         with patch("neurodb.api.routes.chat.build_provider_clients", return_value=providers):
             resp = client.post(
                 "/api/chat/turn",
@@ -290,6 +413,7 @@ def test_chat_turn_passes_context_store_to_agent_builder():
         "contextual",
         ANY,
         chunk_store=None,
+        excluded_providers=None,
     )
 
 
@@ -331,7 +455,10 @@ def test_chat_turn_passes_request_context_mode_and_focus_to_bundle_builder():
     mock_agent.chat.return_value = iter(["hello"])
     providers = {"anthropic": MagicMock()}
     context_bundle = {"mode": "grounded", "source_counts": {}, "warnings": []}
-    with patch("neurodb.api.routes.chat._build_agent", return_value=mock_agent):
+    with patch(
+        "neurodb.api.routes.chat._build_agent_attempt",
+        return_value=_make_attempt(mock_agent),
+    ):
         with patch("neurodb.api.routes.chat.build_provider_clients", return_value=providers):
             with patch(
                 "neurodb.api.routes.chat.build_context_bundle",

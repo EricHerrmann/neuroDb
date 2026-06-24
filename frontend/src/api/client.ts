@@ -20,6 +20,8 @@ import type {
   PlanDetail,
   PlanSummary,
   Preferences,
+  RemoveSourceBlockedDetail,
+  RemoveSourceResult,
   QuestionConceptLink,
   QuestionTopicLink,
   ResearchGapItem,
@@ -34,9 +36,47 @@ import type {
 
 export type FullTextReviewDecision = 'confirm' | 'reject'
 
+export class ApiError extends Error {
+  status: number
+  detail: unknown
+
+  constructor(status: number, message: string, detail: unknown = null) {
+    super(message)
+    this.name = 'ApiError'
+    this.status = status
+    this.detail = detail
+  }
+}
+
+async function buildApiError(res: Response): Promise<ApiError> {
+  const text = await res.text()
+  if (!text) return new ApiError(res.status, `${res.status} ${res.statusText}`)
+  try {
+    const parsed = JSON.parse(text)
+    const detail = parsed.detail ?? parsed
+    const message =
+      typeof detail === 'string'
+        ? detail
+        : typeof detail?.message === 'string'
+          ? detail.message
+          : text
+    return new ApiError(res.status, message, detail)
+  } catch {
+    return new ApiError(res.status, text)
+  }
+}
+
+export function isRemoveSourceBlockedDetail(value: unknown): value is RemoveSourceBlockedDetail {
+  return (
+    typeof value === 'object' &&
+    value !== null &&
+    (value as RemoveSourceBlockedDetail).error === 'paper_has_references'
+  )
+}
+
 async function get<T>(path: string): Promise<T> {
   const res = await fetch(path)
-  if (!res.ok) throw new Error(`${res.status} ${res.statusText}`)
+  if (!res.ok) throw await buildApiError(res)
   return res.json() as Promise<T>
 }
 
@@ -47,8 +87,7 @@ async function post<T>(path: string, body?: unknown): Promise<T> {
     body: body !== undefined ? JSON.stringify(body) : undefined,
   })
   if (!res.ok) {
-    const text = await res.text()
-    throw new Error(text || `${res.status} ${res.statusText}`)
+    throw await buildApiError(res)
   }
   if (res.status === 204) return undefined as T
   return res.json() as Promise<T>
@@ -61,8 +100,7 @@ async function put<T>(path: string, body?: unknown): Promise<T> {
     body: body !== undefined ? JSON.stringify(body) : undefined,
   })
   if (!res.ok) {
-    const text = await res.text()
-    throw new Error(text || `${res.status} ${res.statusText}`)
+    throw await buildApiError(res)
   }
   return res.json() as Promise<T>
 }
@@ -74,8 +112,7 @@ async function patch<T>(path: string, body?: unknown): Promise<T> {
     body: body !== undefined ? JSON.stringify(body) : undefined,
   })
   if (!res.ok) {
-    const text = await res.text()
-    throw new Error(text || `${res.status} ${res.statusText}`)
+    throw await buildApiError(res)
   }
   return res.json() as Promise<T>
 }
@@ -83,8 +120,7 @@ async function patch<T>(path: string, body?: unknown): Promise<T> {
 async function del<T = void>(path: string): Promise<T> {
   const res = await fetch(path, { method: 'DELETE' })
   if (!res.ok) {
-    const text = await res.text()
-    throw new Error(text || `${res.status} ${res.statusText}`)
+    throw await buildApiError(res)
   }
   if (res.status === 204) return undefined as T
   return res.json() as Promise<T>
@@ -138,8 +174,12 @@ export const api = {
     get<DuplicateCheckResponse>(`/api/knowledge-library/${id}/duplicates`),
   rejectSource: (id: number) =>
     post<PaperItem>(`/api/knowledge-library/${id}/reject`),
-  removeSource: (id: number) =>
-    post<PaperItem>(`/api/knowledge-library/${id}/remove`),
+  removeSource: (
+    id: number,
+    body?: { action?: string; replacement_source_id?: number | null },
+  ) => post<RemoveSourceResult>(`/api/knowledge-library/${id}/remove`, body),
+  restoreSource: (id: number) =>
+    post<PaperItem>(`/api/knowledge-library/${id}/restore`),
   acquireFullText: (id: number) =>
     post<PaperItem>(`/api/knowledge-library/${id}/acquire-full-text`, {}),
   acquireFullTextWithUrl: (id: number, sourceUrl: string) =>

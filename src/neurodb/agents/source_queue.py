@@ -104,6 +104,21 @@ def queue_or_update_paper(session: Session, inputs: dict, *, link_topics: bool =
     if existing is None:
         existing = session.query(Paper).filter_by(normalized_title=normalized).first()
     if existing is not None:
+        if existing.status == "removed":
+            return {
+                "status": "removed_exists",
+                "id": existing.id,
+                "updated_fields": [],
+                "message": (
+                    "A legacy removed Knowledge Library source matches this DOI/title. "
+                    "Delete it from the Removed filter or choose how to handle its "
+                    "references before queueing this source again."
+                ),
+                "next_action": (
+                    "Open Knowledge Library with the Removed filter, then use Delete "
+                    "or replace references."
+                ),
+            }
         updated_fields = merge_existing_paper_metadata(existing, inputs)
         conflicts = find_paper_metadata_conflicts(existing, inputs)
         session.flush()

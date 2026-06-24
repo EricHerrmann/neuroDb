@@ -634,4 +634,124 @@ describe('KnowledgeLibraryPanel', () => {
       expect(screen.getByText(/Running/)).toBeTruthy()
     })
   })
+
+  it('shows reference handling choices when remove is blocked', async () => {
+    const fetchMock = vi.fn().mockImplementation((path: string, init?: RequestInit) => {
+      if (path.includes('/remove') && init?.method === 'POST') {
+        return Promise.resolve({
+          ok: false,
+          status: 409,
+          statusText: 'Conflict',
+          text: async () => JSON.stringify({
+            detail: {
+              error: 'paper_has_references',
+              message: 'This paper is referenced elsewhere in NeuroDb.',
+              paper_id: 1,
+              title: 'Referenced Paper',
+              references: { claims: 1, grouping_links: 1 },
+              blocking_references: { claims: 1, grouping_links: 1 },
+              available_actions: ['delete_with_references', 'replace_references'],
+            },
+          }),
+        })
+      }
+      return Promise.resolve({ ok: true, status: 200, json: async () => [] })
+    })
+    vi.stubGlobal('fetch', fetchMock)
+
+    render(<KnowledgeLibraryPanel />, {
+      wrapper: makeWrapper([{
+        id: 1,
+        title: 'Referenced Paper',
+        doi: null,
+        url: null,
+        source_type: 'paper',
+        topic_context: 'plasticity',
+        status: 'pending',
+        queued_at: '2026-01-01',
+        reviewed_at: null,
+        summary: null,
+      }]),
+    })
+
+    fireEvent.click(screen.getByText('Remove'))
+
+    await waitFor(() => {
+      expect(screen.getByText('This paper is referenced elsewhere in NeuroDb.')).toBeTruthy()
+    })
+    expect(screen.getByText('claims: 1 · grouping links: 1')).toBeTruthy()
+    expect(screen.getByText('Delete references and remove')).toBeTruthy()
+    expect(screen.getByText('Replace references and remove')).toBeTruthy()
+    expect(screen.getByLabelText('Replacement paper ID')).toBeTruthy()
+  })
+
+  it('shows restore and delete actions for legacy removed sources', () => {
+    render(<KnowledgeLibraryPanel />, {
+      wrapper: makeWrapper([{
+        id: 19,
+        title: 'Legacy Removed Paper',
+        doi: null,
+        url: null,
+        source_type: 'paper',
+        topic_context: 'stale',
+        status: 'removed',
+        queued_at: '2026-01-01',
+        reviewed_at: null,
+        summary: null,
+      }]),
+    })
+
+    expect(screen.getByText('Legacy Removed Paper')).toBeTruthy()
+    expect(screen.getByText('Restore')).toBeTruthy()
+    expect(screen.getByText('Delete')).toBeTruthy()
+  })
+
+  it('restores a legacy removed source to pending review', async () => {
+    const fetchMock = vi.fn().mockImplementation((path: string, init?: RequestInit) => {
+      if (path === '/api/knowledge-library/19/restore' && init?.method === 'POST') {
+        return Promise.resolve({
+          ok: true,
+          status: 200,
+          json: async () => ({
+            id: 19,
+            title: 'Legacy Removed Paper',
+            doi: null,
+            url: null,
+            source_type: 'paper',
+            topic_context: 'stale',
+            status: 'pending',
+            queued_at: '2026-01-01',
+            reviewed_at: null,
+            summary: null,
+          }),
+        })
+      }
+      return Promise.resolve({ ok: true, status: 200, json: async () => [] })
+    })
+    vi.stubGlobal('fetch', fetchMock)
+
+    render(<KnowledgeLibraryPanel />, {
+      wrapper: makeWrapper([{
+        id: 19,
+        title: 'Legacy Removed Paper',
+        doi: null,
+        url: null,
+        source_type: 'paper',
+        topic_context: 'stale',
+        status: 'removed',
+        queued_at: '2026-01-01',
+        reviewed_at: null,
+        summary: null,
+      }]),
+    })
+
+    fireEvent.click(screen.getByText('Restore'))
+
+    await waitFor(() => {
+      expect(fetchMock).toHaveBeenCalledWith(
+        '/api/knowledge-library/19/restore',
+        expect.objectContaining({ method: 'POST' }),
+      )
+    })
+  })
 })

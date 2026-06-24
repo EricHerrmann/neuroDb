@@ -6,6 +6,7 @@ from sqlalchemy import create_engine, select
 from sqlalchemy.orm import Session
 
 from neurodb.config.model_client import ModelClient
+from neurodb.config.model_config import get_provider_fallback_order
 from neurodb.config.task_router import ModelRoute, RoutingError, TaskRouter
 from neurodb.schema import Base, SystemWarning
 
@@ -66,12 +67,13 @@ def test_task_router_missing_provider_raises():
 def test_task_router_primary_selected_writes_no_warning():
     engine = create_engine("sqlite:///:memory:")
     Base.metadata.create_all(engine)
-    anthropic_client = _mock_client()
-    router = TaskRouter({"anthropic": anthropic_client})
+    primary = get_provider_fallback_order("standard")[0]
+    primary_client = _mock_client()
+    router = TaskRouter({primary: primary_client})
 
     route = router.route("agent.loop.research", engine=engine)
 
-    assert route.provider == "anthropic"
+    assert route.provider == primary
     with Session(engine) as session:
         warnings = session.execute(select(SystemWarning)).scalars().all()
     assert warnings == []
@@ -80,18 +82,44 @@ def test_task_router_primary_selected_writes_no_warning():
 def test_task_router_falls_back_when_primary_provider_missing():
     engine = create_engine("sqlite:///:memory:")
     Base.metadata.create_all(engine)
-    openai_client = _mock_client()
-    router = TaskRouter({"openai": openai_client})
+    primary, fallback = get_provider_fallback_order("standard")[:2]
+    fallback_client = _mock_client()
+    router = TaskRouter({fallback: fallback_client})
 
     route = router.route("agent.loop.research", engine=engine)
 
-    assert route.provider == "openai"
-    assert route.model_client is openai_client
+    assert route.provider == fallback
+    assert route.model_client is fallback_client
     with Session(engine) as session:
         warnings = session.execute(select(SystemWarning)).scalars().all()
     assert [row.warning_type for row in warnings] == ["provider_missing", "routing_fallback"]
-    assert warnings[0].requested_provider == "anthropic"
-    assert warnings[1].selected_provider == "openai"
+    assert warnings[0].requested_provider == primary
+    assert warnings[1].selected_provider == fallback
+
+
+def test_task_router_falls_back_when_primary_excluded_after_runtime_failure():
+    engine = create_engine("sqlite:///:memory:")
+    Base.metadata.create_all(engine)
+    primary, fallback = get_provider_fallback_order("standard")[:2]
+    fallback_client = _mock_client()
+    router = TaskRouter({primary: _mock_client(), fallback: fallback_client})
+
+    route = router.route_excluding(
+        "agent.loop.research",
+        engine=engine,
+        excluded_providers={primary},
+    )
+
+    assert route.provider == fallback
+    assert route.model_client is fallback_client
+    with Session(engine) as session:
+        warnings = session.execute(select(SystemWarning)).scalars().all()
+    assert [row.warning_type for row in warnings] == [
+        "provider_runtime_failed",
+        "routing_fallback",
+    ]
+    assert warnings[0].requested_provider == primary
+    assert warnings[1].selected_provider == fallback
 
 
 def test_task_router_falls_back_when_primary_degraded(monkeypatch):

@@ -31,6 +31,8 @@ from neurodb.schema import (
     GroupingLink,
     Paper,
     PaperChunk,
+    PaperFulltextStaging,
+    PlanStep,
     StudyNote,
 )
 
@@ -64,6 +66,11 @@ class AcquireFullTextRequest(BaseModel):
 
 class FulltextReviewRequest(BaseModel):
     decision: str  # confirm | reject
+
+
+class RemoveSourceRequest(BaseModel):
+    action: str = "delete"  # delete | delete_with_references | replace_references
+    replacement_source_id: int | None = None
 
 
 @router.get("", response_model=list[PaperItem])
@@ -218,26 +225,95 @@ def reject_source(source_id: int, engine: Engine = Depends(get_engine)) -> Paper
     return _set_status(source_id, "rejected", engine)
 
 
-@router.post("/{source_id}/remove", response_model=PaperItem)
+@router.post("/{source_id}/remove")
 def remove_source(
     source_id: int,
+    body: RemoveSourceRequest | None = None,
     engine: Engine = Depends(get_engine),
     knowledge_store=Depends(get_knowledge_store),
-) -> PaperItem:
+    chunk_store=Depends(get_chunk_store),
+) -> dict:
+    body = body or RemoveSourceRequest()
+    if body.action not in {"delete", "delete_with_references", "replace_references"}:
+        raise HTTPException(status_code=422, detail=f"Unsupported remove action: {body.action}")
+
     with get_session(engine) as session:
         row = _get_paper_or_404(session, source_id)
-        was_approved = row.status == "approved"
-        chroma_id = row.chroma_id
+        title = row.title
+        reference_counts = _paper_reference_counts(session, source_id)
+        blocker_counts = _external_reference_counts(reference_counts)
+        if body.action == "delete" and _reference_total(blocker_counts) > 0:
+            raise HTTPException(
+                status_code=409,
+                detail={
+                    "error": "paper_has_references",
+                    "message": (
+                        "This paper is referenced elsewhere in NeuroDb. "
+                        "Choose how to handle those references before deleting it."
+                    ),
+                    "paper_id": source_id,
+                    "title": title,
+                    "references": reference_counts,
+                    "blocking_references": blocker_counts,
+                    "available_actions": [
+                        "delete_with_references",
+                        "replace_references",
+                    ],
+                },
+            )
+        if body.action == "replace_references":
+            if body.replacement_source_id is None:
+                raise HTTPException(
+                    status_code=422,
+                    detail="replacement_source_id is required for replace_references",
+                )
+            replacement = session.get(Paper, body.replacement_source_id)
+            if replacement is None:
+                raise HTTPException(
+                    status_code=404,
+                    detail=f"Replacement paper {body.replacement_source_id} not found",
+                )
+            if replacement.id == source_id:
+                raise HTTPException(
+                    status_code=422,
+                    detail="replacement_source_id must point to a different paper",
+                )
+            _replace_paper_references(session, source_id, replacement.id)
+        elif body.action == "delete_with_references":
+            _delete_external_paper_references(session, source_id)
 
-    item = _update_paper_fields(source_id, engine, status="removed")
+    # DuckDB can still see pre-update FK references inside the same transaction.
+    # Commit reference handling first, then delete the paper in a fresh session.
+    with get_session(engine) as session:
+        _delete_paper_row(session, source_id)
 
-    if was_approved and chroma_id:
-        try:
-            knowledge_store.remove_summary(source_id)
-        except Exception:
-            logger.exception("ChromaDB removal failed for source %d", source_id)
+    _remove_paper_indexes(source_id, knowledge_store, chunk_store)
+    return {
+        "status": "deleted",
+        "id": source_id,
+        "title": title,
+        "references": reference_counts,
+        "action": body.action,
+        "replacement_source_id": body.replacement_source_id,
+    }
 
-    return item
+
+@router.post("/{source_id}/restore", response_model=PaperItem)
+def restore_source(source_id: int, engine: Engine = Depends(get_engine)) -> PaperItem:
+    with get_session(engine) as session:
+        row = _get_paper_or_404(session, source_id)
+        if row.status != "removed":
+            raise HTTPException(
+                status_code=409,
+                detail=f"Paper {source_id} is not removed",
+            )
+
+    return _update_paper_fields(
+        source_id,
+        engine,
+        status="pending",
+        reviewed_at=None,
+    )
 
 
 @router.post("/{source_id}/acquire-full-text", response_model=PaperItem)
@@ -251,7 +327,9 @@ def acquire_full_text(
     body = body or AcquireFullTextRequest()
     if body.source_path:
         from neurodb.library_store import (
-            library_root, resolve_library_path, resolve_library_project,
+            library_root,
+            resolve_library_path,
+            resolve_library_project,
         )
         project = resolve_library_project(body.source_path)
         if project is not None:
@@ -611,6 +689,251 @@ def _get_paper_or_404(session, source_id: int) -> Paper:
     return row
 
 
+def _reference_total(counts: dict[str, int]) -> int:
+    return sum(counts.values())
+
+
+def _external_reference_counts(counts: dict[str, int]) -> dict[str, int]:
+    artifact_keys = {"full_text_chunks", "fulltext_staging"}
+    return {key: value for key, value in counts.items() if key not in artifact_keys}
+
+
+def _paper_claim_ids(session, paper_id: int) -> list[int]:
+    if not _table_has_columns(
+        session,
+        "claims",
+        ["id", "paper_id", "text", "claim_type", "status", "created_at", "updated_at"],
+    ):
+        return []
+    return [
+        row[0]
+        for row in session.query(Claim.id).filter(Claim.paper_id == paper_id).all()
+    ]
+
+
+def _paper_study_note_ids(session, paper_id: int) -> list[int]:
+    if not _table_has_columns(
+        session,
+        "study_notes",
+        [
+            "id",
+            "index_id",
+            "topic_id",
+            "concept_id",
+            "paper_id",
+            "concept_tag",
+            "section_ref",
+            "note_text",
+            "tagged_at",
+        ],
+    ):
+        return []
+    return [
+        row[0]
+        for row in session.query(StudyNote.id).filter(StudyNote.paper_id == paper_id).all()
+    ]
+
+
+def _paper_evidence_link_ids(
+    session,
+    paper_id: int,
+    claim_ids: list[int] | None = None,
+    study_note_ids: list[int] | None = None,
+) -> list[int]:
+    if not _table_has_columns(
+        session,
+        "evidence_links",
+        [
+            "id",
+            "hypothesis_id",
+            "claim_id",
+            "paper_id",
+            "packet_id",
+            "note_id",
+            "link_type",
+            "status",
+            "created_at",
+        ],
+    ):
+        return []
+    ids = {
+        row[0]
+        for row in session.query(EvidenceLink.id)
+        .filter(EvidenceLink.paper_id == paper_id)
+        .all()
+    }
+    if claim_ids:
+        ids.update(
+            row[0]
+            for row in session.query(EvidenceLink.id)
+            .filter(EvidenceLink.claim_id.in_(claim_ids))
+            .all()
+        )
+    if study_note_ids:
+        ids.update(
+            row[0]
+            for row in session.query(EvidenceLink.id)
+            .filter(EvidenceLink.note_id.in_(study_note_ids))
+            .all()
+        )
+    return sorted(ids)
+
+
+def _paper_reference_counts(session, paper_id: int) -> dict[str, int]:
+    claim_ids = _paper_claim_ids(session, paper_id)
+    study_note_ids = _paper_study_note_ids(session, paper_id)
+    evidence_ids = _paper_evidence_link_ids(session, paper_id, claim_ids, study_note_ids)
+    return {
+        "claims": len(claim_ids),
+        "study_notes": len(study_note_ids),
+        "evidence_links": len(evidence_ids),
+        "dataset_packet_papers": session.query(DatasetPacketPaper)
+        .filter(DatasetPacketPaper.paper_id == paper_id)
+        .count(),
+        "grouping_links": session.query(GroupingLink)
+        .filter(GroupingLink.anchor_type == "paper", GroupingLink.anchor_id == paper_id)
+        .count(),
+        "plan_steps": session.query(PlanStep).filter(PlanStep.paper_id == paper_id).count(),
+        "full_text_chunks": session.query(PaperChunk)
+        .filter(PaperChunk.paper_id == paper_id)
+        .count(),
+        "fulltext_staging": session.query(PaperFulltextStaging)
+        .filter(PaperFulltextStaging.source_id == paper_id)
+        .count(),
+    }
+
+
+def _delete_paper_artifacts(session, paper_id: int) -> None:
+    for row in session.query(PaperChunk).filter(PaperChunk.paper_id == paper_id).all():
+        session.delete(row)
+    for row in (
+        session.query(PaperFulltextStaging)
+        .filter(PaperFulltextStaging.source_id == paper_id)
+        .all()
+    ):
+        session.delete(row)
+
+
+def _delete_external_paper_references(session, paper_id: int) -> None:
+    claim_ids = _paper_claim_ids(session, paper_id)
+    study_note_ids = _paper_study_note_ids(session, paper_id)
+    evidence_ids = _paper_evidence_link_ids(session, paper_id, claim_ids, study_note_ids)
+    for row in session.query(EvidenceLink).filter(EvidenceLink.id.in_(evidence_ids)).all():
+        session.delete(row)
+    for model, field in [
+        (DatasetPacketPaper, DatasetPacketPaper.paper_id),
+        (StudyNote, StudyNote.paper_id),
+        (Claim, Claim.paper_id),
+        (PlanStep, PlanStep.paper_id),
+    ]:
+        for row in session.query(model).filter(field == paper_id).all():
+            session.delete(row)
+    for row in (
+        session.query(GroupingLink)
+        .filter(GroupingLink.anchor_type == "paper", GroupingLink.anchor_id == paper_id)
+        .all()
+    ):
+        session.delete(row)
+    session.flush()
+
+
+def _evidence_link_values(session, evidence_ids: list[int], old_id: int, new_id: int) -> list[dict]:
+    values = []
+    if not evidence_ids:
+        return values
+    for link in session.query(EvidenceLink).filter(EvidenceLink.id.in_(evidence_ids)).all():
+        values.append({
+            "id": link.id,
+            "hypothesis_id": link.hypothesis_id,
+            "claim_id": link.claim_id,
+            "paper_id": new_id if link.paper_id == old_id else link.paper_id,
+            "packet_id": link.packet_id,
+            "note_id": link.note_id,
+            "link_type": link.link_type,
+            "status": link.status,
+            "created_at": link.created_at,
+        })
+    return values
+
+
+def _replace_dataset_packet_links(session, old_id: int, new_id: int) -> None:
+    for link in session.query(DatasetPacketPaper).filter_by(paper_id=old_id).all():
+        duplicate = (
+            session.query(DatasetPacketPaper)
+            .filter_by(packet_id=link.packet_id, paper_id=new_id)
+            .one_or_none()
+        )
+        if duplicate is not None:
+            session.delete(link)
+        else:
+            link.paper_id = new_id
+
+
+def _replace_grouping_links(session, old_id: int, new_id: int) -> None:
+    rows = (
+        session.query(GroupingLink)
+        .filter(GroupingLink.anchor_type == "paper", GroupingLink.anchor_id == old_id)
+        .all()
+    )
+    for link in rows:
+        duplicate = (
+            session.query(GroupingLink)
+            .filter_by(
+                grouping_id=link.grouping_id,
+                anchor_type="paper",
+                anchor_id=new_id,
+            )
+            .one_or_none()
+        )
+        if duplicate is not None:
+            session.delete(link)
+        else:
+            link.anchor_id = new_id
+
+
+def _replace_paper_references(session, old_id: int, new_id: int) -> None:
+    claim_ids = _paper_claim_ids(session, old_id)
+    study_note_ids = _paper_study_note_ids(session, old_id)
+    evidence_ids = _paper_evidence_link_ids(session, old_id, claim_ids, study_note_ids)
+    evidence_values = _evidence_link_values(session, evidence_ids, old_id, new_id)
+    for link in session.query(EvidenceLink).filter(EvidenceLink.id.in_(evidence_ids)).all():
+        session.delete(link)
+    session.flush()
+
+    _replace_dataset_packet_links(session, old_id, new_id)
+    _replace_grouping_links(session, old_id, new_id)
+    for row in session.query(StudyNote).filter(StudyNote.paper_id == old_id).all():
+        row.paper_id = new_id
+    for row in session.query(Claim).filter(Claim.paper_id == old_id).all():
+        row.paper_id = new_id
+    for row in session.query(PlanStep).filter(PlanStep.paper_id == old_id).all():
+        row.paper_id = new_id
+        row.source_ref = None
+    session.flush()
+    for values in evidence_values:
+        session.add(EvidenceLink(**values))
+    session.flush()
+
+
+def _delete_paper_row(session, paper_id: int) -> None:
+    _delete_paper_artifacts(session, paper_id)
+    row = _get_paper_or_404(session, paper_id)
+    session.delete(row)
+    session.flush()
+
+
+def _remove_paper_indexes(source_id: int, knowledge_store, chunk_store) -> None:
+    try:
+        knowledge_store.remove_summary(source_id)
+    except Exception:
+        logger.exception("ChromaDB summary removal failed for source %d", source_id)
+    if chunk_store is not None:
+        try:
+            chunk_store.delete_paper(source_id)
+        except Exception:
+            logger.exception("ChromaDB chunk removal failed for source %d", source_id)
+
+
 def _detach_paper_links(session, paper_id: int) -> dict[str, list[dict]]:
     has_claims = _table_has_columns(
         session,
@@ -747,14 +1070,18 @@ def _restore_paper_links(session, links: dict[str, list[dict]]) -> None:
 
 
 def _table_has_columns(session, table_name: str, column_names: list[str]) -> bool:
-    rows = session.execute(
-        text(
-            "SELECT column_name FROM information_schema.columns "
-            "WHERE table_name = :table_name"
-        ),
-        {"table_name": table_name},
-    ).fetchall()
-    actual = {row[0] for row in rows}
+    if session.get_bind().dialect.name == "sqlite":
+        rows = session.execute(text(f"PRAGMA table_info({table_name})")).fetchall()
+        actual = {row[1] for row in rows}
+    else:
+        rows = session.execute(
+            text(
+                "SELECT column_name FROM information_schema.columns "
+                "WHERE table_name = :table_name"
+            ),
+            {"table_name": table_name},
+        ).fetchall()
+        actual = {row[0] for row in rows}
     return set(column_names).issubset(actual)
 
 

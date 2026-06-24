@@ -6,9 +6,10 @@ from contextlib import contextmanager
 from time import sleep
 
 from neurodb.config.model_client import ContentBlock, ModelClient, ModelResponse
-
-_RETRYABLE_STATUS_CODES = {408, 409, 429, 500, 502, 503, 504}
-_RETRY_DELAYS_SECONDS = (0.25, 0.75)
+from neurodb.config.provider_errors import (
+    RETRY_DELAYS_SECONDS,
+    is_retryable_provider_error,
+)
 
 
 class OpenAIModelClient(ModelClient):
@@ -74,23 +75,19 @@ class OpenAIModelClient(ModelClient):
 
 def _call_with_retries(fn, **kwargs):
     last_exc = None
-    for attempt in range(len(_RETRY_DELAYS_SECONDS) + 1):
+    for attempt in range(len(RETRY_DELAYS_SECONDS) + 1):
         try:
             return fn(**kwargs)
         except Exception as exc:
             last_exc = exc
-            if not _is_retryable_error(exc) or attempt >= len(_RETRY_DELAYS_SECONDS):
+            if not is_retryable_provider_error(exc) or attempt >= len(RETRY_DELAYS_SECONDS):
                 raise
-            sleep(_RETRY_DELAYS_SECONDS[attempt])
+            sleep(RETRY_DELAYS_SECONDS[attempt])
     raise last_exc
 
 
 def _is_retryable_error(exc: Exception) -> bool:
-    status_code = getattr(exc, "status_code", None)
-    if status_code in _RETRYABLE_STATUS_CODES:
-        return True
-    message = str(exc)
-    return any(f"Error code: {code}" in message for code in _RETRYABLE_STATUS_CODES)
+    return is_retryable_provider_error(exc)
 
 
 class _OpenAIStream:

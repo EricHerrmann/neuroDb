@@ -12,6 +12,10 @@ class _RetryableError(Exception):
     status_code = 500
 
 
+class _AnthropicOverloadedError(Exception):
+    body = {"error": {"type": "overloaded_error", "message": "Overloaded"}}
+
+
 # --- ContentBlock ---
 
 def test_content_block_text_fields():
@@ -166,6 +170,42 @@ def test_anthropic_create_message_retries_retryable_provider_error():
 
     assert response.content[0].text == "Hello after retry"
     assert mock_client.messages.create.call_count == 2
+
+
+def test_anthropic_create_message_retries_overloaded_error_body():
+    from neurodb.config.providers.anthropic_client import AnthropicModelClient
+
+    sdk_response = SimpleNamespace(
+        stop_reason="end_turn",
+        content=[SimpleNamespace(type="text", text="Hello after overload")],
+        usage=SimpleNamespace(input_tokens=10, output_tokens=5),
+    )
+    mock_client = MagicMock()
+    mock_client.messages.create.side_effect = [
+        _AnthropicOverloadedError("Overloaded"),
+        sdk_response,
+    ]
+
+    client = AnthropicModelClient(mock_client)
+    with patch("neurodb.config.providers.anthropic_client.sleep"):
+        response = client.create_message("m", [], "", [], 100)
+
+    assert response.content[0].text == "Hello after overload"
+    assert mock_client.messages.create.call_count == 2
+
+
+def test_anthropic_create_message_exhausts_two_retries_before_raising():
+    from neurodb.config.providers.anthropic_client import AnthropicModelClient
+
+    mock_client = MagicMock()
+    mock_client.messages.create.side_effect = _AnthropicOverloadedError("Overloaded")
+
+    client = AnthropicModelClient(mock_client)
+    with patch("neurodb.config.providers.anthropic_client.sleep"):
+        with pytest.raises(_AnthropicOverloadedError):
+            client.create_message("m", [], "", [], 100)
+
+    assert mock_client.messages.create.call_count == 3
 
 
 def test_anthropic_format_tool_passes_through_unchanged():

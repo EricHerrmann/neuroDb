@@ -1,10 +1,16 @@
 import { useEffect, useState } from 'react'
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 
-import { api } from '../api/client'
+import { ApiError, api, isRemoveSourceBlockedDetail } from '../api/client'
 import TaskStatus from '../components/TaskStatus'
 import { useTask } from '../hooks/useTask'
-import type { DuplicateCandidate, FullTextStaging, LibraryFile, PaperItem } from '../api/types'
+import type {
+  DuplicateCandidate,
+  FullTextStaging,
+  LibraryFile,
+  PaperItem,
+  RemoveSourceBlockedDetail,
+} from '../api/types'
 
 function doiHref(doi: string): string | null {
   if (doi.startsWith('10.')) return `https://doi.org/${doi}`
@@ -113,6 +119,84 @@ function SourceReviewDetails({ item }: { item: PaperItem }) {
         )}
       </div>
     </details>
+  )
+}
+
+const REFERENCE_LABELS: Record<string, string> = {
+  claims: 'claims',
+  study_notes: 'study notes',
+  evidence_links: 'evidence links',
+  dataset_packet_papers: 'dataset links',
+  grouping_links: 'grouping links',
+  plan_steps: 'study plan steps',
+}
+
+function ReferenceBlockerPanel({
+  detail,
+  replacementValue,
+  onReplacementChange,
+  onDeleteReferences,
+  onReplaceReferences,
+  isPending,
+}: {
+  detail: RemoveSourceBlockedDetail
+  replacementValue: string
+  onReplacementChange: (value: string) => void
+  onDeleteReferences: () => void
+  onReplaceReferences: () => void
+  isPending: boolean
+}) {
+  const references = Object.entries(detail.blocking_references)
+    .filter(([, count]) => count > 0)
+
+  return (
+    <div
+      role="alert"
+      style={{
+        marginTop: 8,
+        padding: 8,
+        border: '1px solid #f59e0b',
+        background: '#fffbeb',
+        color: '#78350f',
+        borderRadius: 6,
+        display: 'grid',
+        gap: 6,
+        fontSize: 12,
+      }}
+    >
+      <div>{detail.message}</div>
+      {references.length > 0 && (
+        <div>
+          {references
+            .map(([key, count]) => `${REFERENCE_LABELS[key] ?? key}: ${count}`)
+            .join(' · ')}
+        </div>
+      )}
+      <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap', alignItems: 'center' }}>
+        <button
+          onClick={onDeleteReferences}
+          disabled={isPending}
+          style={{ fontSize: 12, padding: '3px 10px', cursor: 'pointer', color: '#b91c1c' }}
+        >
+          Delete references and remove
+        </button>
+        <input
+          aria-label="Replacement paper ID"
+          value={replacementValue}
+          onChange={event => onReplacementChange(event.target.value)}
+          placeholder="Replacement paper ID"
+          inputMode="numeric"
+          style={{ fontSize: 12, padding: '3px 6px', width: 150 }}
+        />
+        <button
+          onClick={onReplaceReferences}
+          disabled={isPending || replacementValue.trim() === ''}
+          style={{ fontSize: 12, padding: '3px 10px', cursor: 'pointer' }}
+        >
+          Replace references and remove
+        </button>
+      </div>
+    </div>
   )
 }
 
@@ -385,6 +469,8 @@ export default function KnowledgeLibraryPanel() {
   const [acquireWarnings, setAcquireWarnings] = useState<Record<number, string>>({})
   const [supplyLinkInputs, setSupplyLinkInputs] = useState<Record<number, string>>({})
   const [reviewPanelOpen, setReviewPanelOpen] = useState<Record<number, boolean>>({})
+  const [removeBlockers, setRemoveBlockers] = useState<Record<number, RemoveSourceBlockedDetail>>({})
+  const [replacementInputs, setReplacementInputs] = useState<Record<number, string>>({})
   const [hasPending, setHasPending] = useState(false)
   const [taskId, setTaskId] = useState<string | null>(null)
   const queryClient = useQueryClient()
@@ -430,7 +516,34 @@ export default function KnowledgeLibraryPanel() {
     onSuccess: () => queryClient.invalidateQueries({ queryKey: ['knowledge-library'] }),
   })
   const remove = useMutation({
-    mutationFn: (id: number) => api.removeSource(id),
+    mutationFn: (
+      input: { id: number; action?: string; replacement_source_id?: number | null },
+    ) => api.removeSource(input.id, input.action ? {
+      action: input.action,
+      replacement_source_id: input.replacement_source_id ?? null,
+    } : undefined),
+    onSuccess: (_data, input) => {
+      setRemoveBlockers(prev => {
+        const next = { ...prev }
+        delete next[input.id]
+        return next
+      })
+      setReplacementInputs(prev => {
+        const next = { ...prev }
+        delete next[input.id]
+        return next
+      })
+      queryClient.invalidateQueries({ queryKey: ['knowledge-library'] })
+    },
+    onError: (error, input) => {
+      const detail = error instanceof ApiError ? error.detail : null
+      if (isRemoveSourceBlockedDetail(detail)) {
+        setRemoveBlockers(prev => ({ ...prev, [input.id]: detail }))
+      }
+    },
+  })
+  const restore = useMutation({
+    mutationFn: (id: number) => api.restoreSource(id),
     onSuccess: () => queryClient.invalidateQueries({ queryKey: ['knowledge-library'] }),
   })
 
@@ -566,7 +679,7 @@ export default function KnowledgeLibraryPanel() {
                 Reject
               </button>
               <button
-                onClick={() => remove.mutate(item.id)}
+                onClick={() => remove.mutate({ id: item.id })}
                 disabled={remove.isPending}
                 style={{ fontSize: 12, padding: '3px 10px', cursor: 'pointer', color: '#dc2626' }}
               >
@@ -634,7 +747,7 @@ export default function KnowledgeLibraryPanel() {
                   )
                 })()}
                 <button
-                  onClick={() => remove.mutate(item.id)}
+                  onClick={() => remove.mutate({ id: item.id })}
                   disabled={remove.isPending}
                   style={{ fontSize: 11, padding: '2px 6px', cursor: 'pointer', color: '#dc2626' }}
                 >
@@ -681,9 +794,44 @@ export default function KnowledgeLibraryPanel() {
                 )}
             </div>
           ) : (
-            <div style={{ fontSize: 11, color: '#94a3b8', marginTop: 4 }}>
-              removed
+            <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginTop: 4 }}>
+              <span style={{ fontSize: 11, color: '#94a3b8' }}>removed</span>
+              <button
+                onClick={() => restore.mutate(item.id)}
+                disabled={restore.isPending}
+                style={{ fontSize: 11, padding: '2px 6px', cursor: 'pointer' }}
+              >
+                Restore
+              </button>
+              <button
+                onClick={() => remove.mutate({ id: item.id })}
+                disabled={remove.isPending}
+                style={{ fontSize: 11, padding: '2px 6px', cursor: 'pointer', color: '#dc2626' }}
+              >
+                Delete
+              </button>
             </div>
+          )}
+          {removeBlockers[item.id] && (
+            <ReferenceBlockerPanel
+              detail={removeBlockers[item.id]}
+              replacementValue={replacementInputs[item.id] ?? ''}
+              onReplacementChange={value =>
+                setReplacementInputs(prev => ({ ...prev, [item.id]: value }))}
+              onDeleteReferences={() =>
+                remove.mutate({ id: item.id, action: 'delete_with_references' })}
+              onReplaceReferences={() => {
+                const replacement = Number.parseInt(replacementInputs[item.id] ?? '', 10)
+                if (Number.isInteger(replacement)) {
+                  remove.mutate({
+                    id: item.id,
+                    action: 'replace_references',
+                    replacement_source_id: replacement,
+                  })
+                }
+              }}
+              isPending={remove.isPending}
+            />
           )}
           {duplicateWarnings[item.id]?.length > 0 && (
             <div style={{ color: '#92400e', background: '#fef3c7', padding: '6px 8px', borderRadius: 4, fontSize: 11, marginTop: 6 }}>

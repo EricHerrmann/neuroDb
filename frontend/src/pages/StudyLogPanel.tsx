@@ -481,7 +481,7 @@ function PlansView() {
 }
 
 export default function StudyLogPanel() {
-  const [view, setView] = useState<View>('study-tags')
+  const [view, setView] = useState<View>('plans')
 
   return (
     <div style={{ padding: 12 }}>

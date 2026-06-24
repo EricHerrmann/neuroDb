@@ -42,11 +42,22 @@ class TaskRouter:
         Raises KeyError if task_type is unknown.
         Raises RoutingError if no configured fallback provider can serve the task.
         """
+        return self.route_excluding(task_type, engine=engine)
+
+    def route_excluding(
+        self,
+        task_type: str,
+        *,
+        engine: Engine | None = None,
+        excluded_providers: set[str] | None = None,
+    ) -> ModelRoute:
+        """Return the first viable route, skipping providers failed at runtime."""
         tier, max_tokens = get_task_config(task_type)
         candidates = get_provider_fallback_order(tier)
         primary = candidates[0]
         uses_tools, is_agent_loop = _infer_task_capabilities(task_type)
         skipped: list[tuple[str, str]] = []
+        excluded = excluded_providers or set()
 
         for provider_name in candidates:
             provider_cfg = _provider_cfg_or_none(tier, provider_name)
@@ -56,6 +67,7 @@ class TaskRouter:
                 registered_provider=provider_name in self._providers,
                 uses_tools=uses_tools,
                 is_agent_loop=is_agent_loop,
+                excluded=provider_name in excluded,
             )
             if reason is not None:
                 skipped.append((provider_name, reason))
@@ -130,7 +142,10 @@ def _rejection_reason(
     registered_provider: bool,
     uses_tools: bool | None,
     is_agent_loop: bool | None,
+    excluded: bool = False,
 ) -> str | None:
+    if excluded:
+        return "runtime_failed"
     if provider_cfg is None:
         return "provider not configured for tier"
     if not registered_provider:
@@ -145,6 +160,8 @@ def _rejection_reason(
 
 
 def _warning_type_for_reason(reason: str) -> str:
+    if reason == "runtime_failed":
+        return "provider_runtime_failed"
     if reason == "missing API key" or reason == "provider not configured for tier":
         return "provider_missing"
     if reason == "degraded":
@@ -153,6 +170,8 @@ def _warning_type_for_reason(reason: str) -> str:
 
 
 def _skip_message(provider_name: str, reason: str) -> str:
+    if reason == "runtime_failed":
+        return f"{provider_name} skipped after runtime failure"
     if reason == "missing API key":
         return f"{provider_name} not registered (missing API key)"
     return f"{provider_name} skipped: {reason}"

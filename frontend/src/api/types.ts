@@ -112,6 +112,25 @@ export interface PaperItem {
   warnings?: string[]
 }
 
+export interface RemoveSourceResult {
+  status: string
+  id: number
+  title: string
+  references: Record<string, number>
+  action: string
+  replacement_source_id: number | null
+}
+
+export interface RemoveSourceBlockedDetail {
+  error: string
+  message: string
+  paper_id: number
+  title: string
+  references: Record<string, number>
+  blocking_references: Record<string, number>
+  available_actions: string[]
+}
+
 export interface PaperGroupingLink {
   grouping_id: number
   grouping_type: string

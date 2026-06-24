@@ -195,6 +195,29 @@ function ActivityLog({ message }: { message: Message }) {
   )
 }
 
+function ProviderNotices({ message }: { message: Message }) {
+  if (!message.notices?.length) return null
+  return (
+    <div style={{ marginTop: 6, display: 'flex', flexDirection: 'column', gap: 4 }}>
+      {message.notices.map(notice => (
+        <div
+          key={notice.id}
+          style={{
+            border: '1px solid #f59e0b',
+            borderRadius: 4,
+            padding: '4px 6px',
+            background: '#fffbeb',
+            color: '#92400e',
+            fontSize: 11,
+          }}
+        >
+          {notice.text}
+        </div>
+      ))}
+    </div>
+  )
+}
+
 export default function MessageBubble({ message }: { message: Message }) {
   const isUser = message.role === 'user'
   return (
@@ -215,6 +238,7 @@ export default function MessageBubble({ message }: { message: Message }) {
       }}>
         <MarkdownContent text={message.content} />
         {message.streaming && <span style={{ opacity: 0.5 }}>▋</span>}
+        <ProviderNotices message={message} />
         <ActivityLog message={message} />
         <EvidenceLens message={message} />
       </div>

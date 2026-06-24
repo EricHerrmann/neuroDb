@@ -8,7 +8,15 @@ export interface Message {
   streaming?: boolean
   error?: boolean
   activity?: ToolActivity[]
+  notices?: ProviderNotice[]
   evidenceSummary?: EvidenceSummary | null
+}
+
+export interface ProviderNotice {
+  id: string
+  text: string
+  failedProvider?: string
+  fallbackProvider?: string
 }
 
 export interface ToolActivity {
@@ -87,6 +95,8 @@ export function useChat(agentMode: string) {
             claims_count?: number
             datasets_count?: number
             gaps_count?: number
+            failed_provider?: string
+            fallback_provider?: string
           }
           if (event.type === 'text_delta') {
             setThinkingState('streaming')
@@ -150,6 +160,23 @@ export function useChat(agentMode: string) {
                 datasets: event.datasets_count ?? 0,
                 gaps: event.gaps_count ?? 0,
               }
+              next[next.length - 1] = last
+              return next
+            })
+          } else if (event.type === 'provider_fallback') {
+            setThinkingState('thinking')
+            setActiveTool(null)
+            setMessages(prev => {
+              const next = [...prev]
+              const last = { ...next[next.length - 1] }
+              const notices = [...(last.notices ?? [])]
+              notices.push({
+                id: `provider-fallback-${notices.length}`,
+                text: event.text ?? 'Primary model provider failed; using fallback.',
+                failedProvider: event.failed_provider,
+                fallbackProvider: event.fallback_provider,
+              })
+              last.notices = notices
               next[next.length - 1] = last
               return next
             })

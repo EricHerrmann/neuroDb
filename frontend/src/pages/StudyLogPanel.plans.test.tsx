@@ -1,6 +1,6 @@
 import React from 'react'
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
-import { render, screen, fireEvent } from '@testing-library/react'
+import { render, screen } from '@testing-library/react'
 import { afterEach, describe, it, expect, vi } from 'vitest'
 
 import StudyLogPanel from './StudyLogPanel'
@@ -32,7 +32,6 @@ describe('StudyLogPanel — Plans section', () => {
       pending_change_count: 0,
     }
     render(<StudyLogPanel />, { wrapper: makeWrapper([plan]) })
-    fireEvent.change(screen.getByRole('combobox'), { target: { value: 'plans' } })
     expect(screen.getByText('Plasticity primer')).toBeTruthy()
     expect(screen.getByText(/proposed/i)).toBeTruthy()
   })
@@ -48,7 +47,6 @@ describe('StudyLogPanel — Plans section', () => {
       pending_change_count: 0,
     }
     render(<StudyLogPanel />, { wrapper: makeWrapper([plan]) })
-    fireEvent.change(screen.getByRole('combobox'), { target: { value: 'plans' } })
 
     expect(screen.getByText('Plasticity follow-through')).toBeTruthy()
     expect(screen.getByRole('button', { name: 'Delete' })).toBeTruthy()

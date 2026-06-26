@@ -1,7 +1,4 @@
-"""Live literature-search layer: base-class + registry of search providers.
+"""Live literature-search layer: base-class + registry of search providers."""
+from neurodb.literature.client import LiteratureSearchClient
 
-The client import is added in a later task; kept empty here so the package
-imports cleanly before the client module exists.
-"""
-
-__all__: list[str] = []
+__all__ = ["LiteratureSearchClient"]

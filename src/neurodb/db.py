@@ -784,6 +784,16 @@ def _migration_020_literature_search_arxiv_count(conn) -> None:
         pass  # column already exists
 
 
+def _migration_026_literature_provider_counts(conn) -> None:
+    """Add JSON per-provider counts column to literature_searches (dynamic providers)."""
+    try:
+        conn.execute(
+            text("ALTER TABLE literature_searches ADD COLUMN provider_counts_json TEXT")
+        )
+    except Exception:
+        pass  # column already exists
+
+
 def _migration_021_drop_legacy_groupings_tables(conn) -> None:
     """Drop the legacy topics/concepts tables and their six join tables.
 
@@ -949,6 +959,7 @@ _MIGRATIONS: dict[int, callable] = {
     23: _migration_023_paper_tier_currency,
     24: _migration_024_paper_chunks,
     25: _migration_025_phase2b,
+    26: _migration_026_literature_provider_counts,
 }
 
 

@@ -5,14 +5,21 @@ import os
 
 from neurodb.literature.providers.base import BaseLiteratureProvider
 from neurodb.literature.providers.arxiv import ArxivProvider
+from neurodb.literature.providers.biorxiv import BiorxivProvider
+from neurodb.literature.providers.crossref import CrossrefProvider
+from neurodb.literature.providers.europepmc import EuropePmcProvider
+from neurodb.literature.providers.openalex import OpenAlexProvider
 from neurodb.literature.providers.pubmed import PubmedProvider
 from neurodb.literature.providers.semantic_scholar import SemanticScholarProvider
 
-# Task 7 appends OpenAlex, EuropePmc, Crossref, Biorxiv here.
 ALL_PROVIDER_CLASSES: list[type[BaseLiteratureProvider]] = [
     PubmedProvider,
     SemanticScholarProvider,
     ArxivProvider,
+    OpenAlexProvider,
+    EuropePmcProvider,
+    CrossrefProvider,
+    BiorxivProvider,
 ]
 
 

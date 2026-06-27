@@ -1,4 +1,28 @@
-from neurodb.agents.behavior_instructions import load_agent_behavior_instructions
+from neurodb.agents.behavior_instructions import (
+    CITATION_PROVENANCE_RULE,
+    data_tier_label,
+    load_agent_behavior_instructions,
+)
+
+
+def test_data_tier_label_maps_known_values():
+    assert data_tier_label("metadata") == "metadata"
+    assert data_tier_label("abstract") == "abstract"
+    assert data_tier_label("full_text") == "full text"
+
+
+def test_data_tier_label_falls_back_to_metadata():
+    assert data_tier_label(None) == "metadata"
+    assert data_tier_label("") == "metadata"
+    assert data_tier_label("weird") == "metadata"
+    assert data_tier_label(" Full_Text ") == "full text"
+
+
+def test_citation_rule_mentions_key_elements():
+    text = CITATION_PROVENANCE_RULE
+    assert "Knowledge Library" in text
+    assert "full text" in text
+    assert "URL" in text or "url" in text
 
 
 def test_load_behavior_instructions_from_configured_path(tmp_path, monkeypatch):

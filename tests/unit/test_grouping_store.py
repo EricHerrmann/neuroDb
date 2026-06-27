@@ -245,6 +245,32 @@ def test_get_grouping_bundle_missing(session):
     assert get_grouping_bundle(session, 999999) == {}
 
 
+def test_get_grouping_bundle_papers_include_data_tier_and_url(session):
+    from neurodb.schema import Paper
+
+    topic = get_or_create_grouping(session, "topic", "plasticity")
+    paper = Paper(
+        title="LTP paper",
+        normalized_title="ltp paper",
+        source_type="paper",
+        topic_context="",
+        status="approved",
+        queued_at=_now(),
+        data_tier="full_text",
+        url="https://doi.org/10.1/ltp",
+    )
+    session.add(paper)
+    session.flush()
+    link_grouping(session, topic.id, "paper", paper.id, status="confirmed")
+
+    bundle = get_grouping_bundle(session, topic.id)
+
+    p = bundle["papers"][0]
+    assert p["data_tier"] == "full_text"
+    assert p["url"] == "https://doi.org/10.1/ltp"
+    assert p["title"] == "LTP paper"
+
+
 def test_get_groupings_for_anchor_includes_grouping_status(session):
     from neurodb.db.grouping_store import link_grouping
     g = get_or_create_grouping(session, "topic", "plasticity", status="proposed")

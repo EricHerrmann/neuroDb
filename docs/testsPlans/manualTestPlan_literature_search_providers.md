@@ -36,10 +36,14 @@ polite-pool config, and operator connectivity confirmation.
 2. **Provider toggle:** set `LITERATURE_PROVIDERS_DISABLED=crossref`, restart
    the API, repeat the query.
    - Pass: envelope `providers` has no `crossref` key; other providers present.
-3. **Audit row:** confirm a new `literature_searches` row exists with
-   `provider_counts_json` populated for all active providers.
-   - Pass: JSON contains a count per active provider; legacy
-     `pubmed_count/semantic_scholar_count/arxiv_count` match the JSON.
+3. **Audit row:** an audit row is written only by the agent's `search_literature`
+   tool (Step 1) — the connectivity helper does NOT log one. DuckDB is
+   single-writer, so **stop the FastAPI server first**, then run:
+   `uv run python tests/manual/show_last_literature_search.py`
+   - Pass: the latest row prints with `provider_counts_json` containing a count
+     per active provider, and the legacy
+     `pubmed_count/semantic_scholar_count/arxiv_count` match the JSON (the script
+     prints `WARN` and exits non-zero on any mismatch).
 
 ## Pass/Fail
 All steps pass = sign off. Record date and any disabled providers.

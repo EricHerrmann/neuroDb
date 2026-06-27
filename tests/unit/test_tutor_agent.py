@@ -429,6 +429,12 @@ def test_system_prompt_contains_tutor_instructions():
     assert "stop calling tools" in prompt
 
 
+def test_tutor_prompt_includes_citation_provenance_rule():
+    from neurodb.agents.behavior_instructions import CITATION_PROVENANCE_RULE
+    prompt = _agent()._build_system_prompt()
+    assert CITATION_PROVENANCE_RULE in prompt
+
+
 def test_tutor_prompt_includes_context_mode_and_bundle():
     agent = _agent()
     agent._context_mode = "grounded"

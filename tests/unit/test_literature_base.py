@@ -19,9 +19,11 @@ class _Http:
         self.resp = resp
         self.raise_exc = raise_exc
         self.last_params = None
+        self.last_headers = None
 
     def get(self, url, params=None, headers=None, timeout=None):
         self.last_params = params
+        self.last_headers = headers
         if self.raise_exc:
             raise self.raise_exc
         return self.resp
@@ -98,3 +100,19 @@ def test_truncate_collapses_and_limits():
     assert _Fake._truncate("  a   b  ") == "a b"
     assert _Fake._truncate("x" * 400).endswith("...")
     assert _Fake._truncate("") is None
+
+
+def test_user_agent_header_includes_contact_email():
+    http = _Http(resp=_Resp(json_data={"rows": []}))
+    provider = _Fake(http, contact_email="me@example.com")
+    provider.search("ltp", 5)
+    ua = http.last_headers.get("User-Agent")
+    assert ua and "mailto:me@example.com" in ua
+
+
+def test_user_agent_header_present_without_email():
+    http = _Http(resp=_Resp(json_data={"rows": []}))
+    provider = _Fake(http, contact_email=None)
+    provider.search("ltp", 5)
+    ua = http.last_headers.get("User-Agent")
+    assert ua and "mailto:" not in ua

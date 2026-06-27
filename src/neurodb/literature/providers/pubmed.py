@@ -24,7 +24,8 @@ class PubmedProvider(BaseLiteratureProvider):
         params = self.build_params(query, limit)
         if api_key:
             params["api_key"] = api_key
-        search_resp = self._http.get(_ESEARCH, params=params, headers={}, timeout=self._timeout)
+        headers = self._request_headers()
+        search_resp = self._http.get(_ESEARCH, params=params, headers=headers, timeout=self._timeout)
         search_resp.raise_for_status()
         pmids = search_resp.json().get("esearchresult", {}).get("idlist", [])
         if not pmids:
@@ -32,7 +33,7 @@ class PubmedProvider(BaseLiteratureProvider):
         fetch_params = {"db": "pubmed", "id": ",".join(pmids), "retmode": "xml"}
         if api_key:
             fetch_params["api_key"] = api_key
-        fetch_resp = self._http.get(_EFETCH, params=fetch_params, headers={}, timeout=self._timeout)
+        fetch_resp = self._http.get(_EFETCH, params=fetch_params, headers=headers, timeout=self._timeout)
         fetch_resp.raise_for_status()
         return fetch_resp
 

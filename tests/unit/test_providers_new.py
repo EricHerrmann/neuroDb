@@ -43,9 +43,11 @@ class _Http:
     def __init__(self, resp):
         self.resp = resp
         self.last_params = None
+        self.last_headers = None
 
     def get(self, url, params=None, headers=None, timeout=None):
         self.last_params = params
+        self.last_headers = headers
         return self.resp
 
 
@@ -68,6 +70,17 @@ def test_europepmc_normalizes_review():
     assert results[0]["source_type"] == "review"
     assert results[0]["doi"] == "10.8/epmc"
     assert results[0]["citation_count"] == 7
+
+
+def test_europepmc_carries_contact_email_in_user_agent():
+    """Europe PMC has no email query param; the contact email rides in User-Agent."""
+    http = _Http(_Resp(EUROPEPMC))
+    EuropePmcProvider(http, contact_email="me@x.com").search("ltp", 5)
+    ua = http.last_headers.get("User-Agent")
+    assert ua and "mailto:me@x.com" in ua
+    # And it is NOT smuggled in as an unsupported query param.
+    assert "mailto" not in http.last_params
+    assert "email" not in http.last_params
 
 
 def test_crossref_strips_abstract_markup_and_year():

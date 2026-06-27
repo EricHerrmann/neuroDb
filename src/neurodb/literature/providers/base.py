@@ -42,7 +42,7 @@ class BaseLiteratureProvider(ABC):
         response = self._http.get(
             self.endpoint,
             params=params,
-            headers=self._headers(),
+            headers=self._request_headers(),
             timeout=self._timeout,
         )
         response.raise_for_status()
@@ -50,6 +50,22 @@ class BaseLiteratureProvider(ABC):
 
     def _headers(self) -> dict:
         return {}
+
+    def _request_headers(self) -> dict:
+        """Provider-specific headers plus a polite User-Agent identifying this client.
+
+        The contact email is sent in the User-Agent as a `mailto:` for services
+        (e.g. Europe PMC) that have no email query parameter but use the agent
+        string to identify and contact heavy users.
+        """
+        headers = {"User-Agent": self._user_agent()}
+        headers.update(self._headers())
+        return headers
+
+    def _user_agent(self) -> str:
+        if self._contact_email:
+            return f"NeuroDb/1.0 (mailto:{self._contact_email})"
+        return "NeuroDb/1.0"
 
     def _with_polite_pool(self, params: dict) -> dict:
         if self.uses_polite_pool and self._contact_email:

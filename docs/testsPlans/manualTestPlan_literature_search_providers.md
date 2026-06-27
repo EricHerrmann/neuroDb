@@ -17,7 +17,10 @@ polite-pool config, and operator connectivity confirmation.
    `NCBI_API_KEY`, `SEMANTIC_SCHOLAR_API_KEY`. Then run:
    `uv run python tests/manual/check_literature_providers.py "synaptic plasticity"`
    - Expected: one line per active provider with `status ok` and `count>0` for
-     pubmed, semantic_scholar, arxiv, openalex, europepmc, crossref, biorxiv.
+     pubmed, arxiv, openalex, europepmc, crossref, biorxiv. (semantic_scholar is
+     disabled by default via `LITERATURE_PROVIDERS_DISABLED=semantic_scholar` in
+     `.env` — keyless 429s, no gmail keys per LOG-014/LOG-069 — so it should NOT
+     appear; six active providers is correct.)
    - Pass: every active provider reports `ok`. For any provider reporting
      `error` (auth/rate-limit/unreachable), record it and add its name to
      `LITERATURE_PROVIDERS_DISABLED` for the functional run; note it in the run log.

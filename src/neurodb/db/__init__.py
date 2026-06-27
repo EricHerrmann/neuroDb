@@ -48,5 +48,6 @@ _migration_022_learning_plans = _db_legacy._migration_022_learning_plans
 _migration_023_paper_tier_currency = _db_legacy._migration_023_paper_tier_currency
 _migration_024_paper_chunks = _db_legacy._migration_024_paper_chunks
 _migration_025_phase2b = _db_legacy._migration_025_phase2b
+_migration_026_literature_provider_counts = _db_legacy._migration_026_literature_provider_counts
 
 __all__ = ["get_engine", "init_db", "seed_learning_sources", "create_views", "get_session"]

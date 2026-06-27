@@ -342,6 +342,7 @@ class LiteratureSearch(Base):
     semantic_scholar_count: Mapped[int] = mapped_column(Integer, nullable=False, default=0)
     arxiv_count: Mapped[int] = mapped_column(Integer, nullable=False, default=0)
     results_json: Mapped[str] = mapped_column(Text, nullable=False)
+    provider_counts_json: Mapped[str | None] = mapped_column(Text, nullable=True)
     searched_at: Mapped[str] = mapped_column(String(32), nullable=False)
 
 

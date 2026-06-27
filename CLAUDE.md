@@ -10,7 +10,7 @@ Primary goal:
 - Develop an agentic AI capability that ingests real neuroscience datasets and produces trustworthy, testable insights about brain plasticity.
 
 Current execution context:
-- The local neuroscience data platform is implemented: public-source ingest, normalization, merged views, CLI query surfaces, and a Streamlit UI all run against the local DB.
+- The local neuroscience data platform is implemented: public-source ingest, normalization, merged views, CLI query surfaces, and a React/FastAPI UI all run against the local DB. (The former Streamlit UI is deprecated and no longer used; see `docs/projectStatus.md`.)
 - The learning-agent layer is implemented through context persistence: study tagging, semantic search, grounded agent chat, and cross-session memory all exist on top of the DB platform.
 - Live phase status, test counts, sign-off dates, active focus, and next phase are tracked only in `docs/projectStatus.md`.
 
@@ -32,7 +32,7 @@ Current execution context:
 
 - This repo contains active implementation code, tests, manual test plans, and planning docs; it is no longer a planning-only repository.
 - The current architecture uses DuckDB as the source of truth for structured data, with ChromaDB collections for semantic retrieval and agent-context memory.
-- Implemented surfaces include source connectors, normalization/enrichment flows, provenance helpers, query modules, CLI entry points, a Streamlit UI, and agent/session-management modules.
+- Implemented surfaces include source connectors, normalization/enrichment flows, provenance helpers, query modules, CLI entry points, the React/FastAPI UI, and agent/session-management modules. (Streamlit is deprecated and no longer used.)
 - Use `docs/projectStatus.md` as the live source of truth for what phase is active; use this file for standing engineering rules and defaults.
 
 ## Recommended Technical Baseline
@@ -43,7 +43,7 @@ Use these defaults unless a stronger reason emerges during implementation:
 - SQLAlchemy ORM/data-access layer over the local DB
 - DuckDB as the default local relational and analytical store
 - ChromaDB as the local semantic index and agent-context store
-- Streamlit for the local interactive UI, with thin Python CLI entry points for ingest, enrich, query, and study workflows
+- React frontend over a FastAPI API for the local interactive UI, with thin Python CLI entry points for ingest, enrich, query, and study workflows (Streamlit is deprecated and no longer used)
 - Reproducible environment tooling (`uv` + pinned dependencies)
 - SQLite remains acceptable for fast unit tests or narrow compatibility cases, but it is not the default runtime backend
 - Clear separation of:
@@ -80,7 +80,7 @@ Minimum expectations for all changes:
 ## Environment and Secrets
 
 - API keys and secrets live in `.env` in the repo root (gitignored).
-- Every entry point (Streamlit app, CLI scripts) must call `load_dotenv()` from `python-dotenv` before reading any environment variable.
+- Every entry point (FastAPI app, CLI scripts) must call `load_dotenv()` from `python-dotenv` before reading any environment variable.
 - Never hardcode keys or read `os.environ` for secrets without a preceding `load_dotenv()`.
 - `.env` is never committed; `.env.example` with placeholder values should be kept if one exists.
 

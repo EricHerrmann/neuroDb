@@ -41,8 +41,11 @@ class LiteratureSearchClient:
                 except Exception as exc:
                     per_provider[provider.name] = ([], f"{type(exc).__name__}: {exc}")
 
+        # Aggregate in stable provider order (not thread-completion order) so the
+        # merged record's `source` and ordering are deterministic across runs.
         all_results: list[dict] = []
-        for results, _error in per_provider.values():
+        for provider in providers:
+            results, _error = per_provider.get(provider.name, ([], None))
             all_results.extend(results)
         merged = dedup_and_merge(all_results, limit)
 

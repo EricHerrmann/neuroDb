@@ -8,12 +8,20 @@ contract rather than provider call order.
 import json
 
 import httpx
+import pytest
 from sqlalchemy import create_engine
 from sqlalchemy.orm import Session
 
 from neurodb.literature_client import LiteratureSearchClient
 from neurodb.literature.providers.arxiv import ArxivProvider
 from neurodb.schema import Base, LiteratureSearch
+
+
+@pytest.fixture(autouse=True)
+def _clear_literature_env(monkeypatch):
+    """These tests exercise the real registry; isolate them from an ambient
+    LITERATURE_PROVIDERS_DISABLED in the developer's .env (e.g. semantic_scholar)."""
+    monkeypatch.delenv("LITERATURE_PROVIDERS_DISABLED", raising=False)
 
 
 PUBMED_XML = """<?xml version="1.0"?>

@@ -1,5 +1,12 @@
 # Manual Test Plan — Literature-Search Providers
 
+**Status:** Signed off — 2026-06-27
+**Tester:** Eric Herrmann
+**Specs:** `docs/superpowers/specs/2026-06-26-literature-search-providers-design.md`,
+`docs/superpowers/specs/2026-06-27-citation-provenance-design.md`
+**Scope:** Live multi-provider literature search (OpenAlex, Europe PMC, Crossref,
+bioRxiv; semantic_scholar disabled) + source-provenance citations (Step 4).
+
 ## Purpose
 Verify the live multi-provider literature search end-to-end against real APIs and
 the FastAPI/React workbench. Automated tests cover normalization, merge, registry,
@@ -112,6 +119,18 @@ Example of a passing row (CS/ML query — biomedical providers correctly 0):
                          'openalex': 1, 'arxiv': 10, 'crossref': 10}
   legacy: pubmed=0 semantic_scholar=0 arxiv=10
 ```
+
+### Step 4 — Citation provenance (NeuroTutor + NeuroResearch)
+With the workbench running (see Environment setup):
+1. Ask the tutor a topic question that pulls from the Knowledge Library, e.g.
+   "What does our library say about long-term potentiation?"
+   - Pass: each cited library paper shows `(Knowledge Library · <level>)` with a
+     plausible level (metadata / abstract / full text); no raw JSON in the answer.
+2. Ask the tutor to "search the literature for synaptic plasticity LTP".
+   - Pass: cited live-search papers render as Markdown links to their URL, with no
+     false `(Knowledge Library …)` tag on papers not in the library.
+3. Repeat step 1 in a NeuroResearch chat.
+   - Pass: same provenance behavior (the rule is shared across both agents).
 
 ## Pass/Fail
 All steps pass = sign off. Record the date, the query used, and any providers left

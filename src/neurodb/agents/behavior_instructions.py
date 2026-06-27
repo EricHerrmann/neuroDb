@@ -3,6 +3,32 @@
 import os
 from pathlib import Path
 
+CITATION_PROVENANCE_RULE = (
+    "When you cite a specific paper, mark its source provenance inline, right "
+    "after the paper. If the paper came from a Knowledge Library result (a "
+    "search_knowledge_library result, or a paper in the provided local/topic "
+    "context), append '(Knowledge Library · <level>)', where <level> is that "
+    "result's data_tier rendered as 'metadata', 'abstract', or 'full text'. If "
+    "the paper is not in the Knowledge Library (for example a search_literature "
+    "result), instead link it with its URL using Markdown, e.g. "
+    "[Title](https://example.org). If a cited paper is neither in the Knowledge "
+    "Library nor has a URL, write '(not in Knowledge Library)' and apply the "
+    "usual model-knowledge / needs-verification labeling. Never state a Knowledge "
+    "Library status or level that did not come from a tool result or the provided "
+    "local context."
+)
+
+_DATA_TIER_LABELS = {
+    "metadata": "metadata",
+    "abstract": "abstract",
+    "full_text": "full text",
+}
+
+
+def data_tier_label(data_tier: str | None) -> str:
+    """Map a stored Paper.data_tier to a human citation level."""
+    return _DATA_TIER_LABELS.get((data_tier or "").strip().lower(), "metadata")
+
 _ENV_VAR = "NEURODB_AGENT_BEHAVIOR_PATH"
 _DEFAULT_MAX_CHARS = 6000
 _START_MARKER = "<!-- neurodb-agent-behavior:start -->"

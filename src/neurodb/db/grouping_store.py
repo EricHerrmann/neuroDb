@@ -304,6 +304,8 @@ def get_grouping_bundle(session: Session, grouping_id: int) -> dict:
                 "doi": p.doi,
                 "status": p.status,
                 "summary": p.summary,
+                "data_tier": p.data_tier,
+                "url": p.url,
             }
             for p in papers
             if p is not None

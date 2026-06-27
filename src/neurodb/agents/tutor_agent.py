@@ -5,7 +5,10 @@ import os
 from sqlalchemy import Engine
 
 from neurodb.agents.base import BaseAgent
-from neurodb.agents.behavior_instructions import load_agent_behavior_instructions
+from neurodb.agents.behavior_instructions import (
+    CITATION_PROVENANCE_RULE,
+    load_agent_behavior_instructions,
+)
 from neurodb.agents.db_agent import TOOLS as _DB_TOOLS
 from neurodb.agents.db_agent import execute_tool
 from neurodb.agents.full_text_tools import (
@@ -286,6 +289,7 @@ class NeuroTutorAgent(BaseAgent):
         behavior_instructions = load_agent_behavior_instructions()
         if behavior_instructions:
             prompt_parts.append(behavior_instructions)
+        prompt_parts.append(CITATION_PROVENANCE_RULE)
         prompt_parts.append(_context_prompt_rules(self._context_mode))
         prompt_parts.append(TEMPORAL_DISCLOSURE_RULES)
         system = "\n\n".join(prompt_parts)

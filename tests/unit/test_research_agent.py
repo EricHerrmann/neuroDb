@@ -104,6 +104,12 @@ def test_research_prompt_includes_current_date_and_prior_context():
     assert "Current date: 2026-05-06" in prompt
     assert "Prior sessions relevant" in prompt
     assert "confounds and limitations" in prompt
+
+
+def test_research_prompt_includes_citation_provenance_rule():
+    from neurodb.agents.behavior_instructions import CITATION_PROVENANCE_RULE
+    prompt = _agent()._build_system_prompt()
+    assert CITATION_PROVENANCE_RULE in prompt
     assert "inspect_external_dataset" in prompt
     assert "Never write that a source is queued" in prompt
     assert "audit those references against tool results" in prompt

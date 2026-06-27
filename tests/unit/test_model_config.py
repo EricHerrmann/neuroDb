@@ -30,16 +30,28 @@ def test_load_model_config_has_tasks():
 
 
 def test_get_model_for_task_economy_tier():
+    """Primary provider/model come from whatever [routing] defaults the economy tier to."""
+    config = load_model_config()
+    expected_provider = config["routing"]["economy"]
+    expected_model = config["tiers"]["economy"]["providers"][expected_provider]["model"]
+
     provider, model_id, max_tokens = get_model_for_task("summary.session")
-    assert provider == "anthropic"
-    assert "haiku" in model_id.lower()
+
+    assert provider == expected_provider
+    assert model_id == expected_model
     assert max_tokens == 512
 
 
 def test_get_model_for_task_standard_tier():
+    """Primary provider/model come from whatever [routing] defaults the standard tier to."""
+    config = load_model_config()
+    expected_provider = config["routing"]["standard"]
+    expected_model = config["tiers"]["standard"]["providers"][expected_provider]["model"]
+
     provider, model_id, max_tokens = get_model_for_task("agent.loop.research")
-    assert provider == "anthropic"
-    assert "claude" in model_id.lower()
+
+    assert provider == expected_provider
+    assert model_id == expected_model
     assert max_tokens == 8192
 
 
@@ -87,17 +99,29 @@ def test_get_model_for_task_routing_section_unknown_provider_raises(monkeypatch)
 
 def test_get_model_for_task_tier_env_var_has_no_effect(monkeypatch):
     """NEURODB_STANDARD_PROVIDER env var is ignored — provider comes from [routing] only."""
-    monkeypatch.setenv("NEURODB_STANDARD_PROVIDER", "openai")
+    routing_provider = load_model_config()["routing"]["standard"]
+    # Force the env var to a value that differs from the configured routing provider,
+    # so a passing test proves the env var had no effect.
+    monkeypatch.setenv(
+        "NEURODB_STANDARD_PROVIDER",
+        "gemini" if routing_provider != "gemini" else "openai",
+    )
 
     provider, _, _ = get_model_for_task("agent.loop.research")
 
-    assert provider == "anthropic"
+    assert provider == routing_provider
 
 
 def test_get_model_for_task_premium_tier():
+    """Primary provider/model come from whatever [routing] defaults the premium tier to."""
+    config = load_model_config()
+    expected_provider = config["routing"]["premium"]
+    expected_model = config["tiers"]["premium"]["providers"][expected_provider]["model"]
+
     provider, model_id, max_tokens = get_model_for_task("research.hypothesis_review")
-    assert provider == "anthropic"
-    assert "claude" in model_id.lower()
+
+    assert provider == expected_provider
+    assert model_id == expected_model
     assert max_tokens == 4096
 
 
@@ -109,12 +133,27 @@ def test_get_task_config_returns_tier_and_tokens():
     assert max_tokens == 8192
 
 
-def test_provider_fallback_order_deduplicates_primary():
-    order = get_provider_fallback_order("standard")
+@pytest.mark.parametrize("tier", ["economy", "standard", "premium"])
+def test_provider_fallback_order_primary_then_first_fallback(tier):
+    """Accept whatever [routing] defaults to as primary, and also exercise the first fallback."""
+    config = load_model_config()
+    primary = config["routing"][tier]
+    declared_fallback = config["routing"].get(f"{tier}_fallback", [])
 
-    assert order[0] == "anthropic"
-    assert order.count("anthropic") == 1
-    assert {"openai", "gemini", "deepseek", "groq"}.issubset(order)
+    order = get_provider_fallback_order(tier)
+
+    # Primary is whatever the model file defaults to, listed first, exactly once.
+    assert order[0] == primary
+    assert order.count(primary) == 1
+
+    # First fallback is the first declared fallback that isn't the primary.
+    expected_first_fallback = next(p for p in declared_fallback if p != primary)
+    assert order[1] == expected_first_fallback
+    # The first fallback must be a usable provider in this tier (resolves to a model).
+    assert get_tier_provider_config(tier, expected_first_fallback)["model"]
+
+    # All declared fallbacks remain present after dedup.
+    assert set(declared_fallback).issubset(set(order))
 
 
 def test_provider_fallback_order_tracks_primary_change(monkeypatch):

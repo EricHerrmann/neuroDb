@@ -20,10 +20,10 @@ Steps 4-6, exploration, maturation, and remembering, should build on that substr
 This plan synthesizes:
 
 - `docs/myOrganQRvw.md`: user goal and preferred research-question lifecycle.
-- `docs/OrganizingResearchQuestionsClaude.md`: lifecycle framing and missing Socratic/question workflow.
-- `docs/OrganizingResearchQuestionsCodex.md`: current capability review, UI gaps, categorization model, and active-focus finding.
-- `docs/OrganizingResearchQuestionsCodexReview.md`: implementation-aware review noting stale claims in earlier design notes and recommending use of existing storage where possible.
-- `docs/OrganizingResearchQuestionsReviewClaude.md`: cross-model synthesis and sequencing tradeoffs.
+- `docs/archive/OrganizingResearchQuestionsClaude.md`: lifecycle framing and missing Socratic/question workflow.
+- `docs/archive/OrganizingResearchQuestionsCodex.md`: current capability review, UI gaps, categorization model, and active-focus finding.
+- `docs/archive/OrganizingResearchQuestionsCodexReview.md`: implementation-aware review noting stale claims in earlier design notes and recommending use of existing storage where possible.
+- `docs/archive/OrganizingResearchQuestionsReviewClaude.md`: cross-model synthesis and sequencing tradeoffs.
 - `docs/researchQuestionDesignClaude.md`: existing phased design.
 - Current code in `src/neurodb/schema.py`, `src/neurodb/research_tools.py`, `src/neurodb/db/claim_store.py`, `src/neurodb/api/routes/research.py`, `src/neurodb/api/routes/chat.py`, `src/neurodb/agents/context_orchestrator.py`, `frontend/src/hooks/useChat.ts`, `frontend/src/components/ChatPanel.tsx`, and `frontend/src/pages/ResearchPanel.tsx`.
 
@@ -47,7 +47,7 @@ The central gap is not whether research questions exist. They exist, but they ar
 
 ## Key Design Choice
 
-`docs/OrganizingResearchQuestionsCodexReview.md` correctly notes that current code already has `ResearchQuestion.status`, a Research agent recording tool, a Research panel question list, and a single `ResearchQuestion.topic_id`. This plan does not treat question storage as greenfield.
+`docs/archive/OrganizingResearchQuestionsCodexReview.md` correctly notes that current code already has `ResearchQuestion.status`, a Research agent recording tool, a Research panel question list, and a single `ResearchQuestion.topic_id`. This plan does not treat question storage as greenfield.
 
 The only deliberate expansion in Phase 1 is many-to-many question-topic and question-concept linking. That is justified by the user's stated goal: questions should be broken into logical topics, and papers pulled for a question should be conditionally associated with the appropriate topic slices. To limit migration risk, the existing `topic_id` remains as a primary-topic compatibility hint until the many-to-many path is proven.
 

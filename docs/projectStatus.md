@@ -51,9 +51,6 @@ See `docs/testLog.md`. Current open items: LOG-001 (textbook dropdown ambiguity)
 | `NeuroDbGoals.md` | Top-level project goals and feedback loop |
 | `CLAUDE.md` | Engineering rules, process, environment |
 | `docs/agent_behavior.md` | Shared user-facing behavior instructions loaded into NeuroTutor and NeuroResearch prompts |
-| `docs/OrganizingResearchQuestionsCodex.md` | Codex review of current NeuroDb capabilities and next steps for organizing, remembering, categorizing, creating, and tutoring research questions |
-| `docs/OrganizingResearchQuestionsClaude.md` | Claude review: lifecycle mapping, gap analysis, and recommended next capabilities for research question management |
-| `docs/OrganizingResearchQuestionsCodexReview.md` | Codex comparison of Claude and Codex research-question workflow notes |
 | `docs/researchQuestionDesignCodex.md` | Codex phased design plan for first-class research-question capture, categorization, source/dataset linking, Socratic exploration, recall, and hypothesis promotion |
 | **Active Issues** | |
 | `docs/testLog.md` | Running issue log — open and resolved items across all phases |

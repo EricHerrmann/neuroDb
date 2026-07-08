@@ -23,6 +23,9 @@ def test_citation_rule_mentions_key_elements():
     assert "Knowledge Library" in text
     assert "full text" in text
     assert "URL" in text or "url" in text
+    # Knowledge Library citations must be clickable internal deep links carrying the paper id.
+    assert "/knowledge-library?focus=" in text
+    assert "source_id" in text
 
 
 def test_load_behavior_instructions_from_configured_path(tmp_path, monkeypatch):

@@ -4,9 +4,9 @@
 # To change active providers, edit [routing] below — no env vars needed.
 
 [routing]
-economy  = "openai"
-standard = "openai"
-premium  = "openai"
+economy  = "anthropic"
+standard = "anthropic"
+premium  = "anthropic"
 economy_fallback  = ["anthropic", "openai", "gemini", "deepseek", "groq"]
 standard_fallback = ["anthropic", "openai", "gemini", "deepseek", "groq"]
 premium_fallback  = ["anthropic", "openai", "gemini", "deepseek", "groq"]
@@ -26,13 +26,14 @@ last_verified_at = "2026-06-02"
 [tiers.economy.providers.gemini]
 model = "gemini-3.1-flash-lite"
 eval_status = "degraded"
-last_verified_at = "2026-06-02"
+last_verified_at = "2026-07-01"
 tool_loop_reliable = false
 
 [tiers.economy.providers.groq]
-model = "llama-3.1-8b-instant"
+# Migrated from deprecated llama-3.1-8b-instant (Groq deprecated 2026-06-17)
+model = "openai/gpt-oss-20b"
 eval_status = "baseline"
-last_verified_at = "2026-06-02"
+last_verified_at = "2026-07-01"
 
 [tiers.economy.providers.deepseek]
 model = "deepseek-v4-flash"
@@ -57,9 +58,10 @@ eval_status = "baseline"
 last_verified_at = "2026-06-02"
 
 [tiers.standard.providers.groq]
-model = "llama-3.3-70b-versatile"
+# Migrated from deprecated llama-3.3-70b-versatile (Groq deprecated 2026-06-17)
+model = "openai/gpt-oss-120b"
 eval_status = "baseline"
-last_verified_at = "2026-06-02"
+last_verified_at = "2026-07-01"
 
 [tiers.standard.providers.deepseek]
 model = "deepseek-v4-flash"
@@ -79,14 +81,15 @@ eval_status = "baseline"
 last_verified_at = "2026-06-02"
 
 [tiers.premium.providers.gemini]
-model = "gemini-3.1-pro-preview"
+# Moved from preview alias to GA (Gemini 3.1 Pro is GA as of 2026-02-19)
+model = "gemini-3.1-pro"
 eval_status = "baseline"
-last_verified_at = "2026-06-02"
+last_verified_at = "2026-07-01"
 
 [tiers.premium.providers.groq]
 model = "openai/gpt-oss-120b"
 eval_status = "degraded"
-last_verified_at = "2026-06-02"
+last_verified_at = "2026-07-01"
 requires_tools = true
 tool_loop_reliable = false
 

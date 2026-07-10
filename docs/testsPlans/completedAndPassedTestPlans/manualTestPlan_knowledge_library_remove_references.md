@@ -1,5 +1,7 @@
 # Manual Test Plan - Knowledge Library Remove References
 
+**Status: PASSED — signed off 2026-07-02.** All cases T1–T5 passed.
+
 ## Scope
 
 Verify that Knowledge Library removal honors user intent. Removing an unreferenced
@@ -79,8 +81,10 @@ approved, rejected, or removed through the normal workflow.
 
 | Case | Status | Notes |
 |---|---|---|
-| T1 - Unreferenced remove deletes | Pending | |
-| T2 - Referenced remove explains block | Pending | |
-| T3 - Delete references and remove | Pending | |
-| T4 - Replace references and remove | Pending | |
-| T5 - Restore legacy removed paper | Pending | |
+| T1 - Unreferenced remove deletes | Passed | |
+| T2 - Referenced remove explains block | Passed | |
+| T3 - Delete references and remove | Passed | |
+| T4 - Replace references and remove | Passed | |
+| T5 - Restore legacy removed paper | Passed | |
+
+Signed off 2026-07-02.

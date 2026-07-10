@@ -75,6 +75,16 @@ class KnowledgeLibraryStore:
         except Exception:
             pass
 
+    def update_summary_metadata(self, source_id: int, metadata: dict) -> bool:
+        """Merge metadata into an existing summary doc without re-embedding."""
+        doc_id = f"knowledge_source:{source_id}"
+        existing = self._collection.get(ids=[doc_id])
+        if not existing.get("ids"):
+            return False
+        merged = {**(existing["metadatas"][0] or {}), **metadata}
+        self._collection.update(ids=[doc_id], metadatas=[merged])
+        return True
+
     def search(self, query: str, n: int = 5) -> list[dict]:
         """Return semantically similar approved summaries."""
         if not query:

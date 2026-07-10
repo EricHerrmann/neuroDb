@@ -82,6 +82,29 @@ def test_missing_stores_yield_empty_result():
     assert result["full_text_count"] == 0 and result["summary_count"] == 0
 
 
+class _RaisingChunkStore:
+    def search(self, *args, **kwargs):
+        raise RuntimeError("boom")
+
+
+class _RaisingKnowledgeStore:
+    def search(self, *args, **kwargs):
+        raise RuntimeError("boom")
+
+
+def test_store_search_exceptions_yield_empty_without_crashing():
+    # Chunk-store raises: exception is swallowed (full_text empty), and because
+    # full text came back empty the summary fallback still runs and returns.
+    result = run_library_search("q", chunk_store=_RaisingChunkStore(),
+                                knowledge_store=_StubKnowledgeStore([_SUMMARY]))
+    assert result["full_text_count"] == 0 and result["summary_count"] == 1
+
+    # Both stores raise: still no propagation, both counts zero.
+    result = run_library_search("q", chunk_store=_RaisingChunkStore(),
+                                knowledge_store=_RaisingKnowledgeStore())
+    assert result["full_text_count"] == 0 and result["summary_count"] == 0
+
+
 def test_prompt_block_carries_full_content_not_just_titles():
     block = library_prompt_block(run_library_search(
         "q", chunk_store=_StubChunkStore([_PASSAGE]),

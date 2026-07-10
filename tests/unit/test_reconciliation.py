@@ -9,7 +9,7 @@ import pytest
 from sqlalchemy import create_engine
 from sqlalchemy.pool import StaticPool
 
-from neurodb import events
+from neurodb import events, reconciliation
 from neurodb.chunk_store import ChunkStore
 from neurodb.chunking import Chunk
 from neurodb.db import get_session
@@ -139,6 +139,33 @@ def test_reconcile_tolerates_missing_stores():
     detail = reconcile_full_text_acquired(engine, None, None, source_id=paper_id)
     assert detail["summary_updated"] is False and detail["chunks_updated"] == 0
     assert len(detail["skipped"]) == 2
+
+
+def test_audit_write_failure_does_not_mask_reconciliation_error(monkeypatch):
+    """If the event_log insert itself fails, _log_event swallows it so the
+    original reconciliation RuntimeError still surfaces (audit-write isolation)."""
+    engine = _engine()
+    real_get_session = reconciliation.get_session
+    calls = {"n": 0}
+
+    def flaky_get_session(eng):
+        # First call reads the Paper (returns None -> ValueError path); the
+        # second call is the audit insert inside _log_event, which must fail.
+        calls["n"] += 1
+        if calls["n"] == 1:
+            return real_get_session(eng)
+        raise RuntimeError("audit insert boom")
+
+    monkeypatch.setattr(reconciliation, "get_session", flaky_get_session)
+
+    with pytest.raises(RuntimeError) as excinfo:
+        reconcile_full_text_acquired(engine, None, None, source_id=999)
+
+    # The original reconciliation error surfaces; the audit-write failure is
+    # logged and swallowed, never masking the real error or leaking its message.
+    assert "reconciliation failed for source 999" in str(excinfo.value)
+    assert "audit insert boom" not in str(excinfo.value)
+    assert calls["n"] == 2  # main read + attempted (failing) audit write
 
 
 def test_register_reconciliation_reacts_to_emit():

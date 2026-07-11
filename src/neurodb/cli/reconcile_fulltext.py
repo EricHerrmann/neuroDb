@@ -42,14 +42,24 @@ def main() -> None:
     import neurodb.connectors  # noqa: F401 — registers connector ORM models
     from neurodb.db import get_engine, init_db
 
+    if args.dry_run:
+        # Dry-run must not create a file/schema. Refuse to touch a nonexistent
+        # on-disk DB (SQLAlchemy's Engine is lazy, so no file exists yet) — a
+        # dry-run against a nonexistent corpus SHOULD error, not silently create
+        # an empty DB. Query the existing corpus directly without init_db.
+        if args.db != ":memory:" and not os.path.exists(args.db):
+            raise SystemExit(f"error: database not found: {args.db}")
+        engine = get_engine(f"duckdb:///{args.db}")
+        targets = select_fulltext_papers(engine)
+        print(f"{len(targets)} full-text papers in {args.db}")
+        for paper_id, title in targets:
+            print(f"would reconcile {paper_id}: {title}")
+        return
+
     engine = get_engine(f"duckdb:///{args.db}")
     init_db(engine)
     targets = select_fulltext_papers(engine)
     print(f"{len(targets)} full-text papers in {args.db}")
-    if args.dry_run:
-        for paper_id, title in targets:
-            print(f"would reconcile {paper_id}: {title}")
-        return
 
     from neurodb.api.app import _build_runtime_stores
     from neurodb.api.routes.knowledge_library import run_post_acquisition

@@ -19,6 +19,14 @@ Helper script used below:
 It prints the `papers` row, `event_log` rows, summary-index metadata, and chunk
 metadata/count for one paper. Pass/fail criteria are stated per case.
 
+**Reconciliation-drift recovery.** Reconciliation is best-effort/eventual —
+acquisition is never blocked on it. If you observe a reconciliation handler
+error (an `event_log` row with `status=error`) or a stale derived store
+(summary/chunk metadata not matching the `papers` row), the recovery step is to
+re-run `uv run python -m neurodb.cli.reconcile_fulltext`. The stores converge on
+the next acquisition of that paper or on a manual CLI run; no data is lost in
+the interim because `papers` remains the source of truth.
+
 ## Part A — Backfill + reconciliation on acquisition
 
 **KA1 — Metadata backfill on acquire.** Pick an approved paper with a DOI and NULL

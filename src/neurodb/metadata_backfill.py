@@ -54,6 +54,13 @@ def backfill_paper_metadata(engine, source_id: int, *,
         }
         title = paper.title
 
+    # Short-circuit: if every target field already has a value there is nothing
+    # to backfill, so skip the network lookup entirely (matters for the one-time
+    # CLI reconcile over the whole corpus and for idempotent re-acquire).
+    if all(current[field] not in (None, "") for field in
+           ("authors_json", "abstract", "year", "doi", "url")):
+        return BackfillResult()
+
     try:
         found = metadata_client.lookup(
             doi=current["doi"],

@@ -15,7 +15,11 @@ from neurodb import events
 from neurodb.api.routes import knowledge_library as kl_module
 from neurodb.api.routes.knowledge_library import router
 from neurodb.chunk_store import ChunkStore
+from neurodb.chunking import Section
 from neurodb.db import get_session
+from neurodb.full_text_client import SuppliedInput
+from neurodb.fulltext_staging import stage_artifact
+from neurodb.fulltext_types import ParsedArtifact
 from neurodb.knowledge_store import KnowledgeLibraryStore
 from neurodb.metadata_lookup import PaperMetadata
 from neurodb.reconciliation import register_reconciliation
@@ -163,3 +167,73 @@ def test_run_post_acquisition_reports_handler_errors_as_warnings():
     events.subscribe(events.FULL_TEXT_ACQUIRED, _broken, key="broken")
     warnings = kl_module.run_post_acquisition(source_id, engine)
     assert any("handler exploded" in w for w in warnings)
+
+
+def _staged_artifact() -> ParsedArtifact:
+    """High-confidence artifact whose body carries searchable chunk text."""
+    body = _BODY_TEXT
+    sections = [Section(label="Body", text=body, char_start=0, char_end=len(body))]
+    return ParsedArtifact(sections=sections, parse_confidence=0.95,
+                          text_source="html_extracted")
+
+
+def _assert_backfilled_and_reconciled(engine, knowledge_store, chunk_store, source_id):
+    """Shared assertions: backfill wrote authors, both event rows ok, stores synced."""
+    with get_session(engine) as session:
+        paper = session.get(Paper, source_id)
+        assert paper.data_tier == "full_text"
+        assert json.loads(paper.authors_json) == ["J. Hopfield"]
+        assert paper.year == 1982
+        rows = session.query(EventLog).order_by(EventLog.id.asc()).all()
+        assert [r.event_name for r in rows] == ["metadata_backfill", "full_text_acquired"]
+        assert all(r.status == "ok" for r in rows)
+
+    summary_meta = knowledge_store.search("summary body", n=1)[0]["metadata"]
+    assert summary_meta["data_tier"] == "full_text"
+    assert summary_meta["authors"] == "J. Hopfield"
+    chunk_meta = chunk_store.search("collective dynamics", n=1, min_score=-1.0)[0]
+    assert chunk_meta["year"] == "1982"
+    # search() projects only a fixed field set; assert reconciled authors reached
+    # the raw chunk metadata (update_paper_metadata merges it in).
+    raw_chunk_meta = chunk_store._collection.get(where={"paper_id": str(source_id)})
+    assert raw_chunk_meta["metadatas"][0]["authors"] == "J. Hopfield"
+
+
+def test_fulltext_review_confirm_backfills_and_reconciles():
+    """The needs_review → confirm path funnels through run_post_acquisition too."""
+    client, engine, knowledge_store, chunk_store = _make_env()
+    source_id = _insert_approved_paper(engine)
+    knowledge_store.add_summary(source_id=source_id, title="Hopfield 1982",
+                                doi=None, topic_context="memory",
+                                summary="summary body", data_tier="abstract")
+
+    # Mark needs_review BEFORE staging (no FK children yet → plain UPDATE is safe),
+    # then stage a parsed artifact so the confirm route has something to commit.
+    with get_session(engine) as session:
+        session.get(Paper, source_id).full_text_status = "needs_review"
+    stage_artifact(engine, source_id=source_id, artifact=_staged_artifact())
+
+    resp = client.post(f"/api/knowledge-library/{source_id}/fulltext-review",
+                       json={"decision": "confirm"})
+    assert resp.status_code == 200, resp.text
+    assert resp.json()["data_tier"] == "full_text"
+
+    _assert_backfilled_and_reconciled(engine, knowledge_store, chunk_store, source_id)
+
+
+def test_phase2b_job_backfills_and_reconciles(monkeypatch):
+    """The 2b background job fires the hook via on_verified after gate acceptance."""
+    client, engine, knowledge_store, chunk_store = _make_env()
+    source_id = _insert_approved_paper(engine)
+    knowledge_store.add_summary(source_id=source_id, title="Hopfield 1982",
+                                doi=None, topic_context="memory",
+                                summary="summary body", data_tier="abstract")
+
+    # Parse returns a high-confidence artifact → gate accepts → on_verified fires.
+    monkeypatch.setattr(kl_module, "_phase2b_parse",
+                        lambda paper, supplied: _staged_artifact())
+
+    kl_module._run_phase2b_job(source_id, engine, chunk_store,
+                               SuppliedInput(url="https://example.com/paper.pdf"))
+
+    _assert_backfilled_and_reconciled(engine, knowledge_store, chunk_store, source_id)

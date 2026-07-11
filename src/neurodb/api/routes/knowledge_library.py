@@ -1,6 +1,7 @@
 """GET /api/knowledge-library and approve/reject routes."""
 from __future__ import annotations
 
+import json
 import logging
 import os
 import threading
@@ -17,15 +18,19 @@ from neurodb.api.schemas.knowledge_library import PaperGroupingLink, PaperItem
 from neurodb.api.tasks import TaskRecord
 from neurodb.chunking import Section, chunk_sections
 from neurodb.db import get_session
+from neurodb.events import FULL_TEXT_ACQUIRED, emit
 from neurodb.full_text_client import AcquireFailure, SuppliedInput, acquire, classify_for_phase2b
 from neurodb.fulltext_staging import delete_staging, read_staging
 from neurodb.fulltext_types import ParsedArtifact
 from neurodb.knowledge_summary import fallback_summary as _fallback_summary
 from neurodb.knowledge_summary import summary_prompt as _summary_prompt
+from neurodb.metadata_backfill import BackfillResult, backfill_paper_metadata
+from neurodb.metadata_lookup import MetadataLookupClient
 from neurodb.phase2b import run_acquisition
 from neurodb.schema import (
     Claim,
     DatasetPacketPaper,
+    EventLog,
     EvidenceLink,
     Grouping,
     GroupingLink,
@@ -390,6 +395,7 @@ def acquire_full_text(
                        currency=paper_currency)
         _update_paper_fields(source_id, engine, full_text_status="verified",
                              text_source=result.text_source, data_tier="full_text")
+        warnings.extend(run_post_acquisition(source_id, engine))
 
     with get_session(engine) as session:
         row = session.get(Paper, source_id)
@@ -408,6 +414,7 @@ def fulltext_review(
     if staged is None:
         raise HTTPException(status_code=404, detail="No parse awaiting review")
 
+    post_warnings: list[str] = []
     if body.decision == "confirm":
         sections = [
             Section(
@@ -434,6 +441,7 @@ def fulltext_review(
                              text_source=staged["text_source"],
                              data_tier="full_text",
                              parse_confidence=staged.get("parse_confidence"))
+        post_warnings = run_post_acquisition(source_id, engine)
     else:
         _update_paper_fields(source_id, engine, full_text_status="unavailable")
 
@@ -443,7 +451,8 @@ def fulltext_review(
         row = session.get(Paper, source_id)
         # staging was just deleted; pass explicitly to avoid a sentinel auto-fetch
         # opening a nested session inside this DuckDB session.
-        return _paper_item_from_row(row, session, staged=None)
+        item = _paper_item_from_row(row, session, staged=None)
+    return item.model_copy(update={"warnings": post_warnings})
 
 
 def _load_paper(engine: Engine, source_id: int) -> Paper:
@@ -523,6 +532,7 @@ def _run_phase2b_job(source_id: int, engine: Engine, chunk_store, supplied: Supp
         commit_chunks=lambda **kw: _commit_chunks(
             kw.pop("source_id", source_id), engine, chunk_store, **kw),
         set_fields=lambda **f: _update_paper_fields(source_id, engine, **f),
+        on_verified=lambda: run_post_acquisition(source_id, engine),
     )
 
 
@@ -542,6 +552,59 @@ def _commit_chunks(source_id, engine, chunk_store, *, sections, text_source,
                 char_start=c.char_start, char_end=c.char_end, page=c.page,
                 text_source=text_source, chroma_id=f"chunk:{source_id}:{c.chunk_index}",
                 created_at=created_at))
+
+
+def _build_metadata_client() -> MetadataLookupClient:
+    """Seam for tests: monkeypatch to avoid network in the backfill path."""
+    return MetadataLookupClient()
+
+
+def run_post_acquisition(source_id: int, engine: Engine) -> list[str]:
+    """Single shared commit point for all acquisition paths (spec workstream 2+3).
+
+    Backfills NULL bibliographic metadata (audited, source-labeled), then emits
+    full_text_acquired so the reconciliation handler sees populated authorship.
+    Never raises; every failure becomes a warning so acquisition is never blocked.
+    """
+    warnings: list[str] = []
+    try:
+        result = backfill_paper_metadata(
+            engine, source_id,
+            metadata_client=_build_metadata_client(),
+            set_fields=lambda **fields: _update_paper_fields(source_id, engine, **fields),
+        )
+        warnings.extend(result.warnings)
+    except Exception as exc:
+        logger.exception("metadata backfill failed for source %d", source_id)
+        warnings.append(f"metadata backfill failed: {exc}")
+        result = BackfillResult(warnings=[str(exc)])
+    _log_backfill(engine, source_id, result)
+    outcomes = emit(FULL_TEXT_ACQUIRED, source_id=source_id)
+    warnings.extend(
+        f"reconciliation handler {o['handler']} failed: {o['error']}"
+        for o in outcomes if o["status"] == "error"
+    )
+    return warnings
+
+
+def _log_backfill(engine: Engine, source_id: int, result: BackfillResult) -> None:
+    """Audit row labeling the source of every backfilled value (provenance rule)."""
+    try:
+        with get_session(engine) as session:
+            session.add(EventLog(
+                event_name="metadata_backfill",
+                entity_id=str(source_id),
+                handler="backfill_paper_metadata",
+                status="ok" if not result.warnings else "warning",
+                detail_json=json.dumps({
+                    "filled": result.filled,
+                    "values": {k: str(v) for k, v in result.values.items()},
+                    "warnings": result.warnings,
+                }),
+                created_at=datetime.now(UTC).isoformat(),
+            ))
+    except Exception:
+        logger.exception("backfill audit write failed for source %d", source_id)
 
 
 def _set_status(source_id: int, status: str, engine: Engine) -> PaperItem:

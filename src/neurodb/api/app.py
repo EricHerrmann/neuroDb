@@ -27,6 +27,9 @@ def create_app(
     app.state.chunk_store = chunk_store
     app.state.tasks = {}
 
+    from neurodb.reconciliation import register_reconciliation
+    register_reconciliation(engine, knowledge_store, chunk_store)
+
     from neurodb.api.routes import (
         atlas,
         chat,

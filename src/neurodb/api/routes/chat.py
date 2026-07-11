@@ -16,6 +16,12 @@ from neurodb.agents.context_orchestrator import (
     normalize_context_mode,
 )
 from neurodb.agents.db_agent import NeuroDbAgent
+from neurodb.agents.library_directive import (
+    detect_library_directive,
+    library_prompt_block,
+    library_search_event,
+    run_library_search,
+)
 from neurodb.agents.research_agent import NeuroResearchAgent
 from neurodb.agents.tutor_agent import NeuroTutorAgent
 from neurodb.api.deps import VALID_AGENT_MODES, get_engine, get_research_stores
@@ -179,8 +185,11 @@ def _stream_chat(
     message: str,
     history: list[dict],
     fallback_factory: Callable[[set[str]], AgentAttempt] | None = None,
+    preamble: list[dict] | None = None,
 ) -> Generator[str, None, None]:
     """Drive agent.chat() and emit SSE events."""
+    for event in preamble or []:
+        yield _sse(event)
     excluded_providers: set[str] = set()
     current = attempt
     context_summary_sent = False
@@ -344,6 +353,23 @@ def chat_turn(
             context_store=stores["context_store"],
         )
 
+    library_event: dict | None = None
+    if (
+        body.agent_mode in {"neuro_tutor", "neuro_research"}
+        and detect_library_directive(body.message)
+    ):
+        library_result = run_library_search(
+            body.message,
+            chunk_store=stores["chunk_store"],
+            knowledge_store=stores["knowledge_store"],
+        )
+        library_event = library_search_event(library_result)
+        if context_bundle is not None:
+            context_bundle["prompt_block"] = (
+                f"{context_bundle['prompt_block']}\n\n"
+                f"{library_prompt_block(library_result)}"
+            )
+
     def build_attempt(excluded: set[str] | None = None) -> AgentAttempt:
         return _build_agent_attempt(
             body.agent_mode,
@@ -365,6 +391,12 @@ def chat_turn(
         return JSONResponse(status_code=503, content={"detail": str(exc)})
 
     return StreamingResponse(
-        _stream_chat(attempt, body.message, history, fallback_factory=build_attempt),
+        _stream_chat(
+            attempt,
+            body.message,
+            history,
+            fallback_factory=build_attempt,
+            preamble=[library_event] if library_event else None,
+        ),
         media_type="text/event-stream",
     )

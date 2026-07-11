@@ -62,6 +62,16 @@ class ChunkStore:
         except Exception:
             pass
 
+    def update_paper_metadata(self, paper_id: int, metadata: dict) -> int:
+        """Merge metadata into every chunk of a paper without re-embedding."""
+        existing = self._collection.get(where={"paper_id": str(paper_id)})
+        ids = existing.get("ids") or []
+        if not ids:
+            return 0
+        merged = [{**(old or {}), **metadata} for old in existing["metadatas"]]
+        self._collection.update(ids=ids, metadatas=merged)
+        return len(ids)
+
     def search(self, query: str, n: int = 5, min_score: float = 0.0) -> list[dict]:
         if not query:
             return []

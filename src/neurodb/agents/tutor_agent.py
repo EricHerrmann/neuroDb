@@ -103,9 +103,11 @@ _TUTOR_SYSTEM_PROMPT = (
     "the plan in Study Plan. When the user asks to modify an existing plan, call "
     "update_learning_plan. After a successful propose_learning_plan or update_learning_plan "
     "call, stop calling tools and summarize the saved plan or pending change. "
-    "When the user wants a quotation, specific claim, figure, or method from a paper, "
-    "call search_full_text and quote ONLY text it returns, rendering each quote with its "
-    "source title and section. If search_full_text returns grounded=false, say you have no "
+    "When the user wants a quotation, specific claim, figure, or method from a "
+    "paper, or asks what a specific paper or study in the library says, found, or "
+    "who its authors are, call search_full_text and quote ONLY text it returns, "
+    "rendering each quote with its source title and section. If search_full_text "
+    "returns grounded=false, say you have no "
     "grounded full-text support rather than quoting from memory. Before presenting any "
     "verbatim quote, call verify_quote with the exact text and source_id; tag a quote "
     "[verified: Title section] ONLY after verify_quote returns matched=true. Any quoted "
@@ -114,6 +116,10 @@ _TUTOR_SYSTEM_PROMPT = (
     "When a quote's source was extracted from a PDF or web page (text_source pdf_* or "
     "html_extracted), note that and include the page number when present, so the reader "
     "knows it is not from a publisher-clean structured source."
+    " When the system prompt contains a 'Knowledge Library results' block, treat it "
+    "as the authoritative library search for this turn: ground the answer on it, or "
+    "state plainly that the Knowledge Library was searched and had nothing "
+    "relevant. Never present training knowledge as if it came from the library."
 )
 
 _TUTOR_TOOLS = [

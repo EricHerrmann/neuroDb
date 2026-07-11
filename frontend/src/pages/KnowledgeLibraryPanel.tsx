@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react'
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
+import { useSearchParams } from 'react-router-dom'
 
 import { ApiError, api, isRemoveSourceBlockedDetail } from '../api/client'
 import TaskStatus from '../components/TaskStatus'
@@ -464,6 +465,9 @@ function ParseReviewPanel({
 
 export default function KnowledgeLibraryPanel() {
   const [statusFilter, setStatusFilter] = useState('all')
+  const [searchParams] = useSearchParams()
+  const focusId = Number(searchParams.get('focus')) || null
+  const [highlightedId, setHighlightedId] = useState<number | null>(null)
   const [approveWarnings, setApproveWarnings] = useState<Record<number, string>>({})
   const [duplicateWarnings, setDuplicateWarnings] = useState<Record<number, DuplicateCandidate[]>>({})
   const [acquireWarnings, setAcquireWarnings] = useState<Record<number, string>>({})
@@ -487,6 +491,22 @@ export default function KnowledgeLibraryPanel() {
     const anyPending = data.some(item => item.full_text_status === 'pending')
     setHasPending(anyPending)
   }, [data])
+
+  useEffect(() => {
+    if (focusId === null) return
+    const present = data.some(item => item.id === focusId)
+    if (!present) {
+      if (statusFilter !== 'all') setStatusFilter('all')
+      return
+    }
+
+    const el = document.getElementById(`kl-paper-${focusId}`)
+    if (!el) return
+    el.scrollIntoView({ behavior: 'smooth', block: 'center' })
+    setHighlightedId(focusId)
+    const timer = window.setTimeout(() => setHighlightedId(null), 2500)
+    return () => window.clearTimeout(timer)
+  }, [focusId, data, statusFilter])
 
   const taskState = useTask(taskId, 180000, () => {
     queryClient.invalidateQueries({ queryKey: ['knowledge-library'] })
@@ -624,9 +644,18 @@ export default function KnowledgeLibraryPanel() {
       ) : data.map(item => (
         <div
           key={item.id}
-          style={{ border: '1px solid #e2e8f0', borderRadius: 8, padding: 12, marginBottom: 8 }}
+          id={`kl-paper-${item.id}`}
+          data-testid={`kl-card-${item.id}`}
+          data-focused={highlightedId === item.id ? 'true' : 'false'}
+          style={{
+            border: highlightedId === item.id ? '2px solid #f59e0b' : '1px solid #e2e8f0',
+            borderRadius: 8,
+            padding: 12,
+            marginBottom: 8,
+          }}
         >
           <div style={{ display: 'flex', alignItems: 'center', gap: 6, flexWrap: 'wrap' }}>
+            <span style={{ fontSize: 11, color: '#94a3b8' }}>#{item.id}</span>
             <span style={{ fontWeight: 600, fontSize: 13 }}>{item.title}</span>
             <TierBadge tier={item.data_tier} />
             {item.full_text_status === 'verified' && <FullTextStatusBadge />}

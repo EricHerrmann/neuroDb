@@ -27,7 +27,8 @@ def _default_set(engine: Engine, source_id: int, **fields) -> None:
 def run_acquisition(*, source_id: int, engine: Engine,
                     parse: Callable[[], ParsedArtifact | None],
                     commit_chunks: Callable[..., None],
-                    set_fields: Callable[..., None] | None = None) -> None:
+                    set_fields: Callable[..., None] | None = None,
+                    on_verified: Callable[[], None] | None = None) -> None:
     """Run one acquisition attempt and write the terminal full_text_status."""
     set_fields = set_fields or (lambda **f: _default_set(engine, source_id, **f))
     try:
@@ -47,6 +48,8 @@ def run_acquisition(*, source_id: int, engine: Engine,
                       text_source=artifact.text_source, title=title, year=year, currency=currency)
         set_fields(full_text_status="verified", text_source=artifact.text_source,
                    data_tier="full_text", parse_confidence=artifact.parse_confidence)
+        if on_verified is not None:
+            on_verified()
     elif decision == "review":
         stage_artifact(engine, source_id=source_id, artifact=artifact)
         set_fields(full_text_status="needs_review", parse_confidence=artifact.parse_confidence)

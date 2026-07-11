@@ -1,9 +1,18 @@
+import { Link } from 'react-router-dom'
+
 import type { Message } from '../hooks/useChat'
 
 function safeHref(href: string) {
   const trimmed = href.trim()
   if (/^(https?:|mailto:)/i.test(trimmed)) return trimmed
   return '#'
+}
+
+const INTERNAL_LIBRARY_PATH = /^\/knowledge-library(\?focus=\d+)?$/
+
+function internalHref(href: string): string | null {
+  const trimmed = href.trim()
+  return INTERNAL_LIBRARY_PATH.test(trimmed) ? trimmed : null
 }
 
 function renderInline(text: string) {
@@ -20,6 +29,10 @@ function renderInline(text: string) {
     }
     const link = part.match(/^\[([^\]]+)\]\(([^)]+)\)$/)
     if (link) {
+      const internal = internalHref(link[2])
+      if (internal) {
+        return <Link key={index} to={internal}>{link[1]}</Link>
+      }
       return <a key={index} href={safeHref(link[2])} target="_blank" rel="noreferrer">{link[1]}</a>
     }
     return part

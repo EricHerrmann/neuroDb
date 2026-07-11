@@ -97,6 +97,8 @@ export function useChat(agentMode: string) {
             gaps_count?: number
             failed_provider?: string
             fallback_provider?: string
+            full_text_count?: number
+            summary_count?: number
           }
           if (event.type === 'text_delta') {
             setThinkingState('streaming')
@@ -175,6 +177,19 @@ export function useChat(agentMode: string) {
                 text: event.text ?? 'Primary model provider failed; using fallback.',
                 failedProvider: event.failed_provider,
                 fallbackProvider: event.fallback_provider,
+              })
+              last.notices = notices
+              next[next.length - 1] = last
+              return next
+            })
+          } else if (event.type === 'library_search') {
+            setMessages(prev => {
+              const next = [...prev]
+              const last = { ...next[next.length - 1] }
+              const notices = [...(last.notices ?? [])]
+              notices.push({
+                id: `library-search-${notices.length}`,
+                text: event.text ?? 'Searched Knowledge Library',
               })
               last.notices = notices
               next[next.length - 1] = last

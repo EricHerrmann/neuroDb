@@ -1,5 +1,6 @@
 import { render, screen } from '@testing-library/react'
 import { describe, expect, it } from 'vitest'
+import { MemoryRouter } from 'react-router-dom'
 
 import MessageBubble from './MessageBubble'
 import type { Message } from '../hooks/useChat'
@@ -51,6 +52,35 @@ describe('MessageBubble', () => {
     )
 
     expect(screen.getByRole('link', { name: 'Unsafe' })).toHaveAttribute('href', '#')
+  })
+
+  it('renders internal library citations as same-page navigation links', () => {
+    render(
+      <MemoryRouter>
+        <MessageBubble
+          message={{
+            role: 'assistant',
+            content: '[Hopfield (Knowledge Library · full text)](/knowledge-library?focus=9)',
+          }}
+        />
+      </MemoryRouter>,
+    )
+
+    const link = screen.getByRole('link', { name: /Hopfield/ })
+    expect(link).toHaveAttribute('href', '/knowledge-library?focus=9')
+    expect(link).not.toHaveAttribute('target', '_blank')
+  })
+
+  it('does not treat non-library internal-looking paths as navigation', () => {
+    render(
+      <MemoryRouter>
+        <MessageBubble
+          message={{ role: 'assistant', content: '[Nope](/other-route?focus=9)' }}
+        />
+      </MemoryRouter>,
+    )
+
+    expect(screen.getByRole('link', { name: 'Nope' })).toHaveAttribute('href', '#')
   })
 
   it('renders incomplete streamed headings as plain text instead of hanging', () => {

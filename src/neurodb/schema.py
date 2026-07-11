@@ -92,6 +92,23 @@ class QualityEvent(Base):
     run_id: Mapped[int] = mapped_column(ForeignKey("ingest_runs.id"), nullable=False)
 
 
+class EventLog(Base):
+    """Append-only audit log of domain events and handler outcomes.
+
+    Deliberately not QualityEvent: that table requires a run_id FK to ingest_runs
+    (absent in the acquisition path) and models data-quality findings, not audit.
+    """
+    __tablename__ = "event_log"
+
+    id: Mapped[int] = mapped_column(Integer, Sequence("event_log_id_seq"), primary_key=True)
+    event_name: Mapped[str] = mapped_column(String(64), nullable=False, index=True)
+    entity_id: Mapped[str] = mapped_column(String(128), nullable=False, index=True)
+    handler: Mapped[str] = mapped_column(String(64), nullable=False)
+    status: Mapped[str] = mapped_column(String(16), nullable=False)
+    detail_json: Mapped[str | None] = mapped_column(Text, nullable=True)
+    created_at: Mapped[str] = mapped_column(String(32), nullable=False)
+
+
 class StudyNote(Base):
     """User note tied to a dataset, topic, concept, or paper for study tracking."""
     __tablename__ = "study_notes"

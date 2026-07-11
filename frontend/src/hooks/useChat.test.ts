@@ -180,6 +180,30 @@ describe('useChat', () => {
     expect(last.streaming).toBe(false)
   })
 
+  it('stores library search notices without replacing final answer text', async () => {
+    vi.stubGlobal('fetch', vi.fn().mockResolvedValue(
+      makeSseResponse([
+        {
+          type: 'library_search',
+          text: 'Searched Knowledge Library — full-text passages: 2, summaries: 0',
+          full_text_count: 2,
+          summary_count: 0,
+        },
+        { type: 'done', text: 'Grounded answer.' },
+      ]),
+    ))
+    const { result } = renderHook(() => useChat('neuro_tutor'), { wrapper: makeWrapper() })
+
+    await act(async () => {
+      await result.current.sendMessage('use the knowledge library')
+    })
+
+    const last = result.current.messages[result.current.messages.length - 1]
+    expect(last.content).toBe('Grounded answer.')
+    expect(last.notices).toHaveLength(1)
+    expect(last.notices?.[0]?.text).toContain('Searched Knowledge Library')
+  })
+
   it('does not send empty messages', async () => {
     const fetchMock = vi.fn()
     vi.stubGlobal('fetch', fetchMock)

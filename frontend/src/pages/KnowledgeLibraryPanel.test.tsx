@@ -2,17 +2,22 @@ import React from 'react'
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
 import { fireEvent, render, screen, waitFor } from '@testing-library/react'
 import { afterEach, describe, it, expect, vi } from 'vitest'
+import { MemoryRouter } from 'react-router-dom'
 
 import KnowledgeLibraryPanel from './KnowledgeLibraryPanel'
 
-function makeWrapper(data: unknown, libraryFiles: unknown = []) {
+function makeWrapper(data: unknown, libraryFiles: unknown = [], initialEntry = '/knowledge-library') {
   const qc = new QueryClient({
     defaultOptions: { queries: { retry: false, staleTime: Infinity } },
   })
   qc.setQueryData(['knowledge-library', 'all'], data)
   qc.setQueryData(['library-files'], libraryFiles)
   return ({ children }: { children: React.ReactNode }) =>
-    React.createElement(QueryClientProvider, { client: qc }, children)
+    React.createElement(
+      MemoryRouter,
+      { initialEntries: [initialEntry] },
+      React.createElement(QueryClientProvider, { client: qc }, children),
+    )
 }
 
 describe('KnowledgeLibraryPanel', () => {
@@ -23,6 +28,52 @@ describe('KnowledgeLibraryPanel', () => {
   it('shows empty state', () => {
     render(<KnowledgeLibraryPanel />, { wrapper: makeWrapper([]) })
     expect(screen.getByText(/No sources/)).toBeTruthy()
+  })
+
+  it('shows the numeric id on each card', () => {
+    render(<KnowledgeLibraryPanel />, {
+      wrapper: makeWrapper([{
+        id: 2,
+        title: 'Neuroplasticity',
+        doi: null,
+        url: null,
+        source_type: 'paper',
+        topic_context: 'plasticity',
+        status: 'approved',
+        queued_at: '2026-01-01',
+        reviewed_at: '2026-01-02',
+        summary: null,
+        data_tier: 'full_text',
+        full_text_status: 'verified',
+      }]),
+    })
+
+    expect(screen.getByText('#2')).toBeTruthy()
+  })
+
+  it('scrolls to and highlights the focused paper', () => {
+    const scrollSpy = vi.fn()
+    Element.prototype.scrollIntoView = scrollSpy
+
+    render(<KnowledgeLibraryPanel />, {
+      wrapper: makeWrapper([{
+        id: 2,
+        title: 'Neuroplasticity',
+        doi: null,
+        url: null,
+        source_type: 'paper',
+        topic_context: 'plasticity',
+        status: 'approved',
+        queued_at: '2026-01-01',
+        reviewed_at: '2026-01-02',
+        summary: null,
+        data_tier: 'full_text',
+        full_text_status: 'verified',
+      }], [], '/knowledge-library?focus=2'),
+    })
+
+    expect(scrollSpy).toHaveBeenCalled()
+    expect(screen.getByTestId('kl-card-2').getAttribute('data-focused')).toBe('true')
   })
 
   it('renders pending source with approve and reject buttons', () => {

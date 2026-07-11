@@ -1,7 +1,7 @@
 # Knowledge Library Augmentation — Design Spec
 
 Date: 2026-07-08
-Status: Approved design; implementation not started
+Status: Approved design; workstreams 1–3 implemented 2026-07-08 (manual gate pending); workstream 4 future
 Scope: Three implementation workstreams (1–3) plus one documented future workstream (4)
 
 ## Problem

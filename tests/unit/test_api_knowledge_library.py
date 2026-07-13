@@ -78,6 +78,28 @@ def test_get_knowledge_library_returns_all_by_default():
     assert len(resp.json()) == 2
 
 
+def test_get_knowledge_library_sorted_alphabetically():
+    """List is ordered case-insensitively by title, independent of queue date."""
+    client, engine = _make_client()
+    # queued_at chosen so date-descending order differs from alphabetical order,
+    # making this assertion fail if the route reverts to queued_at ordering.
+    with get_session(engine) as session:
+        session.add(Paper(title="Cherry", normalized_title="cherry",
+                           source_type="paper", topic_context="x", status="pending",
+                           queued_at="2026-03-01T00:00:00"))
+        session.add(Paper(title="apple", normalized_title="apple",
+                          source_type="paper", topic_context="x", status="pending",
+                          queued_at="2026-01-01T00:00:00"))
+        session.add(Paper(title="Banana", normalized_title="banana",
+                          source_type="paper", topic_context="x", status="pending",
+                          queued_at="2026-02-01T00:00:00"))
+
+    resp = client.get("/api/knowledge-library")
+
+    assert resp.status_code == 200
+    assert [item["title"] for item in resp.json()] == ["apple", "Banana", "Cherry"]
+
+
 def test_get_knowledge_library_filter_by_status():
     client, engine = _make_client()
     _insert_source(engine, "Paper A", "pending")

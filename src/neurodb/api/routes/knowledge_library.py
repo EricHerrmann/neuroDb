@@ -89,7 +89,7 @@ def get_knowledge_library(
             query = query.filter(Paper.status != "removed")
         else:
             query = query.filter(Paper.status == status)
-        rows = query.order_by(Paper.queued_at.desc()).all()
+        rows = query.order_by(Paper.normalized_title.asc()).all()
         items = [_paper_item_from_row(row, session, staged=None) for row in rows]
         review_ids = [row.id for row in rows if row.full_text_status == "needs_review"]
 
